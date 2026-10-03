@@ -4,11 +4,11 @@
   "overall_status": "active",
   "current_phase": "phase_2_vocabulary_v2",
   "last_updated": "2026-10-04T01:45:00+08:00",
-  "last_verified_commit": "6c1c6253104abb668475debfba2d61c50cade9c9",
+  "last_verified_commit": "8a74ba88b8fe18a4999d8795aabd3f81839aa881",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 2,
   "build_status": "passed",
-  "test_status": "passed (20/20 via node --test)",
+  "test_status": "passed (25/25 via node --test)",
   "tasks": {
     "phase0_audit_001": {
       "status": "passed",
