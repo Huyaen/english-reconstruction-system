@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import 'fake-indexeddb/auto';
+import * as imp from '../src/import.ts';
+import * as db from '../src/db.ts';
+import * as XLSX from 'xlsx';
+import { makeWord } from '../src/core.ts';
+test('TXT blank lines, duplicates, malformed lines and multi meanings', () => { const p = imp.parseText('abandon 放弃；抛弃\n\nabandon 放弃\ninvalid\nadequate 足够的', 'txt'); assert.equal(p.rows.length, 2); assert.equal(p.duplicates, 1); assert.equal(p.errors.length, 1); assert.equal(p.rows[0].zh, '放弃；抛弃'); });
+test('CSV quoted comma and Chinese headers', () => { const p = imp.parseText('英文,中文,词性\n"give up","放弃,停止",v.', 'csv'); assert.equal(p.rows[0].en, 'give up'); assert.equal(p.rows[0].zh, '放弃,停止'); assert.equal(p.rows[0].pos, 'v.'); });
+test('JSON arrays and malformed JSON', () => { assert.equal(imp.parseText('[{"word":"test","meaning":"测试"}]', 'json').rows[0].en, 'test'); assert.throws(() => imp.parseText('{bad', 'json')); });
+test('XLSX import/export real workbook', () => { const book = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([['英文', '中文'], ['word', '单词'], [], ['test', '测试']]), '词书'); const bytes = XLSX.write(book, { type: 'array', bookType: 'xlsx' }); assert.equal(imp.parseWorkbook(bytes).rows.length, 2); });
+test('transaction persists after reopen; corrupt backup leaves originals intact', async () => { await db.openDB(); let d = await db.loadData(); d.books = [{ id: 'b', name: 'Book', created: 1 }]; d.words = [makeWord({ en: 'test', zh: '测试' }, 'b', 0)]; await db.replaceData(d); db.closeDB(); await db.openDB(); assert.equal((await db.loadData()).words.length, 1); const backup = db.backup(d); assert.equal(db.validateBackup(JSON.parse(backup)).words.length, 1); const broken = JSON.parse(backup); broken.data.words[0].schedule.due = 'bad'; assert.throws(() => db.validateBackup(broken)); assert.equal((await db.loadData()).words[0].en, 'test'); });
+test('backup omits key and rejects dangling ids', async () => { const d = await db.loadData(); d.settings.key = 'SECRET'; assert.ok(!db.backup(d).includes('SECRET')); const b = JSON.parse(db.backup(d)); b.data.words[0].bookId = 'missing'; assert.throws(() => db.validateBackup(b)); });

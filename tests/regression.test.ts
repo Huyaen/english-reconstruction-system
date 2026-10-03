@@ -1,0 +1,46 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import 'fake-indexeddb/auto';
+import { emptyData, validateBackup, backup, replaceData, loadData, saveAnswer, putItems } from '../src/db.ts';
+import { makeWord, question } from '../src/core.ts';
+import { newSession, answer } from '../src/quiz.ts';
+import { parseText } from '../src/import.ts';
+test('backup IDs cannot inject HTML attributes', () => { const d = emptyData(); d.books = [{ id: 'b" onclick="alert(1)', name: 'bad', created: 1 }]; assert.throws(() => validateBackup(JSON.parse(backup(d)))); });
+test('backup rejects fractional schedule and counters', () => { const d = emptyData(); d.books = [{ id: 'b', name: 'b', created: 1 }]; const w = makeWord({ en: 'word', zh: '单词' }, 'b', 0); w.schedule.step = 0.5; d.words = [w]; assert.throws(() => validateBackup(JSON.parse(backup(d)))); });
+test('1000 continuous real core questions and transactional answers, then backup clear restore', async () => {
+    const text = Array.from({ length: 10000 }, (_, i) => `word${i}\t释义${i}`).join('\n');
+    const begin = performance.now();
+    const parsed = parseText(text, 'txt');
+    assert.equal(parsed.rows.length, 10000);
+    const d = emptyData();
+    d.books = [{ id: 'stress', name: 'Stress test', created: 1 }];
+    d.words = parsed.rows.map((r, i) => makeWord(r, 'stress', i));
+    await replaceData(d);
+    let s = newSession(d.words.slice(0, 1000), 'quick');
+    await putItems('sessions', [s]);
+    const start = performance.now();
+    let max = 0;
+    for (let i = 0; i < 1000; i++) {
+        const t = performance.now();
+        const w = d.words[i];
+        s.question = question(w, d.words, i % 2 ? 'en-zh' : 'zh-en', 'hard');
+        const r = answer(s, w, w.id, 800, 'answer', d.settings);
+        await saveAnswer(r.word, r.record, r.session);
+        s = r.session;
+        d.words[i] = r.word;
+        max = Math.max(max, performance.now() - t);
+    }
+    const loaded = await loadData();
+    assert.equal(loaded.records.length, 1000);
+    assert.equal(loaded.words.length, 10000);
+    assert.equal(loaded.sessions[0].answered, 1000);
+    const encoded = backup(loaded);
+    const recovered = validateBackup(JSON.parse(encoded));
+    await replaceData(emptyData());
+    assert.equal((await loadData()).words.length, 0);
+    await replaceData(recovered);
+    const restored = await loadData();
+    assert.equal(restored.records.length, 1000);
+    assert.deepEqual(restored.words, loaded.words);
+    console.log(JSON.stringify({ benchmark: '10k words / 1000 questions', importAndDbMs: Math.round(start - begin), totalAnswerMs: Math.round(performance.now() - start), maxQuestionMs: Math.round(max), backupBytes: encoded.length }));
+});
