@@ -3,13 +3,22 @@
 // 索引定义见 src/db.ts 的 indexSpecs（DB v2）。
 import type { Word, WordExposure, ReviewRecord, SkillSnapshot, DailyPlan, MiniUnit, StudySession } from './types.ts';
 import { openDB, getDB } from './db.ts';
+import { effectiveDue } from './fsrs.ts';
 const p = <T>(r: IDBRequest<T>) => new Promise<T>((resolve, reject) => { r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
 const MAX = Number.MAX_SAFE_INTEGER;
 // 到期复习词（schedule.due 索引；未测试的新词 due=0 不算到期）
-export async function dueWords(now = Date.now()): Promise<Word[]> {
+// 到期复习词（按调度权威选择索引：legacy → schedule.due；fsrs → fsrs.due 与 schedule.due 合并后过滤有效 due）
+export async function dueWords(now = Date.now(), authority: 'legacy' | 'fsrs' = 'fsrs'): Promise<Word[]> {
     await openDB();
-    const rows = await p(getDB().transaction('words').objectStore('words').index('schedule.due').getAll(IDBKeyRange.upperBound(now)) as IDBRequest<Word[]>);
-    return rows.filter(w => w.state.total > 0);
+    const store = getDB().transaction('words').objectStore('words');
+    const range = IDBKeyRange.upperBound(now);
+    const merged = new Map<string, Word>();
+    for (const w of await p(store.index('schedule.due').getAll(range) as IDBRequest<Word[]>))
+        merged.set(w.id, w);
+    if (authority === 'fsrs')
+        for (const w of await p(store.index('fsrs.due').getAll(range) as IDBRequest<Word[]>))
+            merged.set(w.id, w);
+    return [...merged.values()].filter(w => w.state.total > 0 && effectiveDue(w, authority) <= now);
 }
 export async function wordsByBook(bookId: string): Promise<Word[]> {
     await openDB();

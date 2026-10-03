@@ -1,11 +1,11 @@
 import type { Data, Settings, Word, WordExposure, GrammarAttempt, ReviewRecord, StudySession, MigrationRecord } from './types.ts';
-import { defaults } from './types.ts';
+import { defaults, fsrsDefaults } from './types.ts';
 import { validSettings } from './core.ts';
 // —— 数据库版本与迁移框架（Phase 1）——
 // 设计依据：REFERENCE_RESEARCH.md §6.1（Dexie 版本化 schema 思想）与 §2.1（Lute migration 模式）。
 // 原则：只加不删（additive only）；逐版本迁移；升级事务原子性（失败自动回滚，旧数据安全）。
 export const DB_NAME = 'vocabulary-memory-v1';
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
 const legacyStores = ['books', 'words', 'records', 'sessions', 'analyses', 'meta'] as const;
 const legacyDataStores = ['books', 'words', 'records', 'sessions', 'analyses'] as const;
 const v2Stores = ['wordExposures', 'grammarConcepts', 'grammarAttempts', 'sentenceAttempts', 'passages', 'readingSessions', 'inputSources', 'inputSessions', 'outputAttempts', 'dailyPlans', 'miniUnits', 'skillSnapshots', 'weeklyDiagnostics', 'libraryItems'] as const;
@@ -18,7 +18,7 @@ const indexSpecs: Partial<Record<StoreName, readonly [
     string,
     string | string[]
 ][]>> = {
-    words: [['bookId', 'bookId'], ['schedule.due', 'schedule.due']],
+    words: [['bookId', 'bookId'], ['schedule.due', 'schedule.due'], ['fsrs.due', 'fsrs.due']],
     records: [['wordId,at', ['wordId', 'at']], ['at', 'at']],
     wordExposures: [['wordId,at', ['wordId', 'at']], ['at', 'at']],
     grammarConcepts: [['parentId', 'parentId'], ['nextReviewAt', 'nextReviewAt']],
@@ -51,16 +51,45 @@ export function withV2WordDefaults(w: Word): Word {
     out.sourceTypes ??= ['book'];
     return out;
 }
+// v3：Word 回填 FSRS 状态与 Preview 结果（幂等）
+export function withV3WordDefaults(w: Word): Word {
+    if (w.fsrs !== undefined && w.previewResult !== undefined)
+        return w;
+    const out = { ...w };
+    out.fsrs ??= { ...fsrsDefaults };
+    out.previewResult ??= '';
+    return out;
+}
+export function withWordDefaults(w: Word): Word { return withV3WordDefaults(withV2WordDefaults(w)); }
 // 把任意来源（旧备份、旧数据）规范化为完整的 v2 Data 形状
 export function normalizeData(d: Data): Data {
     const bag = d as unknown as Record<string, unknown>;
     for (const name of v2Stores)
         if (!Array.isArray(bag[name]))
             bag[name] = [];
-    d.words = d.words.map(withV2WordDefaults);
+    d.words = d.words.map(withWordDefaults);
     return d;
 }
 let db: IDBDatabase;
+function runBackfills(tx: IDBTransaction, fns: Array<(w: Word) => Word>) {
+    const step = (i: number) => {
+        if (i >= fns.length)
+            return;
+        const request = tx.objectStore('words').openCursor();
+        request.onsuccess = () => {
+            const cursor = request.result;
+            if (!cursor) {
+                step(i + 1);
+                return;
+            }
+            const updated = fns[i](cursor.value as Word);
+            if (updated !== cursor.value)
+                cursor.update(updated);
+            cursor.continue();
+        };
+    };
+    step(0);
+}
 function runMigration(database: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
     if (oldVersion < 1)
         for (const name of legacyStores as readonly string[])
@@ -70,29 +99,26 @@ function runMigration(database: IDBDatabase, tx: IDBTransaction, oldVersion: num
         for (const name of v2Stores as readonly string[])
             if (!database.objectStoreNames.contains(name))
                 database.createObjectStore(name, { keyPath: 'id' });
-        for (const [name, specs] of Object.entries(indexSpecs)) {
-            const store = tx.objectStore(name);
-            for (const [index, keyPath] of specs ?? [])
-                if (!store.indexNames.contains(index))
-                    store.createIndex(index, keyPath as string | string[]);
-        }
-        // 旧词条回填 v2 默认字段（cursor 遍历；已具备字段的跳过写回）
-        const request = tx.objectStore('words').openCursor();
-        request.onsuccess = () => {
-            const cursor = request.result;
-            if (!cursor)
-                return;
-            const updated = withV2WordDefaults(cursor.value as Word);
-            if (updated !== cursor.value)
-                cursor.update(updated);
-            cursor.continue();
-        };
-        // 仅真实升级（v1 库）写迁移记录；全新安装（oldVersion=0）无需记录
-        if (oldVersion >= 1) {
-            const record: MigrationRecord = { from: oldVersion, to: 2, at: Date.now() };
-            tx.objectStore('meta').put({ id: 'migration', value: record });
-        }
     }
+    // 数据回填：逐版本顺序执行（串行游标，避免并行游标互相覆盖；幂等）
+    const backfills: Array<(w: Word) => Word> = [];
+    if (oldVersion < 2)
+        backfills.push(withV2WordDefaults);
+    if (oldVersion < 3)
+        backfills.push(withV3WordDefaults);
+    runBackfills(tx, backfills);
+    // 索引同步：对当前 schema 中已存在的 store 补齐缺失索引（幂等；新增索引只改 indexSpecs 即可）
+    for (const [name, specs] of Object.entries(indexSpecs)) {
+        if (!database.objectStoreNames.contains(name))
+            continue;
+        const store = tx.objectStore(name);
+        for (const [index, keyPath] of specs ?? [])
+            if (!store.indexNames.contains(index))
+                store.createIndex(index, keyPath as string | string[]);
+    }
+    // 仅真实升级（oldVersion ≥ 1）写迁移记录；全新安装不写；同一 id 覆盖，只保留最近一次
+    if (oldVersion >= 1)
+        tx.objectStore('meta').put({ id: 'migration', value: { from: oldVersion, to: DB_VERSION, at: Date.now() } as MigrationRecord });
 }
 export async function openDB(): Promise<void> {
     if (db)
@@ -163,6 +189,16 @@ export async function putItems(name: DataStoreName, items: unknown[]) {
     await p;
 }
 export async function saveAnswer(word: Word, record: ReviewRecord, session: StudySession) { const tx = db.transaction(['words', 'records', 'sessions'], 'readwrite'); const p = done(tx); tx.objectStore('words').put(word); tx.objectStore('records').put(record); tx.objectStore('sessions').put(session); await p; }
+// Preview 结果落盘（Phase 2.6）：word 与可选 exposure 单事务写入
+export async function savePreview(word: Word, exposure: WordExposure | null) {
+    const names = exposure ? ['words', 'wordExposures'] : ['words'];
+    const tx = db.transaction(names, 'readwrite');
+    const p = done(tx);
+    tx.objectStore('words').put(word);
+    if (exposure)
+        tx.objectStore('wordExposures').put(exposure);
+    await p;
+}
 export function backup(d: Data) {
     const data: Record<string, unknown> = {};
     for (const name of dataStores)
@@ -180,7 +216,7 @@ export function validateBackup(value: unknown): Data {
         version: number;
         data: Data;
     };
-    if (v.format !== 'vocabulary-memory' || ![1, 2].includes(v.version) || !v.data)
+    if (v.format !== 'vocabulary-memory' || ![1, 2, 3].includes(v.version) || !v.data)
         return fail();
     const d = v.data;
     for (const k of ['books', 'words', 'records', 'sessions', 'analyses'] as const) {
@@ -228,6 +264,10 @@ export function validateBackup(value: unknown): Data {
                 return fail();
         if (w.sourceTypes !== undefined && (!Array.isArray(w.sourceTypes) || w.sourceTypes.some(t => typeof t !== 'string' || t.length > 64)))
             return fail();
+        if (w.previewResult !== undefined && typeof w.previewResult !== 'string')
+            return fail();
+        if (w.fsrs !== undefined && (typeof w.fsrs !== 'object' || w.fsrs === null || !['stability', 'difficulty', 'state', 'reps', 'lapses', 'due', 'lastReview', 'scheduledDays', 'learningSteps'].every(k => num((w.fsrs as unknown as Record<string, unknown>)[k]))))
+            return fail();
     }
     for (const s of d.sessions) {
         if (!num(s.started) || s.ended !== null && !num(s.ended) || typeof s.mode !== 'string' || !Array.isArray(s.queue) || s.queue.some(id => !wordIds.has(id)) || ![s.index, s.answered, s.correct].every(n => num(n) && Number.isInteger(n)) || s.index > s.queue.length || s.correct > s.answered || !s.retries || Object.entries(s.retries).some(([id, n]) => !wordIds.has(id) || !num(n)))
@@ -238,6 +278,9 @@ export function validateBackup(value: unknown): Data {
     }
     for (const r of d.records)
         if (!wordIds.has(r.wordId) || !sessionIds.has(r.sessionId) || !num(r.at) || !num(r.ms) || !dirs.includes(r.direction) || typeof r.correct !== 'boolean' || typeof r.scheduled !== 'boolean' || !levels.includes(r.before) || !levels.includes(r.after) || !['answer', 'unknown', 'timeout'].includes(r.reason) || r.selectedId !== null && !wordIds.has(r.selectedId))
+            return fail();
+    for (const r of d.records)
+        if (r.rating !== undefined && !(Number.isInteger(r.rating) && r.rating >= 1 && r.rating <= 4))
             return fail();
     for (const a of d.analyses)
         if (typeof a.text !== 'string' || typeof a.model !== 'string' || !num(a.at) || !num(a.sampleSize))

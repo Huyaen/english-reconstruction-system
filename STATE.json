@@ -2,13 +2,13 @@
   "project": "English Reconstruction System V2",
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "active",
-  "current_phase": "phase_2_vocabulary_v2",
-  "last_updated": "2026-10-04T01:45:00+08:00",
+  "current_phase": "phase_3_daily_planner",
+  "last_updated": "2026-10-04T03:10:00+08:00",
   "last_verified_commit": "8a74ba88b8fe18a4999d8795aabd3f81839aa881",
   "baseline_tag": "v1.0.0-mvp-baseline",
-  "database_version": 2,
+  "database_version": 3,
   "build_status": "passed",
-  "test_status": "passed (25/25 via node --test)",
+  "test_status": "passed (39/39 via node --test)",
   "tasks": {
     "phase0_audit_001": {
       "status": "passed",
@@ -70,8 +70,14 @@
       "tests": ["model 查询测试（复合索引范围查询、到期过滤、快照倒序）"]
     },
     "phase2_vocabulary_v2_006": {
+      "status": "passed",
+      "description": "Vocabulary V2 全量交付：ts-fsrs@5.4.2 调度（shadow→默认权威+回滚开关）、DB v3（fsrs/previewResult 回填 + fsrs.due 索引）、多因素 Rating 映射、Preview→Recall 强制、三维证据、多词池/Learning Value/动态新词量、UI 集成",
+      "files": ["src/fsrs.ts", "src/evidence.ts", "src/pools.ts", "src/db.ts", "src/quiz.ts", "src/model.ts", "src/stats.ts", "src/app.ts", "src/types.ts", "src/core.ts", "src/style.css"],
+      "tests": ["tests/fsrs.test.ts", "tests/vocab.test.ts", "tests/migration.test.ts(+v2→v3)", "tests/ui.test.ts(Preview 流程)", "浏览器 smoke（CDP 无头 Edge）通过"]
+    },
+    "phase3_daily_planner_007": {
       "status": "planned",
-      "description": "Vocabulary V2：ts-fsrs 调度替换（含评分映射）、Preview、word lifecycle、三维 mastery、多词池、Learning Value、forgotten reflow、exposure evidence、动态新词量",
+      "description": "Daily Planner：Time Budget First、状态三档、Yesterday Recall、计划生成（调用 recommendedNewWordCount/buildNewWordQueue/effectiveDue）、动态调整（≤20–30%）、Closing Loop、中断/恢复（1天/2-3天/7天+）",
       "files": [],
       "tests": []
     }
@@ -85,7 +91,7 @@
     "调度为透明启发式阶梯方案，非 FSRS/科学遗忘模型（docs/ALGORITHMS.md 已明示）"
   ],
   "blocked": [],
-  "next_task_id": "phase2_vocabulary_v2_006",
+  "next_task_id": "phase3_daily_planner_007",
   "environment": {
     "node": "v26.7.0",
     "npm": "11.19.0",

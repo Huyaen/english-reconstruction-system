@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import 'fake-indexeddb/auto';
 import { openDB, closeDB, loadData, replaceData, backup, validateBackup, emptyData, DB_NAME } from '../src/db.ts';
 import { dueWords, recordsForWord, exposuresForWord, exposureStats, activeMiniUnit, planForDate, latestSnapshots, unfinishedSessions } from '../src/model.ts';
-import { defaults } from '../src/types.ts';
+import { defaults, fsrsDefaults } from '../src/types.ts';
 const legacyStores = ['books', 'words', 'records', 'sessions', 'analyses', 'meta'];
 const v2Stores = ['wordExposures', 'grammarConcepts', 'grammarAttempts', 'sentenceAttempts', 'passages', 'readingSessions', 'inputSources', 'inputSessions', 'outputAttempts', 'dailyPlans', 'miniUnits', 'skillSnapshots', 'weeklyDiagnostics', 'libraryItems'];
 function openRaw(version?: number): Promise<IDBDatabase> {
@@ -55,15 +55,18 @@ test('v1 → v2 migration preserves all legacy data and adds new schema', async 
     assert.equal(w.recognitionScore, 0);
     assert.deepEqual(w.sourceTypes, ['book']);
     assert.equal(w.previewedAt, 0);
+    assert.deepEqual(w.fsrs, fsrsDefaults);
+    assert.equal(w.previewResult, '');
     assert.equal(d.records.length, 1);
     assert.equal(d.sessions.length, 1);
-    assert.ok(d.migration && d.migration.from === 1 && d.migration.to === 2 && d.migration.at > 0);
+    assert.ok(d.migration && d.migration.from === 1 && d.migration.to === 3 && d.migration.at > 0);
     assert.equal(d.wordExposures.length, 0);
     assert.equal(d.libraryItems.length, 0);
     const raw = await openRaw();
     assert.ok(v2Stores.every(n => raw.objectStoreNames.contains(n)));
     assert.ok(raw.transaction('words').objectStore('words').indexNames.contains('bookId'));
     assert.ok(raw.transaction('words').objectStore('words').indexNames.contains('schedule.due'));
+    assert.ok(raw.transaction('words').objectStore('words').indexNames.contains('fsrs.due'));
     assert.ok(raw.transaction('wordExposures').objectStore('wordExposures').indexNames.contains('wordId,at'));
     raw.close();
 });
@@ -84,6 +87,8 @@ test('v1 backup restores into v2 database (new fields backfilled)', async () => 
     const restored = validateBackup(JSON.parse(JSON.stringify(v1backup)));
     assert.equal(restored.words.length, 2);
     assert.equal(restored.words.find(x => x.id === 'word-1')!.recognitionScore, 0);
+    assert.equal(restored.words.find(x => x.id === 'word-1')!.previewResult, '');
+    assert.deepEqual(restored.words.find(x => x.id === 'word-1')!.fsrs, fsrsDefaults);
     assert.deepEqual(restored.wordExposures, []);
     await replaceData(restored);
     const d = await loadData();
@@ -106,7 +111,7 @@ test('v2 backup roundtrip carries new stores; validator rejects dangling referen
     assert.equal(loaded.wordExposures.length, 2);
     const encoded = backup(loaded);
     const parsed = JSON.parse(encoded);
-    assert.equal(parsed.version, 2);
+    assert.equal(parsed.version, 3);
     const validated = validateBackup(parsed);
     assert.equal(validated.wordExposures.length, 2);
     assert.equal(validated.miniUnits.length, 1);
@@ -136,4 +141,48 @@ test('model query layer answers from v2 indexes', async () => {
     assert.equal(snaps.length, 1);
     assert.equal(snaps[0].id, 'snap-1');
     assert.equal((await unfinishedSessions()).length, 0);
+});
+test('v2 → v3 migration backfills FSRS defaults (fixture) and is idempotent', async () => {
+    closeDB();
+    await new Promise<void>((resolve, reject) => { const r = indexedDB.deleteDatabase(DB_NAME); r.onsuccess = () => resolve(); r.onerror = () => reject(r.error); r.onblocked = () => resolve(); });
+    const v2names = [...legacyStores, ...v2Stores];
+    const raw = await new Promise<IDBDatabase>((resolve, reject) => {
+        const r = indexedDB.open(DB_NAME, 2);
+        r.onupgradeneeded = () => {
+            for (const n of v2names)
+                r.result.createObjectStore(n, { keyPath: 'id' });
+        };
+        r.onsuccess = () => resolve(r.result);
+        r.onerror = () => reject(r.error);
+    });
+    const v2Word = { ...legacyWord, recognitionScore: 12, activeRecallScore: 5, productiveScore: 0, exposureCount: 2, contextExposureCount: 1, productionEvidence: 0, previewedAt: 111, lastEncounteredAt: 222, sourceTypes: ['book'] };
+    await new Promise<void>((resolve, reject) => {
+        const tx = raw.transaction(['books', 'words', 'records', 'sessions', 'meta'], 'readwrite');
+        tx.objectStore('books').put(legacyBook);
+        tx.objectStore('words').put(v2Word);
+        tx.objectStore('records').put(legacyRecord);
+        tx.objectStore('sessions').put(legacySession);
+        tx.objectStore('meta').put({ id: 'settings', value: { ...defaults } });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+    raw.close();
+    await openDB();
+    const d = await loadData();
+    const w = d.words.find(x => x.id === 'word-1')!;
+    assert.equal(w.state.correct, 2);
+    assert.equal(w.recognitionScore, 12);
+    assert.equal(w.previewedAt, 111);
+    assert.deepEqual(w.fsrs, fsrsDefaults);
+    assert.equal(w.previewResult, '');
+    assert.ok(d.migration && d.migration.from === 2 && d.migration.to === 3);
+    const check = await openRaw();
+    assert.ok(check.transaction('words').objectStore('words').indexNames.contains('fsrs.due'));
+    check.close();
+    closeDB();
+    await openDB();
+    const again = await loadData();
+    assert.deepEqual(again.words.find(x => x.id === 'word-1')!.fsrs, fsrsDefaults);
+    assert.equal(again.records.length, 1);
+    assert.equal(again.words.length, 1);
 });

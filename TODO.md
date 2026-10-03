@@ -3,7 +3,7 @@
 > P0 = 当前阶段必要；P1 = 重要；P2 = 后续优化。
 > 任务状态以 `STATE.json` 为准（task_id 一一对应）。
 
-## P0 — Phase 2 Vocabulary V2（进行中）
+## P0 — Phase 3 Daily Planner（进行中）
 
 - [x] `phase0_5_reference_research_004`：GitHub 参考调研（候选 40+、深挖 12）→ `REFERENCE_RESEARCH.md`（Adopt / Adapt / Reject）✔ 2026-10-04
 - [x] `phase1_db_migration_001`：IndexedDB v1→v2 versioned migration 框架（只加不删、原子升级）+ 迁移测试 ✔ 2026-10-04（tests/migration.test.ts）
@@ -11,7 +11,8 @@
 - [x] `phase1_word_upgrade_003`：Word 三维能力（recognition/activeRecall/productive）、exposure、来源字段 + 旧数据默认值迁移 ✔
 - [x] `phase1_backup_v2_004`：备份格式 v2（含新 stores；兼容读入 v1 备份）✔
 - [x] `phase1_model_api_005`：Learning Model 查询层（src/model.ts，索引化，避免全表扫描）✔
-- [ ] `phase2_vocabulary_v2_006`：ts-fsrs 调度替换（评分映射）+ v2→v3 迁移（Word.fsrs）+ Preview / 生命周期 / 多词池 / Learning Value
+- [x] `phase2_vocabulary_v2_006`：ts-fsrs@5.4.2 调度（shadow→默认+回滚）、DB v3、Rating 映射、Preview→Recall、三维证据、多词池/Learning Value/动态新词量、UI ✔ 2026-10-04（39/39 tests + 浏览器 smoke）
+- [ ] `phase3_daily_planner_007`：Time Budget First / 状态三档 / Yesterday Recall / 计划生成 / 动态调整 / Closing Loop / 中断恢复（调用 recommendedNewWordCount 等已就绪 API）
 
 ## P1 — 后续开发阶段（AGENT_EXECUTION.md Phase 2–13）
 

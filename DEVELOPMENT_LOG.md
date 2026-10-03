@@ -70,3 +70,11 @@ Git：项目此前无 Git → `git init -b main`，baseline commit `6c1c625`，t
 过程记录：初版冗余索引导致 fake-indexeddb 写放大（1000 题 8.7s→16.6s）→ 精简为复合索引（复合索引前缀等价）；TS2783（spread 覆盖默认值报错）→ 改为 ??= 赋值。
 
 下一步：Phase 2 — Vocabulary V2（先 `npm install ts-fsrs`（MIT，记录版本）→ 设计 Word.fsrs 字段与 v2→v3 迁移 → 反应时间分类→FSRS Rating 映射 → 回归全绿）。
+
+## 2026-10-04 — Phase 2 — Vocabulary V2
+
+完成：ts-fsrs@5.4.2（MIT，`--save-exact`）经 `src/fsrs.ts` 适配层接入；DB v2→v3（Word.fsrs + previewResult 回填、fsrs.due 索引、串行回填修复并行游标竞态、backup v3 兼容 v1/v2）；多因素 Rating 映射（首次 Recall 封顶 Good；Easy 需秒答+streak+间隔证据）；Preview→Recall 强制（UNSEEN 拦截）；三维证据（recognition/activeRecall/productive + exposure/production API）；多词池（foundation/miniUnit/encountered/forgotten 优先回流；游标式配额修复重复选取）；Learning Value 确定性评分；动态新词量纯函数（供 Phase 3）。
+关键实现：新增 src/fsrs.ts、src/evidence.ts、src/pools.ts；重写 db.ts 迁移框架（runBackfills 串行链 + 索引同步 + v3）；quiz.ts 接入 shadow 双算 + record.rating；model.ts/stats.ts 按调度权威取 due；app.ts 新增「今日新词」面板、Preview 会话、生命周期列、词详情三维/FSRS 展示、设置页调度引擎与目标保留率；types.ts Settings/Word/ReviewRecord 扩展。
+测试：npm test **39 pass / 0 fail**（新增 fsrs 6、vocab 7、migration +1、ui 扩展；含 v1→v3 与 v2→v3 fixture、幂等、备份兼容/悬空拒绝、Preview 流程 DOM 断言）；npm run build 成功（511.74 kB / gzip 176.27 kB）；**真实浏览器 smoke（无头 Edge + CDP）通过**：导入→未预览拦截→Preview 8/8→Recall 作答→退出恢复→IDB v3/FSRS/rating 校验→reload 保留。
+过程记录：并行游标回填互相覆盖（v2/v3）→ 串行游标链修复；pools fallback 重复选取 → 游标式消费修复；`#quit` 保存忙碌期点击被忽略 → smoke 脚本改为重试；TS2783/TS2352 类型修复。
+下一步：Phase 3 — Daily Planner（直接调用 recommendedNewWordCount/buildNewWordQueue/effectiveDue；DailyPlan store 已就绪）。

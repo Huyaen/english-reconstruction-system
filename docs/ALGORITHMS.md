@@ -58,3 +58,44 @@ S≥90、A≥65、B≥40、C≥15、其余D。到期与弱词队列按分数降�
 日期采用本地日历日。今日次数是记录数，覆盖词为wordId去重。同一英文在不同词书有不同wordId。
 今日新增/消除弱词比较今天该词首次记录before和最后记录after。
 有效掌握=state.level为fluent且未超过due的词数。历史“进入熟练次数”和“到期答错次数”是事件次数，不是日内净新增词数。
+
+---
+
+# Phase 2 起：FSRS 调度（ts-fsrs@5.4.2）
+
+实际 API 与字段以安装版本为准（`node_modules/ts-fsrs/dist/index.d.ts`）。业务层只通过 `src/fsrs.ts` 使用。
+
+## 状态与字段
+
+- Word.fsrs：`stability / difficulty / state(New=0,Learning=1,Review=2,Relearning=3) / reps / lapses / due / lastReview / scheduledDays / learningSteps`（时间戳毫秒）
+- 参数：`request_retention`（默认 0.9）、`maximum_interval=36500`、`enable_fuzz=false`（确定性）、`enable_short_term=true`（学习步 [1m,10m]）
+
+## Rating 映射（多因素，禁止单因素）
+
+| 条件 | Rating |
+|---|---|
+| 错误 / 超时 / 主动不知道 | Again |
+| 正确但 ms > normalMs | Hard |
+| 首次正式 Recall 的正确（防短期记忆高估） | Good（封顶） |
+| 秒答 + streak≥4 +（跨间隔≥2 或 FSRS reps≥2） | Easy |
+| 其余正确 | Good |
+
+阈值集中在 `RatingConfig`（fastMs/normalMs/timeoutMs 来自设置；easyMinStreak=4；easyMinSpaced=2；easyMinReps=2）。
+
+## 调度权威与过渡
+
+- `settings.schedulingAuthority`：`fsrs`（默认）｜`legacy`（回滚）。每次作答**同时**更新两套状态（shadow）；队列/到期显示按权威取值（`effectiveDue()`；无 FSRS 历史的词回退旧 due）。
+- 旧调度器字段（interval/step/spacedPasses/due）继续维护，保证可随时回滚。
+
+## 证据与生命周期（src/evidence.ts）
+
+- Exposure（preview/reading/input）≠ Recall Evidence（答题）≠ Production Evidence（Output，预留 API）。
+- 三维分数 EWMA（α=0.2）：recognition（En→中）/ activeRecall（中→En）/ productive（产出证据）。
+- 生命周期：unseen→previewed→learning→recognition→active→productive（由分数 + 证据计数推导；可回退）。recognition 需 score≥55 且 En→中 证据≥3；active 需再满足 activeRecall≥55 且 中→En 证据≥3；productive 需生产证据≥3 且 productiveScore≥40。
+- forgotten（回流）：lapses≥1 且 total≥4 且当前 unknown/vague 且（跨间隔≥1 或 FSRS reps≥3）。
+
+## 词池与价值（src/pools.ts）
+
+- 比例：foundation 55% / miniUnit 25% / encountered 20%（空池自动重分配，绝不造假数据）；Forgotten 优先回流、不计入新词数（上限 ceil(count×0.5)）。
+- Learning Value（确定性）：foundation 标签/词书顺序 + encountered + forgotten + 难度适配 − 专名启发式；返回 `{score, reasons[], components{}}`。
+- 动态新词量 `recommendedNewWordCount()`：`base=(availableMinutes×0.35)/0.6` × retentionFactor（D7≥0.8→1.2；<0.6→0.6；D1<0.6 再封顶 0.7）× energyFactor（low 0.7 / good 1.1）× loadFactor（due>80→0.5，>40→0.7；weak>100→0.8；近正确率<0.6→0.8），钳制 [5,40]。

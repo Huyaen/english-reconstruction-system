@@ -1,17 +1,21 @@
 import './style.css';
 import type { Data, Word, StudySession, Settings, ReviewRecord, Mastery } from './types.ts';
-import { openDB, loadData, replaceData, saveSettings, putItems, saveAnswer, backup, validateBackup, emptyData } from './db.ts';
+import { openDB, loadData, replaceData, saveSettings, putItems, saveAnswer, savePreview, backup, validateBackup, emptyData } from './db.ts';
 import { makeWord, uid, labels, priority, priorityGrade, shuffle, question, validSettings } from './core.ts';
 import { parseFile, parseText, exportWords, type Parsed } from './import.ts';
 import { newSession, answer } from './quiz.ts';
 import { summary, trend, isWeak, recordStats, dayKey } from './stats.ts';
 import { analyze, analysisPayload, endpoint } from './ai.ts';
+import { applyPreview, isForgotten, isUnseen, lifecycleOf, LIFECYCLE_LABELS, recallEligible, type PreviewResult } from './evidence.ts';
+import { buildNewWordQueue, recommendedNewWordCount } from './pools.ts';
+import { effectiveDue, fsrsRetrievability, hasFsrsHistory } from './fsrs.ts';
 import { $, esc, pct, seconds, date, toast, download, modal, closeModal, on } from './ui.ts';
 let data: Data, page = 'home', bookFilter = '', search = '', levelFilter = '', sort = 'priority', listPage = 0;
 let active: StudySession | null = null, feedback = false, busy = false, started = 0, timer: ReturnType<typeof setTimeout> | null = null, paused = false;
 let startingSession = false;
 let wordMap = new Map<string, Word>();
 let elapsedBeforePause = 0;
+let previewWords: Word[] = [], previewIndex = 0;
 let analysisBusy = false;
 const navs = [['home', '◫', '今日学习'], ['books', '▤', '我的词库'], ['weak', '◎', '薄弱词'], ['stats', '▥', '学习统计'], ['ai', '✦', 'AI 学情'], ['settings', '⚙', '设置与备份']];
 function reindex() { wordMap = new Map(data.words.map(w => [w.id, w])); }
@@ -22,6 +26,10 @@ function setPage(p: string) {
     }
     stopTimer();
     active = null;
+    if (p !== 'preview') {
+        previewWords = [];
+        previewIndex = 0;
+    }
     page = p;
     listPage = 0;
     render();
@@ -38,20 +46,86 @@ function shell() {
     on('.brand', 'click', e => { e.preventDefault(); setPage('home'); });
     on('#theme', 'click', async () => { const s = { ...data.settings, theme: data.settings.theme === 'light' ? 'dark' : 'light' } as Settings; await saveSettings(s); data.settings = s; document.documentElement.dataset.theme = s.theme; $('#theme').textContent = s.theme === 'light' ? '☾' : '☀'; });
 }
-function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage }[page] || home)(); }
+function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage }[page] || home)(); }
 function title(kicker: string, title: string, sub: string, action = '') { return `<div class="page-title"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p>${sub}</p></div>${action}</div>`; }
 function metric(label: string, value: string, note: string) { return `<div class="metric"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`; }
 function rangeControls() { return `<div class="range-controls"><label>学习范围<select id="range-book"><option value="">全部词书</option>${data.books.map(b => `<option value="${b.id}" ${bookFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label><label>本轮词量<select id="range-count">${[50, 100, 300, 500, 1000].map(n => `<option value="${n}" ${n === 100 ? 'selected' : ''}>${n} 词</option>`).join('')}</select></label><label>测试方向<select id="range-ratio">${![0, 30, 50, 70, 100].includes(data.settings.ratio) ? `<option value="${data.settings.ratio}" selected>英→中 ${data.settings.ratio}%（自定义）</option>` : ''}<option value="50" ${data.settings.ratio === 50 ? 'selected' : ''}>双向各 50%</option><option value="70" ${data.settings.ratio === 70 ? 'selected' : ''}>英→中 70%</option><option value="30" ${data.settings.ratio === 30 ? 'selected' : ''}>中→英 70%</option><option value="100" ${data.settings.ratio === 100 ? 'selected' : ''}>识别 · 英→中</option><option value="0" ${data.settings.ratio === 0 ? 'selected' : ''}>提取 · 中→英</option></select></label></div>`; }
 function home() {
     const s = summary(data), unfinished = data.sessions.find(s => !s.ended);
-    $('#main').innerHTML = title('DAILY PRACTICE', '今天，让记忆再深一点', '快速检索，找到弱词，在忘记之前再见一次。', `<button id="import" class="secondary">＋ 导入词书</button>`) + `<div class="metrics">${metric('今日作答', String(s.today.attempts), '覆盖 ' + s.today.unique + ' 个单词')}${metric('今日正确率', s.today.attempts ? pct(s.today.accuracy) : '—', '英中双向检索')}${metric('平均反应', s.today.attempts ? seconds(s.today.meanMs) : '—', '从题目出现到提交')}${metric('有效掌握', String(s.effective), '双向 · 多次间隔验证')}</div>${unfinished ? `<div class="resume"><span>有一轮未完成的训练 · 已答 ${unfinished.answered} 题</span><button id="resume" class="primary">继续本轮</button><button id="finish-old" class="text-button">结束本轮</button></div>` : ''}<section class="panel practice"><div class="section-title"><h2>开始一轮训练</h2><span class="subtle">${data.words.length} 个词 · ${data.books.length} 本词书</span></div>${rangeControls()}<div class="modes"><button class="mode featured" data-mode="quick"><span class="mode-symbol">↗</span><h3>快速刷词</h3><p>大量扫描，找出不熟的词</p><span class="mode-bottom">开始检索 <b>→</b></span></button><button class="mode" data-mode="due"><span class="mode-symbol">◷</span><h3>今日复习 <em>${s.due}</em></h3><p>优先处理已到期的记忆</p><span class="mode-bottom">巩固记忆 <b>→</b></span></button><button class="mode" data-mode="weak"><span class="mode-symbol">◎</span><h3>弱词强化 <em>${s.weak}</em></h3><p>集中攻克不会和模糊词</p><span class="mode-bottom">开始强化 <b>→</b></span></button><button class="mode" data-mode="random"><span class="mode-symbol">⤨</span><h3>随机抽查</h3><p>检验学过的词是否还记得</p><span class="mode-bottom">抽查记忆 <b>→</b></span></button></div></section><div class="two-col"><section class="panel"><div class="section-title"><h2>记忆分布</h2><span class="subtle">全部词库</span></div>${distribution()}<p class="hint">“熟练”需要双向和间隔测试证据。短时间反复答对不会直接计入长期掌握。</p></section><section class="panel"><div class="section-title"><h2>今日弱词变化</h2></div><div class="weak-change"><div><strong>${s.newWeak}</strong><span>新增弱词</span></div><div><strong class="green">${s.resolved}</strong><span>已转为正常或熟练</span></div></div><p class="hint">按今天首次与最后一次作答状态比较，同一个词不重复计数。</p></section></div>${!data.words.length ? `<div class="empty-note"><strong>从你自己的词书开始</strong><p>支持 TXT、CSV、XLSX 和 JSON。导入至少 6 个不同释义的单词，即可体验全部难度。</p><button class="text-button" id="template">下载词书格式示例</button></div>` : ''}`;
+    $('#main').innerHTML = title('DAILY PRACTICE', '今天，让记忆再深一点', '快速检索，找到弱词，在忘记之前再见一次。', `<button id="import" class="secondary">＋ 导入词书</button>`) + `<div class="metrics">${metric('今日作答', String(s.today.attempts), '覆盖 ' + s.today.unique + ' 个单词')}${metric('今日正确率', s.today.attempts ? pct(s.today.accuracy) : '—', '英中双向检索')}${metric('平均反应', s.today.attempts ? seconds(s.today.meanMs) : '—', '从题目出现到提交')}${metric('有效掌握', String(s.effective), '双向 · 多次间隔验证')}</div>${newWordsPanel()}${unfinished ? `<div class="resume"><span>有一轮未完成的训练 · 已答 ${unfinished.answered} 题</span><button id="resume" class="primary">继续本轮</button><button id="finish-old" class="text-button">结束本轮</button></div>` : ''}<section class="panel practice"><div class="section-title"><h2>开始一轮训练</h2><span class="subtle">${data.words.length} 个词 · ${data.books.length} 本词书</span></div>${rangeControls()}<div class="modes"><button class="mode featured" data-mode="quick"><span class="mode-symbol">↗</span><h3>快速刷词</h3><p>大量扫描，找出不熟的词</p><span class="mode-bottom">开始检索 <b>→</b></span></button><button class="mode" data-mode="due"><span class="mode-symbol">◷</span><h3>今日复习 <em>${s.due}</em></h3><p>优先处理已到期的记忆</p><span class="mode-bottom">巩固记忆 <b>→</b></span></button><button class="mode" data-mode="weak"><span class="mode-symbol">◎</span><h3>弱词强化 <em>${s.weak}</em></h3><p>集中攻克不会和模糊词</p><span class="mode-bottom">开始强化 <b>→</b></span></button><button class="mode" data-mode="random"><span class="mode-symbol">⤨</span><h3>随机抽查</h3><p>检验学过的词是否还记得</p><span class="mode-bottom">抽查记忆 <b>→</b></span></button></div></section><div class="two-col"><section class="panel"><div class="section-title"><h2>记忆分布</h2><span class="subtle">全部词库</span></div>${distribution()}<p class="hint">“熟练”需要双向和间隔测试证据。短时间反复答对不会直接计入长期掌握。</p></section><section class="panel"><div class="section-title"><h2>今日弱词变化</h2></div><div class="weak-change"><div><strong>${s.newWeak}</strong><span>新增弱词</span></div><div><strong class="green">${s.resolved}</strong><span>已转为正常或熟练</span></div></div><p class="hint">按今天首次与最后一次作答状态比较，同一个词不重复计数。</p></section></div>${!data.words.length ? `<div class="empty-note"><strong>从你自己的词书开始</strong><p>支持 TXT、CSV、XLSX 和 JSON。导入至少 6 个不同释义的单词，即可体验全部难度。</p><button class="text-button" id="template">下载词书格式示例</button></div>` : ''}`;
     on('#import', 'click', importDialog);
     on('#template', 'click', () => download(new Blob(['\ufeff英文,中文,词性\nabandon,放弃,v.\nadequate,充足的,adj.\nreluctant,不情愿的,adj.\nreliable,可靠的,adj.\nmaintain,维持,v.\nobvious,明显的,adj.']), '词书格式示例.csv'));
     on('#resume', 'click', () => startSession(unfinished!));
     on('#finish-old', 'click', async () => { unfinished!.ended = Date.now(); await putItems('sessions', [unfinished]); render(); });
+    on('#preview-start', 'click', () => startPreview());
+    on('#reflow-start', 'click', () => startReflow());
     document.querySelectorAll<HTMLElement>('[data-mode]').forEach(b => b.onclick = () => { startMode(b.dataset.mode!).catch(e => toast(e.message)); });
 }
 function distribution() { return `<div class="distribution">${(['fluent', 'normal', 'vague', 'unknown', 'new'] as Mastery[]).map(l => { const n = data.words.filter(w => w.state.level === l).length; return `<div><span class="dot ${l}"></span><span>${labels[l]}</span><div class="track"><i class="${l}" style="width:${data.words.length ? n / data.words.length * 100 : 0}%"></i></div><b>${n}</b></div>`; }).join('')}</div>`; }
+function newWordsPanel(): string {
+    const s = summary(data);
+    const rec = recommendedNewWordCount({ availableMinutes: 30, energyState: 'normal', d1Retention: null, d7Retention: null, weakLoad: s.weak, dueLoad: s.due });
+    const unit = data.miniUnits.find(u => u.status === 'active') ?? null;
+    const q = buildNewWordQueue(data.words, { count: rec.recommended, miniUnit: unit });
+    const pools = `基础 ${q.breakdown.byPool.foundation} · 主题 ${q.breakdown.byPool.miniUnit} · 遇见 ${q.breakdown.byPool.encountered}`;
+    const fb = q.breakdown.fallbackReasons.length ? '（部分词池为空，份额已自动重分配）' : '';
+    const reflow = q.breakdown.forgottenCount ? ` · 遗忘回流 ${q.breakdown.forgottenCount} 个优先复习` : '';
+    return `<section class="panel new-words"><div class="section-title"><h2>今日新词 · 先预览再测试</h2><span class="subtle">建议 ${rec.recommended} 个（${rec.min}–${rec.max}）</span></div><p class="hint">来源：${pools}${fb} · 按 30 分钟估算（Daily Planner 上线后自动接入）${reflow}</p><div class="actions"><button id="preview-start" class="primary" ${q.breakdown.newCount ? '' : 'disabled'}>预览新词（${q.breakdown.newCount}）</button>${q.breakdown.forgottenCount ? `<button id="reflow-start" class="secondary">复习回流词（${q.breakdown.forgottenCount}）</button>` : ''}</div></section>`;
+}
+function startPreview() {
+    const s = summary(data);
+    const rec = recommendedNewWordCount({ availableMinutes: 30, energyState: 'normal', weakLoad: s.weak, dueLoad: s.due });
+    const unit = data.miniUnits.find(u => u.status === 'active') ?? null;
+    const q = buildNewWordQueue(data.words, { count: rec.recommended, miniUnit: unit });
+    const words = q.items.filter(i => i.kind === 'new').map(i => wordMap.get(i.wordId)).filter((w): w is Word => !!w);
+    if (!words.length) {
+        toast('没有待预览的新词；先导入词书，或稍后再来');
+        return;
+    }
+    previewWords = words;
+    previewIndex = 0;
+    page = 'preview';
+    render();
+}
+function startReflow() {
+    const words = data.words.filter(isForgotten).sort((a, b) => priority(b) - priority(a)).slice(0, 30);
+    if (!words.length) {
+        toast('当前没有需要回流的遗忘词');
+        return;
+    }
+    void startMode('reflow', words);
+}
+function previewPage() {
+    if (!previewWords.length || previewIndex >= previewWords.length) {
+        previewDone();
+        return;
+    }
+    const w = previewWords[previewIndex];
+    $('#main').innerHTML = `<div class="quiz-top"><button id="quit" class="text-button">← 结束预览</button><span>${previewIndex + 1} / ${previewWords.length}</span><span></span></div><section class="quiz-card preview-card"><div class="eyebrow">NEW WORD PREVIEW</div><div class="question">${esc(w.en)}</div><p class="subtle">${esc(w.phonetic)} ${esc(w.pos)}</p><h3>${esc(w.zh)}</h3>${w.collocation ? `<p>搭配：${esc(w.collocation)}</p>` : ''}${w.example ? `<blockquote>${esc(w.example)}</blockquote>` : ''}<p class="hint">快速建立第一次编码，不用纠结；稍后立刻用 Recall 检验。Preview 不是正式测试。</p><div class="answers preview-actions"><button class="answer" data-preview="know"><kbd>1</kbd><span>已经会</span></button><button class="answer" data-preview="familiar"><kbd>2</kbd><span>熟悉</span></button><button class="answer" data-preview="unknown"><kbd>3</kbd><span>陌生</span></button><button class="answer" data-preview="skip"><kbd>4</kbd><span>跳过</span></button></div></section>`;
+    on('#quit', 'click', previewDone);
+    document.querySelectorAll<HTMLElement>('[data-preview]').forEach(b => b.onclick = () => void previewAnswer(b.dataset.preview as PreviewResult));
+}
+async function previewAnswer(result: PreviewResult) {
+    const w = previewWords[previewIndex];
+    if (!w)
+        return;
+    const { word, exposure } = applyPreview(w, result, Date.now(), uid());
+    await savePreview(word, exposure);
+    data.words[data.words.findIndex(x => x.id === w.id)] = word;
+    wordMap.set(w.id, word);
+    previewIndex++;
+    previewPage();
+}
+function previewDone() {
+    const done = previewWords.slice(0, previewIndex);
+    const remain = previewWords.length - previewIndex;
+    previewWords = [];
+    previewIndex = 0;
+    page = 'preview-done';
+    $('#main').innerHTML = title('PREVIEW COMPLETE', '第一次编码完成', `已预览 ${done.length} 个词；未预览完的 ${remain} 个已保留，下次可继续。`) + `<div class="actions"><button id="recall-now" class="primary" ${done.length ? '' : 'disabled'}>开始 Recall（${done.length} 词）</button><button id="back-home" class="secondary">返回首页</button></div><p class="hint">Preview 只负责第一次装填；Recall 才检验提取。未预览的新词不会进入正式测试。</p>`;
+    on('#recall-now', 'click', () => { void startMode('previewed-recall', done); });
+    on('#back-home', 'click', () => setPage('home'));
+}
 async function startMode(mode: string, explicit?: Word[]) {
     if (startingSession)
         return;
@@ -76,8 +150,18 @@ async function startModeOnce(mode: string, explicit?: Word[]) {
     await saveSettings(data.settings);
     let words = explicit || data.words.filter(w => !range || w.bookId === range);
     if (!explicit) {
+        // Phase 2：UNSEEN（从未预览且从未测试）不得进入正式 Recall
+        const unseen = words.filter(isUnseen).length;
+        if (unseen) {
+            words = words.filter(recallEligible);
+            if (!words.length) {
+                toast('这批词还没有预览过：请先完成「预览新词」');
+                return;
+            }
+            toast(`已跳过 ${unseen} 个未预览新词（先完成「预览新词」）`);
+        }
         if (mode === 'due')
-            words = words.filter(w => w.state.total && w.schedule.due <= Date.now());
+            words = words.filter(w => w.state.total && effectiveDue(w, data.settings.schedulingAuthority) <= Date.now());
         if (mode === 'weak')
             words = words.filter(isWeak);
         if (mode === 'random')
@@ -204,7 +288,18 @@ document.addEventListener('visibilitychange', () => {
 });
 let lastKeyAt = 0;
 document.addEventListener('keydown', e => {
-    if (page !== 'quiz' || (e.target as HTMLElement)?.matches('input,textarea,select') || $<HTMLDialogElement>('#modal').open)
+    if ((e.target as HTMLElement)?.matches('input,textarea,select') || $<HTMLDialogElement>('#modal').open)
+        return;
+    if (page === 'preview') {
+        const map: Record<string, PreviewResult> = { '1': 'know', '2': 'familiar', '3': 'unknown', '4': 'skip' };
+        const result = map[e.key];
+        if (!result || e.repeat)
+            return;
+        e.preventDefault();
+        void previewAnswer(result);
+        return;
+    }
+    if (page !== 'quiz')
         return;
     if (!['1', '2', '3', '4', '5', '6', ' ', 'Enter'].includes(e.key))
         return;
@@ -231,9 +326,9 @@ document.addEventListener('keydown', e => {
 });
 function showResults(s: StudySession) { stopTimer(); page = 'results'; const rs = data.records.filter(r => r.sessionId === s.id); const st = recordStats(rs); const ids = new Set(rs.map(r => r.wordId)); const ws = data.words.filter(w => ids.has(w.id)); active = null; $('#main').innerHTML = title('SESSION COMPLETE', '这一轮，记住了多少？', '薄弱词已记录，并安排了下一次复习。') + `<div class="metrics">${metric('本轮作答', String(st.attempts), '含本轮强化重复')}${metric('正确率', pct(st.accuracy), st.unique + ' 个不同单词')}${metric('平均反应', seconds(st.meanMs), '有效作答时间')}${metric('待强化', String(ws.filter(isWeak).length), '按本轮结束后的状态')}</div><div class="actions"><button class="primary" id="review-round">重测本轮弱词</button><button class="secondary" id="round-export">导出本轮弱词</button><button class="secondary" id="back-home">返回首页</button></div><div class="two-col">${(['unknown', 'vague'] as Mastery[]).map(l => `<section class="panel"><h2>${labels[l]}</h2>${wordChips(ws.filter(w => w.state.level === l))}</section>`).join('')}</div><details class="panel"><summary>正常与熟练 · ${ws.filter(w => !isWeak(w)).length} 词</summary>${wordChips(ws.filter(w => !isWeak(w)))}</details>`; on('#review-round', 'click', () => startMode('weak', ws.filter(isWeak))); on('#round-export', 'click', () => download(exportWords(ws.filter(isWeak), 'csv'), '本轮弱词.csv')); on('#back-home', 'click', () => setPage('home')); bindDetails(); }
 function wordChips(ws: Word[]) { return ws.length ? `<div class="chips">${ws.map(w => `<button data-detail="${w.id}">${esc(w.en)}</button>`).join('')}</div>` : '<p class="subtle">没有这一类单词</p>'; }
-function filtered(weak: boolean) { let ws = data.words.filter(w => (!weak || isWeak(w)) && (!bookFilter || w.bookId === bookFilter) && (!levelFilter || w.state.level === levelFilter) && (!search || `${w.en} ${w.zh} ${w.tags}`.toLowerCase().includes(search.toLowerCase()))); return ws.sort(sort === 'alpha' ? (a, b) => a.en.localeCompare(b.en) : sort === 'due' ? (a, b) => a.schedule.due - b.schedule.due : (a, b) => priority(b) - priority(a)); }
+function filtered(weak: boolean) { let ws = data.words.filter(w => (!weak || isWeak(w)) && (!bookFilter || w.bookId === bookFilter) && (!levelFilter || w.state.level === levelFilter) && (!search || `${w.en} ${w.zh} ${w.tags}`.toLowerCase().includes(search.toLowerCase()))); return ws.sort(sort === 'alpha' ? (a, b) => a.en.localeCompare(b.en) : sort === 'due' ? (a, b) => effectiveDue(a, data.settings.schedulingAuthority) - effectiveDue(b, data.settings.schedulingAuthority) : (a, b) => priority(b) - priority(a)); }
 function library(weak: boolean) {
-    $('#main').innerHTML = title(weak ? 'FOCUSED REVIEW' : 'YOUR WORDBOOKS', weak ? '把薄弱的地方练扎实' : '你的词库', weak ? '不会和模糊词，按照当前复习优先级排列。' : '导入你要学的词，所有记录留在这台设备。', `<button id="import" class="primary">＋ 导入词书</button>`) + `<div class="book-tabs"><button data-book="" class="${!bookFilter ? 'selected' : ''}">全部词书</button>${data.books.map(b => `<button data-book="${b.id}" class="${bookFilter === b.id ? 'selected' : ''}">${esc(b.name)} <small>${data.words.filter(w => w.bookId === b.id).length}</small></button>`).join('')}</div><div class="toolbar"><input id="search" placeholder="搜索单词、释义或标签" aria-label="搜索词库" value="${esc(search)}"><select id="level" aria-label="掌握筛选"><option value="">全部状态</option>${Object.entries(labels).filter(([k]) => !weak || k === 'unknown' || k === 'vague').map(([k, v]) => `<option value="${k}" ${k === levelFilter ? 'selected' : ''}>${v}</option>`).join('')}</select><select id="sort" aria-label="排序"><option value="priority" ${sort === 'priority' ? 'selected' : ''}>优先级排序</option><option value="alpha" ${sort === 'alpha' ? 'selected' : ''}>字母排序</option><option value="due" ${sort === 'due' ? 'selected' : ''}>复习时间排序</option></select><button id="train-filter" class="secondary">测试筛选结果</button><button id="export-filter" class="secondary">导出</button>${bookFilter ? '<button id="rename-book" class="text-button">重命名</button><button id="delete-book" class="danger-text">删除词书</button>' : ''}</div><section class="panel no-padding" id="word-table"></section>`;
+    $('#main').innerHTML = title(weak ? 'FOCUSED REVIEW' : 'YOUR WORDBOOKS', weak ? '把薄弱的地方练扎实' : '你的词库', weak ? '不会和模糊词，按照当前复习优先级排列。' : '导入你要学的词，所有记录留在这台设备。', `<button id="import" class="primary">＋ 导入词书</button>`) + `<div class="book-tabs"><button data-book="" class="${!bookFilter ? 'selected' : ''}">全部词书</button>${data.books.map(b => `<button data-book="${b.id}" class="${bookFilter === b.id ? 'selected' : ''}">${esc(b.name)} <small>${data.words.filter(w => w.bookId === b.id).length}</small></button>`).join('')}</div><div class="toolbar"><input id="search" placeholder="搜索单词、释义或标签" aria-label="搜索词库" value="${esc(search)}"><select id="level" aria-label="掌握筛选"><option value="">全部状态</option>${Object.entries(labels).filter(([k]) => !weak || k === 'unknown' || k === 'vague').map(([k, v]) => `<option value="${k}" ${k === levelFilter ? 'selected' : ''}>${v}</option>`).join('')}</select><select id="sort" aria-label="排序"><option value="priority" ${sort === 'priority' ? 'selected' : ''}>优先级排序</option><option value="alpha" ${sort === 'alpha' ? 'selected' : ''}>字母排序</option><option value="due" ${sort === 'due' ? 'selected' : ''}>复习时间排序</option></select><button id="train-filter" class="secondary">测试筛选结果</button><button id="export-filter" class="secondary">导出</button><button id="preview-lib" class="secondary">预览新词</button>${bookFilter ? '<button id="rename-book" class="text-button">重命名</button><button id="delete-book" class="danger-text">删除词书</button>' : ''}</div><section class="panel no-padding" id="word-table"></section>`;
     drawTable(weak);
     on('#import', 'click', importDialog);
     document.querySelectorAll<HTMLElement>('[data-book]').forEach(b => b.onclick = () => { bookFilter = b.dataset.book!; listPage = 0; library(weak); });
@@ -242,6 +337,7 @@ function library(weak: boolean) {
     on('#sort', 'change', e => { sort = (e.target as HTMLSelectElement).value; drawTable(weak); });
     on('#train-filter', 'click', () => startMode('filtered', filtered(weak).slice(0, 1000)));
     on('#export-filter', 'click', () => exportDialog(filtered(weak)));
+    on('#preview-lib', 'click', () => startPreview());
     on('#rename-book', 'click', () => {
         const b = data.books.find(b => b.id === bookFilter)!;
         modal(`<h2>重命名词书</h2><input id="book-name" value="${esc(b.name)}" maxlength="100"><button id="rename-save" class="primary">保存</button>`);
@@ -258,11 +354,12 @@ function library(weak: boolean) {
     });
     on('#delete-book', 'click', deleteBookDialog);
 }
-function drawTable(weak: boolean) { const ws = filtered(weak), pages = Math.max(1, Math.ceil(ws.length / 50)); listPage = Math.min(listPage, pages - 1); $('#word-table').innerHTML = `<div class="table-scroll"><table><thead><tr><th>单词 / 释义</th><th>掌握状态</th><th>优先级</th><th>正确 / 作答</th><th>平均反应</th><th>下次复习</th></tr></thead><tbody>${ws.slice(listPage * 50, listPage * 50 + 50).map(w => `<tr><td><button class="word-link" data-detail="${w.id}">${esc(w.en)}</button><small>${esc(w.zh)}</small></td><td><span class="badge ${w.state.level}">${labels[w.state.level]}</span></td><td><b class="priority-${priorityGrade(w)}">${priorityGrade(w)}</b></td><td>${w.state.correct} / ${w.state.total}</td><td>${w.state.total ? seconds(w.state.meanMs) : '—'}</td><td>${w.state.total ? (w.schedule.due <= Date.now() ? '<span class="due-text">已到期</span>' : date(w.schedule.due)) : '未测试'}</td></tr>`).join('') || '<tr><td colspan="6" class="empty-cell">暂无符合条件的单词。导入词书或调整筛选。</td></tr>'}</tbody></table></div><div class="pagination"><span>共 ${ws.length} 个词 · 每页 50 个</span><div><button id="prev" ${listPage === 0 ? 'disabled' : ''}>上一页</button><span>${listPage + 1} / ${pages}</span><button id="next-page" ${listPage === pages - 1 ? 'disabled' : ''}>下一页</button></div></div>`; on('#prev', 'click', () => { listPage--; drawTable(weak); }); on('#next-page', 'click', () => { listPage++; drawTable(weak); }); bindDetails(); }
+function drawTable(weak: boolean) { const ws = filtered(weak), pages = Math.max(1, Math.ceil(ws.length / 50)); listPage = Math.min(listPage, pages - 1); $('#word-table').innerHTML = `<div class="table-scroll"><table><thead><tr><th>单词 / 释义</th><th>掌握状态</th><th>优先级</th><th>正确 / 作答</th><th>平均反应</th><th>下次复习</th></tr></thead><tbody>${ws.slice(listPage * 50, listPage * 50 + 50).map(w => `<tr><td><button class="word-link" data-detail="${w.id}">${esc(w.en)}</button><small>${esc(w.zh)}</small></td><td><span class="badge ${w.state.level}">${labels[w.state.level]}</span> <small class="lifecycle">${LIFECYCLE_LABELS[lifecycleOf(w)]}</small></td><td><b class="priority-${priorityGrade(w)}">${priorityGrade(w)}</b></td><td>${w.state.correct} / ${w.state.total}</td><td>${w.state.total ? seconds(w.state.meanMs) : '—'}</td><td>${w.state.total ? (effectiveDue(w, data.settings.schedulingAuthority) <= Date.now() ? '<span class="due-text">已到期</span>' : date(effectiveDue(w, data.settings.schedulingAuthority))) : '未测试'}</td></tr>`).join('') || '<tr><td colspan="6" class="empty-cell">暂无符合条件的单词。导入词书或调整筛选。</td></tr>'}</tbody></table></div><div class="pagination"><span>共 ${ws.length} 个词 · 每页 50 个</span><div><button id="prev" ${listPage === 0 ? 'disabled' : ''}>上一页</button><span>${listPage + 1} / ${pages}</span><button id="next-page" ${listPage === pages - 1 ? 'disabled' : ''}>下一页</button></div></div>`; on('#prev', 'click', () => { listPage--; drawTable(weak); }); on('#next-page', 'click', () => { listPage++; drawTable(weak); }); bindDetails(); }
 function bindDetails() { document.querySelectorAll<HTMLElement>('[data-detail]').forEach(b => b.onclick = () => wordDetail(wordMap.get(b.dataset.detail!)!)); }
 function wordDetail(w: Word) {
     const rs = data.records.filter(r => r.wordId === w.id).sort((a, b) => a.at - b.at);
-    modal(`<div class="eyebrow">WORD MEMORY</div><h2 class="detail-word">${esc(w.en)}</h2><p>${esc(w.phonetic)} ${esc(w.pos)}</p><h3>${esc(w.zh)}</h3>${w.example ? `<blockquote>${esc(w.example)}</blockquote>` : ''}${w.collocation ? `<p>搭配：${esc(w.collocation)}</p>` : ''}${w.tags ? `<p>标签：${esc(w.tags)}</p>` : ''}<div class="detail-stats"><span>总测试 <b>${w.state.total}</b></span><span>正确 / 错误 <b>${w.state.correct} / ${w.state.total - w.state.correct}</b></span><span>平均反应 <b>${seconds(w.state.meanMs)}</b></span><span>最近反应 <b>${seconds(w.state.lastMs)}</b></span>${Object.entries(w.state.directions).map(([k, v]) => `<span>${k === 'en-zh' ? '英→中' : '中→英'} <b>${v.total ? pct(v.correct / v.total) : '无记录'} · ${v.total} 次</b></span>`).join('')}<span>当前状态 <b>${labels[w.state.level]}</b></span><span>下次复习 <b>${date(w.schedule.due)}</b></span></div><h3>最近 20 次状态变化</h3><div class="history">${rs.slice(-20).map(r => `<span class="badge ${r.after}" title="${date(r.at)} · ${seconds(r.ms)}">${labels[r.after]}</span>`).join('') || '尚无记录'}</div><h3>容易混淆</h3><p>${Object.entries(w.confusions).sort((a, b) => b[1] - a[1]).map(([id, n]) => `${esc(wordMap.get(id)?.en || '已删除')}（${n}次）`).join('、') || '尚未记录混淆'}</p><div class="actions"><button id="detail-review" class="primary">单独重测</button><button id="edit-word" class="secondary">编辑词条</button></div>`);
+    const r = fsrsRetrievability(w.fsrs, data.settings);
+    modal(`<div class="eyebrow">WORD MEMORY</div><h2 class="detail-word">${esc(w.en)}</h2><p>${esc(w.phonetic)} ${esc(w.pos)}</p><h3>${esc(w.zh)}</h3>${w.example ? `<blockquote>${esc(w.example)}</blockquote>` : ''}${w.collocation ? `<p>搭配：${esc(w.collocation)}</p>` : ''}${w.tags ? `<p>标签：${esc(w.tags)}</p>` : ''}<div class="detail-stats"><span>总测试 <b>${w.state.total}</b></span><span>正确 / 错误 <b>${w.state.correct} / ${w.state.total - w.state.correct}</b></span><span>平均反应 <b>${seconds(w.state.meanMs)}</b></span><span>最近反应 <b>${seconds(w.state.lastMs)}</b></span>${Object.entries(w.state.directions).map(([k, v]) => `<span>${k === 'en-zh' ? '英→中' : '中→英'} <b>${v.total ? pct(v.correct / v.total) : '无记录'} · ${v.total} 次</b></span>`).join('')}<span>状态 <b>${labels[w.state.level]}</b></span><span>生命周期 <b>${LIFECYCLE_LABELS[lifecycleOf(w)]}</b></span><span>识别/提取/产出 <b>${w.recognitionScore} / ${w.activeRecallScore} / ${w.productiveScore}</b></span><span>预览 <b>${w.previewedAt ? (w.previewResult === 'skip' ? '已跳过' : w.previewResult === 'know' ? '已会' : w.previewResult === 'familiar' ? '熟悉' : '陌生') : '未预览'}</b></span><span>FSRS <b>${hasFsrsHistory(w.fsrs) ? `S ${w.fsrs.stability.toFixed(1)}d · D ${w.fsrs.difficulty.toFixed(1)} · R ${r === null ? '—' : pct(r)}` : '未开始'}</b></span><span>下次复习 <b>${date(effectiveDue(w, data.settings.schedulingAuthority))}</b></span></div><h3>最近 20 次状态变化</h3><div class="history">${rs.slice(-20).map(r => `<span class="badge ${r.after}" title="${date(r.at)} · ${seconds(r.ms)}">${labels[r.after]}</span>`).join('') || '尚无记录'}</div><h3>容易混淆</h3><p>${Object.entries(w.confusions).sort((a, b) => b[1] - a[1]).map(([id, n]) => `${esc(wordMap.get(id)?.en || '已删除')}（${n}次）`).join('、') || '尚未记录混淆'}</p><div class="actions"><button id="detail-review" class="primary">单独重测</button><button id="edit-word" class="secondary">编辑词条</button></div>`);
     on('#detail-review', 'click', async () => { closeModal(); await startMode('single', [w]); });
     on('#edit-word', 'click', () => {
         modal(`<h2>编辑 ${esc(w.en)}</h2><p class="hint">修改释义不会重置学习记录。</p><label>中文释义<textarea id="edit-zh">${esc(w.zh)}</textarea></label><label>词性<input id="edit-pos" value="${esc(w.pos)}"></label><label>标签<input id="edit-tags" value="${esc(w.tags)}"></label><button id="edit-save" class="primary">保存修改</button>`);
@@ -386,11 +483,11 @@ function aiPage() {
 }
 function settingsPage() {
     const s = data.settings;
-    $('#main').innerHTML = title('PREFERENCES', '按你的速度来', '时间阈值、测试难度和数据备份，都由你控制。') + `<form id="settings-form"><div class="two-col"><section class="panel"><h2>测试与节奏</h2><div class="form-grid"><label>秒答上限（秒）<input name="fast" type="number" min="0.1" step="0.1" value="${s.fast / 1000}" required></label><label>正常上限（秒）<input name="normal" type="number" min="0.2" step="0.1" value="${s.normal / 1000}" required></label><label>超时（秒）<input name="timeout" type="number" min="0.3" max="120" step="0.1" value="${s.timeout / 1000}" required></label><label>英→中比例（%）<input name="ratio" type="number" min="0" max="100" value="${s.ratio}" required></label><label>难度<select name="difficulty">${[['easy', '简单 · 4项'], ['normal', '普通 · 4项'], ['hard', '困难 · 6项']].map(([v, t]) => `<option value="${v}" ${s.difficulty === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>答错反馈<select name="feedback">${[[0, '立即下一题'], [500, '停留 0.5 秒'], [1000, '停留 1 秒'], [-1, '手动继续']].map(([v, t]) => `<option value="${v}" ${s.feedback === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div><p class="hint">答对立即下一题。正常上限至超时之间为模糊。切换标签页会自动暂停计时。</p></section><section class="panel"><h2>AI API 配置</h2><label>Endpoint<input name="endpoint" type="url" placeholder="https://你的服务地址/v1" value="${esc(s.endpoint)}" autocomplete="off"></label><label>Model Name<input name="model" value="${esc(s.model)}" placeholder="填写供应商提供的模型名称"></label><label>API Key<input name="key" type="password" value="${esc(s.key)}" autocomplete="off" placeholder="仅用于你配置的地址"></label><label class="check"><input name="rememberKey" type="checkbox" ${s.rememberKey ? 'checked' : ''}> 在这台设备记住 Key</label><p class="hint">不勾选则只保留到页面关闭。勾选后明文保存在本地浏览器数据库，完整备份仍会剔除 Key。浏览器直连需要供应商支持 CORS。</p></section></div><button class="primary" type="submit">保存设置</button></form><section class="panel backup-panel"><h2>备份与迁移</h2><p>导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。</p><div class="actions"><button id="backup" class="primary">导出全部学习数据</button><label class="button secondary">导入备份<input id="restore" type="file" accept=".json" hidden></label><button id="persist" class="secondary">申请持久存储</button><button id="clear" class="danger-text">清空本地数据</button></div><p id="storage-info" class="hint">学习数据按浏览器和站点地址保存。请一直使用相同的 localhost:4173 地址。</p></section>`;
+    $('#main').innerHTML = title('PREFERENCES', '按你的速度来', '时间阈值、测试难度和数据备份，都由你控制。') + `<form id="settings-form"><div class="two-col"><section class="panel"><h2>测试与节奏</h2><div class="form-grid"><label>秒答上限（秒）<input name="fast" type="number" min="0.1" step="0.1" value="${s.fast / 1000}" required></label><label>正常上限（秒）<input name="normal" type="number" min="0.2" step="0.1" value="${s.normal / 1000}" required></label><label>超时（秒）<input name="timeout" type="number" min="0.3" max="120" step="0.1" value="${s.timeout / 1000}" required></label><label>英→中比例（%）<input name="ratio" type="number" min="0" max="100" value="${s.ratio}" required></label><label>难度<select name="difficulty">${[['easy', '简单 · 4项'], ['normal', '普通 · 4项'], ['hard', '困难 · 6项']].map(([v, t]) => `<option value="${v}" ${s.difficulty === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>答错反馈<select name="feedback">${[[0, '立即下一题'], [500, '停留 0.5 秒'], [1000, '停留 1 秒'], [-1, '手动继续']].map(([v, t]) => `<option value="${v}" ${s.feedback === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>调度引擎<select name="schedulingAuthority"><option value="fsrs" ${s.schedulingAuthority === 'fsrs' ? 'selected' : ''}>FSRS（默认）</option><option value="legacy" ${s.schedulingAuthority === 'legacy' ? 'selected' : ''}>旧调度器（兼容回滚）</option></select></label><label>目标保留率<input name="requestRetention" type="number" min="0.5" max="0.99" step="0.01" value="${s.requestRetention}" required></label></div><p class="hint">答对立即下一题。正常上限至超时之间为模糊。切换标签页会自动暂停计时。</p></section><section class="panel"><h2>AI API 配置</h2><label>Endpoint<input name="endpoint" type="url" placeholder="https://你的服务地址/v1" value="${esc(s.endpoint)}" autocomplete="off"></label><label>Model Name<input name="model" value="${esc(s.model)}" placeholder="填写供应商提供的模型名称"></label><label>API Key<input name="key" type="password" value="${esc(s.key)}" autocomplete="off" placeholder="仅用于你配置的地址"></label><label class="check"><input name="rememberKey" type="checkbox" ${s.rememberKey ? 'checked' : ''}> 在这台设备记住 Key</label><p class="hint">不勾选则只保留到页面关闭。勾选后明文保存在本地浏览器数据库，完整备份仍会剔除 Key。浏览器直连需要供应商支持 CORS。</p></section></div><button class="primary" type="submit">保存设置</button></form><section class="panel backup-panel"><h2>备份与迁移</h2><p>导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。</p><div class="actions"><button id="backup" class="primary">导出全部学习数据</button><label class="button secondary">导入备份<input id="restore" type="file" accept=".json" hidden></label><button id="persist" class="secondary">申请持久存储</button><button id="clear" class="danger-text">清空本地数据</button></div><p id="storage-info" class="hint">学习数据按浏览器和站点地址保存。请一直使用相同的 localhost:4173 地址。</p></section>`;
     on('#settings-form', 'submit', async (e) => {
         e.preventDefault();
         const f = new FormData(e.target as HTMLFormElement);
-        const updated: Settings = { ...data.settings, fast: Number(f.get('fast')) * 1000, normal: Number(f.get('normal')) * 1000, timeout: Number(f.get('timeout')) * 1000, ratio: Number(f.get('ratio')), difficulty: f.get('difficulty') as Settings['difficulty'], feedback: Number(f.get('feedback')), endpoint: String(f.get('endpoint') || '').trim(), model: String(f.get('model') || '').trim(), key: String(f.get('key') || '').trim(), rememberKey: f.get('rememberKey') === 'on' };
+        const updated: Settings = { ...data.settings, fast: Number(f.get('fast')) * 1000, normal: Number(f.get('normal')) * 1000, timeout: Number(f.get('timeout')) * 1000, ratio: Number(f.get('ratio')), difficulty: f.get('difficulty') as Settings['difficulty'], feedback: Number(f.get('feedback')), endpoint: String(f.get('endpoint') || '').trim(), model: String(f.get('model') || '').trim(), key: String(f.get('key') || '').trim(), rememberKey: f.get('rememberKey') === 'on', schedulingAuthority: (f.get('schedulingAuthority') === 'legacy' ? 'legacy' : 'fsrs') as Settings['schedulingAuthority'], requestRetention: Number(f.get('requestRetention')) };
         if (!validSettings(updated))
             throw Error('阈值需满足：0 < 秒答 < 正常 < 超时 ≤ 120 秒');
         if (updated.endpoint)

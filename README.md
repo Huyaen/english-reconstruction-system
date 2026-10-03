@@ -68,7 +68,7 @@ JSON：
 
 ## 数据保存与备份
 
-数据库：浏览器 IndexedDB `vocabulary-memory-v1`（当前 schema 版本 2）。v1→v2 为只加不删的原子迁移，旧词书与学习记录 100% 保留；真实升级后首次启动会提示导出一次备份。对象仓库：books / words / records / sessions / analyses / meta + V2 新增 14 个 Learning Model 仓库（wordExposures、grammarConcepts、grammarAttempts、sentenceAttempts、passages、readingSessions、inputSources、inputSessions、outputAttempts、dailyPlans、miniUnits、skillSnapshots、weeklyDiagnostics、libraryItems）。
+数据库：浏览器 IndexedDB `vocabulary-memory-v1`（当前 schema 版本 3）。所有版本升级均为「只加不删」的原子迁移（v1→v2→v3 均有 fixture 测试；旧词书与学习记录 100% 保留）；真实升级后首次启动会提示导出一次备份。对象仓库：books / words / records / sessions / analyses / meta + V2 新增 14 个 Learning Model 仓库（wordExposures、grammarConcepts、grammarAttempts、sentenceAttempts、passages、readingSessions、inputSources、inputSessions、outputAttempts、dailyPlans、miniUnits、skillSnapshots、weeklyDiagnostics、libraryItems）。V3 为 words 增加 FSRS 调度状态与预览结果字段。
 
 **学习数据不在项目文件夹里。复制程序目录不能代替导出学习备份。** 请固定使用同一浏览器配置和 http://localhost:4173；localhost 与 127.0.0.1、不同端口、不同浏览器是不同存储空间。
 
@@ -86,7 +86,7 @@ JSON：
 
 这是本次反应的分类。**累计掌握状态更保守**：初次答对仍需后续证据；连续正确达到2次可进入正常；双向各≥2次正确、各方向正确率≥80%、至少3次到期成功、连续正确≥4且本次秒答，才判熟练。短时间反复刷同词不会拉长长期间隔。
 
-间隔初始15分钟，然后4小时、1/3/7/14/30/60/120天；结合速度与遗忘次数修正；错误重置为10分钟。每个词独立调度。
+间隔调度自 Phase 2 起由 **FSRS**（ts-fsrs 5.4.2）负责：目标保留率默认 0.9（设置页可调）；评分由「正确性 + 反应时间 + 历史证据」多因素映射（错误/超时→Again，慢正确→Hard，首次正式 Recall 封顶 Good，Easy 需秒答 + 连续正确 + 间隔证据）。旧调度器完整保留为可回滚选项（设置页「调度引擎」可切回）。每个词独立调度。
 
 Priority 根据状态、总正确率、弱势方向、连续错误、遗忘、速度、混淆和逾期加权。详见 `docs/ALGORITHMS.md`。
 
@@ -108,7 +108,7 @@ Priority 根据状态、总正确率、弱势方向、连续错误、遗忘、�
 
 ## 开发
 
-技术栈：TypeScript、Vite、原生DOM、IndexedDB、SheetJS。测试使用 Node test runner、tsx、fake-indexeddb、jsdom；无外部数据库，无账户系统。
+技术栈：TypeScript、Vite、原生DOM、IndexedDB、SheetJS、ts-fsrs 5.4.2（FSRS 调度，仅经 src/fsrs.ts 适配层使用）。测试使用 Node test runner、tsx、fake-indexeddb、jsdom；无外部数据库，无账户系统。
 
 ```bash
 npm ci
@@ -150,7 +150,7 @@ npm start
 本项目正在从「自适应背单词软件」升级为完整的 **Personal English Learning System**（V2）。产品规格见 `PROJECT_SPEC.md`，工程协议与阶段计划见 `AGENT_EXECUTION.md`。
 
 - **接手入口（换模型/换会话必读）**：依次读 `PROJECT_SPEC.md` → `STATE.json` → `CHECKPOINT.md` → `HANDOFF.md` → `TODO.md` → `DEVELOPMENT_LOG.md`，再核对实际磁盘与 Git。
-- **当前阶段**：见 `HANDOFF.md`（Phase 0 / 0.5 / 1 已完成并通过；当前 Phase 2 Vocabulary V2）。
+- **当前阶段**：见 `HANDOFF.md`（Phase 0 / 0.5 / 1 / 2 已完成并通过；当前 Phase 3 Daily Planner）。
 - **基线**：V1 MVP 基线 commit `6c1c625`（tag `v1.0.0-mvp-baseline`）；该提交已实测：`npm test` 20/20、`npm run build` 成功、`node server.mjs` 服务实测 200。
 - **硬约束**：旧数据 100% 保留；审计 → 复用 → 扩展 → 迁移 → 验证；禁止无理由重写现有词汇模块。
 - **源码格式**：`src/*.ts`、`tests/*.ts` 由 `docs/format-source.mjs` 整理为紧凑格式，编辑后请保持一致或重跑该脚本。

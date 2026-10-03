@@ -28,6 +28,22 @@ test('real application DOM import, double-start protection, keyboard and reload 
         await until(() => !w.document.querySelector<HTMLButtonElement>('#import-confirm')!.disabled);
         click(w, '#import-confirm');
         await until(() => w.document.querySelector('#main')!.textContent!.includes('6 个词'));
+        // Phase 2: UNSEEN 词不得直接进入 Recall（给出预览提示且不创建 session）
+        click(w, '[data-mode="quick"]');
+        await until(() => w.document.querySelector('#toast')!.textContent!.includes('预览'));
+        assert.equal(w.document.querySelector('.answers'), null, 'unseen words must not start a recall session');
+        // 先预览全部 6 个新词，再进入正式训练
+        click(w, '#preview-start');
+        await until(() => !!w.document.querySelector('[data-preview]'));
+        for (let i = 0; i < 6; i++) {
+            click(w, '[data-preview="know"]');
+            if (i < 5)
+                await until(() => (w.document.querySelector('.quiz-top')?.textContent || '').includes(`${i + 2} / 6`));
+            else
+                await until(() => !!w.document.querySelector('#back-home'));
+        }
+        click(w, '#back-home');
+        await until(() => !!w.document.querySelector('[data-mode="quick"]'));
         click(w, '[data-mode="quick"]');
         click(w, '[data-mode="quick"]');
         await until(() => !!w.document.querySelector('.answers'));
@@ -105,6 +121,20 @@ test('real application DOM import, double-start protection, keyboard and reload 
             await new Promise(r => setTimeout(r, 30));
             click(rw, '[data-nav="home"]');
             assert.equal(rw.document.querySelector<HTMLSelectElement>('#range-ratio')!.value, '62');
+            // Phase 2: preview 状态、exposure、FSRS 状态与 rating 的持久化验证
+            const db2 = await new Promise<IDBDatabase>(resolve => { const r = indexedDB.open('vocabulary-memory-v1'); r.onsuccess = () => resolve(r.result); });
+            const allWords = await new Promise<any[]>(resolve => { const r = db2.transaction('words').objectStore('words').getAll(); r.onsuccess = () => resolve(r.result); });
+            assert.equal(allWords.length, 6);
+            assert.ok(allWords.every(x => x.previewedAt > 0), 'all words previewed');
+            assert.ok(allWords.every(x => x.previewResult === 'know'));
+            const answered = allWords.filter(x => x.state.total > 0);
+            assert.ok(answered.length >= 1);
+            assert.ok(answered.every(x => x.fsrs.reps > 0), 'FSRS state persisted for answered words');
+            const exps = await new Promise<any[]>(resolve => { const r = db2.transaction('wordExposures').objectStore('wordExposures').getAll(); r.onsuccess = () => resolve(r.result); });
+            assert.equal(exps.length, 6, 'preview exposures recorded');
+            const recs = await new Promise<any[]>(resolve => { const r = db2.transaction('records').objectStore('records').getAll(); r.onsuccess = () => resolve(r.result); });
+            assert.ok(recs.length > 0 && recs.every(x => [1, 2, 3, 4].includes(x.rating)), 'FSRS rating recorded');
+            db2.close();
         }
         finally {
             reopened.window.close();

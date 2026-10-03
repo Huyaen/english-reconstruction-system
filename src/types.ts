@@ -48,6 +48,8 @@ export interface Word {
     previewedAt: number;
     lastEncounteredAt: number;
     sourceTypes: string[];
+    fsrs: FSRSWordState;
+    previewResult: string;
 }
 export interface WordBook {
     id: string;
@@ -67,6 +69,7 @@ export interface ReviewRecord {
     before: Mastery;
     after: Mastery;
     scheduled: boolean;
+    rating?: number;
 }
 export interface Question {
     wordId: string;
@@ -97,6 +100,8 @@ export interface Settings {
     model: string;
     key: string;
     rememberKey: boolean;
+    schedulingAuthority: 'legacy' | 'fsrs';
+    requestRetention: number;
 }
 export interface AIAnalysis {
     id: string;
@@ -128,7 +133,8 @@ export interface Data {
     libraryItems: LibraryItem[];
     migration?: MigrationRecord | null;
 }
-export const defaults: Settings = { fast: 1500, normal: 3000, timeout: 6000, ratio: 50, difficulty: 'normal', feedback: 500, theme: 'light', endpoint: '', model: '', key: '', rememberKey: false };
+export const defaults: Settings = { fast: 1500, normal: 3000, timeout: 6000, ratio: 50, difficulty: 'normal', feedback: 500, theme: 'light', endpoint: '', model: '', key: '', rememberKey: false, schedulingAuthority: 'fsrs', requestRetention: 0.9 };
+export const fsrsDefaults: FSRSWordState = { stability: 0, difficulty: 0, state: 0, reps: 0, lapses: 0, due: 0, lastReview: 0, scheduledDays: 0, learningSteps: 0 };
 // —— V2 Learning Model 数据类型（Phase 1 Data Foundation）——
 // 字段设计依据 PROJECT_SPEC.md §84–§92；所有实体 keyPath 均为字符串 id。
 export type Lifecycle = 'unseen' | 'previewed' | 'learning' | 'recognition' | 'active' | 'productive';
@@ -144,7 +150,7 @@ export interface WordExposure {
     id: string;
     wordId: string;
     at: number;
-    sourceType: 'reading' | 'input' | 'output' | 'sentence' | 'manual';
+    sourceType: 'reading' | 'input' | 'output' | 'sentence' | 'manual' | 'preview';
     sourceId: string;
     state: ExposureState;
     sentence: string;
@@ -344,4 +350,16 @@ export interface LibraryItem {
     status: 'saved' | 'used' | 'archived';
     notes: string;
     savedAt: number;
+}
+// —— V3：FSRS 调度状态（字段以 ts-fsrs@5.4.2 实际 API 为准，见 src/fsrs.ts）——
+export interface FSRSWordState {
+    stability: number;
+    difficulty: number;
+    state: number;
+    reps: number;
+    lapses: number;
+    due: number;
+    lastReview: number;
+    scheduledDays: number;
+    learningSteps: number;
 }

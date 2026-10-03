@@ -4,6 +4,52 @@
 
 ---
 
+## 2026-10-04 · Phase 2 — Vocabulary V2（passed）
+
+**结论**：Vocabulary Engine 完成 V2 升级：**FSRS 调度**（ts-fsrs@5.4.2，MIT，精确锁定）接入并成为默认调度权威（旧调度器完整保留、可一键回滚）；**DB v3**（只加不删、原子、幂等；v1/v2 备份均兼容）；**Preview → Recall 强制流程**（UNSEEN 不得直接测试）；三维证据系统上线；多词池 + Learning Value + 动态新词量（供 Phase 3 直接调用）。
+
+### 交付（子阶段 ↔ 实现 ↔ 证据）
+
+| 子阶段 | 内容 | 文件 | 证据 |
+|---|---|---|---|
+| 2.1 FSRS Foundation | ts-fsrs 5.4.2（`--save-exact`）**仅**经由 `src/fsrs.ts` 适配层使用（UI/业务不直连库） | src/fsrs.ts, package.json/lock | tests/fsrs.test.ts |
+| 2.2 DB v2→v3 | Word.fsrs（stability/difficulty/state/reps/lapses/due/lastReview/scheduledDays/learningSteps）+ previewResult 回填；新增 `fsrs.due` 索引；**串行回填修复并行游标竞态**；backup v3（兼容读入 v1/v2） | src/db.ts | migration.test（v1→v3、v2 fixture→v3、幂等、备份兼容/悬空拒绝） |
+| 2.3 过渡能力 | 每次作答同时计算 legacy + FSRS（shadow）；`settings.schedulingAuthority`（默认 fsrs，可回滚 legacy）；`effectiveDue()` 平滑切换（无 FSRS 历史的词回退旧 due） | src/fsrs.ts, src/quiz.ts, src/model.ts, src/stats.ts, src/app.ts | fsrs.test 'shadow' 用例 |
+| 2.4 Rating 映射 | 多因素：错误/超时→Again；慢正确→Hard；**首次正式 Recall 封顶 Good**；Easy=秒答+streak≥4+间隔证据（spacedPasses≥2 或 fsrsReps≥2）；阈值集中于 RatingConfig | src/fsrs.ts | fsrs.test 映射 4 用例 |
+| 2.5 生命周期 | unseen→previewed→learning→recognition→active→productive；EWMA 三维分数 + 证据计数驱动；**可升级可回退**；forgotten 检测 | src/evidence.ts | vocab.test 升级/回退用例 |
+| 2.6 Preview Flow | 独立 Preview 会话（词/IPA/词性/释义/搭配/例句 + 1–4 键：已会/熟悉/陌生/跳过）；记录 previewedAt/previewResult/exposure；**Preview ≠ mastery**；跳过不产生 exposure | src/app.ts, src/evidence.ts, src/db.ts(savePreview) | ui.test Preview 6/6 + IDB 断言；浏览器 smoke |
+| 2.7 三维掌握 | recognition（En→中）/ activeRecall（中→En）/ productive（预留 API，Output Lab 接入） | src/evidence.ts, src/quiz.ts | vocab.test |
+| 2.8 Exposure 模型 | preview/reading/input → exposure；答题 → recall evidence；Output → production evidence（API 已备）；exposure 不改变 mastery | src/evidence.ts | vocab.test 'exposure ≠ mastery' |
+| 2.9 多词池 | foundation / miniUnit（空池 fallback）/ encountered / forgotten（优先回流、不计入新词数）；游标式配额 + 自动重分配 | src/pools.ts | pools 用例 |
+| 2.10 Learning Value | 确定性评分 `{score, reasons[], components{}}`：foundation 标签/词书顺序、encountered、forgotten、难度适配、专名降权；无 AI | src/pools.ts | learning value 用例 |
+| 2.11 初始比例 | 55/25/20 + graceful fallback（绝不生成假数据） | src/pools.ts | pools 用例 |
+| 2.12 动态新词量 | 纯函数 `recommendedNewWordCount`：availableMinutes/energy/d1/d7/weakLoad/dueLoad/recentAccuracy → `{recommended,min,max,components,reasons}`；Phase 3 直接调用 | src/pools.ts | dynamic count 用例（含边界） |
+| 2.13 高量检索 | 索引化查询（fsrs.due 索引 + 复合索引）；1000 题基准无显著退化（fake-IDB 17.2s，单题 max 19ms） | src/model.ts, src/db.ts | benchmark 输出 |
+| 2.14 Confusion 兼容 | confusion 系统与 distractor 生成行为不变（review()/question() 未改） | src/core.ts | 原有回归全绿 |
+| 2.15 UI | 首页「今日新词」面板（建议数/来源构成/回流入口）、Preview 入口（首页 + 词库）、词库生命周期列、词详情三维+FSRS+保留率、设置页「调度引擎/目标保留率」 | src/app.ts, src/style.css | ui.test + 浏览器 smoke |
+| 2.16 测试 | 39 项（+14：fsrs 6、vocab 7、migration +1、ui 扩展；原 25 项全保留） | tests/* | `npm test` **39/39** |
+| 2.17 验证门 | 见下 | — | — |
+
+### 验证门（实测记录）
+
+- `npm test` → **39 pass / 0 fail**；`npm run build` → 成功（JS 511.74 kB / gzip 176.27 kB，>500KB 警告记入 Phase 13）
+- **真实浏览器 smoke**（无头 Edge + 独立 profile + CDP 驱动）：boot → 导入 8 词 → 未预览词被拦截（不建 session）→ Preview 8/8 → Recall（EN→中）作答 → 退出后恢复横幅「已答 1 题」→ IDB 校验（version=3、20 stores、8 词全部 previewed、已答词 fsrs.reps>0、exposures=8（preview）、records=1、rating=[3]）→ **reload 后状态保留**
+- v2 fixture→v3 升级（100% 保留 + 幂等）实测通过；v1 备份 → v3 恢复实测通过；v3 备份往返实测通过
+
+### 关键决策 / 已淘汰 / 已知限制
+
+- **ts-fsrs 精确锁定 5.4.2**（`--save-exact`，MIT 已核验）；`enable_fuzz=false`（确定性）、`enable_short_term=true`（学习步 [1m,10m]）
+- 调度权威默认 `fsrs`；`legacy` 字段/代码/开关全保留（回滚能力），shadow 双算在 Phase 2 内完成验证后切换
+- **已淘汰**：并行游标式 v2/v3 回填（互相覆盖 → 改串行链）；pools fallback 的直接重取（重复选取 → 改游标消费）
+- 已知限制：bundle 体积 >500KB 警告（Phase 13 处理）；fake-indexeddb 基准≠真实性能；Preview 不创建 StudySession（直接落盘 word+exposure，刷新安全）
+
+### Phase 3 前置就绪（Daily Planner 直接调用，不重写）
+
+- `recommendedNewWordCount()`（纯函数）；`buildNewWordQueue()`
+- `model.ts` 索引化查询；`DailyPlan`/`MiniUnit` store；`schedulingAuthority` + `effectiveDue()`
+
+---
+
 ## 2026-10-04 · Phase 1 — Data Foundation（passed）
 
 **结论**：DB 升级到 **version 2**（只加不删、原子升级、v1 数据 100% 保留有测试）；**14 个 Learning Model stores** 就绪并带索引；Word 三维能力字段 + 默认值迁移；**备份格式 v2**（兼容读入 v1）；**Learning Model 查询层**（索引化）。
