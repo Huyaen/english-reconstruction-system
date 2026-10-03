@@ -144,3 +144,13 @@ npm start
 当前重点是补真实浏览器桌面/手机验收和真实AI供应商调用，不需要重构。所有实际测试结果和环境限制见 `docs/TEST_REPORT.md`。
 
 第二阶段未实现：拼写、填空、搭配题、发音、AI生成例句/干扰项、PWA与多设备同步。
+
+## V2 开发状态（English Reconstruction System V2）
+
+本项目正在从「自适应背单词软件」升级为完整的 **Personal English Learning System**（V2）。产品规格见 `PROJECT_SPEC.md`，工程协议与阶段计划见 `AGENT_EXECUTION.md`。
+
+- **接手入口（换模型/换会话必读）**：依次读 `PROJECT_SPEC.md` → `STATE.json` → `CHECKPOINT.md` → `HANDOFF.md` → `TODO.md` → `DEVELOPMENT_LOG.md`，再核对实际磁盘与 Git。
+- **当前阶段**：见 `HANDOFF.md`（Phase 0 Audit 已完成通过；下一步 Phase 0.5 → Phase 1 Data Foundation）。
+- **基线**：V1 MVP 基线 commit `6c1c625`（tag `v1.0.0-mvp-baseline`）；该提交已实测：`npm test` 20/20、`npm run build` 成功、`node server.mjs` 服务实测 200。
+- **硬约束**：旧数据 100% 保留；审计 → 复用 → 扩展 → 迁移 → 验证；禁止无理由重写现有词汇模块。
+- **源码格式**：`src/*.ts`、`tests/*.ts` 由 `docs/format-source.mjs` 整理为紧凑格式，编辑后请保持一致或重跑该脚本。

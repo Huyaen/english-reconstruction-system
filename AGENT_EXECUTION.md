@@ -220,6 +220,27 @@ GitHub Research 是工程辅助，不是产品决策来源。
 
 ---
 
+### Phase 0.5 深度核查要求（2026-10-04 接手时追加，防止后续会话丢失）
+
+对最有价值的候选项目，**必须实际查看**：相关源码、数据模型、核心算法、测试、架构、License、最近维护状态；不得仅凭项目名或 README 下结论。
+
+每个候选项目至少记录：
+
+```text
+Repository / URL / License / Last meaningful update / Tech stack /
+Relevant module / Useful architecture / Useful algorithm / Useful UX pattern /
+Useful data model / Testing strategy / Compatibility with current project /
+What can be adapted / What should NOT be copied
+```
+
+结论必须分为 **Adopt / Adapt / Reject** 三类；Reject 必须写明原因，避免后续 Agent 重复研究。
+
+边界：先找约 10～20 个候选项目，深入分析最有价值的约 5～10 个；得到足够支持架构决策的信息后**立即进入 Phase 1**，不得无限搜索。
+
+成果落盘：`REFERENCE_RESEARCH.md`（项目根目录），并同步更新 `STATE.json` / `CHECKPOINT.md` / `HANDOFF.md`。
+
+---
+
 # Module Research Gate
 
 以后进入重要模块开发前，可以进行一次小型模块专项搜索。

@@ -34,3 +34,17 @@
 测试：新回归先失败后修复；完整20项通过，TypeScript与Vite构建成功。
 剩余：真实浏览器/手机可视化及真实供应商AI验收。运行环境浏览器受限，明确保留未验收状态。
 下一步：由可运行本地浏览器的环境按docs/TEST_REPORT.md补验收。项目无需重新开始。
+
+## 2026-10-04 — V2 接手：Phase 0 — Audit & Safety
+
+完成：完整审计现有仓库（目录/源码/测试/文档/构建产物），确认真实技术栈（TypeScript 5.7 + Vite 6.1 + 原生 DOM + IndexedDB + SheetJS；node:test + fake-indexeddb + jsdom）。
+运行验证（实测）：npm test 20/20 通过；npm run build 成功（vite 1.87s）；node server.mjs 实测 curl `GET /` 200（535B）、JS 200（477,379B）、CSS 200、404 正常。
+审计落盘：IndexedDB schema（vocabulary-memory-v1 / version 1 / 6 stores，无 migration 框架）、Vocabulary 调度与 mastery 行为、AI Provider 与 Key 存储（内联 prompt、无 schema）、备份恢复（validateBackup 全量校验 + 原子替换）。
+Git：项目此前无 Git → `git init -b main`，baseline commit `6c1c625`，tag `v1.0.0-mvp-baseline`（38 files；node_modules 忽略；core.autocrlf=false）。
+状态体系：新建 STATE.json、HANDOFF.md；重写 CHECKPOINT.md（含 Phase 0 结论与 Phase 1 任务拆分）；更新 TODO.md、README.md；AGENT_EXECUTION.md 追加 Phase 0.5 深度核查要求。
+
+修改：STATE.json（新）、HANDOFF.md（新）、CHECKPOINT.md、TODO.md、README.md、DEVELOPMENT_LOG.md、AGENT_EXECUTION.md、.git。
+
+测试：npm test 20 pass / 0 fail（含 1 万词导入 ≈359ms、1000 题逐题事务 ≈8.7s、DOM 集成 ≈2.0s）；npm run build 成功；服务端 HTTP 实测通过。
+
+下一步：Phase 0.5 — GitHub Reference Research → REFERENCE_RESEARCH.md（Adopt/Adapt/Reject），随后进入 Phase 1 Data Foundation。

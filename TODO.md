@@ -1,22 +1,42 @@
-# P0 必须完成（代码已实现）
-- [x] 四种格式词书导入与词库管理
-- [x] IndexedDB、逐题事务、备份验证与恢复
-- [x] 双向4/6选项、难度、计时、键盘、去重提交
-- [x] 熟练度、优先级、间隔重复、今日复习、弱词强化
-- [x] 统计、单词详情、混淆历史、主题与响应式CSS
-- [x] AI设置、实际请求、报告保存
-- [x] 构建、20项自动测试、完整源码和运行成品
+# TODO — English Reconstruction System V2
 
-# P1 验收与完善
-- [ ] 真实桌面浏览器视觉/键鼠/控制台验收（当前环境拦截）
-- [ ] 手机宽度与真机离线访问验收（离线手机部署本身属第二阶段）
-- [ ] 真实供应商AI请求验收（需用户在应用里填有效凭据）
-- [ ] 真实浏览器长期大数据库性能与容量测试
-- [ ] 每日历史弱词存量曲线（已有当前弱词/今日新增消除）
+> P0 = 当前阶段必要；P1 = 重要；P2 = 后续优化。
+> 任务状态以 `STATE.json` 为准（task_id 一一对应）。
 
-# P2 第二阶段
-- [ ] 拼写题、句子填空、搭配、发音
-- [ ] AI解释混淆词/生成例句/生成干扰项
-- [ ] 可接受的结构化AI调参建议（当前报告为文本，不修改设置）
-- [ ] PWA、云同步、手机离线部署
-- [ ] 更精细个体记忆参数校准和周/月报告
+## P0 — Phase 0.5 / Phase 1（进行中）
+
+- [ ] `phase0_5_reference_research_004`：GitHub 参考调研（10–20 候选、深挖 5–10）→ `REFERENCE_RESEARCH.md`（Adopt / Adapt / Reject）
+- [ ] `phase1_db_migration_001`：IndexedDB v1→v2 versioned migration 框架（只加不删 + 升级前快照）+ 迁移测试
+- [ ] `phase1_learning_model_stores_002`：新增 Learning Model stores（wordExposures、grammarConcepts、grammarAttempts、sentenceAttempts、passages、readingSessions、inputSources、inputSessions、outputAttempts、dailyPlans、miniUnits、skillSnapshots、weeklyDiagnostics、libraryItems）+ 索引
+- [ ] `phase1_word_upgrade_003`：Word 三维能力（recognition/activeRecall/productive）、exposure、来源字段 + 旧数据默认值迁移
+- [ ] `phase1_backup_v2_004`：备份格式 v2（含新 stores；兼容读入 v1 备份）
+- [ ] `phase1_model_api_005`：Learning Model 查询层（索引化，避免全表扫描）
+
+## P1 — 后续开发阶段（AGENT_EXECUTION.md Phase 2–13）
+
+- [ ] Phase 2 Vocabulary V2：Preview、word lifecycle、三维 mastery、多词池选词、Learning Value Score、forgotten 回流、exposure 证据、动态新词量
+- [ ] Phase 3 Daily Planner：Time Budget First、状态三档、Yesterday Recall、每日计划生成、动态调整（≤20–30%）、Closing Loop、中断/恢复
+- [ ] Phase 4 Sentence & Grammar：Sentence Lab（混合句源、拆句流程、Sentence Tree）、Grammar Knowledge Graph、Just-in-Time 知识卡、证据追踪
+- [ ] Phase 5 Reading：文章导入（文本/URL/图片 OCR 适配）、Layered Reading、生词即时标记+后置筛选、难句交接、re-read、阅读分析
+- [ ] Phase 6 Reinforcement AI：条件化句子生成、强化文章生成、严格 JSON schema、prompt 版本化（prompts/ 目录）
+- [ ] Phase 7 Mini Unit：2–3 天状态机、Anchor Material、targetWords/targetGrammar、Day1/2/3 推进
+- [ ] Phase 8 Input Hub：输入库、手动视频记录（title/url/topic/duration/captionMode/selfReported）+ 复盘工作流；**不含视频 AI 分析**
+- [ ] Phase 9 Output Lab：summary/retelling/opinion、诊断优先反馈、Current Level +0.5 升级、结构化证据
+- [ ] Phase 10 Diagnostics：Dashboard、Skill Snapshot、Weekly Diagnostic、retention（D1/D7/D30）、unknown rate、translation dependence、趋势图
+- [ ] Phase 11 Exam Transfer：错题分类（Vocabulary/Structure/Logic/Evidence/Overthinking/Time）、结果回馈 Learning Model
+- [ ] Phase 12 Full Integration：Start Today's Training 串通全部模块
+- [ ] Phase 13 Hardening：性能、移动端、offline、API 失败、DB migration 测试、E2E、文档
+
+## P1 — 旧项目遗留验收（保留）
+
+- [ ] 真实浏览器桌面/手机可视化验收（本机用 CDP 无头 Edge 补验；建议 Phase 13 统一执行）
+- [ ] 真实供应商 AI 调用验收（需用户自行在应用设置填凭据；勿在聊天中提供 Key）
+- [ ] 真实浏览器长期大数据库（数万词、数千题）性能与容量实测
+
+## P2 — 后续优化
+
+- [ ] 拼写题、句子填空、搭配题、发音
+- [ ] AI 解释混淆词 / 生成例句 / 生成干扰项
+- [ ] 每日历史弱词存量曲线（当前已有当日净变化）
+- [ ] PWA、离线、多设备同步
+- [ ] 个体记忆参数校准（FSRS Optimizer 类方案）
