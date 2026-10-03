@@ -1,39 +1,147 @@
-import type { Data, Settings, Word, ReviewRecord, StudySession } from './types.ts';
+import type { Data, Settings, Word, WordExposure, GrammarAttempt, ReviewRecord, StudySession, MigrationRecord } from './types.ts';
 import { defaults } from './types.ts';
 import { validSettings } from './core.ts';
-const stores = ['books', 'words', 'records', 'sessions', 'analyses', 'meta'] as const;
+// —— 数据库版本与迁移框架（Phase 1）——
+// 设计依据：REFERENCE_RESEARCH.md §6.1（Dexie 版本化 schema 思想）与 §2.1（Lute migration 模式）。
+// 原则：只加不删（additive only）；逐版本迁移；升级事务原子性（失败自动回滚，旧数据安全）。
+export const DB_NAME = 'vocabulary-memory-v1';
+export const DB_VERSION = 2;
+const legacyStores = ['books', 'words', 'records', 'sessions', 'analyses', 'meta'] as const;
+const legacyDataStores = ['books', 'words', 'records', 'sessions', 'analyses'] as const;
+const v2Stores = ['wordExposures', 'grammarConcepts', 'grammarAttempts', 'sentenceAttempts', 'passages', 'readingSessions', 'inputSources', 'inputSessions', 'outputAttempts', 'dailyPlans', 'miniUnits', 'skillSnapshots', 'weeklyDiagnostics', 'libraryItems'] as const;
+export const dataStores = [...legacyDataStores, ...v2Stores] as const;
+export const stores = [...dataStores, 'meta'] as const;
+type StoreName = (typeof stores)[number];
+export type DataStoreName = Exclude<StoreName, 'meta'>;
+// v2 二级索引：避免后续模块全表扫描（PROJECT_SPEC §96）
+const indexSpecs: Partial<Record<StoreName, readonly [
+    string,
+    string | string[]
+][]>> = {
+    words: [['bookId', 'bookId'], ['schedule.due', 'schedule.due']],
+    records: [['wordId,at', ['wordId', 'at']], ['at', 'at']],
+    wordExposures: [['wordId,at', ['wordId', 'at']], ['at', 'at']],
+    grammarConcepts: [['parentId', 'parentId'], ['nextReviewAt', 'nextReviewAt']],
+    grammarAttempts: [['conceptId,at', ['conceptId', 'at']]],
+    sentenceAttempts: [['at', 'at']],
+    passages: [['createdAt', 'createdAt']],
+    readingSessions: [['passageId', 'passageId'], ['at', 'at']],
+    inputSources: [['createdAt', 'createdAt']],
+    inputSessions: [['at', 'at']],
+    outputAttempts: [['at', 'at']],
+    dailyPlans: [['date', 'date']],
+    miniUnits: [['status', 'status'], ['startedAt', 'startedAt']],
+    skillSnapshots: [['date', 'date']],
+    weeklyDiagnostics: [['weekOf', 'weekOf']],
+    libraryItems: [['savedAt', 'savedAt']],
+};
+// 旧词条缺少 v2 字段时回填默认值；已具备字段的词原样返回（幂等，可反复调用）
+export function withV2WordDefaults(w: Word): Word {
+    if (w.recognitionScore !== undefined && w.sourceTypes !== undefined)
+        return w;
+    const out = { ...w };
+    out.recognitionScore ??= 0;
+    out.activeRecallScore ??= 0;
+    out.productiveScore ??= 0;
+    out.exposureCount ??= 0;
+    out.contextExposureCount ??= 0;
+    out.productionEvidence ??= 0;
+    out.previewedAt ??= 0;
+    out.lastEncounteredAt ??= 0;
+    out.sourceTypes ??= ['book'];
+    return out;
+}
+// 把任意来源（旧备份、旧数据）规范化为完整的 v2 Data 形状
+export function normalizeData(d: Data): Data {
+    const bag = d as unknown as Record<string, unknown>;
+    for (const name of v2Stores)
+        if (!Array.isArray(bag[name]))
+            bag[name] = [];
+    d.words = d.words.map(withV2WordDefaults);
+    return d;
+}
 let db: IDBDatabase;
+function runMigration(database: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
+    if (oldVersion < 1)
+        for (const name of legacyStores as readonly string[])
+            if (!database.objectStoreNames.contains(name))
+                database.createObjectStore(name, { keyPath: 'id' });
+    if (oldVersion < 2) {
+        for (const name of v2Stores as readonly string[])
+            if (!database.objectStoreNames.contains(name))
+                database.createObjectStore(name, { keyPath: 'id' });
+        for (const [name, specs] of Object.entries(indexSpecs)) {
+            const store = tx.objectStore(name);
+            for (const [index, keyPath] of specs ?? [])
+                if (!store.indexNames.contains(index))
+                    store.createIndex(index, keyPath as string | string[]);
+        }
+        // 旧词条回填 v2 默认字段（cursor 遍历；已具备字段的跳过写回）
+        const request = tx.objectStore('words').openCursor();
+        request.onsuccess = () => {
+            const cursor = request.result;
+            if (!cursor)
+                return;
+            const updated = withV2WordDefaults(cursor.value as Word);
+            if (updated !== cursor.value)
+                cursor.update(updated);
+            cursor.continue();
+        };
+        // 仅真实升级（v1 库）写迁移记录；全新安装（oldVersion=0）无需记录
+        if (oldVersion >= 1) {
+            const record: MigrationRecord = { from: oldVersion, to: 2, at: Date.now() };
+            tx.objectStore('meta').put({ id: 'migration', value: record });
+        }
+    }
+}
 export async function openDB(): Promise<void> {
     if (db)
         return;
     db = await new Promise((resolve, reject) => {
-        const r = indexedDB.open('vocabulary-memory-v1', 1);
-        r.onupgradeneeded = () => {
-            for (const name of stores)
-                r.result.createObjectStore(name, { keyPath: 'id' });
-        };
+        const r = indexedDB.open(DB_NAME, DB_VERSION);
+        r.onupgradeneeded = e => runMigration(r.result, r.transaction!, (e as IDBVersionChangeEvent).oldVersion);
         r.onsuccess = () => resolve(r.result);
         r.onerror = () => reject(r.error);
         r.onblocked = () => reject(Error('数据库升级被另一个窗口阻塞，请关闭其他窗口'));
     });
     db.onversionchange = () => db.close();
 }
+export function getDB(): IDBDatabase { return db; }
 export function closeDB() { db?.close(); db = undefined as unknown as IDBDatabase; }
 function done(tx: IDBTransaction) { return new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onabort = () => reject(tx.error || Error('保存事务中止')); tx.onerror = () => reject(tx.error || Error('数据保存失败')); }); }
 function req<T>(r: IDBRequest<T>) { return new Promise<T>((resolve, reject) => { r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); }); }
-export function emptyData(): Data { return { books: [], words: [], records: [], sessions: [], analyses: [], settings: { ...defaults } }; }
-export async function loadData(): Promise<Data> { await openDB(); const tx = db.transaction([...stores], 'readonly'); const d = emptyData(); const [books, words, records, sessions, analyses, meta] = await Promise.all(stores.map(s => req(tx.objectStore(s).getAll()))); Object.assign(d, { books, words, records, sessions, analyses }); d.settings = { ...defaults, ...meta.find(x => x.id === 'settings')?.value }; return d; }
+export function emptyData(): Data { return { books: [], words: [], records: [], sessions: [], analyses: [], settings: { ...defaults }, wordExposures: [], grammarConcepts: [], grammarAttempts: [], sentenceAttempts: [], passages: [], readingSessions: [], inputSources: [], inputSessions: [], outputAttempts: [], dailyPlans: [], miniUnits: [], skillSnapshots: [], weeklyDiagnostics: [], libraryItems: [], migration: null }; }
+export async function loadData(): Promise<Data> {
+    await openDB();
+    const tx = db.transaction([...stores], 'readonly');
+    const d = emptyData();
+    await Promise.all(stores.map(async (name) => {
+        const rows = await req(tx.objectStore(name).getAll());
+        if (name === 'meta') {
+            d.settings = { ...defaults, ...(rows.find(x => x.id === 'settings') as {
+                    value?: Settings;
+                } | undefined)?.value };
+            d.migration = (rows.find(x => x.id === 'migration') as {
+                value?: MigrationRecord;
+            } | undefined)?.value ?? null;
+        }
+        else
+            (d as unknown as Record<string, unknown>)[name] = rows;
+    }));
+    return d;
+}
 export async function replaceData(d: Data): Promise<void> {
     await openDB();
     const tx = db.transaction([...stores], 'readwrite');
     const p = done(tx);
+    const bag = d as unknown as Record<string, unknown[]>;
     for (const name of stores) {
         const s = tx.objectStore(name);
         s.clear();
         if (name === 'meta')
             s.put({ id: 'settings', value: storedSettings(d.settings) });
         else
-            for (const item of d[name])
+            for (const item of bag[name] ?? [])
                 s.put(item);
     }
     await p;
@@ -47,7 +155,7 @@ export async function saveSettings(s: Settings) {
     tx.objectStore('meta').put({ id: 'settings', value: storedSettings(s) });
     await p;
 }
-export async function putItems(name: Exclude<typeof stores[number], 'meta'>, items: unknown[]) {
+export async function putItems(name: DataStoreName, items: unknown[]) {
     const tx = db.transaction(name, 'readwrite');
     const p = done(tx);
     for (const x of items)
@@ -55,8 +163,14 @@ export async function putItems(name: Exclude<typeof stores[number], 'meta'>, ite
     await p;
 }
 export async function saveAnswer(word: Word, record: ReviewRecord, session: StudySession) { const tx = db.transaction(['words', 'records', 'sessions'], 'readwrite'); const p = done(tx); tx.objectStore('words').put(word); tx.objectStore('records').put(record); tx.objectStore('sessions').put(session); await p; }
-export function backup(d: Data) { return JSON.stringify({ format: 'vocabulary-memory', version: 1, exportedAt: new Date().toISOString(), data: { ...d, settings: { ...d.settings, key: '', rememberKey: false } } }, null, 2); }
-// Validate before starting any destructive transaction. Reject unknown schema versions.
+export function backup(d: Data) {
+    const data: Record<string, unknown> = {};
+    for (const name of dataStores)
+        data[name] = (d as unknown as Record<string, unknown>)[name] ?? [];
+    data.settings = { ...d.settings, key: '', rememberKey: false };
+    return JSON.stringify({ format: 'vocabulary-memory', version: DB_VERSION, exportedAt: new Date().toISOString(), data }, null, 2);
+}
+// 先校验、后进入破坏性事务。v1/v2 备份都可读入；未知版本拒绝。
 export function validateBackup(value: unknown): Data {
     const fail = (): never => { throw Error('备份结构无效、引用损坏或版本不兼容；现有数据未改动。'); };
     if (!value || typeof value !== 'object')
@@ -66,7 +180,7 @@ export function validateBackup(value: unknown): Data {
         version: number;
         data: Data;
     };
-    if (v.format !== 'vocabulary-memory' || v.version !== 1 || !v.data)
+    if (v.format !== 'vocabulary-memory' || ![1, 2].includes(v.version) || !v.data)
         return fail();
     const d = v.data;
     for (const k of ['books', 'words', 'records', 'sessions', 'analyses'] as const) {
@@ -108,6 +222,12 @@ export function validateBackup(value: unknown): Data {
         }
         if (!w.confusions || typeof w.confusions !== 'object' || Array.isArray(w.confusions) || Object.entries(w.confusions).some(([id, n]) => !wordIds.has(id) || !num(n)))
             return fail();
+        // v2 新增字段：存在时类型必须正确（缺省由 normalizeData 回填）
+        for (const k of ['recognitionScore', 'activeRecallScore', 'productiveScore', 'exposureCount', 'contextExposureCount', 'productionEvidence', 'previewedAt', 'lastEncounteredAt'] as const)
+            if (w[k] !== undefined && !num(w[k]))
+                return fail();
+        if (w.sourceTypes !== undefined && (!Array.isArray(w.sourceTypes) || w.sourceTypes.some(t => typeof t !== 'string' || t.length > 64)))
+            return fail();
     }
     for (const s of d.sessions) {
         if (!num(s.started) || s.ended !== null && !num(s.ended) || typeof s.mode !== 'string' || !Array.isArray(s.queue) || s.queue.some(id => !wordIds.has(id)) || ![s.index, s.answered, s.correct].every(n => num(n) && Number.isInteger(n)) || s.index > s.queue.length || s.correct > s.answered || !s.retries || Object.entries(s.retries).some(([id, n]) => !wordIds.has(id) || !num(n)))
@@ -122,5 +242,28 @@ export function validateBackup(value: unknown): Data {
     for (const a of d.analyses)
         if (typeof a.text !== 'string' || typeof a.model !== 'string' || !num(a.at) || !num(a.sampleSize))
             return fail();
-    return structuredClone({ ...d, settings: { ...d.settings, key: '', rememberKey: false } });
+    // v2 stores：项 ID 安全性与唯一性
+    const bag = d as unknown as Record<string, unknown>;
+    for (const name of v2Stores) {
+        const arr = bag[name] ?? [];
+        if (!Array.isArray(arr))
+            return fail();
+        const ids = new Set();
+        for (const x of arr) {
+            const id = (x as {
+                id?: unknown;
+            } | null)?.id;
+            if (!x || typeof x !== 'object' || typeof id !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(id) || ['__proto__', 'constructor', 'prototype'].includes(id) || ids.has(id))
+                return fail();
+            ids.add(id);
+        }
+    }
+    // v2 关键引用/字段抽查
+    for (const e of (bag['wordExposures'] ?? []) as WordExposure[])
+        if (!wordIds.has(e.wordId) || !num(e.at) || !['known', 'vague', 'unknown', 'guessed'].includes(e.state))
+            return fail();
+    for (const a of (bag['grammarAttempts'] ?? []) as GrammarAttempt[])
+        if (typeof a.conceptId !== 'string' || !num(a.at) || typeof a.correct !== 'boolean')
+            return fail();
+    return structuredClone(normalizeData({ ...d, settings: { ...d.settings, key: '', rememberKey: false } }));
 }

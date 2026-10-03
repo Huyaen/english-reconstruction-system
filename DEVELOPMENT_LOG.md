@@ -61,3 +61,12 @@ Git：项目此前无 Git → `git init -b main`，baseline commit `6c1c625`，t
 测试：纯文档阶段；提交前复验通过——npm test 20 pass / 0 fail（19.3s）；npm run build 成功（vite 2.76s）；STATE.json JSON 校验通过。
 
 下一步：Phase 1 — Data Foundation（从 phase1_db_migration_001 开始：DB v1→v2 迁移框架 + 迁移测试）。
+
+## 2026-10-04 — Phase 1 — Data Foundation
+
+完成：DB v1→v2 versioned migration 框架（只加不删、逐版本分支、原子升级、meta 迁移记录、升级后 UI 提示）；14 个 Learning Model stores + 16 组索引；Word 三维能力/曝光/来源字段 + 默认值回填；备份 v2（兼容读入 v1、悬空引用拒绝）；Learning Model 查询层。
+关键实现：src/db.ts（runMigration / withV2WordDefaults / normalizeData / validateBackup v1+v2 / indexSpecs）、src/types.ts（14 实体 + Word/Data 扩展）、src/core.ts（makeWord 补字段）、src/app.ts（boot 升级提示 + 删词书清理 wordExposures）、src/model.ts（新）、tests/migration.test.ts（新，5 个测试）。
+测试：npm test **25 pass / 0 fail**（v1 fixture 迁移 100% 保留、重开幂等、v1 备份恢复、v2 往返与悬空引用拒绝、索引化查询）；npm run build 成功（dist JS 475.21 kB / gzip 164.36 kB）；node server.mjs 服务实测 200（新 hashed bundle）。
+过程记录：初版冗余索引导致 fake-indexeddb 写放大（1000 题 8.7s→16.6s）→ 精简为复合索引（复合索引前缀等价）；TS2783（spread 覆盖默认值报错）→ 改为 ??= 赋值。
+
+下一步：Phase 2 — Vocabulary V2（先 `npm install ts-fsrs`（MIT，记录版本）→ 设计 Word.fsrs 字段与 v2→v3 迁移 → 反应时间分类→FSRS Rating 映射 → 回归全绿）。

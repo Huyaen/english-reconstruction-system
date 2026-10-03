@@ -336,6 +336,7 @@ function deleteBookDialog() {
         const next = structuredClone(data);
         next.books = next.books.filter(x => x.id !== b.id);
         next.words = next.words.filter(w => !ids.has(w.id));
+        next.wordExposures = next.wordExposures.filter(e => !ids.has(e.wordId));
         for (const w of next.words)
             for (const id of ids)
                 delete w.confusions[id];
@@ -429,7 +430,14 @@ function settingsPage() {
     });
 }
 function exportBackup() { download(new Blob([backup(data)], { type: 'application/json' }), `词间完整备份-${dayKey(Date.now())}.json`); toast('备份已导出（不含 API Key）'); }
-async function boot() { await openDB(); data = await loadData(); reindex(); render(); }
+async function boot() {
+    await openDB();
+    data = await loadData();
+    reindex();
+    render();
+    if (data.migration && Date.now() - data.migration.at < 10 * 60 * 1000)
+        setTimeout(() => toast(`本地数据库已从 v${data.migration!.from} 升级到 v${data.migration!.to}；建议立即导出一次完整备份`), 600);
+}
 if (navigator.locks) {
     void navigator.locks.request('vocabulary-memory-writer', { ifAvailable: true }, async (lock) => {
         if (!lock) {

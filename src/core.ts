@@ -5,7 +5,7 @@ export const labels: Record<Mastery, string> = { new: '未测试', unknown: '不
 export function makeWord(fields: Partial<Word> & {
     en: string;
     zh: string;
-}, bookId: string, order: number): Word { return { id: uid(), bookId, en: fields.en.trim(), zh: fields.zh.trim(), pos: fields.pos || '', phonetic: fields.phonetic || '', example: fields.example || '', collocation: fields.collocation || '', difficulty: fields.difficulty || '', tags: fields.tags || '', order, state: { total: 0, correct: 0, streak: 0, errors: 0, lapses: 0, meanMs: 0, lastMs: 0, lastCorrect: false, level: 'new', directions: { 'en-zh': { total: 0, correct: 0, meanMs: 0 }, 'zh-en': { total: 0, correct: 0, meanMs: 0 } } }, schedule: { due: 0, last: 0, interval: 0, step: 0, spacedPasses: 0 }, confusions: {} }; }
+}, bookId: string, order: number): Word { return { id: uid(), bookId, en: fields.en.trim(), zh: fields.zh.trim(), pos: fields.pos || '', phonetic: fields.phonetic || '', example: fields.example || '', collocation: fields.collocation || '', difficulty: fields.difficulty || '', tags: fields.tags || '', order, state: { total: 0, correct: 0, streak: 0, errors: 0, lapses: 0, meanMs: 0, lastMs: 0, lastCorrect: false, level: 'new', directions: { 'en-zh': { total: 0, correct: 0, meanMs: 0 }, 'zh-en': { total: 0, correct: 0, meanMs: 0 } } }, schedule: { due: 0, last: 0, interval: 0, step: 0, spacedPasses: 0 }, confusions: {}, recognitionScore: 0, activeRecallScore: 0, productiveScore: 0, exposureCount: 0, contextExposureCount: 0, productionEvidence: 0, previewedAt: 0, lastEncounteredAt: 0, sourceTypes: ['book'] }; }
 export function classify(correct: boolean, ms: number, s: Settings): Mastery {
     if (!correct || ms >= s.timeout)
         return 'unknown';

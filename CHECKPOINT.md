@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-10-04 · Phase 1 — Data Foundation（passed）
+
+**结论**：DB 升级到 **version 2**（只加不删、原子升级、v1 数据 100% 保留有测试）；**14 个 Learning Model stores** 就绪并带索引；Word 三维能力字段 + 默认值迁移；**备份格式 v2**（兼容读入 v1）；**Learning Model 查询层**（索引化）。
+
+### 交付（task_id ↔ 实现 ↔ 证据）
+
+| task_id | 内容 | 文件 | 证据 |
+|---|---|---|---|
+| phase1_db_migration_001 | versioned migration 框架：逐版本分支（v1 建原 6 store；v2 建新 stores+索引+回填）；升级事务原子性；meta 迁移记录；旧库升级后 UI toast 提示导出备份 | `src/db.ts`、`src/app.ts` | `tests/migration.test.ts`：v1 fixture（book/2 words/record/session/settings）升级后 100% 保留 + 重开幂等 |
+| phase1_learning_model_stores_002 | 新增 14 stores（wordExposures…libraryItems）+ 16 组二级索引（复合 `wordId,at` 等） | `src/db.ts`、`src/types.ts` | 测试断言 store/index 实际存在（raw IndexedDB 检查） |
+| phase1_word_upgrade_003 | Word 新增：recognitionScore/activeRecallScore/productiveScore/exposureCount/contextExposureCount/productionEvidence/previewedAt/lastEncounteredAt/sourceTypes；旧词回填默认值 | `src/types.ts`、`src/core.ts`、`src/db.ts` | 测试断言回填默认值 + 校验器类型检查 |
+| phase1_backup_v2_004 | 备份 v2（全部新 stores、去 Key）；`validateBackup` 兼容 v1+v2；悬空引用拒绝；`normalizeData` 规范化 | `src/db.ts` | v1 备份恢复测试 + v2 往返测试 + 悬空引用拒绝 |
+| phase1_model_api_005 | `src/model.ts`：dueWords/wordsByBook/recordsForWord/exposuresForWord/exposureStats/latestSnapshots/planForDate/activeMiniUnit/unfinishedSessions | `src/model.ts` | model 查询测试（索引范围查询、到期过滤 total>0、快照倒序） |
+
+### 验证（实测）
+
+- `npm test` → **25 pass / 0 fail**（原 20 + 新增 5）
+- `npm run build` → 成功（vite built in 1.15s；dist JS 475.21 kB / gzip 164.36 kB）
+- 服务实测：`node server.mjs` → `GET /` 200（535B）、新 JS asset 200（481,259B）、404 正常
+- 压力基准（fake-indexeddb）：1 万词导入+建库约 3.9s、1000 题逐题事务约 16.6s（索引精简后）；真实浏览器数值以 Phase 13 实测为准
+
+### 设计决策与已淘汰方案
+
+- **只加不删 + 原子升级**：onupgradeneeded 失败自动回滚（旧数据安全的 rollback 保障）；真实升级写 `meta.migration` 记录并在 UI 提示导出备份（浏览器无用户手势无法自动下载快照，采用「原子升级 + 事后提醒」组合）
+- 全新安装（oldVersion=0）**不写**迁移记录（避免误报）
+- backup v2 **不持久化** migration 记录（运行时信息）；`dueWords` 过滤 `total>0`（未测试新词 due=0 不算到期）
+- **已淘汰**：初版 4 个冗余索引（`records.wordId/sessionId`、`wordExposures.wordId`、`grammarAttempts.conceptId` 等）导致写放大 → 精简为复合 `wordId,at` + `at`（复合索引前缀查询等价）；**不引入 Dexie**（原生实现复杂度可控，保留升级预案）
+- 迁移框架可直接复用：后续 Word.fsrs 字段（Phase 2）走 v2→v3 同模式
+
+### 已知限制
+
+- sessions「未完成」查询为读取后过滤（`ended=null` 不进索引；量级小）
+- 迁移的自动快照受浏览器限制未实现自动下载（以原子性 + 提示替代）
+
+---
+
 ## 2026-10-04 · Phase 0.5 — GitHub Reference Research（passed）
 
 **结论**：完成有边界的开源调研（候选 40+、深挖 12、Adopt/Adapt/Reject 总表），成果 `REFERENCE_RESEARCH.md`（490 行）。未改变任何产品原则；未发现需要推翻现有技术栈的理由。

@@ -2,11 +2,11 @@
   "project": "English Reconstruction System V2",
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "active",
-  "current_phase": "phase_1_data_foundation",
-  "last_updated": "2026-10-04T01:10:00+08:00",
+  "current_phase": "phase_2_vocabulary_v2",
+  "last_updated": "2026-10-04T01:45:00+08:00",
   "last_verified_commit": "6c1c6253104abb668475debfba2d61c50cade9c9",
   "baseline_tag": "v1.0.0-mvp-baseline",
-  "database_version": 1,
+  "database_version": 2,
   "build_status": "passed",
   "test_status": "passed (20/20 via node --test)",
   "tasks": {
@@ -39,15 +39,39 @@
       "artifacts": ["REFERENCE_RESEARCH.md §11 总表", "关键决策：Adopt ts-fsrs/zod/jsonrepair/tesseract.js/vite-plugin-pwa/ECDICT；Adapt HLR/BKT-lite/VocabSieve/Dexie/Lute/displaCy；Reject GPL-AGPL 代码复用/图数据库/CRDT"],
       "tests": ["许可证核验（逐仓库 SPDX/pushed_at）", "源码实际查看记录（SHA 已记录于文档）"]
     },
-    "phase1_data_foundation_005": {
-      "status": "planned",
-      "description": "Data Foundation：DB v1→v2 versioned migration/新 Learning Model stores/Word 三维字段升级/备份 v2/Learning Model 查询层（拆分见 CHECKPOINT.md §11）",
-      "files": [],
-      "tests": []
+    "phase1_db_migration_001": {
+      "status": "passed",
+      "description": "DB v1→v2 versioned migration 框架：只加不删、逐版本分支、words cursor 回填、meta 迁移记录、旧库升级后 UI 提示导出备份",
+      "files": ["src/db.ts", "src/app.ts"],
+      "tests": ["tests/migration.test.ts：v1 fixture 升级后数据 100% 保留；重开幂等（无重复迁移记录）"]
+    },
+    "phase1_learning_model_stores_002": {
+      "status": "passed",
+      "description": "新增 14 个 Learning Model stores + 16 组二级索引（含复合 wordId,at；冗余索引已精简）",
+      "files": ["src/db.ts", "src/types.ts"],
+      "tests": ["迁移测试断言 store/index 实际存在"]
+    },
+    "phase1_word_upgrade_003": {
+      "status": "passed",
+      "description": "Word 三维能力（recognition/activeRecall/productive）+ exposure/来源字段 + 旧数据默认值回填（withV2WordDefaults 幂等）",
+      "files": ["src/types.ts", "src/core.ts", "src/db.ts"],
+      "tests": ["迁移测试断言默认值回填；备份校验器新增字段类型检查"]
+    },
+    "phase1_backup_v2_004": {
+      "status": "passed",
+      "description": "备份格式 v2（含全部新 stores、始终去 Key）；validateBackup 兼容读入 v1+v2；悬空引用拒绝；normalizeData 规范化",
+      "files": ["src/db.ts"],
+      "tests": ["v1 备份恢复测试；v2 往返测试；悬空引用拒绝测试"]
+    },
+    "phase1_model_api_005": {
+      "status": "passed",
+      "description": "src/model.ts 索引化查询层：dueWords/wordsByBook/recordsForWord/exposuresForWord/exposureStats/latestSnapshots/planForDate/activeMiniUnit/unfinishedSessions",
+      "files": ["src/model.ts"],
+      "tests": ["model 查询测试（复合索引范围查询、到期过滤、快照倒序）"]
     },
     "phase2_vocabulary_v2_006": {
       "status": "planned",
-      "description": "Vocabulary V2：Preview、word lifecycle、三维 mastery、多词池、Learning Value、forgotten reflow、exposure evidence、动态新词量",
+      "description": "Vocabulary V2：ts-fsrs 调度替换（含评分映射）、Preview、word lifecycle、三维 mastery、多词池、Learning Value、forgotten reflow、exposure evidence、动态新词量",
       "files": [],
       "tests": []
     }
@@ -61,7 +85,7 @@
     "调度为透明启发式阶梯方案，非 FSRS/科学遗忘模型（docs/ALGORITHMS.md 已明示）"
   ],
   "blocked": [],
-  "next_task_id": "phase1_db_migration_001",
+  "next_task_id": "phase2_vocabulary_v2_006",
   "environment": {
     "node": "v26.7.0",
     "npm": "11.19.0",

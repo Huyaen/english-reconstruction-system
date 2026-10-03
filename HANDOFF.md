@@ -1,54 +1,48 @@
 # HANDOFF — 换模型 / 换会话所需最小上下文
 
-（更新：2026-10-04 01:12 · 基线 commit `6c1c625` / tag `v1.0.0-mvp-baseline`；Phase 0.5 提交见 git log）
+（更新：2026-10-04 01:50 · 最新代码提交见 git log；基线 `6c1c625` / `v1.0.0-mvp-baseline`）
 
 ## Current phase
 
-Phase 1 — Data Foundation（Phase 0 审计 + Phase 0.5 开源调研均已完成并通过）
+Phase 2 — Vocabulary V2（Phase 0 审计 / Phase 0.5 调研 / Phase 1 Data Foundation 均已完成并通过）
 
 ## Current task_id
 
-`phase1_db_migration_001` — IndexedDB v1→v2 versioned migration 框架 + 迁移测试（旧数据 100% 保留）。
+`phase2_vocabulary_v2_006`（下一步开工）。Phase 1 五项任务（`phase1_db_migration_001` … `phase1_model_api_005`）全部 passed，证据见 `CHECKPOINT.md` §Phase 1。
 
-后续任务顺序：`phase1_learning_model_stores_002` → `phase1_word_upgrade_003` → `phase1_backup_v2_004` → `phase1_model_api_005`（拆分与验收见 `CHECKPOINT.md` §Phase 1 表格）。
+## What is done（累计）
 
-## What is done
-
-- **Phase 0 审计完成**：目录结构、真实技术栈、运行验证、build、测试、IndexedDB schema/版本、Vocabulary 能力、调度算法、AI Provider/Key 存储、备份恢复——全部实测并落盘（细节见 `CHECKPOINT.md`）。
-- **Phase 0.5 调研完成**：`REFERENCE_RESEARCH.md`（490 行；候选 40+、深挖 12、Adopt/Adapt/Reject 总表 §11；边界与失败记录 §12）。
-  - **Adopt**：ts-fsrs（MIT，调度内核，Phase 1/2 引入）、zod（MIT）、jsonrepair（ISC）、tesseract.js（Apache-2.0）、vite-plugin-pwa（MIT）、ECDICT 数据子集（MIT）
-  - **Adapt**：Duolingo HLR（半衰期诊断）、pyBKT BKT-lite（语法掌握概率）、VocabSieve 加权已知度、Dexie/Lute 迁移模式、spaCy displaCy 的 `{words,arcs}` 渲染协议、compromise（本地 NLP）
-  - **Reject（记录原因）**：Anki/yomitan/vocabsieve/asbplayer 的**代码**（AGPL/GPL 传染）、图数据库、CRDT/local-first 引擎、instructor-js 作为依赖
-- **运行证据（最近一次全量复验，Phase 0.5 后）**：
-  - `npm test` → **20 pass / 0 fail**（19.3s；含 1 万词导入、1000 题逐题事务、DOM 集成）
-  - `npm run build` → `tsc --noEmit && vite build` 成功（2.76s；dist JS 471.38 kB / gzip 163.16 kB）
-  - `STATE.json` JSON 校验通过
-- **Git 已建立**：`main` 上有 `6c1c625`（基线）、`9dc0b8b`（状态体系）与 Phase 0.5 提交；`core.autocrlf=false`。
-- **状态文件体系**：`STATE.json` / `CHECKPOINT.md` / `HANDOFF.md` / `TODO.md` / `DEVELOPMENT_LOG.md` 持续维护。
-- `AGENT_EXECUTION.md` 含 Phase 0.5 完整定义 + 深度核查要求补充。
+- **Phase 0 审计**：目录/技术栈/运行/build/test/DB/AI/备份全部实测（`CHECKPOINT.md`）。
+- **Phase 0.5 调研**：`REFERENCE_RESEARCH.md`（候选 40+、深挖 12、Adopt/Adapt/Reject 总表 §11）。
+- **Phase 1 Data Foundation（本轮完成）**：
+  - DB **version 2**：`runMigration` 逐版本、只加不删、原子升级；v1 数据 100% 保留有测试
+  - 新增 14 个 stores + 16 组索引（含复合 `wordId,at`）；`src/model.ts` 索引化查询层
+  - Word 三维能力字段 + 默认值回填（`withV2WordDefaults`）；备份 v2（兼容读入 v1；悬空引用拒绝）
+  - 真实升级后 UI toast 提示导出备份；删词书同步清理 `wordExposures`
+- **验证证据（最新全量）**：`npm test` **25/25 pass**；`npm run build` 成功（dist JS 475.21 kB / gzip 164.36 kB）；`node server.mjs` 实测 `GET /` 200、新 bundle 200。
+- **Git 轨迹**：`6c1c625`（基线）→ `9dc0b8b`（状态体系）→ `76716a6`（Phase 0.5）→ 本轮 Phase 1 提交（见 git log）。
 
 ## What is currently running
 
-无后台任务、无未提交的未完成代码（Phase 0.5 为纯文档阶段）。
+无后台任务；无未完成的代码修改（工作区 = 本轮已验证状态）。
 
 ## What remains
 
-1. **Phase 1 — Data Foundation**（当前）：见上方 Current task_id 与 `CHECKPOINT.md` §Phase 1 表格。
-2. **Phase 2–13** 按 `AGENT_EXECUTION.md` 推进（每阶段：测试 → build → 五个状态文件 → commit）。
+Phase 2（当前）→ Phase 3–13 按 `AGENT_EXECUTION.md` 推进。
 
 ## Last verified build
 
-`npm run build` @ 工作区（Phase 0.5 后复验）→ vite 6.1.0 成功；产物 `dist/assets/index-Cz7SpIzd.js` 471.38 kB（gzip 163.16 kB）、`index-z7Uz7Smv.css` 15.58 kB。
+`npm run build` @ 本轮工作树 → vite 1.15s；`dist/assets/index-DzHi_0Ef.js` 475.21 kB（gzip 164.36 kB）。
 
 ## Last verified tests
 
-`npm test` @ 同上 → 20 pass / 0 fail（node --test + tsx；fake-indexeddb；jsdom + esbuild DOM 集成）。
+`npm test` @ 同上 → 25 pass / 0 fail（含 v1→v2 迁移 100% 保留、幂等、v1/v2 备份兼容与拒绝、索引化查询）。
 
 ## Known bugs
 
 - 无阻断性 bug。
-- 未验收项（非 bug，保留待办）：真实浏览器可视化验收、真机移动端、真实 AI 供应商调用（`TODO.md` P1）。
-- 已知局限（设计/环境）：同义排除为文本启发式；性能基准使用 fake-indexeddb；调度为透明启发式（Phase 2 计划升级为 ts-fsrs）。
+- 未验收项（TODO P1）：真实浏览器可视化、真机移动端、真实 AI 供应商调用。
+- 已知限制：性能基准基于 fake-indexeddb；调度仍为启发式阶梯（Phase 2 换 ts-fsrs）。
 
 ## Files currently being modified
 
@@ -56,27 +50,27 @@ Phase 1 — Data Foundation（Phase 0 审计 + Phase 0.5 开源调研均已完�
 
 ## Database migration status
 
-- 当前 DB：`vocabulary-memory-v1`，**version 1**，6 个 stores（books / words / records / sessions / analyses / meta），无二级索引。
-- **尚未执行任何迁移**。Phase 1 将升至 **version 2**（只加不删；新增 14 个 stores + 索引 + `words` 默认字段回填 + `meta` 迁移标记；迁移测试用 v1 fixture）。
-- 迁移设计依据：`REFERENCE_RESEARCH.md` §6.1（Dexie 版本化 schema 模式）与 §2.1（Lute migration 模式）。
+- 当前 schema：**version 2**（DB 名仍为 `vocabulary-memory-v1`，刻意保持不变）。
+- v1→v2 迁移框架已就绪并测试；`meta.migration` 记录最近一次真实升级（from/to/at）。
+- 后续任何 schema 变更必须走同一框架：新增 `if (oldVersion < N)` 分支 + 数据回填 + fixture 测试；**禁止修改或删除已发布版本的迁移分支**。
 
 ## Next exact action
 
-执行 `phase1_db_migration_001`：
+Phase 2 第一步（建议顺序）：
 
-1. `src/types.ts`：新增 v2 数据模型类型（14 个新 store 的实体接口 + Word 新增三维能力/exposure/来源字段）。
-2. `src/db.ts`：`DB_VERSION = 2`；`onupgradeneeded` 逐版本迁移（v1 建原 6 store → v2 建新 stores + 索引 + `words` 默认字段回填 + 写 `meta` 迁移标记）；保持 `replaceData` / `saveAnswer` / `validateBackup` 既有行为不变。
-3. 新建 `tests/migration.test.ts`：v1 fixture（手工建 v1 库 + 样本数据）→ 用新代码打开 → 断言旧数据 100% 保留、新 store 就绪、迁移幂等、备份兼容。
-4. 运行 `npm test` + `npm run build`，更新状态文件，提交 `feat(db): v1→v2 versioned migration ...`。
+1. `npm install ts-fsrs`（MIT；将实际版本号记录到 CHECKPOINT/HANDOFF）。
+2. 设计 Word 的 FSRS 字段（参照 `REFERENCE_RESEARCH.md` §1.1：stability/difficulty/state/reps/lapses/due 等），用现有迁移框架加 **v2→v3** 迁移 + fixture 测试（旧数据回填 FSRS 初值）。
+3. 评分映射层：`classify()`（fluent/normal/vague/unknown）→ Again/Hard/Good/Easy；设置项暴露 `request_retention`（默认 0.9）。
+4. 新调度接入 `quiz.ts` 的 answer 路径；保留 priority/弱词/混淆逻辑可用；回归测试全绿。
+5. 之后继续 Phase 2 余项：Preview、lifecycle、多词池、Learning Value、forgotten reflow、动态新词量。
 
 ## Important warnings
 
-1. **迁移只增不删**；`onupgradeneeded` 中先建 store/索引，再回填数据；升级事务原子性保证失败回滚（旧数据安全）。
-2. **不要复制 GPL-3.0 / AGPL-3.0 项目代码**（yomitan/vocabsieve/asbplayer/Lute 代码层面）；Adopt 依赖严格按 `REFERENCE_RESEARCH.md §11` 许可证引入并记录版本。
-3. **ts-fsrs 到 Phase 2 才作为依赖引入**；Phase 1 不引入任何新运行时依赖。
-4. 修改 `src/*.ts` / `tests/*.ts` 后保持 `docs/format-source.mjs` 的紧凑格式（或运行该脚本），否则 diff 会失控。
-5. **不要把 API Key 写入日志/提交**；备份始终剔除 Key。
-6. `npm start` / `node server.mjs` 读取的是 `dist/`；源码改动后必须 rebuild。
-7. 本机浏览器验证路径：Hermes 内置 browser_exec 不可用；需要真实浏览器时使用 CDP 无头 Edge（见 skill `sillytavern-live-ui-verification` 的自建方案）。
-8. 项目唯一根目录：`D:\英语重构训练\vocabulary-app`。禁止另起工程。
-9. 完成任何阶段后按 `AGENT_EXECUTION.md` §4 标准动作更新全部状态文件并提交 Git。
+1. **迁移只加不删**；任何 DB 版本改动必须带迁移测试；升级前提示备份。
+2. 不复制 GPL-3.0 / AGPL-3.0 代码；Adopt 依赖按 `REFERENCE_RESEARCH.md §11` 引入并记录版本。
+3. `src/*.ts`、`tests/*.ts` 变更后跑 `node docs/format-source.mjs`（保持紧凑格式）→ 再跑测试；注意该脚本会重写文件 mtime。
+4. 源码改动后必须 `npm run build`（`server.mjs` 服务 `dist/`；dist 随提交更新）。
+5. 不要把 API Key 写入日志/提交；备份始终剔除 Key。
+6. 浏览器验证用 CDP 无头 Edge（Hermes 内置 browser_exec 不可用）。
+7. 唯一根目录 `D:\英语重构训练\vocabulary-app`；禁止另起工程。
+8. 阶段完成按 `AGENT_EXECUTION.md` §4：测试 → build → 更新五个状态文件 → commit。

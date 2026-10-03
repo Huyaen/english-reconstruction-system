@@ -68,7 +68,7 @@ JSON：
 
 ## 数据保存与备份
 
-数据库：浏览器 IndexedDB `vocabulary-memory-v1`，包含 books / words / records / sessions / analyses / meta 六个对象仓库。
+数据库：浏览器 IndexedDB `vocabulary-memory-v1`（当前 schema 版本 2）。v1→v2 为只加不删的原子迁移，旧词书与学习记录 100% 保留；真实升级后首次启动会提示导出一次备份。对象仓库：books / words / records / sessions / analyses / meta + V2 新增 14 个 Learning Model 仓库（wordExposures、grammarConcepts、grammarAttempts、sentenceAttempts、passages、readingSessions、inputSources、inputSessions、outputAttempts、dailyPlans、miniUnits、skillSnapshots、weeklyDiagnostics、libraryItems）。
 
 **学习数据不在项目文件夹里。复制程序目录不能代替导出学习备份。** 请固定使用同一浏览器配置和 http://localhost:4173；localhost 与 127.0.0.1、不同端口、不同浏览器是不同存储空间。
 
@@ -150,7 +150,7 @@ npm start
 本项目正在从「自适应背单词软件」升级为完整的 **Personal English Learning System**（V2）。产品规格见 `PROJECT_SPEC.md`，工程协议与阶段计划见 `AGENT_EXECUTION.md`。
 
 - **接手入口（换模型/换会话必读）**：依次读 `PROJECT_SPEC.md` → `STATE.json` → `CHECKPOINT.md` → `HANDOFF.md` → `TODO.md` → `DEVELOPMENT_LOG.md`，再核对实际磁盘与 Git。
-- **当前阶段**：见 `HANDOFF.md`（Phase 0 Audit 已完成通过；下一步 Phase 0.5 → Phase 1 Data Foundation）。
+- **当前阶段**：见 `HANDOFF.md`（Phase 0 / 0.5 / 1 已完成并通过；当前 Phase 2 Vocabulary V2）。
 - **基线**：V1 MVP 基线 commit `6c1c625`（tag `v1.0.0-mvp-baseline`）；该提交已实测：`npm test` 20/20、`npm run build` 成功、`node server.mjs` 服务实测 200。
 - **硬约束**：旧数据 100% 保留；审计 → 复用 → 扩展 → 迁移 → 验证；禁止无理由重写现有词汇模块。
 - **源码格式**：`src/*.ts`、`tests/*.ts` 由 `docs/format-source.mjs` 整理为紧凑格式，编辑后请保持一致或重跑该脚本。
