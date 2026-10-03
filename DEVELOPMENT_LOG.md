@@ -48,3 +48,16 @@ Git：项目此前无 Git → `git init -b main`，baseline commit `6c1c625`，t
 测试：npm test 20 pass / 0 fail（含 1 万词导入 ≈359ms、1000 题逐题事务 ≈8.7s、DOM 集成 ≈2.0s）；npm run build 成功；服务端 HTTP 实测通过。
 
 下一步：Phase 0.5 — GitHub Reference Research → REFERENCE_RESEARCH.md（Adopt/Adapt/Reject），随后进入 Phase 1 Data Foundation。
+
+## 2026-10-04 — Phase 0.5 — GitHub Reference Research
+
+完成：有边界的开源调研（GitHub MCP + REST API 小批次策略；候选 40+ 登记、深挖 12、Adopt/Adapt/Reject 总表）。
+深挖（实际读取源码/数据模型/算法/License）：ts-fsrs、free-spaced-repetition-scheduler、fsrs-optimizer、ankitects/anki、duolingo/halflife-regression、LuteOrg/lute-v3、yomidevs/yomitan、FreeLanguageTools/vocabsieve、asbplayer/asbplayer、spencermountain/compromise、explosion/spaCy(displaCy)、dexie/Dexie.js、567-labs/instructor-js、CAHLR/pyBKT、naptha/tesseract.js、skywind3000/ECDICT。
+关键结论：Adopt = ts-fsrs/zod/jsonrepair/tesseract.js/vite-plugin-pwa/ECDICT 子集；Adapt = HLR、BKT-lite、VocabSieve 加权已知度、Dexie/Lute 迁移模式、displaCy words+arcs；Reject = GPL/AGPL 代码复用、图数据库、CRDT 系。
+产物：REFERENCE_RESEARCH.md（490 行，含 §11 总表、§12 调研边界与失败记录——其中记录了本次中断的 APITimeoutError 恢复过程）。
+
+修改：REFERENCE_RESEARCH.md（新）、STATE.json、CHECKPOINT.md、HANDOFF.md、TODO.md、DEVELOPMENT_LOG.md。
+
+测试：纯文档阶段；提交前复验通过——npm test 20 pass / 0 fail（19.3s）；npm run build 成功（vite 2.76s）；STATE.json JSON 校验通过。
+
+下一步：Phase 1 — Data Foundation（从 phase1_db_migration_001 开始：DB v1→v2 迁移框架 + 迁移测试）。

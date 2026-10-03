@@ -5,7 +5,7 @@
 
 ## P0 — Phase 0.5 / Phase 1（进行中）
 
-- [ ] `phase0_5_reference_research_004`：GitHub 参考调研（10–20 候选、深挖 5–10）→ `REFERENCE_RESEARCH.md`（Adopt / Adapt / Reject）
+- [x] `phase0_5_reference_research_004`：GitHub 参考调研（候选 40+、深挖 12）→ `REFERENCE_RESEARCH.md`（Adopt / Adapt / Reject）✔ 2026-10-04
 - [ ] `phase1_db_migration_001`：IndexedDB v1→v2 versioned migration 框架（只加不删 + 升级前快照）+ 迁移测试
 - [ ] `phase1_learning_model_stores_002`：新增 Learning Model stores（wordExposures、grammarConcepts、grammarAttempts、sentenceAttempts、passages、readingSessions、inputSources、inputSessions、outputAttempts、dailyPlans、miniUnits、skillSnapshots、weeklyDiagnostics、libraryItems）+ 索引
 - [ ] `phase1_word_upgrade_003`：Word 三维能力（recognition/activeRecall/productive）、exposure、来源字段 + 旧数据默认值迁移

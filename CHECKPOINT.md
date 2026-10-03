@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-10-04 · Phase 0.5 — GitHub Reference Research（passed）
+
+**结论**：完成有边界的开源调研（候选 40+、深挖 12、Adopt/Adapt/Reject 总表），成果 `REFERENCE_RESEARCH.md`（490 行）。未改变任何产品原则；未发现需要推翻现有技术栈的理由。
+
+### 采用的重要架构启发（持久决策）
+
+1. **调度内核 → ts-fsrs（MIT）**（Phase 1/2 引入）：替换 9 级阶梯启发式为 FSRS-6（stability/difficulty/retrievability）；本项目的反应时间分类映射为 Again/Hard/Good/Easy；保留每词独立调度与「到期复习优先」。
+2. **个人遗忘模型 → HLR 思想（Adapt，Phase 10）**：半衰期 `h=2^(θ·x)`、保留率 `p=2^(−t/h)`、观测半衰期反推 `h=−t/log2(p)` → Dashboard「平均半衰期/保留率」趋势。
+3. **语法掌握 → BKT-lite（Adapt，Phase 4/10）**：每 concept 维护 `p(known)`（prior/learn/guess/slip，O(1) 增量更新）→ Grammar 百分比与周诊断信号。
+4. **Sentence Tree 渲染 → spaCy displaCy 的 `{words[], arcs[]}` 协议（Adapt，Phase 4）**：渲染层与分析来源解耦；AI 结构化输出与本地降级共用同一中间表示。
+5. **词汇已知度评分 → VocabSieve 多源加权思想（Adapt，Phase 2/10）**：exposure/测试/生产证据分离 + 权重表 + 阈值 → 稳定识别词汇估算与生词价值筛选。
+6. **IndexedDB 迁移 → Dexie 版本化 schema + Lute migration 模式（Adapt，Phase 1）**：原生 `onupgradeneeded` 逐版本、只加不删、升级回调链、v1 fixture 迁移测试。
+7. **AI 结构化输出 → instructor-js 模式自研（Phase 6）**：Zod 校验 + 模式回退链（json_schema → json_object → MD_JSON 提取）+ 重试 + jsonrepair（ISC）修复；不引入 instructor-js 依赖。
+8. **OCR fallback → tesseract.js（Apache-2.0，Phase 5）**：AI Vision 优先、本地 fallback、必须人工修正。
+9. **数据源 → ECDICT（MIT）数据子集（Phase 2）**：gk 高考/四六级标签、BNC/COCA 词频、lemma exchange → Learning Value Score 与词形还原。
+10. **关键否定结论**：Knowledge Graph 与 Daily Planner 无对口成熟 OSS（搜索 0 结果）→ 自研；不引入图数据库/CRDT；不复制 GPL-3.0/AGPL-3.0 项目代码（yomitan/vocabsieve/asbplayer/Lute 代码层面）。
+
+### 影响与边界
+
+- Phase 1 迁移框架设计按 Dexie/Lute 模式定稿（只加不删 + 迁移测试）。
+- Phase 2 起按 `REFERENCE_RESEARCH.md §11` 逐项引入，每项记录许可证与版本。
+- 调研失败记录（含一次 `APITimeoutError` 中断与恢复策略、raw.githubusercontent 不可达的替代路径）见 `REFERENCE_RESEARCH.md §12`。
+
+---
+
 ## 2026-10-04 · Phase 0 — Audit & Safety（passed）
 
 **结论**：现有 vocabulary-app（V1 MVP）审计完成——可正常启动、构建、测试全部通过。

@@ -2,8 +2,8 @@
   "project": "English Reconstruction System V2",
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "active",
-  "current_phase": "phase_0_5_reference_research",
-  "last_updated": "2026-10-04T00:10:00+08:00",
+  "current_phase": "phase_1_data_foundation",
+  "last_updated": "2026-10-04T01:10:00+08:00",
   "last_verified_commit": "6c1c6253104abb668475debfba2d61c50cade9c9",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 1,
@@ -33,10 +33,11 @@
       "tests": ["STATE.json 可 JSON.parse", "git commit 记录"]
     },
     "phase0_5_reference_research_004": {
-      "status": "running",
-      "description": "GitHub 开源调研：10-20 候选项目，深挖 5-10（实际看源码/数据模型/算法/测试/License/维护状态）→ REFERENCE_RESEARCH.md，结论分 Adopt/Adapt/Reject",
+      "status": "passed",
+      "description": "GitHub 开源调研：候选 40+（登记）、深挖 12（实际读取源码/数据模型/算法/License/维护状态）→ REFERENCE_RESEARCH.md（490 行；§11 Adopt/Adapt/Reject 总表；§12 边界与失败记录）",
       "files": ["REFERENCE_RESEARCH.md"],
-      "tests": []
+      "artifacts": ["REFERENCE_RESEARCH.md §11 总表", "关键决策：Adopt ts-fsrs/zod/jsonrepair/tesseract.js/vite-plugin-pwa/ECDICT；Adapt HLR/BKT-lite/VocabSieve/Dexie/Lute/displaCy；Reject GPL-AGPL 代码复用/图数据库/CRDT"],
+      "tests": ["许可证核验（逐仓库 SPDX/pushed_at）", "源码实际查看记录（SHA 已记录于文档）"]
     },
     "phase1_data_foundation_005": {
       "status": "planned",
@@ -60,7 +61,7 @@
     "调度为透明启发式阶梯方案，非 FSRS/科学遗忘模型（docs/ALGORITHMS.md 已明示）"
   ],
   "blocked": [],
-  "next_task_id": "phase0_5_reference_research_004",
+  "next_task_id": "phase1_db_migration_001",
   "environment": {
     "node": "v26.7.0",
     "npm": "11.19.0",
