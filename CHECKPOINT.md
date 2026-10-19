@@ -274,6 +274,50 @@ vocabulary-app/
 
 ---
 
+# Phase 4 — Sentence & Grammar（passed 2026-10-19）
+
+## 交付内容
+
+| 模块 | 结果 |
+|---|---|
+| `src/grammar.ts` | 显式语法知识图谱：34 概念 / 6 类 / 先修边；`validateTaxonomy` 成环即丢弃并报告；BKT-lite 后验 + 掌握带 + 弱项信号 + 概念知识卡（规则/为什么/例子/常见错误/迁移） |
+| `src/sentenceStructure.ts` | 句子结构表示（token + clause 树）与严格校验：越界索引 / 非法 head / 自环 / 环 / 重复一律拒绝；`structureRows` / `structureMetrics` |
+| `src/sentenceSources.ts` | 句源契约：12 条 authored 教学句（作者撰写，非任何文章原句）+ gold 结构 + 中文预教词；来源能力/混比；AI 与外部语料未接入只声明 unavailable |
+| `src/sentenceLab.ts` | 引导式拆句：主语→谓语→宾语→修饰→从句→非谓语→逻辑→完整意；L0–L4 分层辅助；即时反馈 + 错误类型；迁移任务；证据分级 |
+| `src/sentenceEvidence.ts` | 证据服务：幂等键 = 会话 + 句子；聚合取最保守结果；JIT 30–60 秒知识卡 |
+| `src/sentenceSelection.ts` | 多维难度（生词/已知覆盖率/从句层级/长度/目标结构）、弱点信号、自适应选句（含先修修复与预教词兜底）、Planner 句任务描述 |
+| `src/sentenceGraphMap.ts` / `src/sentenceStore.ts` | 句↔概念映射；句库与语法证据持久化（复用索引） |
+| `src/types.ts` / `src/db.ts` | Phase 4 类型 + `Data.sentences` + `glossary`；DB **v4 additive**（`sentences` store、`grammarTags` multiEntry 索引），旧 v3 数据继续可读 |
+| `src/planner.ts` / `src/app.ts` / `src/style.css` | capability gate 打开 sentence + 真实句任务（`sentence-basic-structure` / `sentence-weak-grammar` / `sentence-transfer`）；句子页 / 拆句页 / 语法图谱页 / 计划内句任务接线 |
+
+## 证据等级（写死在实现里）
+
+- 计入 BKT：`independent`（无提示全对）、`transfer`（换句同结构迁移）、`delayed`（延迟复测）、`error`（独立作答错误 = 负证据）
+- 不计入：`exposed`（辅助 ≥ L3 = 看过答案）、`hint-assisted`（提示后正确），只记 exposure
+- 幂等：同一会话重复提交同一句只算一次；不同会话再练同一句必须各算一次
+
+## 验收
+
+```
+npx tsc --noEmit -p tsconfig.json   → 0 error
+npm test                            → 106/106 pass
+npm run build                       → 成功
+node scripts/phase4-smoke.mjs       → 36/36（真实无头 Edge + CDP，独立 profile）
+node scripts/phase3-smoke.mjs       → 21/21（回归）
+```
+
+浏览器冒烟覆盖：句源诚实标示 → 预教词 → 作答前不泄露成分解析 → 四步拆句 → 结构树逐词对齐 → 证据落库（independent）→ 概念后验上升 → 句库使用次数 → 迁移（记录来源句）→ L3 看答案全部概念 mastery 不变 → 图谱自检 + 概念详情（知识卡/最近证据/真实训练句）→ 计划内真实句任务（真实 id、预算内、可开始）。
+
+## 修掉的真实缺陷（测试驱动）
+
+`evidenceClass` 把独立错误当 exposed；支持等级差一（L4 拿不到末条提示）；`spanOf` 跨从句取错候选；gold 结构 spec 的 clause 区间错（修数据侧未放宽校验）；难度只看长度；小词库永远选不到句（用预教词解决，未放宽"生词过多即拒绝"）；幂等键用时间窗会吞掉同日第二次练习（改为会话+句子）；选项解析写在作答前 = 答案泄露；图谱页"已有证据 N"与"证据不足"文案自相矛盾；概念卡缺先修可见性。
+
+## 未做（诚实边界）
+
+AI 句生成、外部语料 / 阅读 handoff、Mini Diagnostic 非词汇子测试、个性化时间估算；BKT 参数未拟合，界面标注"估算"。
+
+---
+
 # 归档：旧项目 Checkpoint 06（V1 MVP 交付版，原文保留）
 
 ## 当前项目状态

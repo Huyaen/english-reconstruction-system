@@ -17,11 +17,11 @@ async function harness() {
     w.eval(output.outputFiles[0].text);
     return dom;
 }
-async function until(fn: () => boolean, what = 'condition') {
+async function until(w: JSDOM['window'], fn: () => boolean, what = 'condition') {
     const t = Date.now();
     while (!fn()) {
         if (Date.now() - t > 6000)
-            throw Error('UI timeout: ' + what);
+            throw Error('UI timeout: ' + what + ' · toast=' + (w.document.querySelector('#toast')?.textContent ?? '') + ' · main=' + (w.document.querySelector('#main')?.textContent?.slice(0, 120) ?? ''));
         await new Promise(r => setTimeout(r, 10));
     }
 }
@@ -42,7 +42,7 @@ async function answerQuestions(w: JSDOM['window'], max: number) {
     for (let i = 0; i < max; i++) {
         if (w.document.querySelector('#back-home'))
             return;
-        await until(() => !!w.document.querySelector('.answers') || !!w.document.querySelector('#back-home'), 'question or results');
+        await until(w, () => !!w.document.querySelector('.answers') || !!w.document.querySelector('#back-home'), 'question or results');
         if (w.document.querySelector('#back-home'))
             return;
         const prompt = w.document.querySelector('#question-text')!.textContent!;
@@ -63,83 +63,89 @@ async function plans() {
 test('Phase 3 UI：生成计划 → 预览 → Recall → 校准/重排 → Closing → 刷新恢复（含跳过/延后/替换不可用）', async () => {
     const dom = await harness(), w = dom.window;
     try {
-        await until(() => !!w.document.querySelector('#import'), '#import');
+        await until(w, () => !!w.document.querySelector('#import'), '#import');
         click(w, '#import');
-        await until(() => !!w.document.querySelector('#import-name'), 'import dialog');
+        await until(w, () => !!w.document.querySelector('#import-name'), 'import dialog');
         value(w, '#import-name', '计划测试词书');
         value(w, '#paste-words', 'abandon 放弃\nadequate 充足的\nreluctant 不情愿的\nreliable 可靠的\nmaintain 维持\nobvious 明显的');
         click(w, '#parse-paste');
-        await until(() => !w.document.querySelector<HTMLButtonElement>('#import-confirm')!.disabled, 'import ready');
+        await until(w, () => !w.document.querySelector<HTMLButtonElement>('#import-confirm')!.disabled, 'import ready');
         click(w, '#import-confirm');
-        await until(() => w.document.querySelector('#main')!.textContent!.includes('6 个词'), 'imported');
-
+        await until(w, () => w.document.querySelector('#main')!.textContent!.includes('6 个词'), 'imported');
         // 生成今日计划（默认 30 分钟 / 正常状态）
         assert.ok(w.document.querySelector('#plan-setup'), '未生成计划时应显示预算设置');
         click(w, '#plan-create');
-        await until(() => !!w.document.querySelector('#plan-panel'), 'plan panel');
+        await until(w, () => !!w.document.querySelector('#plan-panel'), 'plan panel');
         assert.equal(w.document.querySelector('#plan-setup'), null);
         assert.ok(w.document.querySelector('#plan-panel')!.textContent!.includes('预算 30 分钟'));
         const labels = [...w.document.querySelectorAll('.plan-task')].map(c => c.querySelector('.task-main b')!.textContent!);
-        assert.deepEqual(labels, ['新词预览', '新词 Recall', '今日收尾回忆'], '任务顺序：先预览再 Recall，Closing 末位');
-        assert.equal(w.document.querySelector('#plan-panel')!.textContent!.includes('句子与语法（phase4）'), true, '未上线模块必须显示为不可用');
-
+        // 顺序契约：预览 → Recall → （可选）句子/语法任务 → Closing 末位
+        assert.ok(labels[0].includes('新词预览'), `首项必须是新词预览：${labels.join(' | ')}`);
+        assert.ok(labels[1].includes('新词 Recall'), `第二项必须是新词 Recall：${labels.join(' | ')}`);
+        assert.equal(labels[labels.length - 1], '今日收尾回忆', 'Closing 必须末位');
+        assert.ok(labels.some(l => /句子|语法/.test(l)), `Phase 4 句任务必须进入今日计划：${labels.join(' | ')}`);
+        assert.ok(labels.length >= 3 && labels.length <= 6, `任务数量应在合理范围：${labels.join(' | ')}`);
+        const totalTasks = labels.length;
+        const gating = w.document.querySelector('#plan-panel')!.textContent!;
+        assert.equal(gating.includes('句子与语法（phase4）'), false, 'Phase 4 起句子模块已真实可用，不得再列为未上线');
+        assert.equal(/阅读（phase5）/.test(gating) && /真实输入（phase7）/.test(gating), true, '未上线模块必须显示为不可用');
         // 替换：没有同目标候选时必须明确不可用，不生成假任务
         clickInCard(w, '新词 Recall', 'replace');
-        await until(() => w.document.querySelector('#toast')!.textContent!.includes('没有可替换'), 'replace unavailable toast');
-
+        await until(w, () => w.document.querySelector('#toast')!.textContent!.includes('没有可替换'), 'replace unavailable toast');
         // 延后：只在本日计划内重排
         clickInCard(w, '新词 Recall', 'delay');
-        await until(() => w.document.querySelector('#toast')!.textContent!.includes('已延后'), 'delay toast');
+        await until(w, () => w.document.querySelector('#toast')!.textContent!.includes('已延后'), 'delay toast');
         assert.ok(card(w, '新词 Recall').textContent!.includes('已延后'));
-
         // 执行 Preview 任务
         clickInCard(w, '新词预览', 'start');
-        await until(() => !!w.document.querySelector('[data-preview]'), 'preview page');
+        await until(w, () => !!w.document.querySelector('[data-preview]'), 'preview page');
         for (let i = 0; i < 6; i++) {
             click(w, '[data-preview="know"]');
             await new Promise(r => setTimeout(r, 30));
         }
-        await until(() => !!w.document.querySelector('#back-home'), 'preview done');
+        await until(w, () => !!w.document.querySelector('#back-home'), 'preview done');
         click(w, '#back-home');
-        await until(() => !!w.document.querySelector('#plan-panel'), 'home plan panel');
-        await until(() => card(w, '新词预览').textContent!.includes('已完成'), 'preview task marked done');
-        await until(() => /完成 1\/3/.test(w.document.querySelector('#plan-panel .section-title')!.textContent!), 'progress 1/3');
-
+        await until(w, () => !!w.document.querySelector('#plan-panel'), 'home plan panel');
+        await until(w, () => card(w, '新词预览').textContent!.includes('已完成'), 'preview task marked done');
+        await until(w, () => new RegExp(`完成 1/${totalTasks}`).test(w.document.querySelector('#plan-panel .section-title')!.textContent!), `progress 1/${totalTasks}`);
         // 前置依赖：新词 Recall 在预览完成后才可执行
         clickInCard(w, '新词 Recall', 'start');
-        await until(() => !!w.document.querySelector('.answers'), 'recall started');
+        await until(w, () => !!w.document.querySelector('.answers'), 'recall started');
         await answerQuestions(w, 8);
-        await until(() => !!w.document.querySelector('#back-home'), 'recall results');
+        await until(w, () => !!w.document.querySelector('#back-home'), 'recall results');
         click(w, '#back-home');
-        await until(() => !!w.document.querySelector('#plan-panel'), 'back home');
-        await until(() => card(w, '新词 Recall').textContent!.includes('已完成'), 'recall task marked done');
-        await until(() => /完成 2\/3/.test(w.document.querySelector('#plan-panel .section-title')!.textContent!), 'progress 2/3');
-
+        await until(w, () => !!w.document.querySelector('#plan-panel'), 'back home');
+        await until(w, () => card(w, '新词 Recall').textContent!.includes('已完成'), 'recall task marked done');
+        await until(w, () => new RegExp(`完成 2/${totalTasks}`).test(w.document.querySelector('#plan-panel .section-title')!.textContent!), `progress 2/${totalTasks}`);
         // Regenerate：只重排未完成部分，保留已提交证据
         click(w, '#plan-regenerate');
-        await until(() => w.document.querySelector('#toast')!.textContent!.includes('重排未完成任务'), 'regenerate toast');
+        await until(w, () => w.document.querySelector('#toast')!.textContent!.includes('重排未完成任务'), 'regenerate toast');
         assert.ok(card(w, '新词预览').textContent!.includes('已完成'), '重排后已完成任务保留');
         assert.ok(card(w, '新词 Recall').textContent!.includes('已完成'), '重排后已完成任务保留');
         const closingCard = card(w, '今日收尾回忆');
         assert.ok(closingCard.querySelector('[data-task-start]'), 'Closing 仍可执行');
         assert.equal([...w.document.querySelectorAll('.plan-task')].pop(), closingCard, 'Closing 始终是最后一个任务');
         assert.ok(!closingCard.textContent!.includes('0 个词'), 'Closing 必须使用真实词');
-
         // Closing Loop
         clickInCard(w, '今日收尾回忆', 'start');
-        await until(() => !!w.document.querySelector('.answers'), 'closing started');
+        await until(w, () => !!w.document.querySelector('.answers'), 'closing started');
         await answerQuestions(w, 6);
-        await until(() => !!w.document.querySelector('[data-closing]'), 'closing feedback');
+        await until(w, () => !!w.document.querySelector('[data-closing]'), 'closing feedback');
         click(w, '[data-closing="just"]');
-        await until(() => w.document.querySelector('#toast')!.textContent!.includes('今日收尾已记录'), 'closing saved');
-        await until(() => !!w.document.querySelector('#plan-panel'), 'plan panel visible');
-        // 重排可能在剩余预算内补入柔性任务（弱词强化）：跳过它，验证「跳过只影响今天、不滚存」
-        const leftover = w.document.querySelector<HTMLElement>('.plan-task [data-task-skip]');
-        if (leftover) {
-            leftover.click();
-            await until(() => w.document.querySelector('#toast')!.textContent!.includes('已跳过'), 'skip toast');
+        await until(w, () => w.document.querySelector('#toast')!.textContent!.includes('今日收尾已记录'), 'closing saved');
+        await until(w, () => !!w.document.querySelector('#plan-panel'), 'plan panel visible');
+        // 重排可能在剩余预算内补入柔性任务（弱词强化 / Phase 4 句任务）：逐个跳过，验证「跳过只影响今天、不滚存」
+        const openCount = () => [...w.document.querySelectorAll('.plan-task')].filter(c => c.querySelector('[data-task-start]')).length;
+        const skipCount = () => [...w.document.querySelectorAll('.plan-task')].filter(c => c.textContent!.includes('已跳过')).length;
+        for (let i = 0; i < 10 && openCount() > 0; i++) {
+            const openTask = [...w.document.querySelectorAll<HTMLElement>('.plan-task')].find(c => c.querySelector('[data-task-start]'))!;
+            const skipBtn = openTask.querySelector<HTMLElement>('[data-task-skip]');
+            assert.ok(skipBtn, `未完成任务必须可跳过：${openTask.textContent!.slice(0, 40)}`);
+            const beforeOpen = openCount(), beforeSkipped = skipCount();
+            skipBtn!.click();
+            await until(w, () => openCount() < beforeOpen && skipCount() > beforeSkipped, 'skip applied');
         }
-        await until(() => !w.document.querySelector('.plan-task [data-task-start]'), 'no task left open');
+        await until(w, () => !w.document.querySelector('.plan-task [data-task-start]'), 'no task left open');
         const title = w.document.querySelector('#plan-panel .section-title')!.textContent!;
         const total = w.document.querySelectorAll('.plan-task').length;
         const doneCount = [...w.document.querySelectorAll('.plan-task')].filter(c => c.textContent!.includes('已完成')).length;
@@ -160,12 +166,11 @@ test('Phase 3 UI：生成计划 → 预览 → Recall → 校准/重排 → Clos
         assert.equal(stored.initialPlan.filter((t: any) => t.status === 'skipped').every((t: any) => t.minutes > 0), true);
         assert.equal(stored.revision >= 5, true);
         dom.window.close();
-
         // 刷新恢复：计划、任务状态、Closing 反馈全部保留；不重复生成
         const reopened = await harness();
         try {
-            await until(() => !!reopened.window.document.querySelector('#plan-panel'), 'restored plan');
-            await until(() => !reopened.window.document.querySelector('.plan-task [data-task-start]'), 'restored: nothing open');
+            await until(w, () => !!reopened.window.document.querySelector('#plan-panel'), 'restored plan');
+            await until(w, () => !reopened.window.document.querySelector('.plan-task [data-task-start]'), 'restored: nothing open');
             assert.equal(reopened.window.document.querySelector('#plan-setup'), null, '刷新后不得要求重新生成计划');
             const restoredTotal = reopened.window.document.querySelectorAll('.plan-task').length;
             const restoredDone = [...reopened.window.document.querySelectorAll('.plan-task')].filter(c => c.textContent!.includes('已完成')).length;
@@ -186,30 +191,30 @@ test('Phase 3 UI：生成计划 → 预览 → Recall → 校准/重排 → Clos
 test('Phase 3 UI：时间预算自定义与非法输入校验', async () => {
     const dom = await harness(), w = dom.window;
     try {
-        await until(() => !!w.document.querySelector('#import'), '#import');
+        await until(w, () => !!w.document.querySelector('#import'), '#import');
         if (w.document.querySelector('#plan-setup')) {
             click(w, '#import');
-            await until(() => !!w.document.querySelector('#import-name'), 'import dialog');
+            await until(w, () => !!w.document.querySelector('#import-name'), 'import dialog');
             value(w, '#import-name', '预算测试词书');
             value(w, '#paste-words', 'abandon 放弃\nadequate 充足的\nreluctant 不情愿的\nreliable 可靠的\nmaintain 维持\nobvious 明显的');
             click(w, '#parse-paste');
-            await until(() => !w.document.querySelector<HTMLButtonElement>('#import-confirm')!.disabled, 'import ready');
+            await until(w, () => !w.document.querySelector<HTMLButtonElement>('#import-confirm')!.disabled, 'import ready');
             click(w, '#import-confirm');
-            await until(() => !!w.document.querySelector('#plan-create'), 'plan setup');
+            await until(w, () => !!w.document.querySelector('#plan-create'), 'plan setup');
             click(w, '#plan-create');
-            await until(() => !!w.document.querySelector('#plan-panel'), 'plan created');
+            await until(w, () => !!w.document.querySelector('#plan-panel'), 'plan created');
         }
         click(w, '[data-nav="settings"]');
-        await until(() => !!w.document.querySelector('#settings-form'), 'settings');
+        await until(w, () => !!w.document.querySelector('#settings-form'), 'settings');
         click(w, '[data-nav="home"]');
-        await until(() => !!w.document.querySelector('#plan-panel'), 'plan panel');
+        await until(w, () => !!w.document.querySelector('#plan-panel'), 'plan panel');
         click(w, '#plan-regenerate');
-        await until(() => /重排未完成任务|不能小于/.test(w.document.querySelector('#toast')!.textContent!), 'regenerate path');
+        await until(w, () => /重排未完成任务|不能小于/.test(w.document.querySelector('#toast')!.textContent!), 'regenerate path');
         click(w, '#plan-adjust');
-        await until(() => !!w.document.querySelector('#adjust-budget'), 'adjust dialog');
+        await until(w, () => !!w.document.querySelector('#adjust-budget'), 'adjust dialog');
         value(w, '#adjust-budget', '0');
         click(w, '#adjust-save');
-        await until(() => w.document.querySelector('#toast')!.textContent!.includes('不能小于'), 'invalid budget rejected');
+        await until(w, () => w.document.querySelector('#toast')!.textContent!.includes('不能小于'), 'invalid budget rejected');
         assert.equal((await plans()).length, 1);
     }
     finally {

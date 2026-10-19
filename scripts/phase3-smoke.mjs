@@ -108,6 +108,8 @@ window.__answerOne = () => {
 
 try {
     // —— 0. 初始加载 ——
+    // 上一次会话可能停在训练页/句子页：先整页重载回到首页
+    await cdp.send('Page.reload');
     await wait(`!!document.querySelector('#import')`, 'app boot');
     const reloadedPlan = await ev(`!!document.querySelector('#plan-panel')`);
     if (reloadedPlan) {
@@ -131,15 +133,19 @@ try {
 
     // —— 2. 生成今日计划 ——
     await wait(`!!document.querySelector('#plan-setup')`, 'plan setup');
-    const gating = await ev(`document.querySelector('#plan-setup').textContent.includes('句子与语法（phase4）')`);
-    check('Capability Gate 在 UI 明示未上线模块', gating);
+    // Phase 4 起句子模块已真实可用；仍未上线的必须明确标为不可用（不得假装可用）
+    const gatingText = await ev(`document.querySelector('#plan-setup').textContent`);
+    const gating = /阅读（phase5）/.test(gatingText) && /真实输入（phase7）/.test(gatingText) && !/句子与语法（phase4）/.test(gatingText);
+    check('Capability Gate 只把未上线模块标为不可用', gating, gatingText.slice(0, 120));
     await click('#plan-create');
     await wait(`!!document.querySelector('#plan-panel')`, 'plan panel');
     const title1 = await planTitle();
     const cards1 = JSON.parse(await cardTexts());
     const panelText1 = await ev(`document.querySelector('#plan-panel').textContent`);
     check('生成今日计划（时间预算优先）', /预算 30 分钟/.test(panelText1), title1.slice(0, 60));
-    check('任务顺序：Preview → Recall → Closing', cards1.length === 3 && cards1[0].includes('新词预览') && cards1[1].includes('新词 Recall') && cards1[2].includes('今日收尾回忆'), cards1.map(c => c.split(' ||')[0]).join(' | '));
+    check('任务顺序：Preview → Recall →（可选）句任务 → Closing',
+        cards1.length >= 3 && cards1[0].includes('新词预览') && cards1[1].includes('新词 Recall') && cards1[cards1.length - 1].includes('今日收尾回忆'),
+        cards1.map(c => c.split(' ||')[0]).join(' | '));
     const plan1 = JSON.parse(await todayPlan());
     check('计划预算不溢出', plan1[0].planned <= plan1[0].budget, `planned=${plan1[0].planned} budget=${plan1[0].budget}`);
     check('Closing 使用真实词', plan1[0].tasks.find(t => t[0] === 'closing-recall')[3] > 0);
@@ -161,7 +167,7 @@ try {
     await click('#back-home');
     await wait(`!!document.querySelector('#plan-panel')`, 'home after preview');
     await wait(`document.querySelector('#plan-panel').textContent.includes('已完成')`, 'preview task done');
-    check('Preview 任务完成并落盘', (await planTitle()).includes('完成 1/3'), await planTitle());
+    check('Preview 任务完成并落盘', /完成 1\/\d+/.test(await planTitle()), await planTitle());
 
     await cardClick('新词 Recall', 'start');
     await wait(`!!document.querySelector('.answers')`, 'recall started');
@@ -176,7 +182,7 @@ try {
     await wait(`!!document.querySelector('#back-home')`, 'recall results');
     await click('#back-home');
     await wait(`!!document.querySelector('#plan-panel')`, 'home after recall');
-    await wait(`document.querySelector('#plan-panel').textContent.includes('完成 2/3')`, 'progress 2/3');
+    await wait(`document.querySelector('#plan-panel .section-title').textContent.includes('完成 2/')`, 'progress 2/N');
     check('Recall 会话完成并更新计划', true, await planTitle());
 
     // —— 5. 收尾 Closing Loop + 难度反馈 ——
@@ -196,6 +202,15 @@ try {
     await wait(`document.querySelector('#toast').textContent.includes('今日收尾已记录')`, 'closing saved');
     check('Closing Loop 保存难度反馈', true, await toast());
 
+    // Phase 4：重排后可能补入柔性句任务；逐个跳过（跳过只影响当天，不滚存）
+    const openCount = () => ev(`[...document.querySelectorAll('.plan-task')].filter(c=>c.querySelector('[data-task-start]')).length`);
+    for (let i = 0; i < 10 && (await openCount()) > 0; i++) {
+        const r = await ev(`(()=>{const c=[...document.querySelectorAll('.plan-task')].find(x=>x.querySelector('[data-task-start]'));if(!c)return 'none';const b=c.querySelector('[data-task-skip]');if(!b)return 'no-skip';b.click();return 'ok';})()`);
+        if (r !== 'ok')
+            throw new Error('柔性任务无法跳过：' + r);
+        await new Promise(r2 => setTimeout(r2, 200));
+    }
+    check('柔性任务可逐个跳过', (await openCount()) === 0, await planTitle());
     const plan3 = JSON.parse(await todayPlan());
     check('计划落盘为完成态（含 Closing 反馈）', plan3[0].feedback === 'just', `feedback=${plan3[0].feedback}`);
     check('任务动作全部带原因', plan3[0].actions.includes('start') && plan3[0].actions.includes('complete'), plan3[0].actions.join(','));

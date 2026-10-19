@@ -1,18 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { DailyPlan, PlanItem, ReviewRecord, Word } from '../src/types.ts';
+import { curatedSentenceRecords } from '../src/sentenceSources.ts';
+const SENTENCES = () => curatedSentenceRecords(1700000000000);
 import { fsrsDefaults } from '../src/types.ts';
 import { makeWord } from '../src/core.ts';
-import {
-    assertPlanInvariants, buildReplacement, calibrateAfterRecall, createDailyPlan, decideRecovery, evaluateRecallSession,
-    estimateRetention, planMinutes, planProgress, regenerateRemaining, PLANNER_CONFIG, type RecallCandidate,
-} from '../src/planner.ts';
+import { assertPlanInvariants, buildReplacement, calibrateAfterRecall, createDailyPlan, decideRecovery, evaluateRecallSession, estimateRetention, planMinutes, planProgress, regenerateRemaining, PLANNER_CONFIG, type RecallCandidate, } from '../src/planner.ts';
 import { effectiveDue } from '../src/fsrs.ts';
 import { isUnseen } from '../src/evidence.ts';
-
 const NOW = new Date(2026, 9, 19, 10, 0, 0).getTime();
 const DAY = 86400000;
-
 function makeWords(count: number, prefix = 'w'): Word[] {
     return Array.from({ length: count }, (_, i) => makeWord({ en: `${prefix}${i}`, zh: `释义${i}` }, 'book-1', i));
 }
@@ -33,7 +30,6 @@ function record(wordId: string, at: number, correct: boolean, sessionId = 'sess'
 function yesterdayRecords(words: Word[], now = NOW): ReviewRecord[] {
     return words.map((w, i) => record(w.id, now - DAY + 3600000 + i * 60000, i % 4 !== 3, 'yesterday-session'));
 }
-
 // —— 时间预算 ——
 test('预算 20/30/45/60/自定义：计划时长永不超出预算', () => {
     const words = [...makeWords(40).map(w => due(w)), ...makeWords(30, 'n')];
@@ -66,7 +62,6 @@ test('时间预算包含 Recall / Closing（不额外隐形占用时间）', () 
     assert.equal(budget.closing + budget.yesterdayRecall + budget.due + budget.weak + budget.newPreview + budget.newRecall, planMinutes(plan));
     assert.ok(planMinutes(plan) <= 30);
 });
-
 // —— 状态三档 ——
 test('状态三档：low 记忆优先且新词不多于 good；顺序随负载动态变化', () => {
     const words = [...makeWords(30).map(w => due(w)), ...makeWords(25, 'z')];
@@ -86,7 +81,6 @@ test('到期负载过重时记忆优先，并如实记录未排入的记忆债',
     assert.ok(planMinutes(plan) <= 30);
     assert.ok(budget.reasons.some(r => r.startsWith('critical-memory-sampled')));
 });
-
 // —— 任务合同与能力门禁 ——
 test('统一 Task Contract：每个任务都有 module/kind/时间/原因/能力字段', () => {
     const words = [...makeWords(10).map(w => due(w)), ...makeWords(10, 'n')];
@@ -103,14 +97,22 @@ test('统一 Task Contract：每个任务都有 module/kind/时间/原因/能力
 });
 test('Capability Gate：未上线模块不可执行，也不生成假任务', () => {
     const words = makeWords(10);
-    const { plan } = createDailyPlan({ now: NOW, availableMinutes: 45, energy: 'normal', words, records: [] });
-    const caps = plan.capabilities!;
-    assert.equal(caps.vocabulary.available, true);
-    for (const m of ['sentence', 'reading', 'input', 'output'])
-        assert.equal(caps[m].available, false);
-    assert.ok(plan.initialPlan.every(t => t.module === 'vocabulary'));
+    // Phase 4：sentence 已真实可用，但仍必须有真实句源才生成任务
+    const noSource = createDailyPlan({ now: NOW, availableMinutes: 45, energy: 'normal', words, records: [] }).plan;
+    assert.equal(noSource.capabilities!.vocabulary.available, true);
+    assert.equal(noSource.capabilities!.sentence.available, true);
+    for (const m of ['reading', 'input', 'output'])
+        assert.equal(noSource.capabilities![m].available, false);
+    assert.ok(noSource.initialPlan.every(t => t.module === 'vocabulary'), '没有句源时不得生成句子任务');
+    // 运行时可降级：sentence 被显式关闭时，即使给了句源也不生成
+    const gated = createDailyPlan({
+        now: NOW, availableMinutes: 45, energy: 'normal', words, records: [],
+        capabilityOverrides: { sentence: false },
+        sentenceInput: { sentences: SENTENCES(), words, concepts: [], grammarAttempts: [], sentenceAttempts: [], miniUnit: null },
+    }).plan;
+    assert.equal(gated.capabilities!.sentence.available, false);
+    assert.ok(gated.initialPlan.every(t => t.module !== 'sentence'));
 });
-
 // —— Yesterday Recall ——
 test('隔夜检测：无昨日记录不伪造任务；有记录时抽样去重、方向平衡', () => {
     const words = makeWords(24);
@@ -125,7 +127,9 @@ test('隔夜检测：无昨日记录不伪造任务；有记录时抽样去重�
     assert.equal(new Set(refs).size, refs.length, '同一词不得在样本中重复');
     assert.ok(refs.length >= PLANNER_CONFIG.yesterdayRecall.minSample);
     assert.ok(task!.minutes >= PLANNER_CONFIG.yesterdayRecall.min && task!.minutes <= PLANNER_CONFIG.yesterdayRecall.max);
-    const sample = (withSample.plan.yesterdayRecallResult as { sample: RecallCandidate[] }).sample;
+    const sample = (withSample.plan.yesterdayRecallResult as {
+        sample: RecallCandidate[];
+    }).sample;
     assert.equal(sample.filter(s => s.direction === 'en-zh').length, Math.ceil(sample.length / 2));
 });
 test('隔夜评估：只统计有效隔夜证据，重复事件不双计分', () => {
@@ -163,7 +167,6 @@ test('保留率估计：样本不足返回 null，跨日样本才计入', () => 
     assert.equal(est.d1, 1);
     assert.equal(est.samples.d1, 4);
 });
-
 // —— 调度复用 / Preview→Recall ——
 test('复用 effectiveDue 选取到期词；新词必须先 Preview 再 Recall', () => {
     const words = [...makeWords(12).map(w => due(w)), ...makeWords(12, 'n')];
@@ -202,7 +205,6 @@ test('低保留减少新词、高到期负载压缩柔性任务', () => {
     assert.ok(newCount(low) < newCount(high), `低保留应减少新词：${newCount(low)} vs ${newCount(high)}`);
     assert.ok(planMinutes(low) <= 45 && planMinutes(high) <= 45);
 });
-
 // —— 动态重规划 ——
 test('超时/提前完成：柔性任务可调，critical 记忆任务保留，调整 ≤30% 且有原因', () => {
     const words = [...makeWords(30).map(w => due(w)), ...makeWords(30, 'n')];
@@ -258,7 +260,6 @@ test('Regenerate Today：只重排未完成任务，保留已完成任务与学�
     assert.ok(planMinutes(regenerated.plan) <= regenerated.plan.availableMinutes);
     assert.ok(regenerated.plan.adjustments.some(a => a.reason === 'regenerate-remaining'));
 });
-
 // —— 中断 / 重新进入 ——
 test('中断恢复：断 1 天正常、2–3 天 Re-entry、≥7 天 Mini Diagnostic，且都在预算内', () => {
     assert.equal(decideRecovery(null, NOW).kind, 'none');
@@ -278,7 +279,6 @@ test('中断恢复：断 1 天正常、2–3 天 Re-entry、≥7 天 Mini Diagno
     assert.ok(planMinutes(plan) <= 30);
     assert.equal(plan.initialPlan.some(t => t.kind === 'yesterday-recall'), false);
 });
-
 // —— Closing Loop ——
 test('Closing Loop：固定 3–5 分钟、位于末位、使用真实词', () => {
     const words = [...makeWords(10).map(w => due(w)), ...makeWords(10, 'n')];
@@ -297,7 +297,6 @@ test('预算极短：优先短 Closing 与 critical 记忆，并记录降级原�
     assert.ok(closing && closing.minutes <= PLANNER_CONFIG.closing.min);
     assert.ok(reasons.some(r => r.startsWith('budget-tight') || r.startsWith('new-deferred')), `应记录降级原因：${reasons.join(',')}`);
 });
-
 // —— 不积学习债 ——
 test('不积学习债：第二天不克隆昨日未完成任务，到期记忆仍在到期池', () => {
     const words = [...makeWords(20).map(w => due(w)), ...makeWords(20, 'n')];
@@ -311,7 +310,6 @@ test('不积学习债：第二天不克隆昨日未完成任务，到期记忆�
     assert.ok(planMinutes(day2) <= 30);
     void skipped;
 });
-
 // —— 校准 ——
 test('隔夜结果校准：低保留减少未完成新词并补弱词；不溢出预算', () => {
     const words = [...makeWords(20).map(w => due(w)), ...makeWords(30, 'n')];
@@ -323,11 +321,12 @@ test('隔夜结果校准：低保留减少未完成新词并补弱词；不溢�
     assert.ok(after.refs!.length < preview.refs!.length);
     assert.ok(res.plan.initialPlan.some(t => t.kind === 'weak-review' || (t.kind === 'new-preview' && t.refs!.length < preview.refs!.length)));
     assert.ok(planMinutes(res.plan) <= res.plan.availableMinutes);
-    assert.equal((res.plan.yesterdayRecallResult as { status: string }).status, 'done');
+    assert.equal((res.plan.yesterdayRecallResult as {
+        status: string;
+    }).status, 'done');
     const highRes = calibrateAfterRecall(createDailyPlan({ now: NOW, availableMinutes: 60, energy: 'good', words, records: [] }).plan, { ...lowEval, retention: 0.9 }, { now: NOW, words });
     assert.ok(planMinutes(highRes.plan) <= highRes.plan.availableMinutes);
 });
-
 // —— 确定性 ——
 test('确定性：同一输入两次生成完全一致', () => {
     const words = [...makeWords(20).map(w => due(w)), ...makeWords(20, 'n')];
@@ -350,7 +349,6 @@ test('progress：完成与剩余时间口径一致', () => {
     assert.equal(p1.doneMinutes, first.minutes);
     assert.equal(p1.remainingMinutes, planMinutes(done) - first.minutes);
 });
-
 // —— 辅助（沿用被测 API，不绕过领域引擎）——
 function apply(plan: DailyPlan, taskId: string, action: 'skip' | 'delay' | 'start' | 'replace', replacement?: PlanItem) {
     // eslint 无关：直接调用领域 API

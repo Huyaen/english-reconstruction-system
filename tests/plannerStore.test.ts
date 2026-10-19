@@ -7,7 +7,6 @@ import { createDailyPlan, planMinutes, regenerateRemaining } from '../src/planne
 import { fsrsDefaults } from '../src/types.ts';
 import type { DailyPlan, Word } from '../src/types.ts';
 import { makeWord } from '../src/core.ts';
-
 const NOW = new Date(2026, 9, 19, 10, 0, 0).getTime();
 const DATE = '2026-10-19';
 const DAY = 86400000;
@@ -106,14 +105,17 @@ test('备份兼容：Phase 3 计划字段可往返导出/校验，旧计划形�
     await replaceData(restored);
     assert.equal((await listPlans()).length, 2);
 });
-test('IndexedDB 版本未因 Phase 3 提升（dailyPlans 复用现有 store/index）', async () => {
+test('IndexedDB 版本在 Phase 4 additive 提升到 v4（dailyPlans 仍复用 v3 的 store/index）', async () => {
     await freshDB();
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
         const r = indexedDB.open(DB_NAME);
         r.onsuccess = () => resolve(r.result);
         r.onerror = () => reject(r.error);
     });
-    assert.equal(db.version, 3);
+    assert.equal(db.version, 4);
+    const tx4 = db.transaction('sentences');
+    assert.equal(tx4.objectStore('sentences').keyPath, 'id');
+    assert.ok(tx4.objectStore('sentences').indexNames.contains('grammarTags'));
     const tx = db.transaction('dailyPlans');
     assert.equal(tx.objectStore('dailyPlans').keyPath, 'id');
     assert.ok(tx.objectStore('dailyPlans').indexNames.contains('date'));

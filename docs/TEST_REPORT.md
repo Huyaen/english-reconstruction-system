@@ -79,3 +79,23 @@
 1. 应用启动；2. 词表导入 6 词；3. Capability Gate 在 UI 明示未上线模块；4. 生成今日计划（预算 30 分钟）；5. 任务顺序 Preview → Recall → Closing（末位）；6. 计划时长不超预算；7. Closing 使用真实词；8. 替换无同目标候选时明确拒绝；9. Preview 完成并落盘；10. Recall 完成并更新计划；11. Closing Loop 保存难度反馈；12. 计划落盘为完成态；13. 任务动作全带原因（start/complete/calibrate）；14. 刷新后恢复且不重复生成；15. 有昨日记录时生成隔夜检测任务；16. 隔夜检测完成并显示保留率（100.0% · 可信）；17. 隔夜结果触发计划校准；18. 断更后生成重新进入检测任务；19. Re-entry 使用真实词汇且在预算内；20. 无控制台未捕获错误。
 
 **仍未在真实浏览器验收**：真机移动端布局/触控、长期大词库（数万词）性能、离线/PWA、真实 AI 供应商调用（需用户自填凭据）。
+
+## Phase 4（Sentence & Grammar）验证记录 · 2026-10-19
+
+**规模**：`npm test` **106/106 pass / 0 fail**（Phase 3 的 69 + Phase 4 新增 37：grammar 7 / sentenceStructure 6 / sentenceLab 11 / sentenceSources 6 / sentenceSelection 6 / sentenceUi 2）。
+
+**静态与构建**：`npx tsc --noEmit -p tsconfig.json` → 0 error；`npm run build` 成功（dist 与源码同步提交）。
+
+**真实浏览器（无头 Edge 128 + CDP 9224，独立 profile）**：`node scripts/phase4-smoke.mjs` → **36/36 通过**
+1. 句源诚实：句库明示 authored 教学句、「不会伪造」AI 句；12 条句均带 gold 结构与预教词
+2. 训练：预教词可见；作答前选项不含成分解析（不泄露答案）；训练中不给整句翻译
+3. 拆句：主语→谓语→从句→整句意义四步；结果页结构树逐词对齐原文（主句骨架 → 从句）
+4. 证据：无提示全对 → `independent`；句子证据 + 每概念一条 grammarAttempt；概念后验上升；句库 usedCount +1
+5. 迁移：换同结构新句 → 记录 `transferOf`；L3 看答案 → `exposed`，**所有概念 mastery 不变**
+6. 图谱：自检通过（无环、无缺失先修）；证据不足时如实说明判定门槛（≥3 次且 p<60%）；概念详情有知识卡/真实证据/可跳训练句
+7. 计划：今日计划含真实句任务（绑定真实句子 id、预算内、可开始并进入拆句）
+8. 无控制台未捕获错误
+
+**Phase 3 回归**：`node scripts/phase3-smoke.mjs` → **21/21 通过**（计划顺序/预算/Preview/Recall/Closing/跳过不滚存/刷新恢复/隔夜检测/Re-entry 均未被 Phase 4 破坏）。
+
+**新增测试文件**：`tests/grammar.test.ts`、`tests/sentenceStructure.test.ts`、`tests/sentenceLab.test.ts`、`tests/sentenceSources.test.ts`、`tests/sentenceSelection.test.ts`、`tests/sentenceUi.test.ts`（jsdom + fake-indexeddb 全流程：拆句 → 反馈/JIT → 独立证据 → 迁移 → 看答案不计掌握 → 语法图谱 → 计划内句任务回写）。

@@ -1,6 +1,6 @@
 import './style.css';
-import type { Data, Word, StudySession, Settings, ReviewRecord, Mastery, DailyPlan, PlanItem, EnergyState } from './types.ts';
-import { openDB, loadData, replaceData, saveSettings, putItems, saveAnswer, savePreview, backup, validateBackup, emptyData } from './db.ts';
+import type { Data, Word, StudySession, Settings, ReviewRecord, Mastery, DailyPlan, PlanItem, EnergyState, GrammarConcept, SentenceRecord, SentenceStepRecord, SentenceAttempt, SentenceEvidenceClass, GrammarCategory } from './types.ts';
+import { openDB, getDB, loadData, replaceData, saveSettings, putItems, saveAnswer, savePreview, backup, validateBackup, emptyData } from './db.ts';
 import { makeWord, uid, labels, priority, priorityGrade, shuffle, question, validSettings } from './core.ts';
 import { parseFile, parseText, exportWords, type Parsed } from './import.ts';
 import { newSession, answer } from './quiz.ts';
@@ -11,7 +11,18 @@ import { buildNewWordQueue, recommendedNewWordCount } from './pools.ts';
 import { effectiveDue, fsrsRetrievability, hasFsrsHistory } from './fsrs.ts';
 import { $, esc, pct, seconds, date, toast, download, modal, closeModal, on } from './ui.ts';
 import { applyPlanAction, buildReplacement, calibrateAfterRecall, createDailyPlan, evaluateRecallSession, latestLearningAt, moduleCapabilities, MODULES, planProgress, regenerateRemaining, PLANNER_CONFIG, TASK_LABELS, type PlannerInput, type RecallCandidate } from './planner.ts';
+import type { StepEvaluation } from './sentenceLab.ts';
 import { loadPlan, savePlan, StalePlanError } from './plannerStore.ts';
+// —— Phase 4：Sentence Lab 与 Grammar Knowledge Graph ——
+import { GRAMMAR_BAND_LABELS, GRAMMAR_CATEGORY_LABELS, type GrammarConceptDef, GRAMMAR_CONFIG, GRAMMAR_TAXONOMY, ancestorConcepts, conceptById, conceptStates, grammarState, prerequisitesSatisfied, validateTaxonomy, weakConcepts, type GrammarConceptState } from './grammar.ts';
+import { CLAUSE_LABELS, ROLE_LABELS, clauseForToken, readStructure, structureRows, structureSummary, validateStructure, type SentenceStructure } from './sentenceStructure.ts';
+import { EVIDENCE_LABELS, STEP_LABELS, SUPPORT_LABELS, MAX_SUPPORT_LEVEL, buildLabPlan, buildTransferTask, evaluateStep, stepRecord, supportHint, type LabPlan, type LabStep } from './sentenceLab.ts';
+import { applyEvidence, justInTimeCard, stepConceptMap, type AttemptDraft } from './sentenceEvidence.ts';
+import { curatedSentenceRecords, effectiveSourceMix, generationUnavailableReason, sentenceGenerationFallback, sourceCapabilities, userSentenceRecord } from './sentenceSources.ts';
+import { SENTENCE_TASK_LABELS, selectSentenceBatch } from './sentenceSelection.ts';
+import { sentenceConceptIds, sentenceConceptNames, sentencesForConcept } from './sentenceGraphMap.ts';
+import { ensureGraphData, loadSentences, saveSentences, sentenceAttemptsDesc } from './sentenceStore.ts';
+import { saveSentenceEvidence as dbSaveSentenceEvidence } from './db.ts';
 let data: Data, page = 'home', bookFilter = '', search = '', levelFilter = '', sort = 'priority', listPage = 0;
 let active: StudySession | null = null, feedback = false, busy = false, started = 0, timer: ReturnType<typeof setTimeout> | null = null, paused = false;
 let startingSession = false;
@@ -24,8 +35,54 @@ let todayPlan: DailyPlan | null = null;
 let planBudget: number = PLANNER_CONFIG.budget.default;
 let planEnergy: EnergyState = 'normal';
 let planBusy = false;
-let taskExecution: { planTaskId: string; kind: string; startedAt: number; sessionId: string } | null = null;
-const navs = [['home', '◫', '今日学习'], ['books', '▤', '我的词库'], ['weak', '◎', '薄弱词'], ['stats', '▥', '学习统计'], ['ai', '✦', 'AI 学情'], ['settings', '⚙', '设置与备份']];
+let taskExecution: {
+    planTaskId: string;
+    kind: string;
+    startedAt: number;
+    sessionId: string;
+} | null = null;
+// —— Phase 4 状态 ——
+let sentenceRecords: SentenceRecord[] = [];
+let grammarCategoryFilter: string = '';
+let grammarSelectedConcept = '';
+let labSession: LabRun | null = null;
+interface LabRun {
+    sessionId: string;
+    queue: string[];
+    index: number;
+    planTaskId: string | null;
+    planTaskKind: string | null;
+    startedAt: number;
+    current: {
+        sentenceId: string;
+        plan: LabPlan;
+        stepIndex: number;
+        stepRecords: SentenceStepRecord[];
+        supportLevel: number;
+        answered: string | null;
+        evaluation: StepEvaluation | null;
+        stepStartedAt: number;
+        transferOf: string | null;
+        delayed: boolean;
+        attempts: number;
+        done: boolean;
+        result: {
+            evidenceClass: string;
+            counts: boolean;
+            allCorrect: boolean;
+            duplicate: boolean;
+            conceptIds: string[];
+        } | null;
+    } | null;
+    finished: {
+        sentenceId: string;
+        correctSteps: number;
+        total: number;
+        evidenceClass: string;
+        conceptIds: string[];
+    }[];
+}
+const navs = [['home', '◫', '今日学习'], ['books', '▤', '我的词库'], ['weak', '◎', '薄弱词'], ['sentence', '❝', '句子训练'], ['grammar', '◈', '语法图谱'], ['stats', '▥', '学习统计'], ['ai', '✦', 'AI 学情'], ['settings', '⚙', '设置与备份']];
 function reindex() { wordMap = new Map(data.words.map(w => [w.id, w])); }
 function setPage(p: string) {
     if ((page === 'quiz' && busy) || startingSession) {
@@ -54,7 +111,7 @@ function shell() {
     on('.brand', 'click', e => { e.preventDefault(); setPage('home'); });
     on('#theme', 'click', async () => { const s = { ...data.settings, theme: data.settings.theme === 'light' ? 'dark' : 'light' } as Settings; await saveSettings(s); data.settings = s; document.documentElement.dataset.theme = s.theme; $('#theme').textContent = s.theme === 'light' ? '☾' : '☀'; });
 }
-function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage }[page] || home)(); }
+function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, grammar: grammarPage, lab: labPage }[page] || home)(); }
 function title(kicker: string, title: string, sub: string, action = '') { return `<div class="page-title"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p>${sub}</p></div>${action}</div>`; }
 function metric(label: string, value: string, note: string) { return `<div class="metric"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`; }
 function rangeControls() { return `<div class="range-controls"><label>学习范围<select id="range-book"><option value="">全部词书</option>${data.books.map(b => `<option value="${b.id}" ${bookFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label><label>本轮词量<select id="range-count">${[50, 100, 300, 500, 1000].map(n => `<option value="${n}" ${n === 100 ? 'selected' : ''}>${n} 词</option>`).join('')}</select></label><label>测试方向<select id="range-ratio">${![0, 30, 50, 70, 100].includes(data.settings.ratio) ? `<option value="${data.settings.ratio}" selected>英→中 ${data.settings.ratio}%（自定义）</option>` : ''}<option value="50" ${data.settings.ratio === 50 ? 'selected' : ''}>双向各 50%</option><option value="70" ${data.settings.ratio === 70 ? 'selected' : ''}>英→中 70%</option><option value="30" ${data.settings.ratio === 30 ? 'selected' : ''}>中→英 70%</option><option value="100" ${data.settings.ratio === 100 ? 'selected' : ''}>识别 · 英→中</option><option value="0" ${data.settings.ratio === 0 ? 'selected' : ''}>提取 · 中→英</option></select></label></div>`; }
@@ -340,7 +397,11 @@ document.addEventListener('keydown', e => {
             void submit(id, 'answer');
     }
 });
-function showResults(s: StudySession) { stopTimer(); page = 'results'; if (taskExecution && taskExecution.sessionId === s.id) { const exec = taskExecution; taskExecution = null; void completePlanTask(exec, Math.max(0.5, Math.round((Date.now() - exec.startedAt) / 30000) / 2)); } const rs = data.records.filter(r => r.sessionId === s.id); const st = recordStats(rs); const ids = new Set(rs.map(r => r.wordId)); const ws = data.words.filter(w => ids.has(w.id)); active = null; $('#main').innerHTML = title('SESSION COMPLETE', '这一轮，记住了多少？', '薄弱词已记录，并安排了下一次复习。') + `<div class="metrics">${metric('本轮作答', String(st.attempts), '含本轮强化重复')}${metric('正确率', pct(st.accuracy), st.unique + ' 个不同单词')}${metric('平均反应', seconds(st.meanMs), '有效作答时间')}${metric('待强化', String(ws.filter(isWeak).length), '按本轮结束后的状态')}</div><div class="actions"><button class="primary" id="review-round">重测本轮弱词</button><button class="secondary" id="round-export">导出本轮弱词</button><button class="secondary" id="back-home">返回首页</button></div><div class="two-col">${(['unknown', 'vague'] as Mastery[]).map(l => `<section class="panel"><h2>${labels[l]}</h2>${wordChips(ws.filter(w => w.state.level === l))}</section>`).join('')}</div><details class="panel"><summary>正常与熟练 · ${ws.filter(w => !isWeak(w)).length} 词</summary>${wordChips(ws.filter(w => !isWeak(w)))}</details>`; on('#review-round', 'click', () => startMode('weak', ws.filter(isWeak))); on('#round-export', 'click', () => download(exportWords(ws.filter(isWeak), 'csv'), '本轮弱词.csv')); on('#back-home', 'click', () => setPage('home')); bindDetails(); }
+function showResults(s: StudySession) { stopTimer(); page = 'results'; if (taskExecution && taskExecution.sessionId === s.id) {
+    const exec = taskExecution;
+    taskExecution = null;
+    void completePlanTask(exec, Math.max(0.5, Math.round((Date.now() - exec.startedAt) / 30000) / 2));
+} const rs = data.records.filter(r => r.sessionId === s.id); const st = recordStats(rs); const ids = new Set(rs.map(r => r.wordId)); const ws = data.words.filter(w => ids.has(w.id)); active = null; $('#main').innerHTML = title('SESSION COMPLETE', '这一轮，记住了多少？', '薄弱词已记录，并安排了下一次复习。') + `<div class="metrics">${metric('本轮作答', String(st.attempts), '含本轮强化重复')}${metric('正确率', pct(st.accuracy), st.unique + ' 个不同单词')}${metric('平均反应', seconds(st.meanMs), '有效作答时间')}${metric('待强化', String(ws.filter(isWeak).length), '按本轮结束后的状态')}</div><div class="actions"><button class="primary" id="review-round">重测本轮弱词</button><button class="secondary" id="round-export">导出本轮弱词</button><button class="secondary" id="back-home">返回首页</button></div><div class="two-col">${(['unknown', 'vague'] as Mastery[]).map(l => `<section class="panel"><h2>${labels[l]}</h2>${wordChips(ws.filter(w => w.state.level === l))}</section>`).join('')}</div><details class="panel"><summary>正常与熟练 · ${ws.filter(w => !isWeak(w)).length} 词</summary>${wordChips(ws.filter(w => !isWeak(w)))}</details>`; on('#review-round', 'click', () => startMode('weak', ws.filter(isWeak))); on('#round-export', 'click', () => download(exportWords(ws.filter(isWeak), 'csv'), '本轮弱词.csv')); on('#back-home', 'click', () => setPage('home')); bindDetails(); }
 function wordChips(ws: Word[]) { return ws.length ? `<div class="chips">${ws.map(w => `<button data-detail="${w.id}">${esc(w.en)}</button>`).join('')}</div>` : '<p class="subtle">没有这一类单词</p>'; }
 function filtered(weak: boolean) { let ws = data.words.filter(w => (!weak || isWeak(w)) && (!bookFilter || w.bookId === bookFilter) && (!levelFilter || w.state.level === levelFilter) && (!search || `${w.en} ${w.zh} ${w.tags}`.toLowerCase().includes(search.toLowerCase()))); return ws.sort(sort === 'alpha' ? (a, b) => a.en.localeCompare(b.en) : sort === 'due' ? (a, b) => effectiveDue(a, data.settings.schedulingAuthority) - effectiveDue(b, data.settings.schedulingAuthority) : (a, b) => priority(b) - priority(a)); }
 function library(weak: boolean) {
@@ -543,14 +604,25 @@ function settingsPage() {
     });
 }
 function exportBackup() { download(new Blob([backup(data)], { type: 'application/json' }), `词间完整备份-${dayKey(Date.now())}.json`); toast('备份已导出（不含 API Key）'); }
-
 // ———————————————— Phase 3：Today / Daily Planner UI（消费层，不放算法） ————————————————
 function todaySection(): string { return todayPlan ? planOverview(todayPlan) : planSetup(); }
 function planInput(minutes: number, energy: EnergyState): PlannerInput {
-    return { now: Date.now(), availableMinutes: minutes, energy, words: data.words, records: data.records, plans: data.dailyPlans, miniUnit: data.miniUnits.find(u => u.status === 'active') ?? null, lastActivityAt: latestLearningAt(data.records), schedulingAuthority: data.settings.schedulingAuthority };
+    return {
+        now: Date.now(), availableMinutes: minutes, energy, words: data.words, records: data.records, plans: data.dailyPlans,
+        miniUnit: data.miniUnits.find(u => u.status === 'active') ?? null, lastActivityAt: latestLearningAt(data.records),
+        schedulingAuthority: data.settings.schedulingAuthority,
+        sentenceInput: sentenceRecords.length ? {
+            sentences: sentenceRecords,
+            words: data.words,
+            concepts: data.grammarConcepts,
+            grammarAttempts: data.grammarAttempts,
+            sentenceAttempts: data.sentenceAttempts,
+            miniUnit: data.miniUnits.find(u => u.status === 'active') ?? null,
+        } : null,
+    };
 }
 function energyLabel(e: EnergyState) { return e === 'low' ? '状态差' : e === 'good' ? '状态好' : '正常'; }
-function unavailableModulesText(): string { const caps = moduleCapabilities(); return MODULES.filter(m => !caps[m].available).map(m => `${caps[m].label}（${caps[m].requires}）`).join('、'); }
+function unavailableModulesText(): string { const caps = moduleCapabilities(); return MODULES.filter(m => !caps[m].available).map(m => `${caps[m].label}（${caps[m].requires}）`).join('、') || '无'; }
 function planSetup(): string {
     const presets: number[] = [...PLANNER_CONFIG.budget.presets];
     const custom = !presets.includes(planBudget);
@@ -558,8 +630,16 @@ function planSetup(): string {
 }
 function planOverview(plan: DailyPlan): string {
     const progress = planProgress(plan);
-    const recall = plan.yesterdayRecallResult as { status?: string; evaluation?: { retention?: number | null; confidence?: string } | null } | null;
-    const budgetReasons = ((plan.budget as { reasons?: string[] } | null)?.reasons ?? []).filter(r => r.startsWith('critical-memory') || r.startsWith('budget') || r.startsWith('order') || r.startsWith('re-entry') || r.startsWith('mini-diagnostic'));
+    const recall = plan.yesterdayRecallResult as {
+        status?: string;
+        evaluation?: {
+            retention?: number | null;
+            confidence?: string;
+        } | null;
+    } | null;
+    const budgetReasons = ((plan.budget as {
+        reasons?: string[];
+    } | null)?.reasons ?? []).filter(r => r.startsWith('critical-memory') || r.startsWith('budget') || r.startsWith('order') || r.startsWith('re-entry') || r.startsWith('mini-diagnostic'));
     const recallLine = recall?.status === 'done'
         ? `<p class="hint">隔夜检测：保留率 ${recall.evaluation?.retention == null ? '样本不足' : pct(recall.evaluation.retention)}（${recall.evaluation?.confidence === 'ok' ? '可信' : '低置信'}）· 结果已用于校准今日剩余任务</p>`
         : recall?.status === 'pending' ? '<p class="hint">隔夜检测：待完成（结果会校准今日新词量）</p>' : recall?.status === 'recovery' ? '<p class="hint">已按中断天数安排重新进入检测，不积学习债</p>' : '';
@@ -573,7 +653,11 @@ function taskCard(t: PlanItem): string {
     return `<div class="plan-task ${esc(t.status)}" data-task="${esc(t.id)}"><div class="task-main"><div><b>${esc(t.label ?? TASK_LABELS[t.kind ?? ''] ?? t.kind ?? '任务')}</b><span class="task-minutes">${t.minutes} 分钟</span>${t.critical ? '<span class="badge vague">关键记忆</span>' : ''}${t.flexible ? '<span class="badge normal">可调整</span>' : ''}${statusText[t.status] ? `<span class="badge ${badge}">${statusText[t.status]}</span>` : ''}</div><small>${esc((t.reason ?? []).slice(0, 3).join(' · '))}</small><small>${(t.refs ?? []).length} 个词</small></div>${actions}</div>`;
 }
 function bindPlan() {
-    on('#plan-budget', 'change', e => { const v = (e.target as HTMLSelectElement).value; const custom = document.querySelector<HTMLInputElement>('#plan-custom'); if (custom) custom.disabled = v !== 'custom'; if (v !== 'custom') planBudget = Number(v); else custom?.focus(); });
+    on('#plan-budget', 'change', e => { const v = (e.target as HTMLSelectElement).value; const custom = document.querySelector<HTMLInputElement>('#plan-custom'); if (custom)
+        custom.disabled = v !== 'custom'; if (v !== 'custom')
+        planBudget = Number(v);
+    else
+        custom?.focus(); });
     on('#plan-custom', 'input', e => { planBudget = Number((e.target as HTMLInputElement).value); });
     on('#plan-energy', 'change', e => { planEnergy = (e.target as HTMLSelectElement).value as EnergyState; });
     on('#plan-create', 'click', createPlanFromUI);
@@ -584,7 +668,10 @@ function bindPlan() {
     document.querySelectorAll<HTMLElement>('[data-task-delay]').forEach(b => b.onclick = () => void planAction(b.dataset.taskDelay!, 'delay'));
     document.querySelectorAll<HTMLElement>('[data-task-replace]').forEach(b => b.onclick = () => void replacePlanTask(b.dataset.taskReplace!));
 }
-function upsertPlan(list: DailyPlan[], plan: DailyPlan): DailyPlan[] { const i = list.findIndex(p => p.id === plan.id); const next = [...list]; if (i === -1) next.push(plan); else next[i] = plan; return next; }
+function upsertPlan(list: DailyPlan[], plan: DailyPlan): DailyPlan[] { const i = list.findIndex(p => p.id === plan.id); const next = [...list]; if (i === -1)
+    next.push(plan);
+else
+    next[i] = plan; return next; }
 async function persistPlan(plan: DailyPlan): Promise<DailyPlan | null> {
     if (!todayPlan)
         return null;
@@ -644,6 +731,27 @@ async function startPlanTask(taskId: string) {
         toast('请先继续或结束未完成的训练');
         return;
     }
+    if (task.module === 'sentence' || task.kind?.startsWith('sentence-')) {
+        const ids = (task.refs ?? []).filter(id => sentenceRecords.some(s => s.id === id));
+        if (!ids.length) {
+            toast('这个句任务没有可用的真实句子（句库可能已变更）');
+            return;
+        }
+        if (data.sessions.some(s => !s.ended)) {
+            toast('请先继续或结束未完成的训练');
+            return;
+        }
+        const started = applyPlanAction(todayPlan, taskId, 'start', { now: Date.now() });
+        if (!started.ok) {
+            toast(started.reasons.join('；'));
+            return;
+        }
+        const savedPlan = await persistPlan(started.plan);
+        if (!savedPlan)
+            return;
+        startLab(ids, taskId, task.kind ?? 'sentence-basic-structure');
+        return;
+    }
     const refs = (task.refs ?? []).map(id => wordMap.get(id)).filter((w): w is Word => !!w);
     if (!refs.length) {
         toast('这个任务暂时没有可执行的词（词库可能已变更）');
@@ -672,7 +780,12 @@ async function startPlanTask(taskId: string) {
     if (!active)
         taskExecution = null;
 }
-async function completePlanTask(exec: { planTaskId: string; kind: string; startedAt: number; sessionId: string }, actualMinutes: number) {
+async function completePlanTask(exec: {
+    planTaskId: string;
+    kind: string;
+    startedAt: number;
+    sessionId: string;
+}, actualMinutes: number) {
     if (!todayPlan)
         return;
     const result = applyPlanAction(todayPlan, exec.planTaskId, 'complete', { now: Date.now(), actualMinutes, reason: 'task-completed' });
@@ -682,7 +795,9 @@ async function completePlanTask(exec: { planTaskId: string; kind: string; starte
     }
     let plan = result.plan;
     if (exec.kind === 'yesterday-recall') {
-        const saved = plan.yesterdayRecallResult as { sample?: RecallCandidate[] } | null;
+        const saved = plan.yesterdayRecallResult as {
+            sample?: RecallCandidate[];
+        } | null;
         const evaluation = evaluateRecallSession(saved?.sample ?? [], data.records, exec.sessionId);
         const calibrated = calibrateAfterRecall(plan, evaluation, { now: Date.now(), words: data.words });
         if (calibrated.ok)
@@ -691,6 +806,8 @@ async function completePlanTask(exec: { planTaskId: string; kind: string; starte
     }
     if (exec.kind === 'closing-recall')
         plan.closingLoop = { ...((plan.closingLoop as Record<string, unknown>) ?? {}), status: 'awaiting-feedback', feedback: null };
+    if (exec.kind?.startsWith('sentence-'))
+        plan.completedModules = [...new Set([...(plan.completedModules ?? []), 'sentence'])];
     const savedPlan = await persistPlan(plan);
     if (savedPlan && exec.kind === 'closing-recall')
         closingFeedback();
@@ -719,7 +836,7 @@ async function replacePlanTask(taskId: string) {
         toast('关键记忆任务不能替换，只能跳过或延后');
         return;
     }
-    const replacement = buildReplacement(todayPlan, task, data.words, Date.now(), data.settings.schedulingAuthority === 'legacy' ? 'legacy' : 'fsrs');
+    const replacement = buildReplacement(todayPlan, task, data.words, Date.now(), data.settings.schedulingAuthority === 'legacy' ? 'legacy' : 'fsrs', sentenceRecords);
     if (!replacement) {
         toast('当前没有可替换的同目标任务');
         return;
@@ -783,11 +900,472 @@ async function saveClosingFeedback(feedback: string) {
         render();
     }
 }
-
+// ==================== Phase 4：Sentence Lab + Grammar Knowledge Graph ====================
+const GRAMMAR_ORDER: GrammarCategory[] = ['sentence-structure', 'clauses', 'non-finite', 'verb-system', 'phrases', 'cohesion'];
+const ERROR_LABELS: Record<string, string> = {
+    'subject-identification': '主语识别',
+    'predicate-identification': '谓语识别',
+    'object-identification': '宾语识别',
+    'modifier-boundary': '修饰成分边界',
+    'clause-boundary': '从句边界／类型',
+    'nonfinite-role': '非谓语作用',
+    'logic-relation': '逻辑关系',
+    'meaning-error': '整体意义',
+    'no-answer': '未作答',
+    'structure-error': '结构判断',
+};
+function bandClassOf(band: string): string {
+    return band === 'likely-mastered' ? 'fluent' : band === 'learning' ? 'normal' : band === 'unknown' ? 'unknown' : 'vague';
+}
+function grammarStatesNow(): GrammarConceptState[] { return conceptStates(GRAMMAR_TAXONOMY, data.grammarAttempts, Date.now()); }
+function stateById(id: string, states: GrammarConceptState[]): GrammarConceptState | undefined { return states.find(s => s.conceptId === id); }
+function errorSummary(st: GrammarConceptState): string {
+    const top = Object.entries(st.errorTypes).sort((a, b) => b[1] - a[1])[0];
+    return top ? `${ERROR_LABELS[top[0]] ?? top[0]} ×${top[1]}` : '无';
+}
+// —— 语法图谱页 ——
+function grammarPage(): void {
+    const now = Date.now();
+    const states = grammarStatesNow();
+    const weak = states.filter(s => s.weak).sort((a, b) => a.p - b.p);
+    if (grammarSelectedConcept) {
+        conceptDetail(grammarSelectedConcept, states);
+        return;
+    }
+    const taxonomy = validateTaxonomy();
+    const metrics = `<div class="metrics">${metric('概念总数', String(GRAMMAR_TAXONOMY.length), '6 个类别 · 显式先修边')}${metric('有证据概念', String(states.filter(s => s.attempts > 0).length), `共 ${states.reduce((n, s) => n + s.attempts, 0)} 条真实拆句证据`)}${metric('薄弱概念', String(weak.length), '按最近错误与掌握后验判定')}${metric('证据较充分', String(states.filter(s => s.band === 'likely-mastered').length), '多证据支持，仍不是保证')}</div>`;
+    const cats: Array<GrammarCategory | ''> = ['', ...GRAMMAR_ORDER];
+    const filters = cats.map(c => `<button class="chip ${grammarCategoryFilter === c ? 'active' : ''}" data-gcat="${c}">${c ? GRAMMAR_CATEGORY_LABELS[c] : '全部'}</button>`).join('');
+    const evidenced = states.filter(s => s.attempts > 0);
+    const attemptsTotal = states.reduce((n, s) => n + s.attempts, 0);
+    const weakPanel = weak.length ? `<section class="panel"><h2>需要优先处理</h2><p class="hint">排序依据：掌握后验 p 低 + 最近出现重复错误 + 先修是否具备。</p><ul class="weak-grammar">${weak.slice(0, 6).map(s => { const def = conceptById(s.conceptId); return `<li><b>${esc(def?.name ?? s.conceptId)}</b> <span class="badge ${bandClassOf(s.band)}">${pct(s.p)}</span><small>${esc(errorSummary(s))} · ${s.attempts} 次证据</small><span class="row-actions"><button class="secondary small" data-concept="${s.conceptId}">看详情</button><button class="primary small" data-concept-practice="${s.conceptId}">去练习</button></span></li>`; }).join('')}</ul></section>` : `<section class="panel"><h2>还没有足够的语法证据</h2><p class="hint">${evidenced.length ? `已有 ${evidenced.length} 个概念拿到 ${attemptsTotal} 条真实证据，但还没达到"弱项"的判定门槛（≥${GRAMMAR_CONFIG.weak.minAttempts} 次证据且后验 p<${pct(GRAMMAR_CONFIG.weak.threshold)}）；证据不够时不会给你贴标签。` : '完成一次句子拆解后，这里会按概念显示真实掌握情况。初始值为先验 25%，不代表你已经会或不会。'}</p></section>`;
+    const groups = GRAMMAR_ORDER
+        .filter(c => !grammarCategoryFilter || grammarCategoryFilter === c)
+        .map(c => {
+        const defs = GRAMMAR_TAXONOMY.filter(d => d.category === c);
+        return `<section class="panel grammar-group"><h2>${GRAMMAR_CATEGORY_LABELS[c]}</h2><div class="concept-grid">${defs.map(d => {
+            const st = stateById(d.id, states) ?? grammarState(d, data.grammarAttempts, now);
+            const sentences = sentencesForConcept(d.id, sentenceRecords).length;
+            const prereqChips = d.prerequisiteIds.length
+                ? d.prerequisiteIds.map(id => `<button class="chip small" data-concept="${id}">${esc(conceptById(id)?.name ?? id)}</button>`).join('')
+                : '<span class="hint">无（根概念）</span>';
+            return `<article class="concept-card ${st.weak ? 'weak' : ''}"><header><button class="concept-link" data-concept="${d.id}">${esc(d.name)}</button><span class="badge ${bandClassOf(st.band)}">${GRAMMAR_BAND_LABELS[st.band]}</span></header><p class="hint">${esc(d.description)}</p><p class="concept-prereq"><span class="subtle">先修</span>${prereqChips}</p><div class="concept-metrics"><span>估算 <b>${pct(st.p)}</b></span><span>证据 <b>${st.attempts}</b></span><span>独立正确 <b>${st.independentCorrect}</b></span><span>相关句 <b>${sentences}</b></span></div>${st.weak ? `<p class="hint warn">${esc(errorSummary(st))}</p>` : ''}<div class="row-actions"><button class="secondary small" data-concept-practice="${d.id}">去练习</button></div></article>`;
+        }).join('')}</div></section>`;
+    }).join('');
+    $('#main').innerHTML = `<div id="grammar-page">` + title('GRAMMAR MAP', '语法图谱', '概念之间按先修关系连接：先有主干，再认从句，再想非谓语。掌握度是估算，不是承诺。')
+        + metrics + weakPanel + `<section class="panel"><h2>按类别浏览</h2><div class="chips">${filters}</div></section>` + groups
+        + `<p class="hint">图谱自检：${taxonomy.ok ? '通过（无环、无缺失先修）' : `发现 ${taxonomy.issues.length} 个问题`} · ${GRAMMAR_CONFIG.taxonomyVersion}</p></div>`;
+    document.querySelectorAll<HTMLElement>('[data-gcat]').forEach(b => b.addEventListener('click', () => { grammarCategoryFilter = b.dataset.gcat ?? ''; render(); }));
+    document.querySelectorAll<HTMLElement>('[data-concept]').forEach(b => b.addEventListener('click', () => { grammarSelectedConcept = b.dataset.concept ?? ''; render(); }));
+    document.querySelectorAll<HTMLElement>('[data-concept-practice]').forEach(b => b.addEventListener('click', () => practiceConcept(b.dataset.conceptPractice ?? '')));
+}
+function conceptDetail(conceptId: string, states: GrammarConceptState[]): void {
+    const def = conceptById(conceptId);
+    if (!def) {
+        grammarSelectedConcept = '';
+        render();
+        return;
+    }
+    const st = stateById(def.id, states) ?? grammarState(def, data.grammarAttempts, Date.now());
+    const readiness = prerequisitesSatisfied(def.id, states, GRAMMAR_CONFIG.mastery.learning, GRAMMAR_TAXONOMY);
+    const prereq = def.prerequisiteIds.map(id => {
+        const p = stateById(id, states);
+        const ok = (p?.p ?? 0) >= GRAMMAR_CONFIG.mastery.learning;
+        return `<li>${esc(conceptById(id)?.name ?? id)} <span class="badge ${ok ? 'fluent' : 'vague'}">${p ? pct(p.p) : '无证据'}</span>${ok ? '' : ' <small>建议先补</small>'}</li>`;
+    }).join('') || '<li>无（根节点）</li>';
+    const chain = ancestorConcepts(def.id).map(id => conceptById(id)?.name ?? id);
+    const related = def.relatedConceptIds.map(id => conceptById(id)?.name ?? id).filter(Boolean);
+    const sentences = sentencesForConcept(def.id, sentenceRecords).slice(0, 5);
+    const attempts = data.grammarAttempts.filter(a => a.conceptId === def.id).slice(-6).reverse();
+    const card = def.card;
+    $('#main').innerHTML = `<div id="concept-detail">` + title('CONCEPT', def.name, `${GRAMMAR_CATEGORY_LABELS[def.category]} · 难度 ${def.difficulty}/3`)
+        + `<div class="actions"><button class="secondary" data-concept-back="1">← 返回图谱</button><button class="primary" data-concept-practice="${def.id}">用真实句子练这个概念</button></div>`
+        + `<div class="two-col"><section class="panel"><h2>掌握状态</h2><div class="metrics compact">${metric('估算掌握', pct(st.p), GRAMMAR_BAND_LABELS[st.band])}${metric('证据次数', String(st.attempts), `正确 ${st.correct}`)}${metric('独立正确', String(st.independentCorrect), '不看提示、不试错')}${metric('主要错误', errorSummary(st), `${st.delayedAttempts} 次延迟复测`)}</div><p class="hint">判定理由：${esc(st.reasons.join('；') || '尚无足够证据。')}</p><p class="hint">先修状态：${readiness.ok ? '已具备' : `缺少「${readiness.missing.map(id => conceptById(id)?.name ?? id).join('、')}」`}</p><h3>先修概念</h3><ul class="plain-list">${prereq}</ul>${chain.length ? `<p class="hint">完整先修链：${esc(chain.join(' → '))}</p>` : ''}${related.length ? `<p class="hint">易混概念：${esc(related.join('、'))}</p>` : ''}</section>`
+        + `<section class="panel"><h2>知识卡（20–60 秒读完）</h2><div class="grammar-card"><p><b>规则</b> ${esc(card.rule)}</p><p><b>为什么</b> ${esc(card.why)}</p><blockquote>${esc(card.example.ok)}${card.example.bad ? `<br><small class="bad-line">✗ ${esc(card.example.bad)}</small>` : ''}${card.example.note ? `<br><small>${esc(card.example.note)}</small>` : ''}</blockquote><p><b>常见错误</b></p><ul class="plain-list">${card.commonErrors.map(e => `<li>${esc(e)}</li>`).join('')}</ul><p><b>迁移提示</b> ${esc(card.transfer)}</p></div></section></div>`
+        + `<section class="panel"><h2>真实训练句（${sentences.length}）</h2>${sentences.length ? `<ul class="sentence-mini">${sentences.map(s => `<li><span class="src-badge src-${s.sourceType}">${s.sourceType}</span> ${esc(s.text)}<button class="secondary small" data-sentence-start="${s.id}">练这句</button></li>`).join('')}</ul>` : '<p class="hint">句库中还没有挂这个概念的句子。可以到「句子训练」粘贴你遇到的真实句子。</p>'}</section>`
+        + `<section class="panel"><h2>最近证据</h2>${attempts.length ? `<ul class="plain-list">${attempts.map(a => `<li>${date(a.at)} · ${a.correct ? '正确' : '错误'}${a.independent ? ' · 独立' : ` · 辅助 L${a.supportLevel ?? 0}`}${a.transfer ? ' · 迁移' : ''}${a.delayed ? ' · 延迟' : ''}${a.errorType ? ` · ${ERROR_LABELS[a.errorType] ?? a.errorType}` : ''}</li>`).join('')}</ul>` : '<p class="hint">还没有练习记录。</p>'}</section></div>`;
+    document.querySelectorAll<HTMLElement>('[data-concept-back]').forEach(b => b.addEventListener('click', () => { grammarSelectedConcept = ''; render(); }));
+    document.querySelectorAll<HTMLElement>('[data-concept-practice]').forEach(b => b.addEventListener('click', () => practiceConcept(b.dataset.conceptPractice ?? '')));
+    document.querySelectorAll<HTMLElement>('[data-sentence-start]').forEach(b => b.addEventListener('click', () => startLab([b.dataset.sentenceStart ?? ''], null, null)));
+}
+function practiceConcept(conceptId: string): void {
+    const def = conceptById(conceptId);
+    const candidates = sentencesForConcept(conceptId, sentenceRecords);
+    if (!candidates.length) {
+        toast(`句库中还没有挂「${def?.name ?? conceptId}」的句子；先去「句子训练」添加真实句子`);
+        return;
+    }
+    const ordered = [...candidates].sort((a, b) => (a.structureProvenance === 'gold' ? -1 : 1) - (b.structureProvenance === 'gold' ? -1 : 1) || (a.id < b.id ? -1 : 1));
+    startLab(ordered.slice(0, 2).map(s => s.id), null, null);
+}
+// —— 句子训练入口页 ——
+function sentencePage(): void {
+    const aiConfigured = !!(data.settings.endpoint && data.settings.model && data.settings.key);
+    const caps = sourceCapabilities({ sentences: sentenceRecords, aiConfigured, readingAvailable: false });
+    const mix = effectiveSourceMix(caps);
+    const capabilityRows = caps.map(c => `<li><span class="src-badge src-${c.type}">${esc(c.label)}</span> ${c.available ? `<b>${c.count}</b> 句可用` : `未上线${c.requires ? `（${c.requires}）` : ''}`}</li>`).join('');
+    const mixText = Object.entries(mix.mix).filter(([, v]) => v > 0).map(([k, v]) => `${esc(caps.find(c => c.type === k)?.label ?? k)} ${pct(v)}`).join(' · ');
+    const rows = [...sentenceRecords].sort((a, b) => b.createdAt - a.createdAt).map(s => {
+        const st = readStructure(s.structure, s.id, s.text).structure;
+        const summary = structureSummary(st);
+        return `<tr><td><span class="src-badge src-${s.sourceType}">${s.sourceType}</span><br><b>${esc(s.text)}</b><small class="zh-line">${esc(s.zh)}</small></td><td>${esc(sentenceConceptNames(s).slice(0, 3).join('、') || '—')}</td><td>${summary.clauseCount} 层 / ${summary.clauseKinds.map(k => CLAUSE_LABELS[k]).join('+')}<br><small>${summary.provenance === 'gold' ? 'gold 结构' : summary.provenance === 'heuristic' ? '启发式（不确定）' : '无结构'}</small></td><td><button class="primary small" data-sentence-start="${s.id}">开始拆句</button>${s.sourceType === 'curated' ? '' : `<button class="danger-text small" data-sentence-del="${s.id}">删除</button>`}</td></tr>`;
+    }).join('') || '<tr><td colspan="4" class="empty-cell">句库为空。粘贴一句你最近遇到的真实难句开始。</td></tr>';
+    $('#main').innerHTML = `<div id="sentence-page">` + title('SENTENCE LAB', '句子训练', '不是背语法，是拆句：先找主干，再认修饰，再看从句与非谓语。默认不给完整翻译。')
+        + `<div class="metrics">${metric('句库', String(sentenceRecords.length), '句源见下表')}${metric('做过拆句', String(data.sentenceAttempts.length), '每次练习都留证据')}${metric('已独立完成', String(data.sentenceAttempts.filter(a => a.structureCorrect && (a.maxSupportLevel ?? 0) === 0).length), '不看提示、一次判断正确')}${metric('句源构成', mix.degraded ? '降级补位' : '目标配比', `${mix.unavailable.length} 个来源当前不可用`)}</div>`
+        + `<div class="two-col"><section class="panel"><h2>句源与能力</h2><ul class="plain-list">${capabilityRows}</ul><p class="hint">目标配比：AI 40% · 你自己遇到的句子 40% · 真实材料 20%。当前实际：${mixText || '仅有人工教学句'}。${mix.reasons.length ? `原因：${esc(mix.reasons.join('；'))}` : ''}</p><p class="hint">${esc(generationUnavailableReason(aiConfigured, false))}</p></section>`
+        + `<section class="panel"><h2>添加你遇到的真实句子</h2><form id="user-sentence-form"><label>英文原句<textarea id="user-sentence-input" rows="3" required maxlength="400" placeholder="粘贴你在文章、视频或对话里遇到的那一句"></textarea></label><label>中文意思（可选，先自己理解再填）<input id="user-sentence-zh" maxlength="300" placeholder="不填也可以，训练时会先让你自己判断"></label><div class="actions"><button class="primary" type="submit">保存到句库</button><button class="secondary" type="button" id="sentence-quick-start">按当前薄弱点开始训练</button></div></form><p class="hint">没有 gold 结构的句子不会伪造完整句法树：训练会使用带不确定标记的启发式切分，并允许你手动确认成分。</p></section></div>`
+        + `<section class="panel"><h2>句库（${sentenceRecords.length}）</h2><div class="table-scroll"><table><thead><tr><th>句子</th><th>目标语法</th><th>结构</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div><p class="hint">auto 标记的句子由本应用作者撰写（authored 教学句），不是任何文章原句。</p></section></div>`;
+    document.querySelectorAll<HTMLElement>('[data-sentence-start]').forEach(b => b.addEventListener('click', () => startLab([b.dataset.sentenceStart ?? ''], null, null)));
+    document.querySelectorAll<HTMLElement>('[data-sentence-del]').forEach(b => b.addEventListener('click', () => void deleteSentence(b.dataset.sentenceDel ?? '')));
+    on('#user-sentence-form', 'submit', async (e: Event) => {
+        e.preventDefault();
+        const text = ($<HTMLTextAreaElement>('#user-sentence-input')).value.trim();
+        const zh = ($<HTMLInputElement>('#user-sentence-zh')).value.trim();
+        if (!text) {
+            toast('请先写一句英文');
+            return;
+        }
+        const { record, issues } = userSentenceRecord(text, zh);
+        if (issues.length) {
+            toast(issues.join('；'));
+            return;
+        }
+        await saveSentences([record]);
+        sentenceRecords = [record, ...sentenceRecords];
+        data.sentences = sentenceRecords;
+        toast(record.structureProvenance === 'heuristic' ? '已保存；这句没有 gold 结构，训练时会标注结构不确定' : '已保存到句库');
+        render();
+    });
+    on('#sentence-quick-start', 'click', () => {
+        const picked = selectSentenceBatch({
+            now: Date.now(), sentences: sentenceRecords, words: data.words, concepts: data.grammarConcepts,
+            grammarAttempts: data.grammarAttempts, sentenceAttempts: data.sentenceAttempts, availableMinutes: 10,
+            energy: 'normal', miniUnit: data.miniUnits.find(u => u.status === 'active') ?? null,
+        }, 2);
+        if (!picked.length) {
+            toast('当前没有符合难度与生词约束的句子');
+            return;
+        }
+        startLab(picked.map((p: {
+            record: {
+                id: string;
+            };
+        }) => p.record.id), null, null);
+    });
+}
+async function deleteSentence(id: string): Promise<void> {
+    const rec = sentenceRecords.find(s => s.id === id);
+    if (!rec || rec.sourceType === 'curated')
+        return;
+    await openDB();
+    const db = getDB();
+    await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction('sentences', 'readwrite');
+        const r = tx.objectStore('sentences').delete(id);
+        r.onsuccess = () => resolve();
+        r.onerror = () => reject(r.error);
+    });
+    sentenceRecords = sentenceRecords.filter(s => s.id !== id);
+    data.sentences = sentenceRecords;
+    toast('已从句库删除（历史练习证据保留）');
+    render();
+}
+// —— 拆句训练运行 ——
+function startLab(sentenceIds: string[], planTaskId: string | null, planTaskKind: string | null): void {
+    const queue = sentenceIds.filter(id => sentenceRecords.some(s => s.id === id));
+    if (!queue.length) {
+        toast('没有可用的真实句子');
+        return;
+    }
+    labSession = { sessionId: `lab-${Date.now().toString(36)}`, queue, index: 0, planTaskId, planTaskKind, startedAt: Date.now(), current: null, finished: [] };
+    openLabSentence();
+    page = 'lab';
+    render();
+}
+function labRecord(): SentenceRecord | undefined { return sentenceRecords.find(s => s.id === labSession?.current?.sentenceId); }
+function openLabSentence(opts: {
+    transferOf?: string | null;
+    delayed?: boolean;
+} = {}): void {
+    const session = labSession;
+    if (!session)
+        return;
+    const rec = sentenceRecords.find(s => s.id === session.queue[session.index]);
+    if (!rec) {
+        labSession = null;
+        page = 'sentence';
+        render();
+        return;
+    }
+    const structure = readStructure(rec.structure, rec.id, rec.text).structure;
+    const plan = buildLabPlan(rec, structure, sentenceRecords.filter(s => s.id !== rec.id));
+    session.current = {
+        sentenceId: rec.id, plan, stepIndex: 0, stepRecords: [], supportLevel: 0, answered: null, evaluation: null,
+        stepStartedAt: Date.now(), transferOf: opts.transferOf ?? null, delayed: !!opts.delayed, attempts: 0, done: false, result: null,
+    };
+}
+function labPage(): void {
+    if (!labSession || !labSession.current) {
+        sentencePage();
+        return;
+    }
+    const session = labSession;
+    const cur = session.current!;
+    const rec = labRecord();
+    if (!rec) {
+        sentencePage();
+        return;
+    }
+    if (cur.done) {
+        labResultView(rec);
+        return;
+    }
+    const step = cur.plan.steps[cur.stepIndex];
+    const total = cur.plan.steps.length;
+    const level = supportHint(step, cur.supportLevel);
+    const progress = `<div class="lab-progress"><span>第 ${cur.stepIndex + 1} / ${total} 步</span><span>${STEP_LABELS[step.kind]}</span><span class="badge ${cur.supportLevel === 0 ? 'fluent' : cur.supportLevel >= 3 ? 'vague' : 'normal'}">${SUPPORT_LABELS[cur.supportLevel]}</span></div>`;
+    // 作答前只给候选成分，不给"它是主句主语"这类解析——那等于把答案写在选项上
+    const options = step.options.map(o => `<button class="lab-option ${cur.answered === o.id ? 'picked' : ''}" data-lab-option="${o.id}" ${cur.answered ? 'disabled' : ''}><b>${esc(o.label)}</b>${cur.answered && o.detail ? `<small>${esc(o.detail)}</small>` : ''}</button>`).join('');
+    const feedback = cur.evaluation ? `<div class="lab-feedback ${cur.evaluation.correct ? 'ok' : 'bad'}"><p><b>${cur.evaluation.correct ? '正确' : cur.evaluation.partial ? '部分正确' : '还不准确'}</b> · ${cur.evaluation.correct ? '' : `错误类型：${ERROR_LABELS[cur.evaluation.errorType] ?? cur.evaluation.errorType}`}</p><p>${esc(cur.evaluation.feedback)}</p><p class="hint">${esc(cur.evaluation.nextFocus)}</p><div class="actions">${cur.evaluation.correct ? '' : (step.conceptIds[0] ?? 'structure.core') ? `<button class="secondary" data-jit="${step.conceptIds[0] ?? 'structure.core'}">看 30 秒知识卡</button>` : ''}<button class="primary" id="lab-next">${cur.stepIndex + 1 < total ? '下一步' : '完成这句'}</button></div>${cur.supportLevel >= 3 ? '<p class="hint warn">这句你已看过答案／完整解释：会计入接触次数，但不会算作掌握证据。</p>' : ''}</div>` : '';
+    $('#main').innerHTML = `<div id="lab-page">` + title('SENTENCE LAB', `拆句 · ${cur.stepIndex + 1}/${total}`, '先找主干，再看修饰；不确定时可以要提示，但提示会降低这次证据的可信度。')
+        + `<div class="actions"><button class="secondary" data-lab-back="1">← 回到句库</button><button class="danger-text" id="lab-skip">跳过这句</button></div>`
+        + `<section class="panel lab-panel">${cur.transferOf ? `<p class="hint"><span class="src-badge">迁移验证</span> 这是同一个结构的新句：不看提示，独立判断一次。</p>` : ''}${preTeachHTML(rec)}<div id="lab-sentence" class="lab-sentence">${esc(rec.text)}</div>${progress}
+            <h2 id="lab-question">${esc(step.question)}</h2>
+            <div class="lab-options">${options}</div>
+            <div class="actions"><button class="secondary" id="lab-hint" ${cur.answered ? 'disabled' : ''}>${level.level === 0 ? '需要提示？（会降低证据强度）' : '再给一点提示'}</button><span class="hint" id="lab-level">当前辅助：${level.label}（L${level.level}/${MAX_SUPPORT_LEVEL}）</span></div>
+            ${cur.supportLevel > 0 && !cur.answered ? `<p class="hint">提示：${esc(level.hint)}</p>` : ''}
+            ${feedback}
+        </section>
+        <p class="hint">句子来源：${rec.sourceType} · 结构来源：${cur.plan.simplified ? '简化流程（句子较简单）' : readStructure(rec.structure, rec.id, rec.text).structure.provenance}${cur.plan.uncertain ? ' · 结构不确定，已标注' : ''}${cur.plan.notes.length ? ` · ${esc(cur.plan.notes.join('；'))}` : ''}</p></div>`;
+    document.querySelectorAll<HTMLElement>('[data-lab-option]').forEach(b => b.addEventListener('click', () => void labAnswer(b.dataset.labOption ?? '')));
+    on('#lab-hint', 'click', () => { if (!labSession?.current || labSession.current.answered)
+        return; labSession.current.supportLevel = Math.min(MAX_SUPPORT_LEVEL, labSession.current.supportLevel + 1); render(); });
+    on('#lab-next', 'click', () => labAdvance());
+    on('#lab-skip', 'click', () => labSkip());
+    document.querySelectorAll<HTMLElement>('[data-lab-back]').forEach(b => b.addEventListener('click', () => { labSession = null; page = 'sentence'; render(); }));
+    document.querySelectorAll<HTMLElement>('[data-jit]').forEach(b => b.addEventListener('click', () => showJitCard(b.dataset.jit ?? '')));
+}
+async function labAnswer(optionId: string): Promise<void> {
+    const session = labSession;
+    const cur = session?.current;
+    if (!session || !cur || cur.answered)
+        return;
+    const step = cur.plan.steps[cur.stepIndex];
+    const evaluation = evaluateStep(step, optionId, cur.supportLevel);
+    cur.stepRecords.push(stepRecord(step.id, optionId, evaluation.correct, cur.supportLevel, Date.now() - cur.stepStartedAt, evaluation.errorType));
+    cur.answered = optionId;
+    cur.evaluation = evaluation;
+    render();
+}
+function labAdvance(): void {
+    const session = labSession;
+    const cur = session?.current;
+    if (!session || !cur)
+        return;
+    if (cur.stepIndex + 1 < cur.plan.steps.length) {
+        cur.stepIndex++;
+        cur.answered = null;
+        cur.evaluation = null;
+        cur.supportLevel = 0;
+        cur.stepStartedAt = Date.now();
+        render();
+        return;
+    }
+    void finishLabSentence();
+}
+function labSkip(): void {
+    const session = labSession;
+    if (!session)
+        return;
+    session.index++;
+    if (session.index >= session.queue.length) {
+        void finishLabSession();
+        return;
+    }
+    openLabSentence();
+    render();
+}
+function showJitCard(conceptId: string): void {
+    const session = labSession;
+    const cur = session?.current;
+    if (!cur?.evaluation)
+        return;
+    const card = justInTimeCard(conceptId, cur.evaluation);
+    if (!card) {
+        toast('这个知识点暂时没有卡片');
+        return;
+    }
+    modal(`<div class="eyebrow">JUST-IN-TIME · ${card.seconds}s</div><h2>${esc(card.name)}</h2><p><b>规则</b> ${esc(card.rule)}</p><p><b>为什么</b> ${esc(card.why)}</p><blockquote>${esc(card.example.ok)}${card.example.bad ? `<br><small class="bad-line">✗ ${esc(card.example.bad)}</small>` : ''}${card.example.note ? `<br><small>${esc(card.example.note)}</small>` : ''}</blockquote><p><b>你刚才的错误</b> ${esc(card.trigger)}</p><ul class="plain-list">${card.commonErrors.map(e => `<li>${esc(e)}</li>`).join('')}</ul><p><b>迁移</b> ${esc(card.transfer)}</p><div class="actions"><button class="primary" id="jit-back">回到原句再判断</button></div>`);
+    on('#jit-back', 'click', () => closeModal());
+}
+async function finishLabSentence(): Promise<void> {
+    const session = labSession;
+    const cur = session?.current;
+    const rec = labRecord();
+    if (!session || !cur || !rec)
+        return;
+    const allCorrect = cur.stepRecords.every(r => r.correct);
+    const draft: AttemptDraft = {
+        sentenceId: rec.id, sentence: rec.text, sourceType: rec.sourceType, sourceId: rec.sourceId,
+        targetWords: rec.targetWordIds, grammarConceptIds: sentenceConceptIds(rec), steps: cur.stepRecords,
+        durationMs: Math.max(1000, Date.now() - session.startedAt), sessionId: session.sessionId,
+        meaningCorrect: cur.stepRecords.filter(r => r.stepId.startsWith('meaning')).every(r => r.correct) ? true : cur.stepRecords.some(r => r.stepId.startsWith('meaning')) ? false : null,
+        translationDependence: maxSupportLevelOf(cur.stepRecords), transferOf: cur.transferOf, delayed: cur.delayed,
+    };
+    const applied = applyEvidence({ concepts: data.grammarConcepts, grammarAttempts: data.grammarAttempts, sentenceAttempts: data.sentenceAttempts }, draft, stepConceptMap(cur.plan.steps), Date.now(), GRAMMAR_TAXONOMY);
+    data.grammarConcepts = applied.concepts;
+    const newAttempts = applied.grammarAttempts.filter(a => !data.grammarAttempts.some(o => o.id === a.id));
+    data.grammarAttempts = applied.grammarAttempts;
+    let updatedSentence: SentenceRecord | null = null;
+    if (!applied.duplicate) {
+        data.sentenceAttempts.push(applied.attempt);
+        updatedSentence = { ...rec, usedCount: (rec.usedCount ?? 0) + 1, lastUsedAt: Date.now() };
+        sentenceRecords = sentenceRecords.map(s => s.id === rec.id ? updatedSentence! : s);
+        data.sentences = sentenceRecords;
+        try {
+            await dbSaveSentenceEvidence(applied.attempt, newAttempts, applied.concepts.filter(c => applied.updatedConceptIds.includes(c.id)), updatedSentence);
+        }
+        catch (e) {
+            toast(`证据保存失败（本地数据仍保留在内存）：${(e as Error).message}`);
+        }
+    }
+    cur.done = true;
+    cur.result = { evidenceClass: applied.evidenceClass, counts: applied.countsTowardMastery, allCorrect, duplicate: applied.duplicate, conceptIds: applied.updatedConceptIds };
+    session.finished.push({ sentenceId: rec.id, correctSteps: cur.stepRecords.filter(r => r.correct).length, total: cur.stepRecords.length, evidenceClass: applied.evidenceClass, conceptIds: applied.updatedConceptIds });
+    render();
+}
+function maxSupportLevelOf(steps: SentenceStepRecord[]): number { return steps.reduce((m, s) => Math.max(m, s.supportLevel ?? 0), 0); }
+function labResultView(rec: SentenceRecord): void {
+    const session = labSession!;
+    const cur = session.current!;
+    const result = cur.result!;
+    const structure = readStructure(rec.structure, rec.id, rec.text).structure;
+    const summary = structureSummary(structure);
+    const rows = cur.stepRecords.map((r, i) => {
+        const step = cur.plan.steps[i];
+        return `<tr><td>${i + 1}. ${esc(STEP_LABELS[step?.kind ?? 'subject'])}</td><td>${r.correct ? '<span class="badge fluent">正确</span>' : `<span class="badge unknown">错误</span> <small>${ERROR_LABELS[r.errorType] ?? r.errorType}</small>`}</td><td>L${r.supportLevel ?? 0}</td></tr>`;
+    }).join('');
+    const transfer = buildTransferTask(rec, sentenceRecords);
+    const isLast = session.index + 1 >= session.queue.length;
+    $('#main').innerHTML = `<div id="lab-results">` + title('SENTENCE COMPLETE', result.allCorrect ? '这一句，你拆开了' : '这一句还没完全拆开', `证据等级：${EVIDENCE_LABELS[result.evidenceClass as SentenceEvidenceClass]}${result.counts ? '（计入掌握估算）' : '（不计入掌握，只计接触）'}`)
+        + `<div class="metrics">${metric('步骤正确', `${cur.stepRecords.filter(r => r.correct).length}/${cur.stepRecords.length}`, cur.plan.simplified ? '简化流程' : '完整流程')}${metric('最高辅助', `L${maxSupportLevelOf(cur.stepRecords)}`, SUPPORT_LABELS[maxSupportLevelOf(cur.stepRecords)])}${metric('结构层级', `${summary.clauseCount} 层`, summary.clauseKinds.map(k => CLAUSE_LABELS[k]).join('+'))}${metric('涉及概念', String(result.conceptIds.length), result.conceptIds.slice(0, 2).map(id => conceptById(id)?.name ?? id).join('、'))}</div>`
+        + `<div class="two-col"><section class="panel"><h2>你的步骤</h2><div class="table-scroll"><table><thead><tr><th>步骤</th><th>结果</th><th>辅助</th></tr></thead><tbody>${rows}</tbody></table></div><h2>整句意思</h2><p class="meaning-reveal">${esc(rec.zh)}</p><p class="hint">先自己复述一遍，再对照；这一步不产生掌握证据。</p></section>`
+        + `<section class="panel"><h2>结构树</h2>${structureTreeHTML(rec, structure)}</section></div>`
+        + `<div class="actions">${transfer ? `<button class="secondary" id="lab-transfer">换一句同结构的新句（迁移验证）</button>` : ''}<button class="primary" id="lab-next-sentence">${isLast ? '结束本次训练' : '下一句'}</button></div>`
+        + (transfer ? `<p class="hint">迁移句：${esc(transfer.candidate.text)}（共用 ${transfer.sameGrammar.map(id => conceptById(id)?.name ?? id).join('、')}）</p>` : '') + '</div>';
+    on('#lab-next-sentence', 'click', () => { session.index++; if (session.index >= session.queue.length)
+        void finishLabSession();
+    else {
+        openLabSentence();
+        render();
+    } });
+    on('#lab-transfer', 'click', () => {
+        if (!transfer)
+            return;
+        session.queue.splice(session.index + 1, 0, transfer.candidate.id);
+        session.index++;
+        openLabSentence({ transferOf: rec.id });
+        render();
+    });
+}
+// 预教词：authored 教学句自带释义，避免"要练语法却被生词卡死"
+function preTeachHTML(rec: SentenceRecord): string {
+    const glossary = rec.glossary ?? {};
+    const lower = rec.text.toLowerCase();
+    // 用字符边界判断，避免  在不同打包/转义环境下失效
+    const hasWord = (w: string) => {
+        const head = w.split(' ')[0].toLowerCase().replace(/[^a-z']/g, '');
+        const at = lower.indexOf(head);
+        if (at < 0)
+            return false;
+        const before = at === 0 ? ' ' : lower[at - 1];
+        const after = at + head.length >= lower.length ? ' ' : lower[at + head.length];
+        return !/[a-z]/.test(before) && !/[a-z]/.test(after);
+    };
+    const chips = Object.entries(glossary).filter(([w]) => hasWord(w));
+    if (!chips.length)
+        return '';
+    return `<div class="pret teach"><span class="src-badge">预教词</span> ${chips.map(([w, zh]) => `<span class="token"><b>${esc(w)}</b><small>${esc(zh)}</small></span>`).join(' ')}<p class="hint">先确认这些词的意思，再开始拆句；它们不计入"未知生词"。</p></div>`;
+}
+function structureTreeHTML(rec: SentenceRecord, structure: SentenceStructure): string {
+    const rows = structureRows(structure);
+    const clauses = [...structure.clauses].sort((a, b) => a.start - b.start);
+    const body = clauses.map(c => `<details class="tree-clause" ${c.parentId ? '' : 'open'}><summary><span class="clause-kind">${CLAUSE_LABELS[c.kind]}</span> <b>${esc(c.label)}</b> <small>词 ${c.start + 1}–${c.end + 1}</small></summary><div class="tree-tokens">${rows.filter(r => r.clauseId === c.id).map(r => `<span class="token role-${r.role}" title="依存：${esc(r.headText)}${r.note ? ` · ${esc(r.note)}` : ''}"><b>${esc(r.text)}</b><small>${r.roleLabel}</small></span>`).join('')}</div></details>`).join('');
+    const warn = structure.provenance === 'gold' ? '' : `<p class="hint warn">结构来源是 ${structure.provenance}（confidence ${structure.confidence}）：这不是可靠的完整句法分析，只用于引导你注意成分位置。</p>`;
+    return `<div id="lab-tree" class="tree"><p class="hint">先看主句骨架，再看从句／非谓语如何补足（组内保持原词序）。</p>${body}</div>${warn}<p class="hint">${esc(structure.note)}</p>`;
+}
+async function finishLabSession(): Promise<void> {
+    const session = labSession;
+    if (!session)
+        return;
+    const finished = session.finished;
+    const minutes = Math.max(0.5, Math.round((Date.now() - session.startedAt) / 30000) / 2);
+    const taskId = session.planTaskId;
+    const kind = session.planTaskKind;
+    labSession = null;
+    if (taskId) {
+        await completePlanTask({ planTaskId: taskId, kind: kind ?? 'sentence-basic-structure', startedAt: Date.now() - minutes * 60000, sessionId: session.sessionId }, minutes);
+        page = 'home';
+    }
+    else {
+        page = 'sentence';
+    }
+    render();
+    toast(`本次完成 ${finished.length} 句 · 用时约 ${Math.round(minutes)} 分钟${finished.length ? ` · ${finished.map(f => `${f.correctSteps}/${f.total}`).join('、')}` : ''}`);
+}
+// 仅 ?test=1 时暴露测试钩子：验收脚本据此点"正确/错误"选项，生产 DOM 不含任何答案提示
+function installTestHook(): void {
+    if (!new URLSearchParams(location.search).has('test'))
+        return;
+    const hook = {
+        step: () => {
+            const cur = labSession?.current;
+            if (!cur)
+                return null;
+            const step = cur.plan.steps[cur.stepIndex];
+            return { index: cur.stepIndex, total: cur.plan.steps.length, kind: step.kind, correctId: step.correctId, answered: !!cur.answered, evidence: cur.result ? cur.result.evidenceClass : '' };
+        },
+        answerCorrect: () => {
+            const cur = labSession?.current;
+            if (!cur)
+                return false;
+            const step = cur.plan.steps[cur.stepIndex];
+            const b = document.querySelector<HTMLElement>(`[data-lab-option="${step.correctId}"]`);
+            if (!b)
+                return false;
+            b.click();
+            return true;
+        },
+        answerWrong: () => {
+            const cur = labSession?.current;
+            if (!cur)
+                return false;
+            const step = cur.plan.steps[cur.stepIndex];
+            const wrong = step.options.find(o => o.id !== step.correctId);
+            const b = wrong ? document.querySelector<HTMLElement>(`[data-lab-option="${wrong.id}"]`) : null;
+            if (!b)
+                return false;
+            b.click();
+            return true;
+        },
+    };
+    (window as unknown as Record<string, unknown>).__labTest = hook;
+}
 async function boot() {
+    installTestHook();
     await openDB();
     data = await loadData();
     reindex();
+    try {
+        const graph = await ensureGraphData({ grammarConcepts: data.grammarConcepts, sentences: data.sentences });
+        data.grammarConcepts = graph.concepts;
+        data.sentences = graph.sentences;
+        sentenceRecords = graph.sentences.length ? graph.sentences : curatedSentenceRecords();
+    }
+    catch (e) {
+        sentenceRecords = curatedSentenceRecords();
+        console.error('图谱初始化失败', e);
+    }
     try {
         todayPlan = (await loadPlan(dayKey(Date.now()))) ?? null;
     }

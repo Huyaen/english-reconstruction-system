@@ -7,6 +7,10 @@
 
 - [x] `infra_github_remote_001`：既有 remote 检查（当时为空）→ 历史 secrets 审核（0 命中）→ 创建 GitHub **Private** 仓库 `Huyaen/english-reconstruction-system` → 关联 origin → push main + 3 个阶段 tag → `git ls-remote`/API 核验 SHA 与 private 状态 ✔ 2026-10-19
 
+## P0 — Phase 4 Sentence & Grammar（passed 2026-10-19）
+
+- [x] `phase4_sentence_grammar_008`：语法知识图谱（34 概念 / 6 类 / 先修边，禁循环）· 句源契约（12 条 authored 教学句 + gold 结构 + 中文预教词）· 引导式拆句（L0–L4 分层辅助 / 即时反馈 / JIT 知识卡 / 迁移验证）· 证据分级（exposed 不计掌握；幂等=会话+句子）· 自适应选句（多维难度 + 先修修复）· Planner 真实句任务（sentence-basic-structure / sentence-weak-grammar / sentence-transfer）· DB v4 additive ✔（106/106 tests + build + 浏览器 smoke 36/36，Phase 3 回归 21/21）
+
 ## P0 — Phase 3 Daily Planner（passed 2026-10-19）
 
 - [x] `phase3_daily_planner_007`：Time Budget First（20/30/45/60/自定义）· 状态三档 · Yesterday Recall（真实隔夜抽样 + 保留率 + 校准）· 计划生成（复用 recommendedNewWordCount/buildNewWordQueue/effectiveDue）· 五模块 Task Contract + Capability Gate · 动态调整（Start/Skip/Delay/Replace，±30%）· Closing Loop（3–5 分钟 + 难度反馈）· 中断恢复（1 天 / 2–3 天 Re-entry / ≥7 天 Mini Diagnostic）· 持久化与刷新恢复 · 不积学习债 ✔（69/69 tests + build + HTTP + 浏览器 smoke 20/20）
@@ -18,14 +22,14 @@
 - [x] `phase1_backup_v2_004`：备份格式 v2（含新 stores；兼容读入 v1 备份）✔
 - [x] `phase1_model_api_005`：Learning Model 查询层（src/model.ts，索引化，避免全表扫描）✔
 - [x] `phase2_vocabulary_v2_006`：ts-fsrs@5.4.2 调度（shadow→默认+回滚）、DB v3、Rating 映射、Preview→Recall、三维证据、多词池/Learning Value/动态新词量、UI ✔ 2026-10-04（39/39 tests + 浏览器 smoke）
-- [ ] `phase3_daily_planner_007`：Time Budget First / 状态三档 / Yesterday Recall / 计划生成 / 动态调整 / Closing Loop / 中断恢复（调用 recommendedNewWordCount 等已就绪 API）
+- [x] `phase3_daily_planner_007`：Time Budget First / 状态三档 / Yesterday Recall / 计划生成 / 动态调整 / Closing Loop / 中断恢复（调用 recommendedNewWordCount 等已就绪 API）✔ 2026-10-19
 
 ## P1 — 后续开发阶段（AGENT_EXECUTION.md Phase 2–13）
 
 - [x] Phase 2 Vocabulary V2：Preview、word lifecycle、三维 mastery、多词池选词、Learning Value Score、forgotten 回流、exposure 证据、动态新词量（已于 2026-10-04 文档验收）
 - [x] Phase 3 Daily Planner：Time Budget First、状态三档、Yesterday Recall、每日计划生成、动态调整（≤20–30%）、Closing Loop、中断/恢复 ✔ 2026-10-19（验收：docs/PHASE3_DAILY_PLANNER.md §13）
-- [ ] Phase 4 Sentence & Grammar（下一个任务 `phase4_sentence_grammar_008`）：Sentence Lab（混合句源、拆句流程、Sentence Tree）、Grammar Knowledge Graph、Just-in-Time 知识卡、证据追踪
-- [ ] Phase 5 Reading：文章导入（文本/URL/图片 OCR 适配）、Layered Reading、生词即时标记+后置筛选、难句交接、re-read、阅读分析
+- [x] Phase 4 Sentence & Grammar：Sentence Lab（混合句源、拆句流程、Sentence Tree）、Grammar Knowledge Graph（34 概念 + 先修边）、Just-in-Time 知识卡、证据追踪 ✔ 2026-10-19（验收：docs/PHASE4_SENTENCE_GRAMMAR.md §4）
+- [ ] Phase 5 Reading（下一个任务 `phase5_reading_009`）：文章导入（文本/URL/图片 OCR 适配）、Layered Reading、生词即时标记+后置筛选、难句交接（复用 Phase 4 `sentenceSources`/`sentenceLab`）、re-read、阅读分析
 - [ ] Phase 6 Reinforcement AI：条件化句子生成、强化文章生成、严格 JSON schema、prompt 版本化（prompts/ 目录）
 - [ ] Phase 7 Mini Unit：2–3 天状态机、Anchor Material、targetWords/targetGrammar、Day1/2/3 推进
 - [ ] Phase 8 Input Hub：输入库、手动视频记录（title/url/topic/duration/captionMode/selfReported）+ 复盘工作流；**不含视频 AI 分析**

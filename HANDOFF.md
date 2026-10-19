@@ -1,6 +1,6 @@
 # HANDOFF — 换模型 / 换会话所需最小上下文
 
-（更新：2026-10-19 · 最新提交见 git log；Phase 3 已完成并通过实测，下一个任务是 Phase 4）
+（更新：2026-10-19 · 最新提交见 git log；Phase 3、Phase 4 已完成并通过实测，下一个任务是 Phase 5）
 
 
 ## 2026-10-19 离线文档复核增补 —— 已在本机完成核验（不再是待办）
@@ -12,11 +12,11 @@
 
 ## Current phase
 
-Phase 4 — Sentence & Grammar（Phase 0 / 0.5 / 1 / 2 / 3 全部完成并通过）
+Phase 5 — Reading（Phase 0 / 0.5 / 1 / 2 / 3 / 4 全部完成并通过）
 
 ## Current task_id
 
-`phase4_sentence_grammar_008`（Phase 4 起步；接口为 Planner 的 typed capability，**不要重写计划器**）。Phase 3（`phase3_daily_planner_007`）已 passed：Time Budget First、状态三档、Yesterday Recall、任务合同 + Capability Gate、动态重规划、Closing Loop、中断恢复、持久化恢复 —— 证据见 `CHECKPOINT.md` §Phase 3。
+`phase5_reading_009`（Phase 5 起步；沿用 Planner 的 typed capability，**不要重写计划器**）。Phase 4（`phase4_sentence_grammar_008`）已 passed：语法知识图谱（34 概念 + 先修边，禁循环）、句源契约（12 条 authored 教学句 + gold 结构 + 预教词）、引导式拆句 Lab（L0–L4 辅助 / 即时反馈 / JIT 知识卡）、证据分级（exposed 不计掌握；幂等=会话+句子）、自适应选句、Planner 真实句任务 —— 证据见 `CHECKPOINT.md` §Phase 4、`docs/PHASE4_SENTENCE_GRAMMAR.md`。
 
 ## What is done（累计）
 
@@ -35,6 +35,14 @@ Phase 4 — Sentence & Grammar（Phase 0 / 0.5 / 1 / 2 / 3 全部完成并通过
   - `src/app.ts` Today 主入口（预算 20/30/45/60/自定义 + 状态三档 → 任务卡执行/微调 → Closing Loop 难度反馈 → 刷新恢复）；未上线模块只在 UI 声明 capability、不生成假任务
   - `src/types.ts` PlanItem 统一 Task Contract（字段全部可选 → 旧计划/旧备份继续可读，**DB 仍为 v3**）
 - **验证证据（最新）**：`npm test` **69/69**；`npm run build` 成功（544.43 kB / gzip 187.93 kB）；HTTP `/` 200 / 缺失 404；**真实浏览器 smoke 20/20**（无头 Edge 128 + CDP 9224 独立 profile：导入→生成计划→顺序与预算→替换无候选拒绝→Preview→Recall→Closing+难度反馈→刷新恢复→昨日隔夜检测 100% 保留率并触发校准→断更 5 天 Re-entry→无控制台错误）
+- **Phase 4 Sentence & Grammar（本轮完成）**：
+  - `src/grammar.ts` 显式语法图谱（34 概念 / 6 类 / 先修边，成环即丢弃并报告）+ BKT-lite 掌握估算 + 弱项信号 + 概念知识卡
+  - `src/sentenceStructure.ts` 结构表示与严格校验（越界/非法 head/自环/环/重复一律拒绝）；`sentenceSources.ts` 句源契约（12 条 authored 教学句 + gold 结构 + 中文预教词；AI/外部语料未接入只声明不可用）
+  - `src/sentenceLab.ts` 引导式拆句（主语→谓语→宾语→修饰→从句→非谓语→逻辑→完整意；L0–L4 分层辅助；即时反馈 + 错误类型；迁移任务）
+  - `src/sentenceEvidence.ts` 证据服务（幂等键 = 会话 + 句子；`independent/transfer/delayed/error` 进 BKT，`exposed/hint-assisted` 只计接触）+ JIT 知识卡
+  - `src/sentenceSelection.ts` 自适应选句（生词/覆盖率/从句层级/长度/目标结构多维难度；先修不具备先补先修）+ Planner 句任务描述；`sentenceGraphMap.ts` / `sentenceStore.ts` 映射与持久化
+  - DB **v4 additive**（`sentences` store + `grammarTags` multiEntry 索引；旧 v3 数据继续可读）；`src/app.ts` 句子页 / 拆句页 / 语法图谱页 / 计划内句任务接线
+- **验证证据（最新）**：`npx tsc --noEmit` 0 error；`npm test` **106/106**；`npm run build` 成功；`node scripts/phase4-smoke.mjs` **36/36**；`node scripts/phase3-smoke.mjs` **21/21**（回归）
 - **Git 轨迹**：`6c1c625`（基线）→ `9dc0b8b` → `76716a6`（Phase 0.5）→ `8a74ba8`（Phase 1，tag `phase1-data-foundation`）→ Phase 2 提交（tag `phase2-vocabulary-v2`，见 git log）
 
 ## What is currently running
@@ -43,21 +51,22 @@ Phase 4 — Sentence & Grammar（Phase 0 / 0.5 / 1 / 2 / 3 全部完成并通过
 
 ## What remains
 
-Phase 3（当前）→ Phase 4–13。
+Phase 5（当前）→ Phase 6–13。
 
 ## Last verified build
 
-`npm run build` @ Phase 3 工作树 → vite 成功；`dist/assets/index-DjucMzEh.js` 544.43 kB（gzip 187.93 kB）、`dist/assets/index-Ubj28ML1.css` 17.23 kB。
+`npm run build` @ Phase 4 工作树 → vite 成功（dist 与源码同步提交；bundle >500 kB 警告保留到 Phase 13 处理）。
 
 ## Last verified tests
 
-`npm test` @ 同上 → **69 pass / 0 fail**（Phase 2 原 39 + planner 22 + plannerStore 6 + plannerUi 2）；真实浏览器 smoke `scripts/phase3-smoke.mjs` 20/20。
+`npm test` @ 同上 → **106 pass / 0 fail**（Phase 3 的 69 + grammar 7 + sentenceStructure 6 + sentenceLab 11 + sentenceSources 6 + sentenceSelection 6 + sentenceUi 2）；真实浏览器 smoke：`scripts/phase4-smoke.mjs` **36/36**、`scripts/phase3-smoke.mjs` **21/21**。
 
 ## Known bugs
 
 - 无阻断性 bug。
 - 已知限制（记入 CHECKPOINT/STATE）：bundle >500KB 警告（Phase 13 处理）；fake-indexeddb 基准≠真实性能；Preview 不创建 StudySession（直接落盘，刷新安全）。
-- Phase 3 限制：Planner 每词耗时为集中配置的启发式常量（0.35/0.4/0.6 分钟），非个性化测量；sentence/reading/input/output 仅声明 capability；Mini Diagnostic 当前只覆盖真实词汇测试。
+- Phase 3 限制：Planner 每词耗时为集中配置的启发式常量（0.35/0.4/0.6 分钟），非个性化测量；reading/input/output 仅声明 capability；Mini Diagnostic 当前只覆盖真实词汇测试。
+- Phase 4 限制：句源只有 12 条 authored 教学句（AI 生成与外部语料未接入，UI 明示不可用）；BKT-lite 参数为启发式起点未拟合；结构分析只对 gold/启发式结构负责，非 gold 结构一律标注 provenance/confidence。
 - 未验收项（TODO P1）：真实供应商 AI 调用；真机移动端。
 
 ## Files currently being modified
@@ -66,17 +75,17 @@ Phase 3（当前）→ Phase 4–13。
 
 ## Database migration status
 
-- 当前 schema：**version 3**（DB 名仍为 `vocabulary-memory-v1`）。v1→v3 / v2→v3 迁移已实测（100% 保留 + 幂等）；`meta.migration` 记录最近一次真实升级。
+- 当前 schema：**version 4**（DB 名仍为 `vocabulary-memory-v1`）。v1→v3 / v2→v3 已实测（100% 保留 + 幂等）；v3→**v4 additive**（新增 `sentences` store + `grammarTags` multiEntry 索引，不改旧字段），旧计划/旧备份继续可读；`meta.migration` 记录最近一次真实升级。
 - 后续任何 schema 变更走同一框架：`indexSpecs` 增索引 + `runBackfills` 追加回填函数（**串行链，勿并行游标**）+ fixture 测试。
 
 ## Next exact action
 
-Phase 4 — Sentence & Grammar（`phase4_sentence_grammar_008`）：
+Phase 5 — Reading（`phase5_reading_009`）：
 
-1. 读 `PROJECT_SPEC.md` Phase 4 章节 + `AGENT_EXECUTION.md` 阶段门；确认 Sentence Lab（混合句源、拆句流程、Sentence Tree）、Grammar Knowledge Graph、Just-in-Time 知识卡、证据追踪的范围
-2. 接入方式：Planner **不重写** —— 在 `moduleCapabilities()` 中把 `sentence` 由 `available: false` 改为 `available: true`，并新增 `sentence` 任务类型（走同一 `PlanItem` contract：kind/label/minutes/refs/reason/critical/flexible/dependencies）
-3. 沿用既有纪律：DB 变更必须走 `indexSpecs` + `runBackfills` 串行链并带 fixture 测试；到期口径只用 `effectiveDue()`；测试用 `node --test`（新套件放到 `tests/*.test.ts`）
-4. 验收门：`npm test`（不得低于 69 且全绿）→ `npm run build` → HTTP 200 → 真实浏览器 smoke（可复制 `scripts/phase3-smoke.mjs` 的 CDP 骨架）→ 更新 STATE/CHECKPOINT/HANDOFF/TODO/README/DEVELOPMENT_LOG → commit + tag + push + `git ls-remote` 核对
+1. 读 `PROJECT_SPEC.md` Phase 5 章节 + `AGENT_EXECUTION.md` 阶段门；确认阅读材料的来源契约（与 Phase 4 的 `sentenceSources.ts` 同构：真实材料必须可追溯，未接入就声明 unavailable，不编造出处）
+2. 接入方式：Planner **不重写** —— 把 `moduleCapabilities()` 的 `reading` 置为 available 并新增 reading 任务类型（走同一 `PlanItem` contract）；阅读中的难句应通过既有 `sentenceSources`/`sentenceLab` handoff 进入拆句，而不是另起一套
+3. 沿用既有纪律：DB 变更必须走 `indexSpecs` + `runBackfills` 串行链并带 fixture 测试；到期口径只用 `effectiveDue()`；测试用 `node --test`（新套件放到 `tests/*.test.ts`）；`node docs/format-source.mjs` → `npm test` → `npm run build`
+4. 验收门：`npm test`（不得低于 106 且全绿）→ `npm run build` → HTTP 200 → 真实浏览器 smoke（复制 `scripts/phase4-smoke.mjs` 的 CDP 骨架，含 ?test=1 测试钩子约定）→ 更新 STATE/CHECKPOINT/HANDOFF/TODO/README/DEVELOPMENT_LOG → commit + tag + push + `git ls-remote` 核对
 
 ## Important warnings
 

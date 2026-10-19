@@ -121,6 +121,7 @@ export interface Data {
     grammarConcepts: GrammarConcept[];
     grammarAttempts: GrammarAttempt[];
     sentenceAttempts: SentenceAttempt[];
+    sentences: SentenceRecord[];
     passages: Passage[];
     readingSessions: ReadingSession[];
     inputSources: InputSource[];
@@ -156,6 +157,9 @@ export interface WordExposure {
     sentence: string;
     counted: boolean;
 }
+// —— Phase 4：Grammar Knowledge Graph / Sentence Lab ——
+// 全部新增字段都是可选的：旧数据、旧备份、Phase 3 计划保持可读（见 db.ts 的 v4 additive 迁移）。
+export type GrammarCategory = 'sentence-structure' | 'clauses' | 'non-finite' | 'verb-system' | 'phrases' | 'cohesion';
 export interface GrammarConcept {
     id: string;
     name: string;
@@ -169,6 +173,16 @@ export interface GrammarConcept {
     lastSeenAt: number;
     nextReviewAt: number;
     createdAt: number;
+    // Phase 4 增补
+    category?: GrammarCategory;
+    description?: string;
+    prerequisiteIds?: string[];
+    relatedConceptIds?: string[];
+    examples?: string[];
+    confidence?: number;
+    realContextEvidence?: number;
+    source?: 'taxonomy' | 'user';
+    updatedAt?: number;
 }
 export interface GrammarAttempt {
     id: string;
@@ -179,11 +193,51 @@ export interface GrammarAttempt {
     sourceId: string;
     errorType: string;
     durationMs: number;
+    // Phase 4 增补：证据分级用（缺省视为普通识别题）
+    independent?: boolean;
+    supportLevel?: number;
+    sentenceId?: string;
+    stepId?: string;
+    delayed?: boolean;
+    transfer?: boolean;
 }
+// 句源契约（PROJECT_SPEC §46；AI 未上线时不得伪造 AI 句）
+export type SentenceSourceType = 'curated' | 'user' | 'saved' | 'real-material' | 'reading' | 'ai';
+export type SentenceStructureProvenance = 'gold' | 'heuristic' | 'manual' | 'none';
+export interface SentenceRecord {
+    id: string;
+    text: string;
+    zh: string;
+    sourceType: SentenceSourceType;
+    sourceId: string;
+    attribution: string;
+    grammarTags: string[];
+    targetWordIds: string[];
+    theme: string;
+    difficulty: number;
+    // 预教词表（authored 教学句自带；有释义的生词不阻断选句）
+    glossary?: Record<string, string>;
+    structure: unknown;
+    structureProvenance: SentenceStructureProvenance;
+    createdBy: 'system' | 'user' | 'ai';
+    createdAt: number;
+    usedCount: number;
+    lastUsedAt: number;
+    notes: string;
+}
+export interface SentenceStepRecord {
+    stepId: string;
+    answer: string;
+    correct: boolean;
+    supportLevel: number;
+    durationMs: number;
+    errorType: string;
+}
+export type SentenceEvidenceClass = 'exposed' | 'hint-assisted' | 'independent' | 'transfer' | 'delayed' | 'error';
 export interface SentenceAttempt {
     id: string;
     sentence: string;
-    sourceType: 'ai' | 'user' | 'real';
+    sourceType: SentenceSourceType;
     sourceId: string;
     targetWords: string[];
     targetGrammar: string[];
@@ -194,6 +248,20 @@ export interface SentenceAttempt {
     durationMs: number;
     errors: string[];
     createdAt: number;
+    // Phase 4 增补
+    at?: number;
+    sentenceId?: string;
+    sessionId?: string;
+    sessionKey?: string;
+    steps?: SentenceStepRecord[];
+    hintLevel?: number;
+    maxSupportLevel?: number;
+    independent?: boolean;
+    evidenceClass?: SentenceEvidenceClass;
+    grammarConceptIds?: string[];
+    meaningCorrect?: boolean | null;
+    transferOf?: string | null;
+    reviewedAt?: number | null;
 }
 export interface Passage {
     id: string;
@@ -289,6 +357,8 @@ export interface PlanItem {
     refs?: string[];
     reason?: string[];
     dependencies?: string[];
+    // Phase 4：句任务的真实目标语法概念（用于同目标替换与失败解释）
+    targetGrammar?: string[];
     startedAt?: number | null;
     completedAt?: number | null;
     actualMinutes?: number | null;

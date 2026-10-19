@@ -2,13 +2,13 @@
   "project": "English Reconstruction System V2",
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "active",
-  "current_phase": "phase_3_daily_planner",
-  "last_updated": "2026-10-19T21:05:00+08:00",
+  "current_phase": "phase_4_sentence_grammar",
+  "last_updated": "2026-10-19T21:57:51+08:00",
   "last_verified_commit": "92fdab0246e04367d39b295716288c2315d751b6",
   "baseline_tag": "v1.0.0-mvp-baseline",
-  "database_version": 3,
+  "database_version": 4,
   "build_status": "passed",
-  "test_status": "passed (69/69 via node --test)",
+  "test_status": "passed (106/106 via node --test)",
   "tasks": {
     "phase0_audit_001": {
       "status": "passed",
@@ -201,10 +201,44 @@
       ]
     },
     "phase4_sentence_grammar_008": {
-      "status": "planned",
-      "description": "Phase 4 Sentence & Grammar：Sentence Lab（混合句源、拆句流程、Sentence Tree）、Grammar Knowledge Graph、Just-in-Time 知识卡、证据追踪；Planner 通过 typed capability 接口接入（不重写计划器）",
-      "files": [],
-      "tests": []
+      "status": "passed",
+      "description": "Phase 4 Sentence & Grammar：显式语法知识图谱（34 概念 + 先修边，禁循环）+ sentinel 结构校验 + 句源契约（12 条 authored 教学句，带 gold 结构/中文预教词）+ 引导式拆句 Lab（L0–L4 分层辅助、即时反馈、JIT 知识卡）+ 证据模型（exposed 不计掌握、幂等=会话+句子）+ 自适应选句 + Planner 真实句任务接入 + Grammar/Sentence UI",
+      "files": [
+        "src/grammar.ts",
+        "src/sentenceStructure.ts",
+        "src/sentenceSources.ts",
+        "src/sentenceLab.ts",
+        "src/sentenceEvidence.ts",
+        "src/sentenceSelection.ts",
+        "src/sentenceGraphMap.ts",
+        "src/sentenceStore.ts",
+        "src/types.ts",
+        "src/db.ts",
+        "src/planner.ts",
+        "src/app.ts",
+        "src/style.css",
+        "tests/grammar.test.ts",
+        "tests/sentenceStructure.test.ts",
+        "tests/sentenceLab.test.ts",
+        "tests/sentenceSources.test.ts",
+        "tests/sentenceSelection.test.ts",
+        "tests/sentenceUi.test.ts",
+        "scripts/phase4-smoke.mjs",
+        "docs/PHASE4_SENTENCE_GRAMMAR.md"
+      ],
+      "tests": [
+        "npx tsc --noEmit -p tsconfig.json → 0 error",
+        "npm test → 106/106 pass（Phase 3 的 69 + Phase 4 的 37）",
+        "npm run build → 成功（dist 与源码同步）",
+        "node scripts/phase4-smoke.mjs → 36/36（真实无头 Edge + CDP，独立 profile）",
+        "node scripts/phase3-smoke.mjs → 21/21（回归）"
+      ],
+      "artifacts": [
+        "DB v4 additive：新增 sentences store + grammarTags multiEntry 索引，旧 v3 数据继续可读",
+        "预教词（glossary）：有释义的生词不阻断选句，训练页先给释义；无释义且生词过多仍拒绝出题",
+        "证据分级：independent/transfer/delayed/error 计入 BKT；exposed/hint-assisted 只计接触",
+        "PlanItem.module='sentence'：sentence-basic-structure / sentence-weak-grammar / sentence-transfer，绑定真实句子 id"
+      ]
     }
   },
   "known_bugs": [],
@@ -213,12 +247,14 @@
     "干扰项同义排除是文本启发式，不理解语义近义词",
     "性能基准基于 fake-indexeddb，非真实浏览器长期容量/延迟",
     "FSRS 已成为默认调度权威（旧启发式 legacy 作为可回滚备选）",
-    "Phase 3 Planner 的模块（sentence/reading/input/output）仅声明 capability，未上线前不生成任何任务；Mini Diagnostic 当前只覆盖词汇真实测试",
     "Planner 时间估算为集中配置的启发式常量（每词 0.35/0.4/0.6 分钟等），非个性化测量；真机移动端与长期负载未验收",
-    "Closing Loop 的语法/Unit 一句话输出合同留待后续 Phase 扩展"
+    "Closing Loop 的语法/Unit 一句话输出合同留待后续 Phase 扩展",
+    "Phase 4 句源只有 authored 教学句（12 条）；真实 AI 句生成与外部语料（阅读 handoff）未接入，UI 明示不可用、不生成假句",
+    "BKT-lite 参数为启发式起点（prior 0.25/learn 0.15/guess 0.25/slip 0.1），未用真实学习数据拟合；界面一律标注“估算”",
+    "语法图谱为显式 34 概念 + 先修边（无环），未做自动句法分析；非 gold 结构一律标注 provenance/confidence"
   ],
   "blocked": [],
-  "next_task_id": "phase4_sentence_grammar_008",
+  "next_task_id": "phase5_reading_009",
   "environment": {
     "node": "v26.7.0",
     "npm": "11.19.0",
@@ -230,7 +266,8 @@
   "notes": [
     "项目唯一根目录 D:\\英语重构训练\\vocabulary-app；禁止另起工程或从零重写",
     "旧数据 100% 保留为硬约束；任何 DB 版本操作前先备份快照",
-    "dist/ 已纳入 Git（commit 前保持 build 与源码一致）"
+    "dist/ 已纳入 Git（commit 前保持 build 与源码一致）",
+    "Phase 4 交付：sentence 模块已真实上线（moduleCapabilities.sentence.available=true）；阅读/输入/输出仍未上线，UI 不得声称可用"
   ],
   "remote_sync": {
     "setup_task_id": "infra_github_remote_001",

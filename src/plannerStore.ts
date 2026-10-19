@@ -3,7 +3,6 @@
 // 跨窗口由 app.ts 的 Web Locks 单写者保护；revision 冲突显式抛出，不静默覆盖。
 import type { DailyPlan } from './types.ts';
 import { openDB, getDB } from './db.ts';
-
 export class StalePlanError extends Error {
     constructor(public expected: number, public actual: number) {
         super(`计划已被其他窗口更新（期望 revision ${expected}，实际 ${actual}）；请刷新后重试`);

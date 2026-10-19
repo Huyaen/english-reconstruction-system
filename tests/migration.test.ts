@@ -6,6 +6,8 @@ import { dueWords, recordsForWord, exposuresForWord, exposureStats, activeMiniUn
 import { defaults, fsrsDefaults } from '../src/types.ts';
 const legacyStores = ['books', 'words', 'records', 'sessions', 'analyses', 'meta'];
 const v2Stores = ['wordExposures', 'grammarConcepts', 'grammarAttempts', 'sentenceAttempts', 'passages', 'readingSessions', 'inputSources', 'inputSessions', 'outputAttempts', 'dailyPlans', 'miniUnits', 'skillSnapshots', 'weeklyDiagnostics', 'libraryItems'];
+// Phase 4 新增的 store（v4 additive）
+const v4Stores = ['sentences'];
 function openRaw(version?: number): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
         const r = version === undefined ? indexedDB.open(DB_NAME) : indexedDB.open(DB_NAME, version);
@@ -59,15 +61,19 @@ test('v1 → v2 migration preserves all legacy data and adds new schema', async 
     assert.equal(w.previewResult, '');
     assert.equal(d.records.length, 1);
     assert.equal(d.sessions.length, 1);
-    assert.ok(d.migration && d.migration.from === 1 && d.migration.to === 3 && d.migration.at > 0);
+    assert.ok(d.migration && d.migration.from === 1 && d.migration.to === 4 && d.migration.at > 0);
     assert.equal(d.wordExposures.length, 0);
     assert.equal(d.libraryItems.length, 0);
     const raw = await openRaw();
-    assert.ok(v2Stores.every(n => raw.objectStoreNames.contains(n)));
+    assert.ok([...v2Stores, ...v4Stores].every(n => raw.objectStoreNames.contains(n)));
     assert.ok(raw.transaction('words').objectStore('words').indexNames.contains('bookId'));
     assert.ok(raw.transaction('words').objectStore('words').indexNames.contains('schedule.due'));
     assert.ok(raw.transaction('words').objectStore('words').indexNames.contains('fsrs.due'));
     assert.ok(raw.transaction('wordExposures').objectStore('wordExposures').indexNames.contains('wordId,at'));
+    assert.ok(raw.transaction('sentences').objectStore('sentences').indexNames.contains('grammarTags'));
+    // v4 迁移不得改动既有数据
+    assert.equal(d.wordExposures.length, 0);
+    assert.equal(d.sentences.length, 0);
     raw.close();
 });
 test('migration is idempotent across reopen (no duplicates, data stable)', async () => {
@@ -111,7 +117,7 @@ test('v2 backup roundtrip carries new stores; validator rejects dangling referen
     assert.equal(loaded.wordExposures.length, 2);
     const encoded = backup(loaded);
     const parsed = JSON.parse(encoded);
-    assert.equal(parsed.version, 3);
+    assert.equal(parsed.version, 4);
     const validated = validateBackup(parsed);
     assert.equal(validated.wordExposures.length, 2);
     assert.equal(validated.miniUnits.length, 1);
@@ -142,7 +148,7 @@ test('model query layer answers from v2 indexes', async () => {
     assert.equal(snaps[0].id, 'snap-1');
     assert.equal((await unfinishedSessions()).length, 0);
 });
-test('v2 → v3 migration backfills FSRS defaults (fixture) and is idempotent', async () => {
+test('v2 → v4 migration backfills FSRS defaults (fixture), adds sentences store and is idempotent', async () => {
     closeDB();
     await new Promise<void>((resolve, reject) => { const r = indexedDB.deleteDatabase(DB_NAME); r.onsuccess = () => resolve(); r.onerror = () => reject(r.error); r.onblocked = () => resolve(); });
     const v2names = [...legacyStores, ...v2Stores];
@@ -175,8 +181,9 @@ test('v2 → v3 migration backfills FSRS defaults (fixture) and is idempotent', 
     assert.equal(w.previewedAt, 111);
     assert.deepEqual(w.fsrs, fsrsDefaults);
     assert.equal(w.previewResult, '');
-    assert.ok(d.migration && d.migration.from === 2 && d.migration.to === 3);
+    assert.ok(d.migration && d.migration.from === 2 && d.migration.to === 4);
     const check = await openRaw();
+    assert.ok(check.objectStoreNames.contains('sentences'), 'v4 迁移必须新增 sentences store');
     assert.ok(check.transaction('words').objectStore('words').indexNames.contains('fsrs.due'));
     check.close();
     closeDB();

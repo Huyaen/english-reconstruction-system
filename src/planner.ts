@@ -12,7 +12,8 @@ import { dayKey, isWeak } from './stats.ts';
 import { priority } from './core.ts';
 import { buildNewWordQueue, recommendedNewWordCount } from './pools.ts';
 import { isUnseen } from './evidence.ts';
-
+import type { SentenceRecord } from './types.ts';
+import { SENTENCE_TASK_LABELS, planSentenceTasks, type SentencePlanInput, type SentenceTaskDescriptor, type SentenceTaskKind } from './sentenceSelection.ts';
 export const PLANNER_CONFIG = {
     minutesPerDueWord: 0.35,
     minutesPerWeakWord: 0.4,
@@ -25,9 +26,10 @@ export const PLANNER_CONFIG = {
     budget: { presets: [20, 30, 45, 60], min: 5, max: 240, default: 30 },
     adjustment: { maxRatio: 0.3, defaultRatio: 0.2, overrunTolerance: 0.5 },
     heavyDueLoad: 60,
+    // Phase 4：句任务预算（与词汇共享同一份总预算）
+    sentence: { shareOfRemaining: 0.3, minBlockMinutes: 3, maxTasks: 2 },
     retentionMinSamples: 3,
 } as const;
-
 export const TASK_LABELS: Record<string, string> = {
     'yesterday-recall': '昨日隔夜检测',
     'due-review': '到期复习',
@@ -36,8 +38,8 @@ export const TASK_LABELS: Record<string, string> = {
     'new-recall': '新词 Recall',
     'closing-recall': '今日收尾回忆',
     're-entry-check': '重新进入检测',
+    ...SENTENCE_TASK_LABELS,
 };
-
 export const MODULES = ['vocabulary', 'sentence', 'reading', 'input', 'output'] as const;
 export type PlanModule = (typeof MODULES)[number];
 export interface Capability {
@@ -45,17 +47,29 @@ export interface Capability {
     requires: string | null;
     label: string;
 }
-// Capability Gate：只有 vocabulary 在 Phase 3 真实可用；其余仅声明接口，不生成任务。
-export function moduleCapabilities(): Record<PlanModule, Capability> {
-    return {
+// Capability Gate：vocabulary（Phase 3）与 sentence（Phase 4）真实可用；
+// reading / input / output 仅声明接口，未上线前不生成任何任务。
+// overrides 供测试与运行时探针使用（例如句库为空时把 sentence 临时降级）。
+export interface CapabilityOverrides {
+    vocabulary?: boolean;
+    sentence?: boolean;
+    reading?: boolean;
+    input?: boolean;
+    output?: boolean;
+}
+export function moduleCapabilities(overrides: CapabilityOverrides = {}): Record<PlanModule, Capability> {
+    const base: Record<PlanModule, Capability> = {
         vocabulary: { available: true, requires: null, label: '词汇记忆' },
-        sentence: { available: false, requires: 'phase4', label: '句子与语法' },
+        sentence: { available: true, requires: null, label: '句子与语法' },
         reading: { available: false, requires: 'phase5', label: '阅读' },
         input: { available: false, requires: 'phase7', label: '真实输入' },
         output: { available: false, requires: 'phase8', label: '输出' },
     };
+    for (const key of MODULES)
+        if (overrides[key] === false)
+            base[key] = { ...base[key], available: false, requires: base[key].requires ?? 'disabled-this-session' };
+    return base;
 }
-
 // —— 本地日界与确定性工具 ——
 export function localDayNumber(at: number): number {
     const d = new Date(at);
@@ -79,7 +93,6 @@ function stableKey(seed: string, id: string): number {
 }
 const round1 = (n: number) => Math.round(n * 10) / 10;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
-
 export interface PlannerInput {
     now: number;
     availableMinutes: number;
@@ -90,6 +103,9 @@ export interface PlannerInput {
     miniUnit?: MiniUnit | null;
     lastActivityAt?: number | null;
     schedulingAuthority?: 'legacy' | 'fsrs';
+    // Phase 4：句任务输入（真实句库 + 语法证据）；缺失时 sentence 不生成任何任务
+    sentenceInput?: Omit<SentencePlanInput, 'availableMinutes' | 'energy' | 'now'> | null;
+    capabilityOverrides?: CapabilityOverrides;
 }
 export interface BudgetBreakdown {
     availableMinutes: number;
@@ -98,6 +114,7 @@ export interface BudgetBreakdown {
     recovery: number;
     newPreview: number;
     newRecall: number;
+    sentence: number;
     due: number;
     weak: number;
     planned: number;
@@ -111,6 +128,8 @@ export interface BudgetBreakdown {
         newPlanned: number;
         forgottenPlanned: number;
         memoryDebt: number;
+        sentenceTasks: number;
+        sentenceSentences: number;
     };
     reasons: string[];
 }
@@ -119,12 +138,14 @@ export interface PlanBuildResult {
     budget: BudgetBreakdown;
     reasons: string[];
 }
-
 // —— 记忆证据：隔夜 / 日保留估计 ——
 export interface RetentionEstimate {
     d1: number | null;
     d7: number | null;
-    samples: { d1: number; d7: number };
+    samples: {
+        d1: number;
+        d7: number;
+    };
     reasons: string[];
 }
 // 由真实复习记录计算保留率：只统计跨日且间隔 ≥12h 的“第二次作答”，样本不足时返回 null（不伪造）。
@@ -162,7 +183,6 @@ export function estimateRetention(records: ReviewRecord[], now = Date.now()): Re
     void now;
     return { d1, d7, samples: { d1: d1Total, d7: d7Total }, reasons };
 }
-
 // —— Yesterday Recall：抽样契约 ——
 export type RecallCategory = 'hard' | 'new' | 'easy' | 'confusion';
 export interface RecallCandidate {
@@ -172,7 +192,12 @@ export interface RecallCandidate {
     priorRecordAt: number | null;
 }
 // 抽昨日新词 / Again-Hard / 少量 Easy 高价值 / confusion 候选；类型平衡；同一词只出现一次。
-export function buildYesterdayRecallSample(o: { words: Word[]; records: ReviewRecord[]; now: number; targetWords?: number }): RecallCandidate[] {
+export function buildYesterdayRecallSample(o: {
+    words: Word[];
+    records: ReviewRecord[];
+    now: number;
+    targetWords?: number;
+}): RecallCandidate[] {
     const target = o.targetWords ?? PLANNER_CONFIG.yesterdayRecall.targetWords;
     const yKey = previousDayKey(o.now);
     const yRecords = o.records.filter(r => dayKey(r.at) === yKey);
@@ -255,7 +280,6 @@ export function buildYesterdayRecallSample(o: { words: Word[]; records: ReviewRe
     }
     return picked.slice(0, target).map((c, i) => ({ ...c, direction: (i % 2 === 0 ? 'en-zh' : 'zh-en') as Direction }));
 }
-
 export interface RecallSample {
     wordId: string;
     category: RecallCategory;
@@ -270,7 +294,11 @@ export interface RecallEvaluation {
     confidence: 'ok' | 'low' | 'unavailable';
     total: number;
     validSamples: number;
-    byCategory: Record<string, { total: number; valid: number; correct: number }>;
+    byCategory: Record<string, {
+        total: number;
+        valid: number;
+        correct: number;
+    }>;
     samples: RecallSample[];
     reasons: string[];
 }
@@ -289,7 +317,11 @@ export function evaluateRecallSession(candidates: RecallCandidate[], records: Re
     return evaluateYesterdayRecall(samples);
 }
 export function evaluateYesterdayRecall(samples: RecallSample[]): RecallEvaluation {
-    const byCategory: Record<string, { total: number; valid: number; correct: number }> = {};
+    const byCategory: Record<string, {
+        total: number;
+        valid: number;
+        correct: number;
+    }> = {};
     let valid = 0, correct = 0;
     for (const s of samples) {
         const b = byCategory[s.category] ?? (byCategory[s.category] = { total: 0, valid: 0, correct: 0 });
@@ -312,7 +344,6 @@ export function evaluateYesterdayRecall(samples: RecallSample[]): RecallEvaluati
         reasons.push(`low-confidence(${valid})`);
     return { retention, confidence, total: samples.length, validSamples: valid, byCategory, samples, reasons };
 }
-
 // —— 中断 / 重新进入 ——
 export interface RecoveryDecision {
     missedDays: number | null;
@@ -342,9 +373,11 @@ export function latestLearningAt(records: ReviewRecord[]): number | null {
             max = r.at;
     return max || null;
 }
-
 // —— 计划生成 ——
-function normalizeBudget(minutes: number): { minutes: number; reasons: string[] } {
+function normalizeBudget(minutes: number): {
+    minutes: number;
+    reasons: string[];
+} {
     if (!Number.isFinite(minutes))
         throw Error('时间预算必须是有效数字');
     const rounded = Math.round(minutes);
@@ -354,10 +387,21 @@ function normalizeBudget(minutes: number): { minutes: number; reasons: string[] 
     const clamped = clamp(rounded, cfg.min, cfg.max);
     return { minutes: clamped, reasons: rounded === clamped ? [] : [`budget-clamped-${rounded}->${clamped}`] };
 }
-function makeTask(date: string, kind: string, minutes: number, refs: string[], o: { priority: number; critical: boolean; flexible: boolean; source: string; reason: string[]; dependencies?: string[]; label?: string }): PlanItem {
+function makeTask(date: string, kind: string, minutes: number, refs: string[], o: {
+    priority: number;
+    critical: boolean;
+    flexible: boolean;
+    source: string;
+    reason: string[];
+    dependencies?: string[];
+    label?: string;
+    module?: string;
+    capabilityRequired?: string;
+    targetGrammar?: string[];
+}): PlanItem {
     return {
         id: `${date}:${kind}`,
-        module: 'vocabulary',
+        module: o.module ?? 'vocabulary',
         kind,
         label: o.label ?? TASK_LABELS[kind] ?? kind,
         minutes: round1(Math.max(1, minutes)),
@@ -366,7 +410,8 @@ function makeTask(date: string, kind: string, minutes: number, refs: string[], o
         priority: o.priority,
         critical: o.critical,
         flexible: o.flexible,
-        capabilityRequired: 'vocabulary',
+        capabilityRequired: o.capabilityRequired ?? 'vocabulary',
+        targetGrammar: o.targetGrammar ?? [],
         source: o.source,
         refs,
         reason: o.reason,
@@ -400,7 +445,6 @@ export function planProgress(plan: DailyPlan) {
     const remainingMinutes = round1(openTasks(plan).reduce((n, t) => n + t.minutes, 0));
     return { total, done: done.length, skipped, doneMinutes, remainingMinutes, plannedMinutes: round1(doneMinutes + remainingMinutes), ratio: total ? done.length / total : 0, remainingTaskIds: openTasks(plan).map(t => t.id) };
 }
-
 export function createDailyPlan(input: PlannerInput): PlanBuildResult {
     const now = input.now;
     const date = dayKey(now);
@@ -411,17 +455,15 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
         reasons.push('energy-invalid-normalized');
     const energy: EnergyState = (['low', 'normal', 'good'].includes(input.energy) ? input.energy : 'normal') as EnergyState;
     const auth: 'legacy' | 'fsrs' = input.schedulingAuthority === 'legacy' ? 'legacy' : 'fsrs';
-    const caps = moduleCapabilities();
+    const caps = moduleCapabilities(input.capabilityOverrides ?? {});
     const lastActivityAt = input.lastActivityAt === undefined ? latestLearningAt(input.records) : input.lastActivityAt;
     const recovery = decideRecovery(lastActivityAt, now);
     reasons.push(...recovery.reasons);
-
     const dueAll = input.words.filter(w => w.state.total > 0 && effectiveDue(w, auth) <= now);
     const dueIds = new Set(dueAll.map(w => w.id));
     const weakAll = input.words.filter(w => w.state.total > 0 && isWeak(w) && !dueIds.has(w.id));
     const retention = estimateRetention(input.records, now);
     reasons.push(...retention.reasons);
-
     // 预算骨架：Closing 与 Recall / Re-entry 共享同一预算
     let closingMinutes: number = available >= 20 ? PLANNER_CONFIG.closing.default : PLANNER_CONFIG.closing.min;
     if (available < closingMinutes) {
@@ -448,7 +490,6 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
         }
     }
     let remaining = Math.max(0, available - closingMinutes - recallMinutes - recoveryMinutes);
-
     const recommendation = recommendedNewWordCount({
         availableMinutes: remaining,
         energyState: energy,
@@ -500,7 +541,37 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
     const dueWords = dueAll.slice().sort((a, b) => dueOrder(a, b, auth, now)).slice(0, dueTarget);
     const weakWords = weakIds.slice(0, weakTarget);
     const weakObjs = weakWords.map(id => input.words.find(w => w.id === id)).filter((w): w is Word => !!w);
-
+    // —— Phase 4：句任务（只在 sentence capability 真实可用且有真实句源时生成）——
+    const vocabPlanned = closingMinutes + recallMinutes + recoveryMinutes + newMinutes + dueMinutes;
+    const sentenceBudgetTotal = Math.max(0, remaining - (newMinutes + dueMinutes));
+    const sentenceDescriptors: SentenceTaskDescriptor[] = [];
+    if (caps.sentence.available && input.sentenceInput && sentenceBudgetTotal >= PLANNER_CONFIG.sentence.minBlockMinutes) {
+        const wanted = Math.min(sentenceBudgetTotal, Math.max(PLANNER_CONFIG.sentence.minBlockMinutes, Math.floor(remaining * PLANNER_CONFIG.sentence.shareOfRemaining)));
+        try {
+            sentenceDescriptors.push(...planSentenceTasks({ ...input.sentenceInput, now, availableMinutes: wanted, energy, maxTasks: PLANNER_CONFIG.sentence.maxTasks }));
+        }
+        catch (e) {
+            reasons.push(`sentence-selection-error:${(e as Error).message}`);
+        }
+        if (!sentenceDescriptors.length)
+            reasons.push('sentence-no-eligible-source');
+    }
+    const sentenceCapByBudget = Math.max(0, remaining - (newMinutes + dueMinutes));
+    let sentenceMinutesUsed = 0;
+    const sentenceTasks: PlanItem[] = [];
+    for (const d of sentenceDescriptors) {
+        if (sentenceMinutesUsed + d.minutes > sentenceCapByBudget)
+            break;
+        sentenceMinutesUsed += d.minutes;
+        sentenceTasks.push(makeTask(date, d.kind, d.minutes, d.sentenceIds, {
+            priority: d.priority, critical: d.critical, flexible: d.flexible, source: d.source,
+            reason: d.reasons, module: 'sentence', capabilityRequired: 'sentence',
+            targetGrammar: d.targetGrammar,
+        }));
+    }
+    if (sentenceDescriptors.length && !sentenceTasks.length)
+        reasons.push('sentence-deferred-budget');
+    reasons.push(`sentence-block-${sentenceMinutesUsed}min/${sentenceBudgetTotal}min`);
     // 动态顺序：状态差 / 到期负载重 → 记忆优先；否则先建新编码。
     const memoryFirst = energy === 'low' || dueAll.length >= PLANNER_CONFIG.heavyDueLoad;
     reasons.push(memoryFirst ? 'order-memory-first' : 'order-new-first');
@@ -529,29 +600,27 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
         ? makeTask(date, 'new-recall', Math.max(1, newMinutes - previewTask.minutes), newIds, { priority: 68, critical: false, flexible: true, source: 'pool', reason: ['preview-then-recall'], dependencies: [previewTask.id] })
         : null;
     const weakTask = weakWords.length
-        ? makeTask(date, 'weak-review', weakMinutes, weakWords, { priority: 55, critical: false, flexible: true, source: 'weak', reason: [`weak-${weakAll.length}`, forgottenIds.length ? `forgotten-${forgottenIds.length}` : ''] .filter(Boolean) })
+        ? makeTask(date, 'weak-review', weakMinutes, weakWords, { priority: 55, critical: false, flexible: true, source: 'weak', reason: [`weak-${weakAll.length}`, forgottenIds.length ? `forgotten-${forgottenIds.length}` : ''].filter(Boolean) })
         : null;
     const newObjs = newIds.map(id => input.words.find(w => w.id === id)).filter((w): w is Word => !!w);
     const closingRefs = pickClosingWords(input.words, input.records, dueWords, weakObjs, now, newObjs);
     const closingTask = closingMinutes > 0
         ? makeTask(date, 'closing-recall', closingMinutes, closingRefs, { priority: 10, critical: true, flexible: false, source: 'closing', reason: ['closing-loop-3-5min'] })
         : null;
-    const middle = memoryFirst ? [dueTask, previewTask, recallTask, weakTask] : [previewTask, recallTask, dueTask, weakTask];
+    const middle: Array<PlanItem | null> = memoryFirst ? [dueTask, previewTask, recallTask, weakTask, ...sentenceTasks] : [previewTask, recallTask, dueTask, weakTask, ...sentenceTasks];
     for (const t of middle)
         if (t)
             tasks.push(t);
     if (closingTask)
         tasks.push(closingTask);
-
     // 数值安全：任何取整误差都不得突破总预算；优先收缩柔性任务。
     trimToBudget(tasks, available, reasons);
-
     const planned = round1(tasks.reduce((n, t) => n + t.minutes, 0));
     const budget: BudgetBreakdown = {
         availableMinutes: available, closing: closingMinutes, yesterdayRecall: recallMinutes, recovery: recoveryMinutes,
-        newPreview: previewTask?.minutes ?? 0, newRecall: recallTask?.minutes ?? 0, due: dueMinutes, weak: weakMinutes,
+        newPreview: previewTask?.minutes ?? 0, newRecall: recallTask?.minutes ?? 0, due: dueMinutes, weak: weakMinutes, sentence: round1(sentenceMinutesUsed),
         planned, unallocated: round1(Math.max(0, available - planned)),
-        load: { dueTotal: dueAll.length, duePlanned: dueWords.length, weakTotal: weakAll.length, weakPlanned: weakWords.length, newRequested: recommendation.recommended, newPlanned: newIds.length, forgottenPlanned: forgottenIds.length, memoryDebt: Math.max(0, dueAll.length - dueWords.length) },
+        load: { dueTotal: dueAll.length, duePlanned: dueWords.length, weakTotal: weakAll.length, weakPlanned: weakWords.length, newRequested: recommendation.recommended, newPlanned: newIds.length, forgottenPlanned: forgottenIds.length, memoryDebt: Math.max(0, dueAll.length - dueWords.length), sentenceTasks: sentenceTasks.length, sentenceSentences: sentenceTasks.reduce((n, t) => n + (t.refs ?? []).length, 0) },
         reasons,
     };
     const plan: DailyPlan = {
@@ -570,7 +639,6 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
     };
     return { plan, budget, reasons };
 }
-
 function pickRecoveryWords(words: Word[], due: Word[], weak: Word[], now: number, count: number): string[] {
     const pool = [...due, ...weak, ...words.filter(w => w.state.total > 0)];
     const seen = new Set<string>();
@@ -627,7 +695,6 @@ function trimToBudget(tasks: PlanItem[], available: number, reasons: string[]): 
         }
     }
 }
-
 // —— 动态重规划：Start / Skip / Delay / Replace / Complete + 超时与提前完成 ——
 export type PlanActionName = 'start' | 'complete' | 'skip' | 'delay' | 'replace';
 export interface PlanActionOptions {
@@ -791,9 +858,11 @@ export function rebalance(plan: DailyPlan, now: number, reasons: string[]): void
     }
     plan.adjustments = [...plan.adjustments, { at: now, module: 'plan', deltaMinutes: -reduce, reason: 'overrun-bounded-rebalance' }];
 }
-
 // 昨日 Recall 结果 → 校准今日剩余计划（低保留减新词并补弱词；高保留适度增量；不溢出预算）
-export function calibrateAfterRecall(plan: DailyPlan, evaluation: RecallEvaluation, opts: { now: number; words: Word[] }): PlanActionResult {
+export function calibrateAfterRecall(plan: DailyPlan, evaluation: RecallEvaluation, opts: {
+    now: number;
+    words: Word[];
+}): PlanActionResult {
     const next: DailyPlan = structuredClone(plan);
     const reasons: string[] = [];
     next.yesterdayRecallResult = { ...((next.yesterdayRecallResult as Record<string, unknown>) ?? {}), status: 'done', evaluation };
@@ -867,7 +936,6 @@ export function calibrateAfterRecall(plan: DailyPlan, evaluation: RecallEvaluati
     syncCompletion(next);
     return { ok: true, plan: next, event: ev, reasons };
 }
-
 // Regenerate Today：只重建未完成任务；已完成任务与已提交证据保留。
 export function regenerateRemaining(plan: DailyPlan, input: PlannerInput): PlanActionResult {
     const now = input.now;
@@ -877,8 +945,12 @@ export function regenerateRemaining(plan: DailyPlan, input: PlannerInput): PlanA
     const remainingBudget = Math.max(PLANNER_CONFIG.budget.min, round1(totalBudget - spent));
     const rebuilt = createDailyPlan({ ...input, now, availableMinutes: remainingBudget, energy: input.energy ?? plan.energyState });
     const doneKinds = new Set(done.map(t => t.kind));
-    const recallDone = (plan.yesterdayRecallResult as { status?: string } | null)?.status === 'done';
-    const closingDone = (plan.closingLoop as { status?: string } | null)?.status === 'completed';
+    const recallDone = (plan.yesterdayRecallResult as {
+        status?: string;
+    } | null)?.status === 'done';
+    const closingDone = (plan.closingLoop as {
+        status?: string;
+    } | null)?.status === 'completed';
     const fresh = rebuilt.plan.initialPlan.filter(t => {
         if (doneKinds.has(t.kind))
             return false;
@@ -909,10 +981,20 @@ export function regenerateRemaining(plan: DailyPlan, input: PlannerInput): PlanA
     syncCompletion(next);
     return { ok: true, plan: next, event: ev, reasons: ['regenerate-remaining-only', ...rebuilt.reasons] };
 }
-
 // 同目标替换候选：仍由真实词库与到期/弱词状态决定；无候选则明确返回 null。
-export function buildReplacement(plan: DailyPlan, task: PlanItem, words: Word[], now: number, auth: 'legacy' | 'fsrs' = 'fsrs'): PlanItem | null {
+export function buildReplacement(plan: DailyPlan, task: PlanItem, words: Word[], now: number, auth: 'legacy' | 'fsrs' = 'fsrs', sentencePool: SentenceRecord[] = []): PlanItem | null {
     const used = new Set(plan.initialPlan.flatMap(t => t.refs ?? []));
+    if (task.module === 'sentence' || task.kind?.startsWith('sentence-')) {
+        const pool = sentencePool.filter(s => task.targetGrammar?.some(g => s.grammarTags.includes(g)) && !used.has(s.id));
+        if (!pool.length)
+            return null;
+        const picked = pool.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).slice(0, Math.max(1, (task.refs ?? []).length));
+        return makeTask(plan.id, task.kind ?? 'sentence-basic-structure', task.minutes, picked.map(s => s.id), {
+            priority: task.priority ?? 50, critical: false, flexible: true, source: 'sentence-replace',
+            reason: ['replacement-same-goal', `target-grammar-${task.targetGrammar?.join(',') ?? ''}`],
+            module: 'sentence', capabilityRequired: 'sentence', targetGrammar: task.targetGrammar ?? [],
+        });
+    }
     let candidates: Word[] = [];
     if (task.kind === 'due-review')
         candidates = words.filter(w => w.state.total > 0 && effectiveDue(w, auth) <= now && !used.has(w.id));
@@ -925,15 +1007,20 @@ export function buildReplacement(plan: DailyPlan, task: PlanItem, words: Word[],
     const picked = candidates.sort((a, b) => priority(b, now) - priority(a, now)).slice(0, Math.max(1, (task.refs ?? []).length));
     return makeTask(plan.id, task.kind ?? 'micro-task', task.minutes, picked.map(w => w.id), { priority: task.priority ?? 50, critical: false, flexible: true, source: task.source ?? 'replace', reason: ['replacement-same-goal'] });
 }
-
 // 不变量：用于测试与持久化前的断言
 export function assertPlanInvariants(plan: DailyPlan): void {
     const total = planMinutes(plan);
     if (total > plan.availableMinutes)
         throw Error(`计划超出时间预算：${total} > ${plan.availableMinutes}`);
+    const caps = moduleCapabilities();
     for (const t of plan.initialPlan) {
-        if (!t.capabilityRequired || t.capabilityRequired !== 'vocabulary')
-            throw Error(`未实现的 capability 生成了任务：${t.capabilityRequired}`);
+        const cap = t.capabilityRequired as PlanModule | undefined;
+        if (!cap || !(cap in caps))
+            throw Error(`任务缺少合法 capability：${String(t.capabilityRequired)}`);
+        if (!caps[cap].available)
+            throw Error(`未实现的 capability 生成了任务：${cap}`);
+        if (cap === 'sentence' && (!t.refs || !t.refs.length))
+            throw Error(`句子任务 ${t.id} 必须绑定真实句 id（禁止假任务）`);
         if (t.minutes <= 0)
             throw Error(`任务 ${t.id} 的时间无效`);
     }

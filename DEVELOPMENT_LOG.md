@@ -102,3 +102,17 @@ Phase 3 Daily Planner：新增 `src/planner.ts`（确定性领域引擎）、`sr
 过程记录：计划时长必须 ≤ 预算（Closing/Recall/Re-entry 同预算）→ 生成后用 `trimToBudget` 收缩柔性任务兜底；`touch()` 不再自增 revision（revision 由持久化层统一递增，避免与 DB 分叉）；跳过/替换后的任务不再显示可执行按钮（避免当天出现"已完成但仍可开始"的假状态）；收尾用词在无今日记录时回退到今日新词（不凭空造词）；UI 测试发现 regenerate 会在剩余预算内补入弱词任务 → 属于预期行为，改为"跳过并验证不滚存"。
 
 下一步：Phase 4 Sentence & Grammar（Planner 通过 typed capability 接口接入，不重写计划器）。
+
+## 2026-10-19 — Phase 4 Sentence & Grammar
+
+新增：`src/grammar.ts`（34 概念显式图谱 + 先修边校验 + BKT-lite + 弱项信号 + 知识卡）、`src/sentenceStructure.ts`（结构表示与严格校验）、`src/sentenceSources.ts`（句源契约：12 条 authored 教学句 + gold 结构 + 中文预教词）、`src/sentenceLab.ts`（L0–L4 引导式拆句 + 即时反馈 + 迁移）、`src/sentenceEvidence.ts`（幂等证据 + JIT 卡）、`src/sentenceSelection.ts`（多维难度 + 自适应选句 + Planner 句任务描述）、`src/sentenceGraphMap.ts`、`src/sentenceStore.ts`。
+
+修改：`src/types.ts`（Phase 4 类型 + `Data.sentences` + `glossary`）、`src/db.ts`（**v4 additive**：`sentences` store + `grammarTags` multiEntry 索引 + 备份校验）、`src/planner.ts`（capability gate 打开 sentence + `makeTask` 载荷）、`src/app.ts`（句子页 / 拆句页 / 语法图谱页 / 计划内句任务 + `?test=1` 测试钩子）、`src/style.css`。
+
+测试：`npx tsc --noEmit` 0 error；`npm test` **106/106**（Phase 3 的 69 + 新增 grammar 7 / sentenceStructure 6 / sentenceLab 11 / sentenceSources 6 / sentenceSelection 6 / sentenceUi 2）；`npm run build` 成功；`node scripts/phase4-smoke.mjs` **36/36**（真实无头 Edge + CDP 独立 profile）；`node scripts/phase3-smoke.mjs` **21/21** 回归。
+
+过程记录（都是测试暴露出来的真问题）：`evidenceClass` 曾把"独立作答错误"归为 exposed → 改为 `error` 负证据；支持等级映射差一（L4 拿不到最后一条提示）；`spanOf` 跨从句取错候选 → 按 clauseId 过滤；gold 结构 spec 的 clause 区间错 → 修数据侧而非放宽校验器；难度只看长度 → 改多维；小词库永远选不到句 → 用 authored 预教词解决（未放宽"生词过多即拒绝"）；幂等键用"同句 + 2 秒窗"会吞掉同日第二次真实练习 → 改为"会话 + 句子"；选项解析出现在作答前 = 把答案写在选项上 → 作答后才展开；图谱页"已有证据 N"与"还没足够证据"文案自相矛盾 → 按证据量如实解释判定门槛；概念卡补先修可见性。
+
+浏览器实测还发现：迁移句可能选中同一句（同一结构池较小）→ 幂等按会话区分后，同句在不同会话的复练能各自计入，符合"迁移不是重播"。
+
+下一步：Phase 5 Reading（article 导入 + Layered Reading + 难句 handoff 复用 `sentenceSources`/`sentenceLab`）。
