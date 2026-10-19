@@ -2,13 +2,23 @@
 
 （更新：2026-10-04 03:15 · 最新代码提交见 git log；基线 `6c1c625` / `v1.0.0-mvp-baseline`）
 
+
+## 2026-10-19 离线文档复核增补（本机状态待 Hermes 核验）
+
+- 本节来自用户上传的项目文件复核，**没有读取 D 盘实时源码/.git，也没有实际创建/推送 GitHub**。原有 Phase 2 `passed`、测试 39/39、DB v3、Phase 3 `planned` 是上一轮日志记录，必须核查是否已有更近期开发。
+- 新增一次性基础设施任务 `infra_github_remote_001`（`STATE.next_task_id` 暂指向它）；这不是重新执行 Phase 0.5 GitHub 参考调研。详细流程：`AGENT_EXECUTION.md` GitHub Remote Sync Protocol；私人仓库 owner/URL/现有 remote 实测后填写 `STATE.remote_sync`。
+- 如经核验已存在正确 Private remote：直接检查分支/tag/SHA，标记此任务 passed，继续实际开发；如果无 remote：历史 secrets 安全门后创建/关联/推送并验收。远端不可达或缺授权时标记 pending/blocked，不清除本地历史，不阻断安全的本地开发。
+- 远程任务完成或标记非阻断后，**原始下一业务任务**仍是 `phase3_daily_planner_007`；详细验收参考 `docs/PHASE3_DAILY_PLANNER.md`。如本机 Phase 3 已有更近期改动，按 Git+代码+测试续接而非重做。
+- `STATE.last_verified_commit` 是记录的 Phase 2 功能提交 `92fdab0`；用户曾报告另有状态 pin `92f8ec1`，尚待本机 `git log` 核对。不要虚称离线包确认当前 Git HEAD。
+- 此包仅修复项目规格/执行/状态文档。用户学习数据在浏览器 IndexedDB，不因 push 代码而备份；禁止上传真实学习数据库或 API Key。
+
 ## Current phase
 
 Phase 3 — Daily Planner（Phase 0 / 0.5 / 1 / 2 全部完成并通过）
 
 ## Current task_id
 
-`phase3_daily_planner_007`（下一步开工）。Phase 2（`phase2_vocabulary_v2_006`）已 passed：ts-fsrs 调度、DB v3、Preview→Recall、三维证据、多词池/动态新词量、UI —— 证据见 `CHECKPOINT.md` §Phase 2。
+`infra_github_remote_001`（本次新增：GitHub 远程建立或核验）；之后恢复 `phase3_daily_planner_007`。Phase 2（`phase2_vocabulary_v2_006`）已 passed：ts-fsrs 调度、DB v3、Preview→Recall、三维证据、多词池/动态新词量、UI —— 证据见 `CHECKPOINT.md` §Phase 2。
 
 ## What is done（累计）
 

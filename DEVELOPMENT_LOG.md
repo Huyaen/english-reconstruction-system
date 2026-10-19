@@ -78,3 +78,12 @@ Git：项目此前无 Git → `git init -b main`，baseline commit `6c1c625`，t
 测试：npm test **39 pass / 0 fail**（新增 fsrs 6、vocab 7、migration +1、ui 扩展；含 v1→v3 与 v2→v3 fixture、幂等、备份兼容/悬空拒绝、Preview 流程 DOM 断言）；npm run build 成功（511.74 kB / gzip 176.27 kB）；**真实浏览器 smoke（无头 Edge + CDP）通过**：导入→未预览拦截→Preview 8/8→Recall 作答→退出恢复→IDB v3/FSRS/rating 校验→reload 保留。
 过程记录：并行游标回填互相覆盖（v2/v3）→ 串行游标链修复；pools fallback 重复选取 → 游标式消费修复；`#quit` 保存忙碌期点击被忽略 → smoke 脚本改为重试；TS2783/TS2352 类型修复。
 下一步：Phase 3 — Daily Planner（直接调用 recommendedNewWordCount/buildNewWordQueue/effectiveDue；DailyPlan store 已就绪）。
+
+
+## 2026-10-19 — 项目文档审计与 GitHub Sync 协议整合（离线文件操作，不是本地业务开发）
+
+依据用户上传的 STATE/CHECKPOINT/HANDOFF/规格/README/TODO/package 文件，发现：Phase 3 尚为 planned，旧入口容易误触 Phase 0；STATE known_limitations 含非 FSRS 过期条目，TODO Phase 2 P1 重复未完成；此前只有本地 Git checkpoint，无远程 GitHub push 协议。
+
+已生成新的文档候选包：产品规格增 GitHub 私有仓库隐私边界、执行规格增远程建立与 Task/Phase 同步、统一启动入口、Phase 3 验收细则和合并使用说明。未接入用户本机，未运行 npm test/build/浏览器/推送 GitHub；全部运行期验收须接手 Hermes 依原状态协议复验。
+
+下一步：用本机最新 Git 事实三方对照合并此候选包，确认仓库 owner 与 Private 后执行 `infra_github_remote_001`；再续 `phase3_daily_planner_007` 或实际更靠后的任务。

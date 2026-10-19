@@ -2,7 +2,7 @@
 
 用大量双向检索、反应时间、薄弱词强化和独立间隔调度，建立个人词汇学习记录。本地优先，不需要账号，也不需要 AI 才能刷词。
 
-**当前：MVP 功能交付版，尚待真实浏览器可视化验收与真实 AI 服务验收。** 源码、编译成品、测试、需求和所有交接文档均在包内。不能把“自动测试通过”解释为所有浏览器都已验证。
+**当前工程状态（截至 2026-10-04 文档记录）**：V2 Phase 0/0.5/1/2 已通过，DB v3、FSRS 5.4.2、词汇 Preview/多词池已集成，39/39 测试及 Phase 2 独立无头 Edge/CDP smoke 通过；Phase 3 Daily Planner 尚待开发。真机移动端和真实 AI 供应商调用仍未验收。2026-10-19 新增 GitHub 私有远程同步协议，**不代表已经建库或推送**；须以本机 Git 复核。
 
 ## 最快启动（Windows）
 
@@ -139,9 +139,9 @@ npm start
 
 ## 恢复开发协议
 
-按顺序读取 CHECKPOINT.md、TODO.md、DEVELOPMENT_LOG.md、README.md、docs/REQUIREMENTS.md，运行 `npm ci`、`npm test`、`npm run build`，从 CHECKPOINT 的 Next Step 接着做。
+新会话先读取 `INITIAL_PROMPT.md`、`PROJECT_SPEC.md`、`AGENT_EXECUTION.md`、`STATE.json`、`CHECKPOINT.md`、`HANDOFF.md`、`TODO.md`、`DEVELOPMENT_LOG.md`；检查 `git status/log/tags/remote`、本地与远端 SHA、真实 DB 版本，并运行必要的 `npm test` / `npm run build`，从真实 `STATE.next_task_id` 与 HANDOFF Next Action 继续。详细 Github Sync 协议见 `AGENT_EXECUTION.md`，最新 Phase 3 工作规格见 `docs/PHASE3_DAILY_PLANNER.md`。
 
-当前重点是补真实浏览器桌面/手机验收和真实AI供应商调用，不需要重构。所有实际测试结果和环境限制见 `docs/TEST_REPORT.md`。
+旧版 MVP 的遗留验收包括真实手机和真实 AI 服务；当前主要开发阶段依据 `STATE.json`（上传快照为 Phase 3）推进。Phase 2 已完成独立 Edge/CDP smoke，但不等于所有浏览器/手机已验收。详细历史见 `docs/TEST_REPORT.md` 与 `CHECKPOINT.md`。
 
 第二阶段未实现：拼写、填空、搭配题、发音、AI生成例句/干扰项、PWA与多设备同步。
 
@@ -154,3 +154,12 @@ npm start
 - **基线**：V1 MVP 基线 commit `6c1c625`（tag `v1.0.0-mvp-baseline`）；该提交已实测：`npm test` 20/20、`npm run build` 成功、`node server.mjs` 服务实测 200。
 - **硬约束**：旧数据 100% 保留；审计 → 复用 → 扩展 → 迁移 → 验证；禁止无理由重写现有词汇模块。
 - **源码格式**：`src/*.ts`、`tests/*.ts` 由 `docs/format-source.mjs` 整理为紧凑格式，编辑后请保持一致或重跑该脚本。
+
+
+## GitHub 私有远程仓库与跨会话恢复（2026-10-19 新增）
+
+本工程预期关联用户授权的 GitHub **Private** 仓库（建议名 `english-reconstruction-system`），按**稳定任务**提交并 push、按**阶段验收**打 tag 并 push；远端 SHA/Private 状态必须实测，不推测。当前上传的离线文件包**没有证明已有 origin、已创建仓库或已 push**，详细协议见 `AGENT_EXECUTION.md`。
+
+上传前必须扫描**全部准备推送的历史**，排除 API key、tokens、`.env`、用户学习数据、秘密 fixture；远端存在分叉不得强制推送；网络失败保留本地 Git 并记录 `STATE.remote_sync`。GitHub 版本库只备份被跟踪的工程文件；**浏览器 IndexedDB 的学习记录仍须使用应用内 JSON 导出独立备份**。
+
+新 Hermes 会话直接读取 `START_HERMES.md`（完整版启动提示词）并按 `INITIAL_PROMPT.md` 的恢复优先规则工作。若项目本地文件晚于此文档更新包，应先三方对照合并，不能无条件覆盖较新状态。

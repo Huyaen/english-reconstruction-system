@@ -4,6 +4,18 @@
 
 ---
 
+## 2026-10-19 · 离线文件审查与 GitHub Remote Sync 规格增补（documentation only）
+
+**真实性边界**：基于用户上传的 Markdown/JSON/依赖清单审核，未连接用户 D 盘 Git 仓库；此条不表示实测 GitHub、创建仓库、push 或重新运行 39 个测试。本地最新状态仍须接手 Agent 核验。
+
+- 恢复断点：截至上传快照，Phase 0/0.5/1/2 均已 passed，Phase 3 仍 planned，DB v3，最后记录 39/39 test + build + CDP smoke 通过。
+- 新增工程任务 `infra_github_remote_001`：GitHub **Private** 仓库首次核验/创建/历史敏感信息审核/推送和 tag 对账；与 Phase 0.5 研究其它开源仓库的任务区分。
+- 产品层 `PROJECT_SPEC.md` 增补工程隐私和远端备份边界；执行层 `AGENT_EXECUTION.md` 细化 Task-Level/Phase-Level GitHub Push/校验/失败重试/跨会话对账；`INITIAL_PROMPT.md` 改为“已有状态优先恢复”；新增 `docs/PHASE3_DAILY_PLANNER.md` 与 `START_HERMES.md`。
+- 修订状态文件已存在的过期描述（legacy 调度非 FSRS）、TODO 重复的 Phase 2 待办、README 旧恢复入口；这是**文档纠错**，不是源码行为变更。
+- 远程真实 owner / URL / SHA / 分支 / Private 状态、真实当前 Git HEAD 和当下 tests 均为 unverified。任何敏感信息历史被发现时首次 push 必须暂停。
+
+---
+
 ## 2026-10-04 · Phase 2 — Vocabulary V2（passed）
 
 **结论**：Vocabulary Engine 完成 V2 升级：**FSRS 调度**（ts-fsrs@5.4.2，MIT，精确锁定）接入并成为默认调度权威（旧调度器完整保留、可一键回滚）；**DB v3**（只加不删、原子、幂等；v1/v2 备份均兼容）；**Preview → Recall 强制流程**（UNSEEN 不得直接测试）；三维证据系统上线；多词池 + Learning Value + 动态新词量（供 Phase 3 直接调用）。

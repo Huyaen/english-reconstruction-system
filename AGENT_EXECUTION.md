@@ -29,6 +29,78 @@
 
 ---
 
+
+# GitHub Remote Sync Protocol（2026-10-19 增补，长期生效）
+
+## 定义与不可变边界
+
+本节解决的是**本项目自身 GitHub 私有远程仓库**及长期开发表的同步，和已完成的 Phase 0.5（搜索其它 GitHub 参考项目）是**完全不同的工作**。远程仓库预设名 `english-reconstruction-system`；实际 owner/repo/URL 必须从当前授权账号或既存 remote 核实，不得臆造。
+
+远程创建/对账设为一次性独立任务 `infra_github_remote_001`：作为 Phase 3 前的工程基础设施检查执行，而**不回滚重做 Phase 0/0.5/1/2**。如远程实际上早已配置，应直接验收与登记，而非重建。无授权/登录或远程异常时标记 `blocked`/`pending`，本地稳定开发可以继续，不得声称 push 已完成。
+
+## 1. 远程建立前的事实核查
+
+在仓库根目录实测：
+
+- `git status --short --branch`、`git branch -vv`、`git log -n 8 --oneline --decorate`、`git tag -l`、`git remote -v`；不得根据 `STATE.json` 想当然假设远程不存在。
+- `git config --get remote.origin.url`、当前登录 GitHub 的账户/owner、仓库是否存在、权限是否足够，以及实际仓库 `private` 状态。
+- 检查 Git 受保护的工作区变更：用户当前修改、未提交文件、未追踪文件、已打 tag。任何新动作必须尊重这些状态。
+- 分别核实本地 HEAD、远端默认/跟踪分支 SHA（如可达）；先 `fetch` 获取真实远端分支信息，禁止为对齐而盲目 reset。
+
+如果仓库不存在，才在用户授权账号下创建**Private** 仓库（默认名 `english-reconstruction-system`）。当账户归属或授权不明确时暂停请求确认；绝不默认为 Public，绝不使用错误 owner 或错误个人账号。
+
+## 2. 首次上传安全门
+
+建立 remote / 第一次 push 之前必须检查：
+
+1. `.gitignore` 覆盖 `node_modules/`、临时缓存、本地环境配置、token、用户学习数据、数据库转储、操作系统文件；确认 `dist/` 的现有 Git 跟踪策略，不得突然大规模删改已跟踪的构建产物。
+2. 检查**当前工作树、暂存区以及全部准备推送的可达 Git 历史**。可以使用现有可靠秘密扫描工具与 Git 搜索交叉核查；不得把匹配结果中的密钥内容写进日志、聊天和 GitHub。
+3. 特别核验当前系统 AI Key（可能在用户本机浏览器 IndexedDB 中）：它不应出现在仓库、备份产物、构建文件、日志或自动化测试 fixture 中。浏览器的真实学习数据禁止顺手上传。
+4. 检查 `.md`、测试日志、截图、trace、checkpoint、历史 bundle、样例 JSON 是否包含令牌、个人隐私、第三方授权信息；若历史已泄露，停止推送并提供安全清理/轮换建议，不能仅改 `.gitignore` 宣称安全。
+5. 不进行破坏性的 `git filter-repo`、历史改写或密钥轮换，除非用户明确授权。
+
+## 3. 任务级与阶段级同步
+
+### Stable Task Gate
+
+完成一次小型稳定任务后：保存代码 → 相关 tests/build（按任务性质） → 检查 diff/secret → 更新状态/交接 → 本地 commit → push 当前预期分支 → 读取远端 SHA 核验。如正在开发中且验证尚未完成，允许先本地 WIP checkpoint，但不得虚称稳定 passed。
+
+### Phase Gate
+
+完成整个 Phase 时：运行完整测试、build、必要真实浏览器验收 → 确认文档/状态 → commit → tag（如 `phase3-daily-planner`）→ push 分支和该 tag → `git ls-remote`/API 确认远端 branch/tag 指向的真实 SHA。任何一步失败都应如实记录：`phase passed` 和 `remote sync verified` 是两个**不同状态维度**。
+
+不要为了在 `STATE.json` 中记载刚刚 push 的 commit SHA 而无限“再提交一笔 pin commit”。Git 的当前远端 SHA 是同步事实依据；状态文件只是写入时的快照，下一次正常 commit 再更新。构建产物如历史上被跟踪，提交前需确保其与源码一致，避免无意义 rebuild 造成伪变更。
+
+## 4. 远端状态与故障续传
+
+`STATE.json` 建议使用 `remote_sync` 对象，包含：
+
+- `setup_task_id`, `status`（unverified / pending / configured / pushed / verified / blocked / error）
+- `provider`（github）、`visibility`（unknown / private / public）、`owner`, `repository`, `remote_name`, `remote_url`
+- `local_branch`, `last_local_commit`, `last_known_remote_commit`, `pending_push`, `last_verified_at`, `last_error`
+
+值必须来自实际观测；不确定的一律 `null`/`unknown`，不得捏造 URL、SHA、owner。`pending_push` 在尚未建立远端时可为 `null`（未知），不许写 `false` 冒充同步完成。**不要保存 API Token 到 STATE/HANDOFF**。
+
+如果 GitHub MCP/API 超时、鉴权失效、网络故障或限流：保留本地 commit、tag 和记录，检查远端是否已完成先前操作，再幂等重试；绝不自动 `push --force`、`reset --hard`、删除历史或吞掉冲突。必要时改用本机 `git`/GitHub CLI，经授权后执行。
+
+## 5. 新会话恢复的远程对账
+
+每个新会话在读取工程状态文件之后，追加检查本地与远端 SHA/branch/tag、ahead/behind/diverged、未追踪/未提交变更。远端不可达时不要阻塞一切本地工作，但应标记 `remote_sync` 为 `pending/error` 并记录下一次尝试的具体操作。
+
+### 验收
+
+- 远程仓库真实存在且 Private（从 provider 验证）
+- 与当前本地仓库是同一条 Git 历史，而非新建空工程替换
+- 首次 push 成功，远端 `main` 或现有实际工作分支包含预期 commit
+- 已有的阶段 tag 全部得到安全推送与远端核验（不存在或冲突的单独报告）
+- 工作区/可达历史扫描未发现待处理 secrets；有疑点必须阻断上传并说明
+- `STATE.json`、`HANDOFF.md`、`CHECKPOINT.md` 记录真实状态
+- 运行代码仍与上传前一致；禁止为了远程同步去改业务代码
+
+**重要：GitHub 备份源码及被跟踪文件，不会自动备份用户浏览器 IndexedDB；此二者的备份与恢复路径独立。**
+
+---
+
 # 106. 开发优先级
 
 不要一次性到处开工。
@@ -1008,8 +1080,9 @@ DEVELOPMENT_LOG.md
 8. Inspect git status / log
 9. Inspect actual files and DB migration version
 10. Run minimum build/test verification
-11. Reconcile state files with actual project
-12. Resume STATE.next_task_id / HANDOFF.Next Action
+11. Inspect GitHub remote / local vs remote SHA and pending push (if reachable)
+12. Reconcile state files with actual project
+13. Resume STATE.next_task_id / HANDOFF.Next Action
 ```
 
 如果 `STATE.json` 与实际磁盘、实际代码、实际测试冲突：

@@ -1,9 +1,16 @@
 # English Reconstruction System V2
-## INITIAL_PROMPT — 第一次交给 Codex / Agent 的启动指令
+## INITIAL_PROMPT — 首次启动与断点恢复统一入口
 
 你现在接手一个已经存在的英语词汇学习 Web App，并要将其升级为完整的 **English Reconstruction System V2**。
 
 本次不是创建 Demo，也不是从零重写。
+
+> **强制入口路由，优先级高于下文首次审计示例：** 如果仓库中已经有 `STATE.json` / `HANDOFF.md` / Git commit，**先按恢复协议核对真实磁盘和远端**，从当前任务继续；不要无条件运行 Phase 0。下文 Phase 0 仅适用于确实没有完整初始工程状态的首次导入。
+>
+> 2026-10-19 用户上传的文档快照显示 Phase 0/0.5/1/2 已 `passed`、DB v3、上次测试 39/39、下一任务 `phase3_daily_planner_007`（planned）。这是**离线历史记录**，本机可能更靠后；以 Git / 实际源码 / 最新本机 STATE 为准。
+>
+> 新增 `infra_github_remote_001` 作为一次性 GitHub 私有仓库创建/核验/安全首次推送任务；执行前必须检查是否已有 remote，绝不覆盖历史。远程不可用则记录 blocked/pending，继续本地安全开发。详细协议：`AGENT_EXECUTION.md` 的 GitHub Remote Sync Protocol；当前阶段验收：`docs/PHASE3_DAILY_PLANNER.md`。
+
 
 项目根目录应同时包含或由你创建并维护：
 
@@ -42,6 +49,8 @@ DEVELOPMENT_LOG.md
 ---
 
 # 立即执行 Phase 0 — Audit & Safety
+
+**仅当这是没有 STATE/已验收 baseline 的首次接手时才执行此节。** 已有进度时跳到文末恢复协议。
 
 在修改业务代码前，完成以下工作：
 
@@ -290,5 +299,11 @@ Run minimum verification
 
 > 直接理解英语、稳定长期记忆、阅读真实材料、观看英文媒体、用英语总结和表达观点。
 
-现在先执行 **Phase 0 — Audit & Safety**。
-不要从零重写。
+当前目录如果已经存在已完成阶段和状态文件：
+
+1. 优先恢复；核对 Git / `STATE.json` / `HANDOFF.md` / `CHECKPOINT.md` / 实际构建与测试。
+2. 在本地检查 `infra_github_remote_001`：先核实远程是否已有、授权与敏感历史，建立/核验 Private Github remote；不能推送则按协议记录状态。
+3. 从真实 `next_task_id` 继续。若仍是 Phase 3，按 `docs/PHASE3_DAILY_PLANNER.md` 和 `PROJECT_SPEC.md` 开发。
+4. 每个稳定 task/phase 同步仓库，异常时保持离线 Git checkpoint 和 HANDOFF。
+
+**只有真实的新项目才执行 Phase 0。不要从零重写或重做已经 passed 的任务。**
