@@ -3,12 +3,12 @@
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "active",
   "current_phase": "phase_3_daily_planner",
-  "last_updated": "2026-10-19T20:14:00+08:00",
+  "last_updated": "2026-10-19T21:05:00+08:00",
   "last_verified_commit": "92fdab0246e04367d39b295716288c2315d751b6",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 3,
   "build_status": "passed",
-  "test_status": "passed (39/39 via node --test)",
+  "test_status": "passed (69/69 via node --test)",
   "tasks": {
     "phase0_audit_001": {
       "status": "passed",
@@ -146,10 +146,32 @@
       ]
     },
     "phase3_daily_planner_007": {
-      "status": "planned",
-      "description": "Daily Planner：Time Budget First、状态三档、Yesterday Recall、计划生成（调用 recommendedNewWordCount/buildNewWordQueue/effectiveDue）、动态调整（≤20–30%）、Closing Loop、中断/恢复（1天/2-3天/7天+）",
-      "files": [],
-      "tests": []
+      "status": "passed",
+      "description": "Phase 3 Daily Planner：Time Budget First（20/30/45/60/自定义 + 非法值校验）、状态三档 low/normal/good、Yesterday Recall（真实隔夜抽样 + 保留率 + 校准）、确定性计划生成（复用 recommendedNewWordCount/buildNewWordQueue/effectiveDue）、五模块统一 Task Contract + Capability Gate、动态重规划（Start/Skip/Delay/Replace/超时/提前完成，±30% 上限）、Closing Loop（3–5 分钟 + 难度反馈）、中断与重新进入（1 天 / 2–3 天 Re-entry / ≥7 天 Mini Diagnostic 词汇）、持久化与刷新恢复（dailyPlans，revision 并发保护）、不积学习债",
+      "files": [
+        "src/planner.ts",
+        "src/plannerStore.ts",
+        "src/app.ts",
+        "src/types.ts",
+        "src/style.css",
+        "tests/planner.test.ts",
+        "tests/plannerStore.test.ts",
+        "tests/plannerUi.test.ts",
+        "scripts/phase3-smoke.mjs"
+      ],
+      "tests": [
+        "npm test 69/69（原 39 + planner 22 + plannerStore 6 + plannerUi 2）",
+        "npm run build 成功（dist/assets/index-DjucMzEh.js 544.43 kB / gzip 187.93 kB；CSS 17.23 kB）",
+        "HTTP 运行时验证：node server.mjs → / 200（535B）、JS 200（552,819B）、CSS 200（17,234B）、缺失路径 404",
+        "真实浏览器 smoke（无头 Edge 128 + CDP 9224，独立 profile）20/20：导入→生成计划→Capability Gate→替换无候选拒绝→Preview→Recall→Closing+难度反馈→刷新恢复→昨日记录隔夜检测(保留率 100%，触发校准)→断更 5 天 Re-entry→无控制台错误",
+        "IndexedDB 持久化验证：dailyPlans 同日唯一、status=completed、taskActions/adjustments 全带原因、刷新后不重复生成",
+        "回归：Phase 0/1/2 全部既有测试保持通过（迁移 fixture、FSRS、Preview 流程、索引查询）"
+      ],
+      "artifacts": [
+        "scripts/phase3-smoke.mjs（可复跑的浏览器验收脚本）",
+        "docs/PHASE3_DAILY_PLANNER.md（实现与验收记录）",
+        "DB 版本未提升（仍为 v3；dailyPlans 复用现有 store/index）"
+      ]
     },
     "infra_github_remote_001": {
       "status": "passed",
@@ -177,18 +199,26 @@
       "artifacts": [
         "remote https://github.com/Huyaen/english-reconstruction-system.git"
       ]
+    },
+    "phase4_sentence_grammar_008": {
+      "status": "planned",
+      "description": "Phase 4 Sentence & Grammar：Sentence Lab（混合句源、拆句流程、Sentence Tree）、Grammar Knowledge Graph、Just-in-Time 知识卡、证据追踪；Planner 通过 typed capability 接口接入（不重写计划器）",
+      "files": [],
+      "tests": []
     }
   },
   "known_bugs": [],
   "known_limitations": [
-    "Phase 2 浏览器 CDP 独立 profile smoke 已有历史通过记录，但真实用户环境、真机移动端和长期性能尚未全部验收",
     "真实 AI 供应商调用未验收（无凭据；用户需在应用设置自填，勿在聊天提供 Key）",
     "干扰项同义排除是文本启发式，不理解语义近义词",
     "性能基准基于 fake-indexeddb，非真实浏览器长期容量/延迟",
-    "FSRS 已成为默认调度权威（旧启发式 legacy 作为可回滚备选），不再适用旧版“非 FSRS”限制"
+    "FSRS 已成为默认调度权威（旧启发式 legacy 作为可回滚备选）",
+    "Phase 3 Planner 的模块（sentence/reading/input/output）仅声明 capability，未上线前不生成任何任务；Mini Diagnostic 当前只覆盖词汇真实测试",
+    "Planner 时间估算为集中配置的启发式常量（每词 0.35/0.4/0.6 分钟等），非个性化测量；真机移动端与长期负载未验收",
+    "Closing Loop 的语法/Unit 一句话输出合同留待后续 Phase 扩展"
   ],
   "blocked": [],
-  "next_task_id": "phase3_daily_planner_007",
+  "next_task_id": "phase4_sentence_grammar_008",
   "environment": {
     "node": "v26.7.0",
     "npm": "11.19.0",
@@ -221,9 +251,10 @@
   },
   "document_review": {
     "date": "2026-10-19",
-    "basis": "文档包离线快照 + 本机实盘核对（Git/源码/npm test/build/IndexedDB schema 未改）",
-    "local_verification": "合并前 HEAD=92f8ec1 clean，无 origin remote，Phase 3 未开工；npm test 39/39、npm run build 通过（2026-10-19 实测）",
-    "last_verified_commit_note": "state.last_verified_commit=92fdab0 是 Phase 2 功能提交；HEAD=92f8ec1 是其上的状态 pin 提交，已核实存在",
-    "merge": "文档包内容与本地 2026-10-04 快照一致（差异全部为新增/纠错），已整体合并；合并前副本存于 scratch 备份目录"
+    "basis": "文档包离线快照 + 本机实盘核对（Git/源码/npm test/build/HTTP/真实浏览器 CDP smoke）",
+    "local_verification": "合并前 HEAD=92f8ec1 clean、无 origin remote、Phase 3 未开工；合并后 npm test 39/39 → Phase 3 完成后 69/69、build 通过、浏览器 smoke 20/20",
+    "last_verified_commit_note": "state.last_verified_commit=92fdab0 是 Phase 2 功能提交；HEAD=92f8ec1 为其上的状态 pin 提交",
+    "merge": "文档包内容与本地 2026-10-04 快照一致（差异全部为新增/纠错），已整体合并；合并前副本在 scratch 备份目录",
+    "phase3_verification": "2026-10-19 完成 Phase 3：69/69 tests、build、HTTP 200、真实浏览器 smoke 20/20（详见 CHECKPOINT.md / docs/PHASE3_DAILY_PLANNER.md）"
   }
 }

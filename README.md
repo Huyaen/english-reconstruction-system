@@ -2,7 +2,7 @@
 
 用大量双向检索、反应时间、薄弱词强化和独立间隔调度，建立个人词汇学习记录。本地优先，不需要账号，也不需要 AI 才能刷词。
 
-**当前工程状态（截至 2026-10-04 文档记录）**：V2 Phase 0/0.5/1/2 已通过，DB v3、FSRS 5.4.2、词汇 Preview/多词池已集成，39/39 测试及 Phase 2 独立无头 Edge/CDP smoke 通过；Phase 3 Daily Planner 尚待开发。真机移动端和真实 AI 供应商调用仍未验收。2026-10-19 新增 GitHub 私有远程同步协议，**不代表已经建库或推送**；须以本机 Git 复核。
+**当前工程状态（2026-10-19 实测）**：V2 Phase 0/0.5/1/2/3 已通过。DB 仍为 **v3**、FSRS 5.4.2 默认调度。Phase 3 Daily Planner 已交付：Today 首页成为主入口（选择真实可用时间与状态 → 隔夜检测 → 计划 → Start/Skip/Delay/Replace → Closing Loop），支持中断重新进入（Re-entry / Mini Diagnostic）与刷新恢复，未上线模块（句子/阅读/输入/输出）在 UI 明示为不可执行、不生成假任务。验证：`npm test` **69/69**、`npm run build` 成功、HTTP 200、真实浏览器（无头 Edge + CDP，独立 profile）smoke **20/20**。真机移动端与真实 AI 供应商调用仍未验收。工程已关联 GitHub **Private** 仓库 `Huyaen/english-reconstruction-system`（源码备份 ≠ IndexedDB 学习数据备份）。
 
 ## 最快启动（Windows）
 
@@ -139,7 +139,7 @@ npm start
 
 ## 恢复开发协议
 
-新会话先读取 `INITIAL_PROMPT.md`、`PROJECT_SPEC.md`、`AGENT_EXECUTION.md`、`STATE.json`、`CHECKPOINT.md`、`HANDOFF.md`、`TODO.md`、`DEVELOPMENT_LOG.md`；检查 `git status/log/tags/remote`、本地与远端 SHA、真实 DB 版本，并运行必要的 `npm test` / `npm run build`，从真实 `STATE.next_task_id` 与 HANDOFF Next Action 继续。详细 Github Sync 协议见 `AGENT_EXECUTION.md`，最新 Phase 3 工作规格见 `docs/PHASE3_DAILY_PLANNER.md`。
+新会话先读取 `INITIAL_PROMPT.md`、`PROJECT_SPEC.md`、`AGENT_EXECUTION.md`、`STATE.json`、`CHECKPOINT.md`、`HANDOFF.md`、`TODO.md`、`DEVELOPMENT_LOG.md`；检查 `git status/log/tags/remote`、本地与远端 SHA（`git ls-remote origin`）、真实 DB 版本，并运行必要的 `npm test` / `npm run build`，从真实 `STATE.next_task_id` 与 HANDOFF Next Action 继续（当前为 Phase 4）。Phase 3 浏览器验收脚本：`node scripts/phase3-smoke.mjs`（需先 build + `node server.mjs` + 独立 profile 无头 Edge/CDP）。详细 Github Sync 协议见 `AGENT_EXECUTION.md`，最新 Phase 3 工作规格见 `docs/PHASE3_DAILY_PLANNER.md`。
 
 旧版 MVP 的遗留验收包括真实手机和真实 AI 服务；当前主要开发阶段依据 `STATE.json`（上传快照为 Phase 3）推进。Phase 2 已完成独立 Edge/CDP smoke，但不等于所有浏览器/手机已验收。详细历史见 `docs/TEST_REPORT.md` 与 `CHECKPOINT.md`。
 

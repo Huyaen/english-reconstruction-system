@@ -271,17 +271,41 @@ export interface OutputAttempt {
     aiEval: unknown;
     createdAt: number;
 }
+// Phase 3 起 PlanItem 作为五模块统一 Task Contract 的持久化形状；
+// 新增字段全部可选，因此旧计划/旧备份保持可读（DB 版本无需提升）。
 export interface PlanItem {
     id: string;
     module: string;
     minutes: number;
-    status: 'pending' | 'started' | 'done' | 'skipped' | 'delayed';
+    status: 'pending' | 'started' | 'done' | 'skipped' | 'delayed' | 'replaced';
     note: string;
+    kind?: string;
+    label?: string;
+    priority?: number;
+    critical?: boolean;
+    flexible?: boolean;
+    capabilityRequired?: string;
+    source?: string;
+    refs?: string[];
+    reason?: string[];
+    dependencies?: string[];
+    startedAt?: number | null;
+    completedAt?: number | null;
+    actualMinutes?: number | null;
+    replacedBy?: string | null;
 }
 export interface PlanAdjustment {
     at: number;
     module: string;
     deltaMinutes: number;
+    reason: string;
+}
+export interface PlanEvent {
+    id: string;
+    at: number;
+    taskId: string;
+    action: 'start' | 'complete' | 'skip' | 'delay' | 'replace' | 'regenerate' | 'calibrate' | 'overrun';
+    minutesDelta: number;
     reason: string;
 }
 export interface DailyPlan {
@@ -298,6 +322,20 @@ export interface DailyPlan {
     closingLoop: unknown;
     createdAt: number;
     completedAt: number | null;
+    // Phase 3 增补（可选，向后兼容）
+    revision?: number;
+    updatedAt?: number;
+    status?: 'planned' | 'active' | 'completed';
+    capabilities?: Record<string, {
+        available: boolean;
+        requires: string | null;
+        label?: string;
+    }>;
+    planRequest?: unknown;
+    budget?: unknown;
+    recovery?: unknown;
+    calibration?: unknown;
+    taskActions?: PlanEvent[];
 }
 export interface MiniUnit {
     id: string;

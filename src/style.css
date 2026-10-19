@@ -7,3 +7,24 @@
 .preview-card .question{font-size:2rem}
 .new-words .actions{margin-top:8px}
 .new-words em{font-style:normal}
+
+/* ———— Phase 3 · Daily Planner（Today 主入口）———— */
+.plan-panel{border-left:3px solid var(--blue)}
+.plan-setup{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;align-items:end;margin:14px 0}
+.plan-setup label{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--muted)}
+.plan-setup select,.plan-setup input{padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:inherit}
+.plan-progress{height:8px;border-radius:99px;background:var(--soft);overflow:hidden;margin:6px 0 12px}
+.plan-progress i{display:block;height:100%;background:var(--blue);border-radius:99px;transition:width .3s}
+.plan-tasks{display:flex;flex-direction:column;gap:10px;margin:14px 0}
+.plan-task{display:flex;justify-content:space-between;gap:14px;align-items:center;border:1px solid var(--line);border-radius:11px;padding:13px 15px;background:var(--surface)}
+.plan-task.done{opacity:.75}
+.plan-task.skipped,.plan-task.replaced{opacity:.55}
+.plan-task.started{border-color:var(--blue);box-shadow:0 0 0 3px #325fe514}
+.task-main{display:flex;flex-direction:column;gap:3px;min-width:0}
+.task-main b{font-weight:620}
+.task-main small{color:var(--muted);font-size:12.5px}
+.task-minutes{margin-left:8px;color:var(--muted);font-size:13px}
+.task-buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.task-buttons button{padding:7px 12px;font-size:14px}
+.closing-choices{display:flex;gap:10px}
+@media (max-width:760px){.plan-task{flex-direction:column;align-items:flex-start}.task-buttons{justify-content:flex-start}}

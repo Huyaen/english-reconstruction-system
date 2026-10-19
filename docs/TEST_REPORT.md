@@ -57,3 +57,25 @@
 - 在设置填写有效AI服务后实际生成报告，检查CORS和供应商模型兼容性。
 
 现有测试使用jsdom与fake-indexeddb，文件下载/选择器和真实布局不在这些替身能力内。
+
+---
+
+## Phase 3（Daily Planner）验证记录 · 2026-10-19
+
+**规模**：`npm test` **69/69 pass / 0 fail**（Phase 2 原 39 例 + Phase 3 新增 30 例）。
+
+| 套件 | 例数 | 覆盖 |
+| --- | --- | --- |
+| `tests/planner.test.ts` | 22 | 预算（20/30/45/60/自定义/非法/钳制）、状态三档、任务合同、capability gating、隔夜检测抽样与评估（去重/方向/低置信）、保留率 d1/d7、低保留与高到期负载的分配、到期口径复用、Preview→Recall 依赖、超时/提前完成的 ±30% 上限、Skip/Delay/Replace、跨日不积债、中断恢复四档、Closing Loop、确定性、regenerate 保留证据 |
+| `tests/plannerStore.test.ts` | 6 | dailyPlans 读写、revision 并发保护（StalePlanError）、同日唯一、旧结构计划向后兼容、备份/恢复往返、刷新恢复 |
+| `tests/plannerUi.test.ts` | 2 | 真实 DOM 流程：导入 → 生成计划 → 替换无候选拒绝 → Preview → Recall → Regenerate（保留已完成）→ Closing + 难度反馈 → 跳过收尾任务 → 刷新恢复不重复生成；预算校验与调整预算 |
+
+**构建**：`npm run build` 成功 —— `dist/assets/index-DjucMzEh.js` 544.43 kB（gzip 187.93 kB）、`index-Ubj28ML1.css` 17.23 kB。bundle >500 kB 警告仍属已知 Phase 13 项。
+
+**HTTP 运行时**：`node server.mjs` → `GET /` 200（535 B）、`GET /assets/index-DjucMzEh.js` 200（552,819 B）、`GET /assets/index-Ubj28ML1.css` 200（17,234 B）、`GET /missing.js` 404。
+
+**真实浏览器**：无头 Edge 128（`--headless=new`，独立 profile `%LOCALAPPDATA%\Temp\edge-phase3-profile`，CDP 9224）运行 `scripts/phase3-smoke.mjs` → **20/20 通过**：
+
+1. 应用启动；2. 词表导入 6 词；3. Capability Gate 在 UI 明示未上线模块；4. 生成今日计划（预算 30 分钟）；5. 任务顺序 Preview → Recall → Closing（末位）；6. 计划时长不超预算；7. Closing 使用真实词；8. 替换无同目标候选时明确拒绝；9. Preview 完成并落盘；10. Recall 完成并更新计划；11. Closing Loop 保存难度反馈；12. 计划落盘为完成态；13. 任务动作全带原因（start/complete/calibrate）；14. 刷新后恢复且不重复生成；15. 有昨日记录时生成隔夜检测任务；16. 隔夜检测完成并显示保留率（100.0% · 可信）；17. 隔夜结果触发计划校准；18. 断更后生成重新进入检测任务；19. Re-entry 使用真实词汇且在预算内；20. 无控制台未捕获错误。
+
+**仍未在真实浏览器验收**：真机移动端布局/触控、长期大词库（数万词）性能、离线/PWA、真实 AI 供应商调用（需用户自填凭据）。

@@ -1,5 +1,5 @@
 import './style.css';
-import type { Data, Word, StudySession, Settings, ReviewRecord, Mastery } from './types.ts';
+import type { Data, Word, StudySession, Settings, ReviewRecord, Mastery, DailyPlan, PlanItem, EnergyState } from './types.ts';
 import { openDB, loadData, replaceData, saveSettings, putItems, saveAnswer, savePreview, backup, validateBackup, emptyData } from './db.ts';
 import { makeWord, uid, labels, priority, priorityGrade, shuffle, question, validSettings } from './core.ts';
 import { parseFile, parseText, exportWords, type Parsed } from './import.ts';
@@ -10,6 +10,8 @@ import { applyPreview, isForgotten, isUnseen, lifecycleOf, LIFECYCLE_LABELS, rec
 import { buildNewWordQueue, recommendedNewWordCount } from './pools.ts';
 import { effectiveDue, fsrsRetrievability, hasFsrsHistory } from './fsrs.ts';
 import { $, esc, pct, seconds, date, toast, download, modal, closeModal, on } from './ui.ts';
+import { applyPlanAction, buildReplacement, calibrateAfterRecall, createDailyPlan, evaluateRecallSession, latestLearningAt, moduleCapabilities, MODULES, planProgress, regenerateRemaining, PLANNER_CONFIG, TASK_LABELS, type PlannerInput, type RecallCandidate } from './planner.ts';
+import { loadPlan, savePlan, StalePlanError } from './plannerStore.ts';
 let data: Data, page = 'home', bookFilter = '', search = '', levelFilter = '', sort = 'priority', listPage = 0;
 let active: StudySession | null = null, feedback = false, busy = false, started = 0, timer: ReturnType<typeof setTimeout> | null = null, paused = false;
 let startingSession = false;
@@ -17,6 +19,12 @@ let wordMap = new Map<string, Word>();
 let elapsedBeforePause = 0;
 let previewWords: Word[] = [], previewIndex = 0;
 let analysisBusy = false;
+// —— Phase 3 状态 ——
+let todayPlan: DailyPlan | null = null;
+let planBudget: number = PLANNER_CONFIG.budget.default;
+let planEnergy: EnergyState = 'normal';
+let planBusy = false;
+let taskExecution: { planTaskId: string; kind: string; startedAt: number; sessionId: string } | null = null;
 const navs = [['home', '◫', '今日学习'], ['books', '▤', '我的词库'], ['weak', '◎', '薄弱词'], ['stats', '▥', '学习统计'], ['ai', '✦', 'AI 学情'], ['settings', '⚙', '设置与备份']];
 function reindex() { wordMap = new Map(data.words.map(w => [w.id, w])); }
 function setPage(p: string) {
@@ -52,8 +60,9 @@ function metric(label: string, value: string, note: string) { return `<div class
 function rangeControls() { return `<div class="range-controls"><label>学习范围<select id="range-book"><option value="">全部词书</option>${data.books.map(b => `<option value="${b.id}" ${bookFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label><label>本轮词量<select id="range-count">${[50, 100, 300, 500, 1000].map(n => `<option value="${n}" ${n === 100 ? 'selected' : ''}>${n} 词</option>`).join('')}</select></label><label>测试方向<select id="range-ratio">${![0, 30, 50, 70, 100].includes(data.settings.ratio) ? `<option value="${data.settings.ratio}" selected>英→中 ${data.settings.ratio}%（自定义）</option>` : ''}<option value="50" ${data.settings.ratio === 50 ? 'selected' : ''}>双向各 50%</option><option value="70" ${data.settings.ratio === 70 ? 'selected' : ''}>英→中 70%</option><option value="30" ${data.settings.ratio === 30 ? 'selected' : ''}>中→英 70%</option><option value="100" ${data.settings.ratio === 100 ? 'selected' : ''}>识别 · 英→中</option><option value="0" ${data.settings.ratio === 0 ? 'selected' : ''}>提取 · 中→英</option></select></label></div>`; }
 function home() {
     const s = summary(data), unfinished = data.sessions.find(s => !s.ended);
-    $('#main').innerHTML = title('DAILY PRACTICE', '今天，让记忆再深一点', '快速检索，找到弱词，在忘记之前再见一次。', `<button id="import" class="secondary">＋ 导入词书</button>`) + `<div class="metrics">${metric('今日作答', String(s.today.attempts), '覆盖 ' + s.today.unique + ' 个单词')}${metric('今日正确率', s.today.attempts ? pct(s.today.accuracy) : '—', '英中双向检索')}${metric('平均反应', s.today.attempts ? seconds(s.today.meanMs) : '—', '从题目出现到提交')}${metric('有效掌握', String(s.effective), '双向 · 多次间隔验证')}</div>${newWordsPanel()}${unfinished ? `<div class="resume"><span>有一轮未完成的训练 · 已答 ${unfinished.answered} 题</span><button id="resume" class="primary">继续本轮</button><button id="finish-old" class="text-button">结束本轮</button></div>` : ''}<section class="panel practice"><div class="section-title"><h2>开始一轮训练</h2><span class="subtle">${data.words.length} 个词 · ${data.books.length} 本词书</span></div>${rangeControls()}<div class="modes"><button class="mode featured" data-mode="quick"><span class="mode-symbol">↗</span><h3>快速刷词</h3><p>大量扫描，找出不熟的词</p><span class="mode-bottom">开始检索 <b>→</b></span></button><button class="mode" data-mode="due"><span class="mode-symbol">◷</span><h3>今日复习 <em>${s.due}</em></h3><p>优先处理已到期的记忆</p><span class="mode-bottom">巩固记忆 <b>→</b></span></button><button class="mode" data-mode="weak"><span class="mode-symbol">◎</span><h3>弱词强化 <em>${s.weak}</em></h3><p>集中攻克不会和模糊词</p><span class="mode-bottom">开始强化 <b>→</b></span></button><button class="mode" data-mode="random"><span class="mode-symbol">⤨</span><h3>随机抽查</h3><p>检验学过的词是否还记得</p><span class="mode-bottom">抽查记忆 <b>→</b></span></button></div></section><div class="two-col"><section class="panel"><div class="section-title"><h2>记忆分布</h2><span class="subtle">全部词库</span></div>${distribution()}<p class="hint">“熟练”需要双向和间隔测试证据。短时间反复答对不会直接计入长期掌握。</p></section><section class="panel"><div class="section-title"><h2>今日弱词变化</h2></div><div class="weak-change"><div><strong>${s.newWeak}</strong><span>新增弱词</span></div><div><strong class="green">${s.resolved}</strong><span>已转为正常或熟练</span></div></div><p class="hint">按今天首次与最后一次作答状态比较，同一个词不重复计数。</p></section></div>${!data.words.length ? `<div class="empty-note"><strong>从你自己的词书开始</strong><p>支持 TXT、CSV、XLSX 和 JSON。导入至少 6 个不同释义的单词，即可体验全部难度。</p><button class="text-button" id="template">下载词书格式示例</button></div>` : ''}`;
+    $('#main').innerHTML = title('DAILY PRACTICE', '今天，让记忆再深一点', '快速检索，找到弱词，在忘记之前再见一次。', `<button id="import" class="secondary">＋ 导入词书</button>`) + todaySection() + `<div class="metrics">${metric('今日作答', String(s.today.attempts), '覆盖 ' + s.today.unique + ' 个单词')}${metric('今日正确率', s.today.attempts ? pct(s.today.accuracy) : '—', '英中双向检索')}${metric('平均反应', s.today.attempts ? seconds(s.today.meanMs) : '—', '从题目出现到提交')}${metric('有效掌握', String(s.effective), '双向 · 多次间隔验证')}</div>${newWordsPanel()}${unfinished ? `<div class="resume"><span>有一轮未完成的训练 · 已答 ${unfinished.answered} 题</span><button id="resume" class="primary">继续本轮</button><button id="finish-old" class="text-button">结束本轮</button></div>` : ''}<section class="panel practice"><div class="section-title"><h2>开始一轮训练</h2><span class="subtle">${data.words.length} 个词 · ${data.books.length} 本词书</span></div>${rangeControls()}<div class="modes"><button class="mode featured" data-mode="quick"><span class="mode-symbol">↗</span><h3>快速刷词</h3><p>大量扫描，找出不熟的词</p><span class="mode-bottom">开始检索 <b>→</b></span></button><button class="mode" data-mode="due"><span class="mode-symbol">◷</span><h3>今日复习 <em>${s.due}</em></h3><p>优先处理已到期的记忆</p><span class="mode-bottom">巩固记忆 <b>→</b></span></button><button class="mode" data-mode="weak"><span class="mode-symbol">◎</span><h3>弱词强化 <em>${s.weak}</em></h3><p>集中攻克不会和模糊词</p><span class="mode-bottom">开始强化 <b>→</b></span></button><button class="mode" data-mode="random"><span class="mode-symbol">⤨</span><h3>随机抽查</h3><p>检验学过的词是否还记得</p><span class="mode-bottom">抽查记忆 <b>→</b></span></button></div></section><div class="two-col"><section class="panel"><div class="section-title"><h2>记忆分布</h2><span class="subtle">全部词库</span></div>${distribution()}<p class="hint">“熟练”需要双向和间隔测试证据。短时间反复答对不会直接计入长期掌握。</p></section><section class="panel"><div class="section-title"><h2>今日弱词变化</h2></div><div class="weak-change"><div><strong>${s.newWeak}</strong><span>新增弱词</span></div><div><strong class="green">${s.resolved}</strong><span>已转为正常或熟练</span></div></div><p class="hint">按今天首次与最后一次作答状态比较，同一个词不重复计数。</p></section></div>${!data.words.length ? `<div class="empty-note"><strong>从你自己的词书开始</strong><p>支持 TXT、CSV、XLSX 和 JSON。导入至少 6 个不同释义的单词，即可体验全部难度。</p><button class="text-button" id="template">下载词书格式示例</button></div>` : ''}`;
     on('#import', 'click', importDialog);
+    bindPlan();
     on('#template', 'click', () => download(new Blob(['\ufeff英文,中文,词性\nabandon,放弃,v.\nadequate,充足的,adj.\nreluctant,不情愿的,adj.\nreliable,可靠的,adj.\nmaintain,维持,v.\nobvious,明显的,adj.']), '词书格式示例.csv'));
     on('#resume', 'click', () => startSession(unfinished!));
     on('#finish-old', 'click', async () => { unfinished!.ended = Date.now(); await putItems('sessions', [unfinished]); render(); });
@@ -119,6 +128,11 @@ async function previewAnswer(result: PreviewResult) {
 function previewDone() {
     const done = previewWords.slice(0, previewIndex);
     const remain = previewWords.length - previewIndex;
+    if (taskExecution && taskExecution.kind === 'new-preview') {
+        const exec = taskExecution;
+        taskExecution = null;
+        void completePlanTask(exec, Math.max(0.5, Math.round((Date.now() - exec.startedAt) / 30000) / 2));
+    }
     previewWords = [];
     previewIndex = 0;
     page = 'preview-done';
@@ -177,6 +191,8 @@ async function startModeOnce(mode: string, explicit?: Word[]) {
     const s = newSession(words, mode);
     await putItems('sessions', [s]);
     data.sessions.push(s);
+    if (taskExecution)
+        taskExecution.sessionId = s.id;
     await startSession(s);
 }
 async function startSession(s: StudySession) { active = s; page = 'quiz'; shell(); await showQuestion(); }
@@ -324,7 +340,7 @@ document.addEventListener('keydown', e => {
             void submit(id, 'answer');
     }
 });
-function showResults(s: StudySession) { stopTimer(); page = 'results'; const rs = data.records.filter(r => r.sessionId === s.id); const st = recordStats(rs); const ids = new Set(rs.map(r => r.wordId)); const ws = data.words.filter(w => ids.has(w.id)); active = null; $('#main').innerHTML = title('SESSION COMPLETE', '这一轮，记住了多少？', '薄弱词已记录，并安排了下一次复习。') + `<div class="metrics">${metric('本轮作答', String(st.attempts), '含本轮强化重复')}${metric('正确率', pct(st.accuracy), st.unique + ' 个不同单词')}${metric('平均反应', seconds(st.meanMs), '有效作答时间')}${metric('待强化', String(ws.filter(isWeak).length), '按本轮结束后的状态')}</div><div class="actions"><button class="primary" id="review-round">重测本轮弱词</button><button class="secondary" id="round-export">导出本轮弱词</button><button class="secondary" id="back-home">返回首页</button></div><div class="two-col">${(['unknown', 'vague'] as Mastery[]).map(l => `<section class="panel"><h2>${labels[l]}</h2>${wordChips(ws.filter(w => w.state.level === l))}</section>`).join('')}</div><details class="panel"><summary>正常与熟练 · ${ws.filter(w => !isWeak(w)).length} 词</summary>${wordChips(ws.filter(w => !isWeak(w)))}</details>`; on('#review-round', 'click', () => startMode('weak', ws.filter(isWeak))); on('#round-export', 'click', () => download(exportWords(ws.filter(isWeak), 'csv'), '本轮弱词.csv')); on('#back-home', 'click', () => setPage('home')); bindDetails(); }
+function showResults(s: StudySession) { stopTimer(); page = 'results'; if (taskExecution && taskExecution.sessionId === s.id) { const exec = taskExecution; taskExecution = null; void completePlanTask(exec, Math.max(0.5, Math.round((Date.now() - exec.startedAt) / 30000) / 2)); } const rs = data.records.filter(r => r.sessionId === s.id); const st = recordStats(rs); const ids = new Set(rs.map(r => r.wordId)); const ws = data.words.filter(w => ids.has(w.id)); active = null; $('#main').innerHTML = title('SESSION COMPLETE', '这一轮，记住了多少？', '薄弱词已记录，并安排了下一次复习。') + `<div class="metrics">${metric('本轮作答', String(st.attempts), '含本轮强化重复')}${metric('正确率', pct(st.accuracy), st.unique + ' 个不同单词')}${metric('平均反应', seconds(st.meanMs), '有效作答时间')}${metric('待强化', String(ws.filter(isWeak).length), '按本轮结束后的状态')}</div><div class="actions"><button class="primary" id="review-round">重测本轮弱词</button><button class="secondary" id="round-export">导出本轮弱词</button><button class="secondary" id="back-home">返回首页</button></div><div class="two-col">${(['unknown', 'vague'] as Mastery[]).map(l => `<section class="panel"><h2>${labels[l]}</h2>${wordChips(ws.filter(w => w.state.level === l))}</section>`).join('')}</div><details class="panel"><summary>正常与熟练 · ${ws.filter(w => !isWeak(w)).length} 词</summary>${wordChips(ws.filter(w => !isWeak(w)))}</details>`; on('#review-round', 'click', () => startMode('weak', ws.filter(isWeak))); on('#round-export', 'click', () => download(exportWords(ws.filter(isWeak), 'csv'), '本轮弱词.csv')); on('#back-home', 'click', () => setPage('home')); bindDetails(); }
 function wordChips(ws: Word[]) { return ws.length ? `<div class="chips">${ws.map(w => `<button data-detail="${w.id}">${esc(w.en)}</button>`).join('')}</div>` : '<p class="subtle">没有这一类单词</p>'; }
 function filtered(weak: boolean) { let ws = data.words.filter(w => (!weak || isWeak(w)) && (!bookFilter || w.bookId === bookFilter) && (!levelFilter || w.state.level === levelFilter) && (!search || `${w.en} ${w.zh} ${w.tags}`.toLowerCase().includes(search.toLowerCase()))); return ws.sort(sort === 'alpha' ? (a, b) => a.en.localeCompare(b.en) : sort === 'due' ? (a, b) => effectiveDue(a, data.settings.schedulingAuthority) - effectiveDue(b, data.settings.schedulingAuthority) : (a, b) => priority(b) - priority(a)); }
 function library(weak: boolean) {
@@ -527,10 +543,257 @@ function settingsPage() {
     });
 }
 function exportBackup() { download(new Blob([backup(data)], { type: 'application/json' }), `词间完整备份-${dayKey(Date.now())}.json`); toast('备份已导出（不含 API Key）'); }
+
+// ———————————————— Phase 3：Today / Daily Planner UI（消费层，不放算法） ————————————————
+function todaySection(): string { return todayPlan ? planOverview(todayPlan) : planSetup(); }
+function planInput(minutes: number, energy: EnergyState): PlannerInput {
+    return { now: Date.now(), availableMinutes: minutes, energy, words: data.words, records: data.records, plans: data.dailyPlans, miniUnit: data.miniUnits.find(u => u.status === 'active') ?? null, lastActivityAt: latestLearningAt(data.records), schedulingAuthority: data.settings.schedulingAuthority };
+}
+function energyLabel(e: EnergyState) { return e === 'low' ? '状态差' : e === 'good' ? '状态好' : '正常'; }
+function unavailableModulesText(): string { const caps = moduleCapabilities(); return MODULES.filter(m => !caps[m].available).map(m => `${caps[m].label}（${caps[m].requires}）`).join('、'); }
+function planSetup(): string {
+    const presets: number[] = [...PLANNER_CONFIG.budget.presets];
+    const custom = !presets.includes(planBudget);
+    return `<section class="panel plan-panel" id="plan-setup"><div class="section-title"><h2>今日计划</h2><span class="subtle">时间预算优先</span></div><p class="hint">先选真实可用时间与今天的状态。计划会在同一份预算内安排隔夜检测、到期复习、新词与收尾回忆；不会安排尚未上线的模块。</p><div class="plan-setup"><label>可用时间<select id="plan-budget">${presets.map(n => `<option value="${n}" ${n === planBudget ? 'selected' : ''}>${n} 分钟</option>`).join('')}<option value="custom" ${custom ? 'selected' : ''}>自定义</option></select></label><label>自定义分钟<input id="plan-custom" type="number" min="${PLANNER_CONFIG.budget.min}" max="${PLANNER_CONFIG.budget.max}" step="1" value="${planBudget}" ${custom ? '' : 'disabled'}></label><label>今日状态<select id="plan-energy">${([['low', '状态差'], ['normal', '正常'], ['good', '状态好']] as const).map(([v, t]) => `<option value="${v}" ${planEnergy === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><button id="plan-create" class="primary" ${planBusy ? 'disabled' : ''}>生成今日计划</button></div><p class="hint">未上线模块不生成假任务：${esc(unavailableModulesText())}</p></section>`;
+}
+function planOverview(plan: DailyPlan): string {
+    const progress = planProgress(plan);
+    const recall = plan.yesterdayRecallResult as { status?: string; evaluation?: { retention?: number | null; confidence?: string } | null } | null;
+    const budgetReasons = ((plan.budget as { reasons?: string[] } | null)?.reasons ?? []).filter(r => r.startsWith('critical-memory') || r.startsWith('budget') || r.startsWith('order') || r.startsWith('re-entry') || r.startsWith('mini-diagnostic'));
+    const recallLine = recall?.status === 'done'
+        ? `<p class="hint">隔夜检测：保留率 ${recall.evaluation?.retention == null ? '样本不足' : pct(recall.evaluation.retention)}（${recall.evaluation?.confidence === 'ok' ? '可信' : '低置信'}）· 结果已用于校准今日剩余任务</p>`
+        : recall?.status === 'pending' ? '<p class="hint">隔夜检测：待完成（结果会校准今日新词量）</p>' : recall?.status === 'recovery' ? '<p class="hint">已按中断天数安排重新进入检测，不积学习债</p>' : '';
+    return `<section class="panel plan-panel" id="plan-panel"><div class="section-title"><h2>今日计划</h2><span class="subtle">剩余 ${progress.remainingMinutes} 分钟 · 完成 ${progress.done}/${progress.total}${progress.skipped ? ` · 跳过 ${progress.skipped}` : ''}</span></div><div class="plan-progress" role="progressbar" aria-valuenow="${Math.round(progress.ratio * 100)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.round(progress.ratio * 100)}%"></i></div><p class="hint">预算 ${plan.availableMinutes} 分钟 · 状态 ${energyLabel(plan.energyState)} · ${esc(budgetReasons.slice(0, 3).join(' · ') || '按真实到期与保留率安排')}</p>${recallLine}<div class="plan-tasks">${plan.initialPlan.map(t => taskCard(t)).join('') || '<p class="subtle">今天没有需要安排的任务。</p>'}</div><div class="actions"><button id="plan-regenerate" class="secondary">重新生成未完成部分</button><button id="plan-adjust" class="text-button">调整预算 / 状态</button></div><p class="hint">已完成任务与已提交的学习证据不会被重建；延后只发生在今天，不成为明天的作业债。</p><p class="hint">未上线模块不生成任务：${esc(unavailableModulesText())}</p></section>`;
+}
+function taskCard(t: PlanItem): string {
+    const statusText: Record<string, string> = { done: '已完成', started: '进行中', skipped: '已跳过', delayed: '已延后', replaced: '已替换' };
+    const badge = t.status === 'done' ? 'fluent' : t.status === 'skipped' || t.status === 'replaced' ? 'unknown' : 'vague';
+    const startLabel = t.status === 'started' ? '继续' : '开始';
+    const actions = t.status === 'done' || t.status === 'replaced' || t.status === 'skipped' ? '' : `<div class="task-buttons"><button class="primary" data-task-start="${esc(t.id)}">${startLabel}</button>${t.flexible ? `<button class="secondary" data-task-replace="${esc(t.id)}">替换</button>` : ''}<button class="text-button" data-task-delay="${esc(t.id)}">延后</button><button class="text-button" data-task-skip="${esc(t.id)}">跳过</button></div>`;
+    return `<div class="plan-task ${esc(t.status)}" data-task="${esc(t.id)}"><div class="task-main"><div><b>${esc(t.label ?? TASK_LABELS[t.kind ?? ''] ?? t.kind ?? '任务')}</b><span class="task-minutes">${t.minutes} 分钟</span>${t.critical ? '<span class="badge vague">关键记忆</span>' : ''}${t.flexible ? '<span class="badge normal">可调整</span>' : ''}${statusText[t.status] ? `<span class="badge ${badge}">${statusText[t.status]}</span>` : ''}</div><small>${esc((t.reason ?? []).slice(0, 3).join(' · '))}</small><small>${(t.refs ?? []).length} 个词</small></div>${actions}</div>`;
+}
+function bindPlan() {
+    on('#plan-budget', 'change', e => { const v = (e.target as HTMLSelectElement).value; const custom = document.querySelector<HTMLInputElement>('#plan-custom'); if (custom) custom.disabled = v !== 'custom'; if (v !== 'custom') planBudget = Number(v); else custom?.focus(); });
+    on('#plan-custom', 'input', e => { planBudget = Number((e.target as HTMLInputElement).value); });
+    on('#plan-energy', 'change', e => { planEnergy = (e.target as HTMLSelectElement).value as EnergyState; });
+    on('#plan-create', 'click', createPlanFromUI);
+    on('#plan-regenerate', 'click', () => void regeneratePlan(todayPlan?.availableMinutes ?? planBudget, todayPlan?.energyState ?? planEnergy));
+    on('#plan-adjust', 'click', planAdjustDialog);
+    document.querySelectorAll<HTMLElement>('[data-task-start]').forEach(b => b.onclick = () => void startPlanTask(b.dataset.taskStart!));
+    document.querySelectorAll<HTMLElement>('[data-task-skip]').forEach(b => b.onclick = () => void planAction(b.dataset.taskSkip!, 'skip'));
+    document.querySelectorAll<HTMLElement>('[data-task-delay]').forEach(b => b.onclick = () => void planAction(b.dataset.taskDelay!, 'delay'));
+    document.querySelectorAll<HTMLElement>('[data-task-replace]').forEach(b => b.onclick = () => void replacePlanTask(b.dataset.taskReplace!));
+}
+function upsertPlan(list: DailyPlan[], plan: DailyPlan): DailyPlan[] { const i = list.findIndex(p => p.id === plan.id); const next = [...list]; if (i === -1) next.push(plan); else next[i] = plan; return next; }
+async function persistPlan(plan: DailyPlan): Promise<DailyPlan | null> {
+    if (!todayPlan)
+        return null;
+    try {
+        const saved = await savePlan(plan, todayPlan.revision ?? 0);
+        todayPlan = saved;
+        data.dailyPlans = upsertPlan(data.dailyPlans, saved);
+        return saved;
+    }
+    catch (e) {
+        if (e instanceof StalePlanError) {
+            toast(e.message);
+            todayPlan = (await loadPlan(dayKey(Date.now()))) ?? todayPlan;
+            render();
+        }
+        else
+            toast((e as Error).message);
+        return null;
+    }
+}
+async function createPlanFromUI() {
+    if (planBusy)
+        return;
+    if (todayPlan) {
+        modal('<h2>今天已有计划</h2><p>同一天不会重复生成计划。需要改变预算或状态时，请使用「调整预算 / 状态」，它只重排未完成部分。</p><div class="actions"><button id="plan-existing-ok" class="primary">知道了</button></div>');
+        on('#plan-existing-ok', 'click', closeModal);
+        return;
+    }
+    const custom = document.querySelector<HTMLInputElement>('#plan-custom');
+    const budget = Number(custom && !custom.disabled ? custom.value : planBudget);
+    const energy = (document.querySelector<HTMLSelectElement>('#plan-energy')?.value ?? planEnergy) as EnergyState;
+    planBusy = true;
+    try {
+        const { plan } = createDailyPlan(planInput(budget, energy));
+        const saved = await savePlan(plan, 0);
+        todayPlan = saved;
+        data.dailyPlans = upsertPlan(data.dailyPlans, saved);
+        toast(`今日计划已生成 · ${saved.initialPlan.length} 个任务 · ${saved.availableMinutes} 分钟预算`);
+        render();
+    }
+    finally {
+        planBusy = false;
+    }
+}
+async function startPlanTask(taskId: string) {
+    if (!todayPlan || planBusy)
+        return;
+    const task = todayPlan.initialPlan.find(t => t.id === taskId);
+    if (!task)
+        return;
+    const waiting = (task.dependencies ?? []).filter(d => todayPlan!.initialPlan.find(t => t.id === d)?.status !== 'done');
+    if (waiting.length) {
+        toast('请先完成前置任务（新词需要先预览，再 Recall）');
+        return;
+    }
+    if (task.kind !== 'new-preview' && data.sessions.some(s => !s.ended)) {
+        toast('请先继续或结束未完成的训练');
+        return;
+    }
+    const refs = (task.refs ?? []).map(id => wordMap.get(id)).filter((w): w is Word => !!w);
+    if (!refs.length) {
+        toast('这个任务暂时没有可执行的词（词库可能已变更）');
+        return;
+    }
+    const result = applyPlanAction(todayPlan, taskId, 'start', { now: Date.now() });
+    if (!result.ok) {
+        toast(result.reasons.join('；'));
+        return;
+    }
+    const saved = await persistPlan(result.plan);
+    if (!saved)
+        return;
+    const exec = { planTaskId: taskId, kind: task.kind ?? '', startedAt: Date.now(), sessionId: '' };
+    if (task.kind === 'new-preview') {
+        taskExecution = exec;
+        previewWords = refs;
+        previewIndex = 0;
+        page = 'preview';
+        shell();
+        previewPage();
+        return;
+    }
+    taskExecution = exec;
+    await startMode(task.kind ?? 'plan-task', refs);
+    if (!active)
+        taskExecution = null;
+}
+async function completePlanTask(exec: { planTaskId: string; kind: string; startedAt: number; sessionId: string }, actualMinutes: number) {
+    if (!todayPlan)
+        return;
+    const result = applyPlanAction(todayPlan, exec.planTaskId, 'complete', { now: Date.now(), actualMinutes, reason: 'task-completed' });
+    if (!result.ok) {
+        toast(result.reasons.join('；'));
+        return;
+    }
+    let plan = result.plan;
+    if (exec.kind === 'yesterday-recall') {
+        const saved = plan.yesterdayRecallResult as { sample?: RecallCandidate[] } | null;
+        const evaluation = evaluateRecallSession(saved?.sample ?? [], data.records, exec.sessionId);
+        const calibrated = calibrateAfterRecall(plan, evaluation, { now: Date.now(), words: data.words });
+        if (calibrated.ok)
+            plan = calibrated.plan;
+        toast(evaluation.retention === null ? '隔夜检测完成：样本不足，未推算保留率' : `隔夜保留率 ${pct(evaluation.retention)} · ${evaluation.confidence === 'ok' ? '样本可信' : '低置信'}；今日剩余任务已校准`);
+    }
+    if (exec.kind === 'closing-recall')
+        plan.closingLoop = { ...((plan.closingLoop as Record<string, unknown>) ?? {}), status: 'awaiting-feedback', feedback: null };
+    const savedPlan = await persistPlan(plan);
+    if (savedPlan && exec.kind === 'closing-recall')
+        closingFeedback();
+}
+async function planAction(taskId: string, action: 'skip' | 'delay') {
+    if (!todayPlan)
+        return;
+    const result = applyPlanAction(todayPlan, taskId, action, { now: Date.now() });
+    if (!result.ok) {
+        toast(result.reasons.join('；'));
+        return;
+    }
+    const saved = await persistPlan(result.plan);
+    if (saved) {
+        toast(action === 'skip' ? '已跳过（不滚存为明天作业债）' : '已延后到今天计划的后面');
+        render();
+    }
+}
+async function replacePlanTask(taskId: string) {
+    if (!todayPlan)
+        return;
+    const task = todayPlan.initialPlan.find(t => t.id === taskId);
+    if (!task)
+        return;
+    if (!task.flexible) {
+        toast('关键记忆任务不能替换，只能跳过或延后');
+        return;
+    }
+    const replacement = buildReplacement(todayPlan, task, data.words, Date.now(), data.settings.schedulingAuthority === 'legacy' ? 'legacy' : 'fsrs');
+    if (!replacement) {
+        toast('当前没有可替换的同目标任务');
+        return;
+    }
+    const result = applyPlanAction(todayPlan, taskId, 'replace', { now: Date.now(), replacement });
+    if (!result.ok) {
+        toast(result.reasons.join('；'));
+        return;
+    }
+    const saved = await persistPlan(result.plan);
+    if (saved) {
+        toast('已替换为同目标任务（时间保持 ±30% 内）');
+        render();
+    }
+}
+function planAdjustDialog() {
+    if (!todayPlan)
+        return;
+    modal(`<h2>调整今日预算</h2><p>已完成 ${planProgress(todayPlan).doneMinutes} 分钟不可撤回；只会重排未完成部分。</p><label>总预算（分钟）<input id="adjust-budget" type="number" min="${PLANNER_CONFIG.budget.min}" max="${PLANNER_CONFIG.budget.max}" step="1" value="${todayPlan.availableMinutes}"></label><label>今日状态<select id="adjust-energy">${([['low', '状态差'], ['normal', '正常'], ['good', '状态好']] as const).map(([v, t]) => `<option value="${v}" ${todayPlan!.energyState === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><div class="actions"><button id="adjust-save" class="primary">重新安排未完成部分</button></div>`);
+    on('#adjust-save', 'click', async () => {
+        const budget = Number(document.querySelector<HTMLInputElement>('#adjust-budget')?.value);
+        const energy = (document.querySelector<HTMLSelectElement>('#adjust-energy')?.value ?? 'normal') as EnergyState;
+        closeModal();
+        await regeneratePlan(budget, energy);
+    });
+}
+async function regeneratePlan(minutes: number, energy: EnergyState) {
+    if (!todayPlan || planBusy)
+        return;
+    const spent = planProgress(todayPlan).doneMinutes;
+    if (!Number.isFinite(minutes) || minutes < spent) {
+        toast(`新的总预算不能小于已投入的 ${spent} 分钟`);
+        return;
+    }
+    planBusy = true;
+    try {
+        const result = regenerateRemaining(todayPlan, planInput(minutes, energy));
+        const saved = await persistPlan(result.plan);
+        if (saved) {
+            toast('已按当前预算重排未完成任务');
+            render();
+        }
+    }
+    finally {
+        planBusy = false;
+    }
+}
+function closingFeedback() {
+    modal('<h2>今天的 Closing Loop</h2><p>刚才的收尾回忆已经保存。今天的难度感受会作为明天的计划输入。</p><div class="actions closing-choices"><button data-closing="easy" class="secondary">轻松</button><button data-closing="just" class="primary">刚好</button><button data-closing="hard" class="secondary">偏难</button></div>');
+    document.querySelectorAll<HTMLElement>('[data-closing]').forEach(b => b.onclick = () => void saveClosingFeedback(b.dataset.closing!));
+}
+async function saveClosingFeedback(feedback: string) {
+    if (!todayPlan)
+        return;
+    const plan = structuredClone(todayPlan);
+    plan.closingLoop = { ...((plan.closingLoop as Record<string, unknown>) ?? {}), status: 'completed', feedback, answeredAt: Date.now() };
+    closeModal();
+    const saved = await persistPlan(plan);
+    if (saved) {
+        toast('今日收尾已记录');
+        render();
+    }
+}
+
 async function boot() {
     await openDB();
     data = await loadData();
     reindex();
+    try {
+        todayPlan = (await loadPlan(dayKey(Date.now()))) ?? null;
+    }
+    catch {
+        todayPlan = null;
+    }
     render();
     if (data.migration && Date.now() - data.migration.at < 10 * 60 * 1000)
         setTimeout(() => toast(`本地数据库已从 v${data.migration!.from} 升级到 v${data.migration!.to}；建议立即导出一次完整备份`), 600);

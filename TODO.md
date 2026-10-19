@@ -3,11 +3,13 @@
 > P0 = 当前阶段必要；P1 = 重要；P2 = 后续优化。
 > 任务状态以 `STATE.json` 为准（task_id 一一对应）。
 
-## P0 — GitHub Remote 基础设施（尚未从用户本机核验）
+## P0 — GitHub Remote 基础设施（已完成并核验）
 
-- [ ] `infra_github_remote_001`：检查既有 remote → 核实 GitHub 身份与 Private → 历史 secrets 审核 → 创建/关联（确有需要才新建）→ push 既有提交和阶段 tags → SHA/可见性核验 → 状态持久化（若无授权则记录 blocked/pending，允许安全的本地开发继续）
+- [x] `infra_github_remote_001`：既有 remote 检查（当时为空）→ 历史 secrets 审核（0 命中）→ 创建 GitHub **Private** 仓库 `Huyaen/english-reconstruction-system` → 关联 origin → push main + 3 个阶段 tag → `git ls-remote`/API 核验 SHA 与 private 状态 ✔ 2026-10-19
 
-## P0 — Phase 3 Daily Planner（planned；以本机实际进度为准）
+## P0 — Phase 3 Daily Planner（passed 2026-10-19）
+
+- [x] `phase3_daily_planner_007`：Time Budget First（20/30/45/60/自定义）· 状态三档 · Yesterday Recall（真实隔夜抽样 + 保留率 + 校准）· 计划生成（复用 recommendedNewWordCount/buildNewWordQueue/effectiveDue）· 五模块 Task Contract + Capability Gate · 动态调整（Start/Skip/Delay/Replace，±30%）· Closing Loop（3–5 分钟 + 难度反馈）· 中断恢复（1 天 / 2–3 天 Re-entry / ≥7 天 Mini Diagnostic）· 持久化与刷新恢复 · 不积学习债 ✔（69/69 tests + build + HTTP + 浏览器 smoke 20/20）
 
 - [x] `phase0_5_reference_research_004`：GitHub 参考调研（候选 40+、深挖 12）→ `REFERENCE_RESEARCH.md`（Adopt / Adapt / Reject）✔ 2026-10-04
 - [x] `phase1_db_migration_001`：IndexedDB v1→v2 versioned migration 框架（只加不删、原子升级）+ 迁移测试 ✔ 2026-10-04（tests/migration.test.ts）
@@ -21,8 +23,8 @@
 ## P1 — 后续开发阶段（AGENT_EXECUTION.md Phase 2–13）
 
 - [x] Phase 2 Vocabulary V2：Preview、word lifecycle、三维 mastery、多词池选词、Learning Value Score、forgotten 回流、exposure 证据、动态新词量（已于 2026-10-04 文档验收）
-- [ ] Phase 3 Daily Planner：Time Budget First、状态三档、Yesterday Recall、每日计划生成、动态调整（≤20–30%）、Closing Loop、中断/恢复（验收见 docs/PHASE3_DAILY_PLANNER.md）
-- [ ] Phase 4 Sentence & Grammar：Sentence Lab（混合句源、拆句流程、Sentence Tree）、Grammar Knowledge Graph、Just-in-Time 知识卡、证据追踪
+- [x] Phase 3 Daily Planner：Time Budget First、状态三档、Yesterday Recall、每日计划生成、动态调整（≤20–30%）、Closing Loop、中断/恢复 ✔ 2026-10-19（验收：docs/PHASE3_DAILY_PLANNER.md §13）
+- [ ] Phase 4 Sentence & Grammar（下一个任务 `phase4_sentence_grammar_008`）：Sentence Lab（混合句源、拆句流程、Sentence Tree）、Grammar Knowledge Graph、Just-in-Time 知识卡、证据追踪
 - [ ] Phase 5 Reading：文章导入（文本/URL/图片 OCR 适配）、Layered Reading、生词即时标记+后置筛选、难句交接、re-read、阅读分析
 - [ ] Phase 6 Reinforcement AI：条件化句子生成、强化文章生成、严格 JSON schema、prompt 版本化（prompts/ 目录）
 - [ ] Phase 7 Mini Unit：2–3 天状态机、Anchor Material、targetWords/targetGrammar、Day1/2/3 推进

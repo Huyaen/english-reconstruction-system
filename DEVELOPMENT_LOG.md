@@ -87,3 +87,18 @@ Git：项目此前无 Git → `git init -b main`，baseline commit `6c1c625`，t
 已生成新的文档候选包：产品规格增 GitHub 私有仓库隐私边界、执行规格增远程建立与 Task/Phase 同步、统一启动入口、Phase 3 验收细则和合并使用说明。未接入用户本机，未运行 npm test/build/浏览器/推送 GitHub；全部运行期验收须接手 Hermes 依原状态协议复验。
 
 下一步：用本机最新 Git 事实三方对照合并此候选包，确认仓库 owner 与 Private 后执行 `infra_github_remote_001`；再续 `phase3_daily_planner_007` 或实际更靠后的任务。
+
+
+## 2026-10-19 — 文档整合包合并 + GitHub Private Remote + Phase 3 Daily Planner
+
+环境/恢复核查：HEAD=92f8ec1（clean）、无 origin remote、Phase 3 未开工；合并 2026-10-19 文档包（产品规格附录 C、AGENT_EXECUTION 的 GitHub Remote Sync Protocol、INITIAL_PROMPT 恢复优先、STATE/TODO/README/CHECKPOINT/HANDOFF 增补与纠错、docs/PHASE3_DAILY_PLANNER.md、START_HERMES.md），合并前副本存于 scratch。
+
+基础设施 `infra_github_remote_001`：全历史 secrets 扫描（48 个跟踪文件 / 51 个历史文件名，0 命中）→ 创建 GitHub **Private** 仓库 `Huyaen/english-reconstruction-system` → 推送 main 与 3 个阶段 tag → `git ls-remote` 与 API 双重复核 SHA 一致、`private=true`；`STATE.remote_sync` 记为 verified。
+
+Phase 3 Daily Planner：新增 `src/planner.ts`（确定性领域引擎）、`src/plannerStore.ts`（revision 并发保护持久化）、`tests/planner.test.ts` / `plannerStore.test.ts` / `plannerUi.test.ts`、`scripts/phase3-smoke.mjs`；`src/app.ts` 加入 Today 主入口（时间预算 → 状态 → 隔夜检测 → 计划 → Start/Skip/Delay/Replace → Closing Loop → Regenerate 未完成部分）；`src/types.ts` 把 PlanItem 扩为统一 Task Contract（可选字段，向后兼容，DB 版本不变）。
+
+测试：npm test **69/69**（原 39 + 22 + 6 + 2）；npm run build 成功（544.43 kB / gzip 187.93 kB）；HTTP 实测 200/404；真实浏览器 smoke（无头 Edge + CDP，独立 profile）**20/20**，含昨日隔夜检测（保留率 100%，触发校准）、断更 5 天 Re-entry、刷新恢复与无控制台错误。
+
+过程记录：计划时长必须 ≤ 预算（Closing/Recall/Re-entry 同预算）→ 生成后用 `trimToBudget` 收缩柔性任务兜底；`touch()` 不再自增 revision（revision 由持久化层统一递增，避免与 DB 分叉）；跳过/替换后的任务不再显示可执行按钮（避免当天出现"已完成但仍可开始"的假状态）；收尾用词在无今日记录时回退到今日新词（不凭空造词）；UI 测试发现 regenerate 会在剩余预算内补入弱词任务 → 属于预期行为，改为"跳过并验证不滚存"。
+
+下一步：Phase 4 Sentence & Grammar（Planner 通过 typed capability 接口接入，不重写计划器）。

@@ -1,24 +1,22 @@
 # HANDOFF — 换模型 / 换会话所需最小上下文
 
-（更新：2026-10-04 03:15 · 最新代码提交见 git log；基线 `6c1c625` / `v1.0.0-mvp-baseline`）
+（更新：2026-10-19 · 最新提交见 git log；Phase 3 已完成并通过实测，下一个任务是 Phase 4）
 
 
-## 2026-10-19 离线文档复核增补（本机状态待 Hermes 核验）
+## 2026-10-19 离线文档复核增补 —— 已在本机完成核验（不再是待办）
 
-- 本节来自用户上传的项目文件复核，**没有读取 D 盘实时源码/.git，也没有实际创建/推送 GitHub**。原有 Phase 2 `passed`、测试 39/39、DB v3、Phase 3 `planned` 是上一轮日志记录，必须核查是否已有更近期开发。
-- 新增一次性基础设施任务 `infra_github_remote_001`（`STATE.next_task_id` 暂指向它）；这不是重新执行 Phase 0.5 GitHub 参考调研。详细流程：`AGENT_EXECUTION.md` GitHub Remote Sync Protocol；私人仓库 owner/URL/现有 remote 实测后填写 `STATE.remote_sync`。
-- 如经核验已存在正确 Private remote：直接检查分支/tag/SHA，标记此任务 passed，继续实际开发；如果无 remote：历史 secrets 安全门后创建/关联/推送并验收。远端不可达或缺授权时标记 pending/blocked，不清除本地历史，不阻断安全的本地开发。
-- 远程任务完成或标记非阻断后，**原始下一业务任务**仍是 `phase3_daily_planner_007`；详细验收参考 `docs/PHASE3_DAILY_PLANNER.md`。如本机 Phase 3 已有更近期改动，按 Git+代码+测试续接而非重做。
-- `STATE.last_verified_commit` 是记录的 Phase 2 功能提交 `92fdab0`；用户曾报告另有状态 pin `92f8ec1`，尚待本机 `git log` 核对。不要虚称离线包确认当前 Git HEAD。
-- 此包仅修复项目规格/执行/状态文档。用户学习数据在浏览器 IndexedDB，不因 push 代码而备份；禁止上传真实学习数据库或 API Key。
+- 核验结果：合并前 HEAD=`92f8ec1`（clean），**当时无 origin remote**，Phase 3 未开工；`STATE.last_verified_commit=92fdab0` 为 Phase 2 功能提交，`92f8ec1` 是其上的状态 pin 提交。离线文档包内容与本地快照一致（差异全为新增/纠错），已整体合并。
+- `infra_github_remote_001`：历史 secrets 扫描 0 命中 → 创建 GitHub **Private** 仓库 `Huyaen/english-reconstruction-system` → 关联 origin → push main + 阶段 tags → `git ls-remote`/API 双重复核 SHA 与 `private=true` → **passed**（`STATE.remote_sync` 为 verified）。
+- `phase3_daily_planner_007`：**passed 2026-10-19**，验收见 `CHECKPOINT.md` §Phase 3、`docs/PHASE3_DAILY_PLANNER.md` §13、`docs/TEST_REPORT.md` §Phase 3。
+- 学习数据仍在浏览器 IndexedDB，代码 push 不构成学习数据备份；不要上传真实学习数据库或 API Key。
 
 ## Current phase
 
-Phase 3 — Daily Planner（Phase 0 / 0.5 / 1 / 2 全部完成并通过）
+Phase 4 — Sentence & Grammar（Phase 0 / 0.5 / 1 / 2 / 3 全部完成并通过）
 
 ## Current task_id
 
-`infra_github_remote_001`（本次新增：GitHub 远程建立或核验）；之后恢复 `phase3_daily_planner_007`。Phase 2（`phase2_vocabulary_v2_006`）已 passed：ts-fsrs 调度、DB v3、Preview→Recall、三维证据、多词池/动态新词量、UI —— 证据见 `CHECKPOINT.md` §Phase 2。
+`phase4_sentence_grammar_008`（Phase 4 起步；接口为 Planner 的 typed capability，**不要重写计划器**）。Phase 3（`phase3_daily_planner_007`）已 passed：Time Budget First、状态三档、Yesterday Recall、任务合同 + Capability Gate、动态重规划、Closing Loop、中断恢复、持久化恢复 —— 证据见 `CHECKPOINT.md` §Phase 3。
 
 ## What is done（累计）
 
@@ -31,7 +29,12 @@ Phase 3 — Daily Planner（Phase 0 / 0.5 / 1 / 2 全部完成并通过）
   - 三维证据（recognition/activeRecall/productive）+ exposure/production API；生命周期可升可降；forgotten 回流
   - 多词池（foundation/miniUnit/encountered/forgotten）+ 确定性 Learning Value + `recommendedNewWordCount()`（Phase 3 直接调用）
   - UI：首页「今日新词」面板、Preview 会话（1–4 键）、词库生命周期列、词详情（三维/生命周期/FSRS/可提取率）、设置页「调度引擎 / 目标保留率」
-- **验证证据（最新）**：`npm test` **39/39**；`npm run build` 成功（511.74 kB / gzip 176.27 kB）；**真实浏览器 smoke 通过**（无头 Edge + CDP：导入→拦截→Preview 8/8→Recall→恢复→IDB v3/FSRS/rating→reload 保留）
+- **Phase 3 Daily Planner（本轮完成）**：
+  - `src/planner.ts` 确定性领域引擎（预算分配 / Yesterday Recall 抽样与评估 / 保留率 d1·d7 / 恢复决策 / 五模块 Task Contract / Start·Skip·Delay·Replace·超时重排 ≤30% / 隔夜校准 / Regenerate 未完成部分）
+  - `src/plannerStore.ts`（dailyPlans，id=本地日期，`savePlan(plan, expectedRevision)` + `StalePlanError` 并发保护）
+  - `src/app.ts` Today 主入口（预算 20/30/45/60/自定义 + 状态三档 → 任务卡执行/微调 → Closing Loop 难度反馈 → 刷新恢复）；未上线模块只在 UI 声明 capability、不生成假任务
+  - `src/types.ts` PlanItem 统一 Task Contract（字段全部可选 → 旧计划/旧备份继续可读，**DB 仍为 v3**）
+- **验证证据（最新）**：`npm test` **69/69**；`npm run build` 成功（544.43 kB / gzip 187.93 kB）；HTTP `/` 200 / 缺失 404；**真实浏览器 smoke 20/20**（无头 Edge 128 + CDP 9224 独立 profile：导入→生成计划→顺序与预算→替换无候选拒绝→Preview→Recall→Closing+难度反馈→刷新恢复→昨日隔夜检测 100% 保留率并触发校准→断更 5 天 Re-entry→无控制台错误）
 - **Git 轨迹**：`6c1c625`（基线）→ `9dc0b8b` → `76716a6`（Phase 0.5）→ `8a74ba8`（Phase 1，tag `phase1-data-foundation`）→ Phase 2 提交（tag `phase2-vocabulary-v2`，见 git log）
 
 ## What is currently running
@@ -44,16 +47,17 @@ Phase 3（当前）→ Phase 4–13。
 
 ## Last verified build
 
-`npm run build` @ 本轮工作树 → vite 成功；`dist/assets/index-CRwhfoD-.js` 511.74 kB（gzip 176.27 kB）。
+`npm run build` @ Phase 3 工作树 → vite 成功；`dist/assets/index-DjucMzEh.js` 544.43 kB（gzip 187.93 kB）、`dist/assets/index-Ubj28ML1.css` 17.23 kB。
 
 ## Last verified tests
 
-`npm test` @ 同上 → **39 pass / 0 fail**（fsrs 6 / vocab 7 / migration 6 / 原有 20+；含 v1→v3 与 v2→v3 fixture、Preview DOM 流程、索引查询）。
+`npm test` @ 同上 → **69 pass / 0 fail**（Phase 2 原 39 + planner 22 + plannerStore 6 + plannerUi 2）；真实浏览器 smoke `scripts/phase3-smoke.mjs` 20/20。
 
 ## Known bugs
 
 - 无阻断性 bug。
-- 已知限制（记入 CHECKPOINT）：bundle >500KB 警告（Phase 13 处理）；fake-indexeddb 基准≠真实性能；Preview 不创建 StudySession（直接落盘，刷新安全）。
+- 已知限制（记入 CHECKPOINT/STATE）：bundle >500KB 警告（Phase 13 处理）；fake-indexeddb 基准≠真实性能；Preview 不创建 StudySession（直接落盘，刷新安全）。
+- Phase 3 限制：Planner 每词耗时为集中配置的启发式常量（0.35/0.4/0.6 分钟），非个性化测量；sentence/reading/input/output 仅声明 capability；Mini Diagnostic 当前只覆盖真实词汇测试。
 - 未验收项（TODO P1）：真实供应商 AI 调用；真机移动端。
 
 ## Files currently being modified
@@ -67,14 +71,12 @@ Phase 3（当前）→ Phase 4–13。
 
 ## Next exact action
 
-Phase 3 — Daily Planner 第一步（建议顺序）：
+Phase 4 — Sentence & Grammar（`phase4_sentence_grammar_008`）：
 
-1. 实现 `src/planner.ts`（纯函数优先，UI 依赖最小）：输入 = `{availableMinutes, energyState, model}`；输出 = `DailyPlan`（initialPlan 的 PlanItem[]：review/newWords/sentence/reading/input/output/closing 的时间配额与顺序；顺序依据 PROJECT_SPEC §10 动态重排规则）
-2. 复用已就绪 API：`recommendedNewWordCount()`（新词量）、`buildNewWordQueue()`（词池）、`effectiveDue()` + `model.dueWords()`（到期复习量→预计耗时）；Yesterday Recall 结果参与校准
-3. Yesterday Recall 与 Closing Loop 的实现（新 store `dailyPlans` 已就绪；`dailyPlans` 用日期 id）
-4. 动态调整：执行中允许 ±20–30% 重分配（PlanAdjustment 记录 reasons）；中断恢复（1 天 / 2–3 天 Re-entry Check / 7 天+ Mini Diagnostic）
-5. UI：首页改为 Today's Plan 主视图（保留现有训练入口与「今日新词」面板）；Start Today's Training 串接
-6. 测试：planner 纯函数单测（time budget、energy、yesterday recall 校准、无学习债、调整幅度约束）+ DOM 流程；更新状态文件并提交（tag 建议 `phase3-daily-planner`）
+1. 读 `PROJECT_SPEC.md` Phase 4 章节 + `AGENT_EXECUTION.md` 阶段门；确认 Sentence Lab（混合句源、拆句流程、Sentence Tree）、Grammar Knowledge Graph、Just-in-Time 知识卡、证据追踪的范围
+2. 接入方式：Planner **不重写** —— 在 `moduleCapabilities()` 中把 `sentence` 由 `available: false` 改为 `available: true`，并新增 `sentence` 任务类型（走同一 `PlanItem` contract：kind/label/minutes/refs/reason/critical/flexible/dependencies）
+3. 沿用既有纪律：DB 变更必须走 `indexSpecs` + `runBackfills` 串行链并带 fixture 测试；到期口径只用 `effectiveDue()`；测试用 `node --test`（新套件放到 `tests/*.test.ts`）
+4. 验收门：`npm test`（不得低于 69 且全绿）→ `npm run build` → HTTP 200 → 真实浏览器 smoke（可复制 `scripts/phase3-smoke.mjs` 的 CDP 骨架）→ 更新 STATE/CHECKPOINT/HANDOFF/TODO/README/DEVELOPMENT_LOG → commit + tag + push + `git ls-remote` 核对
 
 ## Important warnings
 
@@ -85,4 +87,5 @@ Phase 3 — Daily Planner 第一步（建议顺序）：
 5. 浏览器验证用 CDP 无头 Edge（`--remote-debugging-port` + 独立 profile；参考 skill `sillytavern-live-ui-verification` 的 `cdp-st.mjs`；node 驱动必须前台运行）。
 6. 不要把 API Key 写入日志/提交；备份始终剔除 Key。
 7. 唯一根目录 `D:\英语重构训练\vocabulary-app`；禁止另起工程。
-8. 阶段完成按 `AGENT_EXECUTION.md` §4：测试 → build → 更新五个状态文件 → commit + tag。
+8. 阶段完成按 `AGENT_EXECUTION.md` §4：测试 → build → 更新状态文件 → commit + tag + push + `git ls-remote` 核对远端 SHA。
+9. Phase 3 的 Today 计划是**当日唯一**（id=本地日期）：删改计划状态请用 UI 的「跳过/延后/替换」，不要手改 IndexedDB；O 大改动前先导出备份。

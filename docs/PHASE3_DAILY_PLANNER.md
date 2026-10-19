@@ -105,3 +105,42 @@ Today 主页成为主入口：选择时长/状态、Yesterday Recall、当前 Mi
 遇额度不足、413、GitHub API timeout、浏览器工具错误：优先写状态并完成 Emergency Checkpoint；GitHub 不可达不意味着本地开发失败，远程同步状态单独写出。
 
 不要在此阶段提前完整实现 Sentence/Grammar/Reading/Input/Output/MiniUnit/Weekly Diagnostic；只建立最小接口与真实 capability gating。下阶段 Phase 4 才正式执行 Sentence & Grammar。
+
+---
+
+## 13. 实现与验收记录（2026-10-19 · passed）
+
+本节是本文档之上的实测结果，不是计划。逐条对应 §1–§12：
+
+| 规格条目 | 实现位置 | 验收证据 |
+| --- | --- | --- |
+| §1 日启动：先预算后任务 | `createDailyPlan()`（`src/planner.ts`）、Today 面板（`src/app.ts` `planSetup`） | 浏览器 smoke：20/30/45/60/自定义；面板先显示预算与状态再出任务 |
+| §1 未设置不生成 | `planSetup` 只在用户点击 `#plan-create` 后生成；非法/极端值 `normalizeBudget()` 抛错或钳制 5–240 | 单测 `budget-rejects-invalid` / `budget-clamps-extremes` |
+| §2 领域类型与核心纯函数 | `src/planner.ts`（无 DOM / 无网络 / 无 AI），`DailyPlan`/`PlanItem` 扩展在 `src/types.ts` | 单测 22 例；同输入两次生成结果完全一致（`deterministic`） |
+| §3 Yesterday Recall | `buildYesterdayRecallSample()`（hard/new/easy/confusion 配额 + 方向平衡 + 去重）、`evaluateRecallSession()`（仅 ≥12h 真实隔夜、按 sessionId+wordId 去重）、`estimateRetention()`（d1/d7，样本 <3 → null） | 单测 `yesterday-recall-*`、`retention-*`；smoke 实机显示「保留率 100.0%（可信）」 |
+| §3 无证据不伪造 | 无昨日记录 → 不生成隔夜任务（`no-history`）；样本不足 → 保留率 null | 单测 `yesterday-recall-absent`；UI：首次使用只出现新词与收尾 |
+| §4 统一五模块 Contract | `PlanItem` 统一字段（kind/priority/critical/flexible/capabilityRequired/source/refs/reason/dependencies/actualMinutes） | 单测 `task-contract` 校验每个任务字段完整 |
+| §4 Capability Gate | `moduleCapabilities()`：vocabulary available；sentence/reading/input/output `available:false` + `requires` | 单测 `capability-gating`；UI 面板明示「句子与语法（phase4）…」且不生成任务（smoke 断言） |
+| §5 多来源词汇与时间分配 | `recommendedNewWordCount()` / `buildNewWordQueue()` / `effectiveDue()` 复用；每词 0.35/0.4/0.6 分钟常量集中在 `PLANNER_CONFIG` | 单测：低保留与高到期负载会减少新词量；`planned ≤ budget` 恒成立 |
+| §6 微调与有限自由 | `applyPlanAction()`：start/complete/skip/delay/replace；`rebalance()` 超时只收缩柔性任务且 ≤30%；`regenerateRemaining()` 只重建未完成部分 | 单测 `overrun-bounded`、`skip/delay/replace`、`regenerate-preserves-evidence`；smoke：替换无候选时明确拒绝、跳过不滚存 |
+| §7 不积学习债 / 中断重新进入 | 跨日不克隆未完成任务；`decideRecovery()`：断 1 天正常、断 2–3 天 Re-entry(5min)、断 4–6 天 Re-entry(≤8min)、断 ≥7 天 Mini Diagnostic（词汇真实测试，10 词） | 单测 `recovery-*`；smoke：写入 5 天前真实记录后生成「重新进入检测 6 分钟 · 5 个词」，仍在预算内 |
+| §8 Closing Loop | 末位 critical 任务（3–5 分钟、今日真实词、无记录时回退今日新词）、`closingFeedback()` 三档难度（easy/just/hard）落盘 | 单测 `closing-*`；smoke：反馈「刚好」写入 `closingLoop.feedback` |
+| §9 持久化 / 刷新恢复 / 幂等 | `src/plannerStore.ts`：dailyPlans（id=本地日期）、`savePlan(plan, expectedRevision)` → `StalePlanError`；同日不重复生成 | 单测 plannerStore 6 例；smoke：刷新后计划恢复且 `dailyPlans` 仅有 1 条当日记录 |
+| §10 UI 范围 | Today 主入口 + 任务卡（Start/Skip/Delay/Replace）、进度与剩余时间、Regenerate 未完成部分、调整预算/状态 | smoke 全流程；窄屏与深色主题复用现有变量 |
+| §11 测试与验收门 | `tests/planner.test.ts` 22、`tests/plannerStore.test.ts` 6、`tests/plannerUi.test.ts` 2；`scripts/phase3-smoke.mjs` 20 项 | `npm test` 69/69、`npm run build` 通过、HTTP 200/404、真实浏览器 smoke 20/20 |
+| §12 范围边界 | 未实现 Sentence/Grammar/Reading/Input/Output/MiniUnit/Weekly Diagnostic 功能本身 | 仅 typed capability 接口与 gating；Mini Diagnostic 只使用现有真实词汇测试 |
+
+**未做（有意留待后续阶段）**
+
+- 语法/阅读/输入/输出模块的真实任务类型（Phase 4+）；Mini Diagnostic 的非词汇子测试。
+- Closing Loop 的「一句话输出」写法合同（输出模块上线后接入）。
+- 个性化时间估算（当前为集中配置的启发式常量）。
+
+**复跑方式**
+
+```bash
+npm test && npm run build && node server.mjs &     # 终端 1
+& "$env:ProgramFiles(x86)\Microsoft\Edge\Application\msedge.exe" --headless=new --remote-debugging-port=9224 \
+  --user-data-dir=%LOCALAPPDATA%\Temp\edge-phase3-profile http://127.0.0.1:4173/   # 终端 2（独立 profile）
+node scripts/phase3-smoke.mjs                       # 终端 3（必须前台运行）
+```

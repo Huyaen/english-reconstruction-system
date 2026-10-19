@@ -4,6 +4,32 @@
 
 ---
 
+## 2026-10-19 · Phase 3 — Daily Planner / Today 主入口（passed）
+
+**结论**：Daily Planner 全量交付并实测通过。Today 首页成为主入口（时间预算 → 状态 → 隔夜检测 → 计划 → 执行/微调 → 收尾），Phase 0/1/2 既有能力全部保持。
+
+新增/改动：
+- `src/planner.ts`（领域引擎，纯函数/确定性/无 DOM 无 AI）：预算分配（Closing 与 Recall/Re-entry 同一预算）、`buildYesterdayRecallSample`/`evaluateRecallSession`（只统计 ≥12h 的真实隔夜证据，同词去重）、`estimateRetention`（d1/d7，样本 <3 返回 null）、`decideRecovery`、`createDailyPlan`、`applyPlanAction`（start/complete/skip/delay/replace + overrun rebalance ≤30%）、`calibrateAfterRecall`、`regenerateRemaining`、`buildReplacement`、`assertPlanInvariants`。
+- `src/plannerStore.ts`：dailyPlans 持久化（id=本地日期）、`savePlan` revision 并发保护（`StalePlanError`）、`loadPlan/listPlans`。
+- `src/types.ts`：PlanItem 扩为统一 Task Contract（kind/label/priority/critical/flexible/capabilityRequired/source/refs/reason/dependencies/actualMinutes，全部可选 → 旧计划与旧备份继续可读）；DailyPlan 增 revision/status/capabilities/budget/recovery/calibration/taskActions。
+- `src/app.ts`：Today 面板（预算 20/30/45/60/自定义、状态三档、任务卡 Start/Skip/Delay/Replace、进度与剩余时间、Regenerate 未完成部分、调整预算/状态、Closing 难度反馈）+ 会话与计划任务串联（任务完成即落盘，隔夜检测完成后校准剩余任务）；未上线模块在 UI 明示为不可执行。
+- `src/style.css`：Plan 面板样式（含窄屏与深色主题变量复用）。
+
+**关键设计取舍**
+- 复用而非重写调度：新词量走 `recommendedNewWordCount()`、选词走 `buildNewWordQueue()`、到期判定走 `effectiveDue()`；Planner 不新增第二套 FSRS 调度。
+- 只用真实证据：没有昨日记录 → 不生成隔夜检测；样本不足 → 保留率返回 null（不伪造通过率）；同一次作答不重复计入保留率（按 sessionId + wordId 去重）。
+- 不积学习债：跨日不克隆未完成任务；到期记忆仍按到期池出现（记忆债 ≠ 学习债）。
+- Capability Gate：sentence/reading/input/output 只声明 `requires`，不生成任何任务与假进度。
+- 超时/提前完成只收缩柔性任务（新词/弱词），critical 记忆任务不静默削减；调整全部写入 `adjustments/taskActions` 并带原因。
+
+**验证证据**
+- `npm test` **69/69**（Phase 2 原 39 + planner 22 + plannerStore 6 + plannerUi 2）；`npm run build` 成功（544.43 kB / gzip 187.93 kB）。
+- HTTP：`node server.mjs` → `/` 200、JS 200（552,819B）、CSS 200（17,234B）、缺失路径 404。
+- 真实浏览器 smoke（无头 Edge 128 + CDP 9224，独立 profile）**20/20**：导入 → 生成计划 → 任务顺序（Preview→Recall→Closing 末位）→ 替换无候选明确拒绝 → Preview/Recall 完成落盘 → Closing + 难度反馈 → 刷新恢复（同日唯一计划）→ 昨日记录隔夜检测（保留率 100% · 可信 · 触发校准）→ 断更 5 天 Re-entry（真实词、预算内）→ 无控制台错误。
+- DB 仍为 **v3**（未提升版本；dailyPlans 复用现有 store 与 `date` 索引）。
+
+---
+
 ## 2026-10-19 · 离线文件审查与 GitHub Remote Sync 规格增补（documentation only）
 
 **真实性边界**：基于用户上传的 Markdown/JSON/依赖清单审核，未连接用户 D 盘 Git 仓库；此条不表示实测 GitHub、创建仓库、push 或重新运行 39 个测试。本地最新状态仍须接手 Agent 核验。
