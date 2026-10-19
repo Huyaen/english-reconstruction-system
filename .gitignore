@@ -4,3 +4,4 @@ node_modules/
 
 docs/history.bundle
 *-smoke-result.json
+dist-test/

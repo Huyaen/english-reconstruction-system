@@ -1159,6 +1159,50 @@ Git 是辅助，不替代 `STATE.json / CHECKPOINT.md / HANDOFF.md`。
 
 # 10. 可恢复性原则
 
+## CI Protocol（Phase 5.0 起长期有效：`infra_github_actions_ci_002`）
+
+远程自动化门禁由 GitHub Actions 承担（`.github/workflows/ci.yml`），本地 Hermes 只负责开发、真实浏览器验收与状态同步。两者不可互相替代。
+
+### Task 级门禁（每完成一个稳定 Task）
+
+1. 相关测试通过（`npm test`，例数不得低于上一 Task）。
+2. 本地构建通过（`npm run build`）。
+3. `git diff` 审核：确认没有意外改动、没有密钥/凭据/备份数据。
+4. Commit（清晰、面向 Task 的信息）。
+5. Push 到 `origin/main`。
+6. 核验远端 SHA（`git ls-remote origin refs/heads/main`）。
+
+### Phase 级门禁（每完成一个主要 Phase）
+
+1. 全量 `npm test`。
+2. `npx tsc --noEmit`。
+3. `npm run build`（同时提交 `dist`）。
+4. 真实浏览器 Smoke（独立 profile 的无头 Edge + CDP；测试构建用 `npm run build:test` 产出的 `dist-test`）。
+5. 既有模块回归（`scripts/phase3-smoke.mjs`、`scripts/phase4-smoke.mjs` 等）。
+6. 状态文件同步（STATE / CHECKPOINT / HANDOFF / TODO / DEVELOPMENT_LOG / README）。
+7. Commit + Tag + Push。
+8. **GitHub Actions CI 成功**（以 GitHub API 返回的 run conclusion 为准）。
+9. 远端 SHA 与 Tag 核验，仓库仍为 Private。
+
+只有以上全部通过，Phase 才允许标记 `passed`。
+
+### 测试钩子隔离（硬约束）
+
+- 高权限测试能力**不得**只由 URL query 参数控制。唯一开关是构建期常量 `__ERV2_TEST_HOOKS__`（`vite.config.ts` 按 `--mode` 注入）。
+- 生产构建：常量为 false → 钩子被摇树移除；CI 有独立步骤断言 `dist/assets/*.js` 中不含 `__labTest`。
+- 测试构建：`npm run build:test` → `dist-test/`（已 gitignore），配 `node server.mjs --dir=dist-test --port=4173` 使用。
+- 任何钩子都不得直接写用户真实学习数据，且不得绕过学习状态校验。
+
+### CI 失败处理
+
+必须区分：
+
+- **代码失败**：修代码、补测试、重跑，不得删除有效测试或绕过构建错误来换绿。
+- **基础设施失败**（GitHub API 超时、Runner 故障、Rate Limit、CI 无法启动、网络不可达）：允许继续本地开发，但必须把真实状态写进 `STATE.json`（`remote_sync.ci.status` / `last_error` / `pending_push`），且**不得**宣称远程门禁已通过。
+
+`dist` 纳入 Git，CI 在 Node 22 上执行 `git diff --exit-code -- dist`。若出现跨平台合法差异，必须先定位原因；确需调整策略时，必须在 STATE.json 与 `docs/PHASE5_READING.md` 记录原因与替代验证机制，不能为了变绿直接删掉该步骤。
+
+
 始终遵守：
 
 > **完成 70% 且状态完整、可恢复、可以继续开发，远优于试图一次做完 100% 却因额度或会话中断而丢失状态。**

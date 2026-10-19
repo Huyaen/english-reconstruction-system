@@ -1,5 +1,6 @@
 import './style.css';
 import type { Data, Word, StudySession, Settings, ReviewRecord, Mastery, DailyPlan, PlanItem, EnergyState, GrammarConcept, SentenceRecord, SentenceStepRecord, SentenceAttempt, SentenceEvidenceClass, GrammarCategory } from './types.ts';
+import { testHooksEnabled } from './testMode.ts';
 import { openDB, getDB, loadData, replaceData, saveSettings, putItems, saveAnswer, savePreview, backup, validateBackup, emptyData } from './db.ts';
 import { makeWord, uid, labels, priority, priorityGrade, shuffle, question, validSettings } from './core.ts';
 import { parseFile, parseText, exportWords, type Parsed } from './import.ts';
@@ -1344,9 +1345,11 @@ async function finishLabSession(): Promise<void> {
     render();
     toast(`本次完成 ${finished.length} 句 · 用时约 ${Math.round(minutes)} 分钟${finished.length ? ` · ${finished.map(f => `${f.correctSteps}/${f.total}`).join('、')}` : ''}`);
 }
-// 仅 ?test=1 时暴露测试钩子：验收脚本据此点"正确/错误"选项，生产 DOM 不含任何答案提示
+// 测试钩子：仅在测试构建（npm run build:test → dist-test）且 URL 带 ?test=1 时才暴露。
+// 生产构建里 testHooksEnabled() 是常量 false，整个钩子（含 __labTest 赋值）会被摇树移除，
+// 因此生产环境既没有答案入口，也没有任何可绕过学习状态校验的写能力（Phase 5.0 安全加固）。
 function installTestHook(): void {
-    if (!new URLSearchParams(location.search).has('test'))
+    if (!testHooksEnabled() || !new URLSearchParams(location.search).has('test'))
         return;
     const hook = {
         step: () => {

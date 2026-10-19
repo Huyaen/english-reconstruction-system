@@ -111,7 +111,10 @@ try {
     // 上一个会话可能停在训练页：先导航到测试模式首页（?test=1 才暴露答题钩子）
     await cdp.send('Page.navigate', { url: 'http://127.0.0.1:4173/?test=1' });
     await wait(`!!document.querySelector('#import, #plan-panel')`, 'app boot');
-    check('测试钩子只在 ?test=1 时存在', !!(await ev(`!!window.__labTest`)));
+    // 钩子来自测试构建（npm run build:test → dist-test）。生产构建里整个钩子被摇树移除，
+    // 因此本脚本必须跑在测试构建上：node server.mjs --dir=dist-test --port=4173。
+    const hasHook = !!(await ev(`!!window.__labTest`));
+    check('测试钩子仅在测试构建 + ?test=1 时存在', hasHook, hasHook ? 'dist-test' : '缺少钩子：请用 npm run build:test 并以 --dir=dist-test 启动服务');
     await ev(`(async()=>{const db=await new Promise((res,rej)=>{const r=indexedDB.open('vocabulary-memory-v1');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});await new Promise(res=>{const tx=db.transaction([...db.objectStoreNames],'readwrite');for(const n of db.objectStoreNames)tx.objectStore(n).clear();tx.oncomplete=()=>res();});db.close();return 'cleared';})()`);
     await cdp.send('Page.reload');
     await wait(`!!document.querySelector('#import')`, 'boot after clear');

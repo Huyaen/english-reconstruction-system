@@ -1,10 +1,10 @@
 {
   "project": "English Reconstruction System V2",
   "root": "D:\\英语重构训练\\vocabulary-app",
-  "overall_status": "active",
-  "current_phase": "phase_4_sentence_grammar",
-  "last_updated": "2026-10-19T22:04:48+08:00",
-  "last_verified_commit": "75caa1f689a0defcb9c4c4f9f7c41f15a4052e63",
+  "overall_status": "in_progress",
+  "current_phase": "phase_5_reading",
+  "last_updated": "2026-10-19T22:40:39+08:00",
+  "last_verified_commit": "a10efd48efa746a76fd2df3acb4c53d188ba9680",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 4,
   "build_status": "passed",
@@ -239,6 +239,35 @@
         "证据分级：independent/transfer/delayed/error 计入 BKT；exposed/hint-assisted 只计接触",
         "PlanItem.module='sentence'：sentence-basic-structure / sentence-weak-grammar / sentence-transfer，绑定真实句子 id"
       ]
+    },
+    "infra_github_actions_ci_002": {
+      "status": "verifying",
+      "description": "Phase 5.0 前置工程补强：GitHub Actions CI（Node 22/24 矩阵：tsc --noEmit + 全量测试 + 生产构建 + dist 一致性 + 生产包无测试钩子）+ 测试钩子构建期隔离（__ERV2_TEST_HOOKS__，dist-test）+ server.mjs --dir/--port + STATE 纠错 + 长期 CI Protocol 落盘",
+      "files": [
+        ".github/workflows/ci.yml",
+        "vite.config.ts",
+        "src/testMode.ts",
+        "src/app.ts",
+        "server.mjs",
+        "package.json",
+        "scripts/phase3-smoke.mjs",
+        "scripts/phase4-smoke.mjs",
+        "AGENT_EXECUTION.md",
+        ".gitignore"
+      ],
+      "tests": [
+        "npm test → 106/106 pass",
+        "npm run build → 成功；生产包 grep __labTest = 0（钩子被摇树移除）",
+        "npm run build:test → dist-test，grep __labTest = 1",
+        "node scripts/phase4-smoke.mjs（dist-test）→ 36/36",
+        "node scripts/phase3-smoke.mjs（dist-test）→ 21/21",
+        "GitHub Actions 真实运行（Node 22 / 24）→ 见 remote_sync.ci"
+      ],
+      "artifacts": [
+        "生产构建不暴露任何测试钩子；钩子只在 dist-test 且 URL 带 ?test=1 时存在",
+        "CI 权限 contents: read，不部署、不写仓库、不使用任何真实 AI 密钥或用户学习数据",
+        "dist 纳入 Git，由 CI 在 Node 22 上核对 dist 与源码一致（git diff --exit-code -- dist）"
+      ]
     }
   },
   "known_bugs": [],
@@ -251,7 +280,8 @@
     "Closing Loop 的语法/Unit 一句话输出合同留待后续 Phase 扩展",
     "Phase 4 句源只有 authored 教学句（12 条）；真实 AI 句生成与外部语料（阅读 handoff）未接入，UI 明示不可用、不生成假句",
     "BKT-lite 参数为启发式起点（prior 0.25/learn 0.15/guess 0.25/slip 0.1），未用真实学习数据拟合；界面一律标注“估算”",
-    "语法图谱为显式 34 概念 + 先修边（无环），未做自动句法分析；非 gold 结构一律标注 provenance/confidence"
+    "语法图谱为显式 34 概念 + 先修边（无环），未做自动句法分析；非 gold 结构一律标注 provenance/confidence",
+    "GitHub Actions CI 只做静态/单测/构建验证：不含真实浏览器 E2E、不含真实 AI Provider 调用、不备份 IndexedDB 用户学习数据；浏览器验收仍在本地用独立 profile 的无头 Edge + CDP 执行"
   ],
   "blocked": [],
   "next_task_id": "phase5_reading_009",
@@ -267,7 +297,8 @@
     "项目唯一根目录 D:\\英语重构训练\\vocabulary-app；禁止另起工程或从零重写",
     "旧数据 100% 保留为硬约束；任何 DB 版本操作前先备份快照",
     "dist/ 已纳入 Git（commit 前保持 build 与源码一致）",
-    "Phase 4 交付：sentence 模块已真实上线（moduleCapabilities.sentence.available=true）；阅读/输入/输出仍未上线，UI 不得声称可用"
+    "Phase 4 交付：sentence 模块已真实上线（moduleCapabilities.sentence.available=true）；阅读/输入/输出仍未上线，UI 不得声称可用",
+    "CI Protocol（Phase 5.0 起长期有效）：Task 级门禁=测试+构建+diff 审核+commit+push+远端核验；Phase 级门禁=全量测试+tsc+build+真实浏览器 smoke+旧模块回归+状态同步+commit+tag+push+GitHub Actions 成功+远端 SHA 核验；CI 失败必须区分代码失败与基础设施失败，不得在 CI 未成功时宣称远程门禁通过"
   ],
   "remote_sync": {
     "setup_task_id": "infra_github_remote_001",
@@ -279,10 +310,10 @@
     "remote_name": "origin",
     "remote_url": "https://github.com/Huyaen/english-reconstruction-system.git",
     "local_branch": "main",
-    "last_local_commit": "75caa1f689a0defcb9c4c4f9f7c41f15a4052e63",
-    "last_known_remote_commit": "75caa1f689a0defcb9c4c4f9f7c41f15a4052e63",
+    "last_local_commit": "a10efd48efa746a76fd2df3acb4c53d188ba9680",
+    "last_known_remote_commit": "a10efd48efa746a76fd2df3acb4c53d188ba9680",
     "pending_push": null,
-    "last_verified_at": "2026-10-19T22:04:48+08:00",
+    "last_verified_at": "2026-10-19T22:40:39+08:00",
     "last_error": null,
     "note": "Phase 4 实测核验：push main b77f2de→ff60099（Phase 4 功能提交）→接着 9d66bbe（状态 pin）与 75caa1f（结构树展开子句修复）；git ls-remote refs/heads/main=75caa1f 与本地 HEAD 一致；annotated tag phase4-sentence-grammar → ff60099（阶段功能提交，与 HEAD 的差值仅为两个后续 docs/UI 提交，已在上文列明）。",
     "tags": [
@@ -291,7 +322,18 @@
       "phase2-vocabulary-v2",
       "phase3-daily-planner",
       "phase4-sentence-grammar"
-    ]
+    ],
+    "ci": {
+      "workflow": ".github/workflows/ci.yml",
+      "node_matrix": [
+        22,
+        24
+      ],
+      "status": "running",
+      "last_run_url": "",
+      "last_success_commit": "",
+      "note": "push 后在 GitHub 真实 Runner 上执行；以 API 返回的 conclusion 为准，不以本地测试替代"
+    }
   },
   "document_review": {
     "date": "2026-10-19",

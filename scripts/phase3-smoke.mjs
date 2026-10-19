@@ -111,13 +111,11 @@ try {
     // 上一次会话可能停在训练页/句子页：先整页重载回到首页
     await cdp.send('Page.reload');
     await wait(`!!document.querySelector('#import')`, 'app boot');
-    const reloadedPlan = await ev(`!!document.querySelector('#plan-panel')`);
-    if (reloadedPlan) {
-        // 允许同一 profile 重复执行：先清空本 profile 的测试数据
-        await ev(`(async()=>{const db=await new Promise((res,rej)=>{const r=indexedDB.open('vocabulary-memory-v1');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});await new Promise(res=>{const tx=db.transaction([...db.objectStoreNames],'readwrite');for(const n of db.objectStoreNames)tx.objectStore(n).clear();tx.oncomplete=()=>res();});db.close();return 'cleared';})()`);
-        await cdp.send('Page.reload');
-        await wait(`!!document.querySelector('#import')`, 'boot after clear');
-    }
+    // 允许同一 profile 重复执行：**无条件**清空本 profile 的测试数据。
+    // 不能只在“首页有计划面板”时清理：脚本上一次可能停在任何子页面，残留数据会让后续断言漂移。
+    await ev(`(async()=>{const db=await new Promise((res,rej)=>{const r=indexedDB.open('vocabulary-memory-v1');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});await new Promise(res=>{const tx=db.transaction([...db.objectStoreNames],'readwrite');for(const n of db.objectStoreNames)tx.objectStore(n).clear();tx.oncomplete=()=>res();});db.close();return 'cleared';})()`);
+    await cdp.send('Page.reload');
+    await wait(`!!document.querySelector('#import')`, 'boot after clear');
     check('应用启动', true, await ev(`document.title`));
 
     // —— 1. 导入词表 ——
