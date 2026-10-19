@@ -3,8 +3,8 @@
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "active",
   "current_phase": "phase_4_sentence_grammar",
-  "last_updated": "2026-10-19T21:57:51+08:00",
-  "last_verified_commit": "92fdab0246e04367d39b295716288c2315d751b6",
+  "last_updated": "2026-10-19T21:59:53+08:00",
+  "last_verified_commit": "ff60099e0933ca18f06d316cd4fe693121ae386a",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 4,
   "build_status": "passed",
@@ -279,17 +279,18 @@
     "remote_name": "origin",
     "remote_url": "https://github.com/Huyaen/english-reconstruction-system.git",
     "local_branch": "main",
-    "last_local_commit": "836ed8f7a46e62643bb288a2805f1e71a551a886",
-    "last_known_remote_commit": "836ed8f7a46e62643bb288a2805f1e71a551a886",
+    "last_local_commit": "ff60099e0933ca18f06d316cd4fe693121ae386a",
+    "last_known_remote_commit": "ff60099e0933ca18f06d316cd4fe693121ae386a",
     "pending_push": null,
-    "last_verified_at": "2026-10-19T13:12:00Z",
+    "last_verified_at": "2026-10-19T21:59:53+08:00",
     "last_error": null,
-    "note": "实测核验：git ls-remote origin 显示 HEAD/main = 836ed8f 且与本地 HEAD 一致；annotated tag phase3-daily-planner → 836ed8f 已推送；私有状态来自 GitHub API。",
+    "note": "Phase 4 实测核验：git push main b77f2de..ff60099；git ls-remote origin 显示 refs/heads/main=ff60099 且与本地 HEAD 一致；annotated tag phase4-sentence-grammar → ff60099 已推送（tag 对象 52b538e）。",
     "tags": [
       "v1.0.0-mvp-baseline",
       "phase1-data-foundation",
       "phase2-vocabulary-v2",
-      "phase3-daily-planner"
+      "phase3-daily-planner",
+      "phase4-sentence-grammar"
     ]
   },
   "document_review": {
