@@ -242,12 +242,18 @@
     "remote_name": "origin",
     "remote_url": "https://github.com/Huyaen/english-reconstruction-system.git",
     "local_branch": "main",
-    "last_local_commit": "f9ef446b7c948823bcb9022b59d6bf0d1352d58e",
-    "last_known_remote_commit": "f9ef446b7c948823bcb9022b59d6bf0d1352d58e",
+    "last_local_commit": "836ed8f7a46e62643bb288a2805f1e71a551a886",
+    "last_known_remote_commit": "836ed8f7a46e62643bb288a2805f1e71a551a886",
     "pending_push": null,
-    "last_verified_at": "2026-10-19T20:12:38Z",
+    "last_verified_at": "2026-10-19T13:12:00Z",
     "last_error": null,
-    "note": "实测核验：git ls-remote origin 与 GitHub API 的 main/tags SHA 均与本地一致；私有状态来自 API。文档合并提交之后的状态 pin 提交会再次推送，SHA 以远端为准。"
+    "note": "实测核验：git ls-remote origin 显示 HEAD/main = 836ed8f 且与本地 HEAD 一致；annotated tag phase3-daily-planner → 836ed8f 已推送；私有状态来自 GitHub API。",
+    "tags": [
+      "v1.0.0-mvp-baseline",
+      "phase1-data-foundation",
+      "phase2-vocabulary-v2",
+      "phase3-daily-planner"
+    ]
   },
   "document_review": {
     "date": "2026-10-19",
