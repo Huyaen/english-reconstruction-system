@@ -1,6 +1,6 @@
 # HANDOFF — 换模型 / 换会话所需最小上下文
 
-（更新：2026-10-19 · 最新提交见 git log；Phase 3、Phase 4 已完成并通过实测，下一个任务是 Phase 5）
+（更新：2026-10-19 · 最新提交见 git log；Phase 3、Phase 4、Phase 5 已完成并通过实测，下一个任务是 Phase 6）
 
 
 ## 2026-10-19 离线文档复核增补 —— 已在本机完成核验（不再是待办）
@@ -12,11 +12,11 @@
 
 ## Current phase
 
-Phase 5 — Reading（Phase 0 / 0.5 / 1 / 2 / 3 / 4 全部完成并通过）
+Phase 6 — Reinforcement AI（Phase 0 / 0.5 / 1 / 2 / 3 / 4 / 5 全部完成并通过）
 
 ## Current task_id
 
-`phase5_reading_009`（Phase 5 起步；沿用 Planner 的 typed capability，**不要重写计划器**）。Phase 4（`phase4_sentence_grammar_008`）已 passed：语法知识图谱（34 概念 + 先修边，禁循环）、句源契约（12 条 authored 教学句 + gold 结构 + 预教词）、引导式拆句 Lab（L0–L4 辅助 / 即时反馈 / JIT 知识卡）、证据分级（exposed 不计掌握；幂等=会话+句子）、自适应选句、Planner 真实句任务 —— 证据见 `CHECKPOINT.md` §Phase 4、`docs/PHASE4_SENTENCE_GRAMMAR.md`。
+`phase6_reinforcement_ai_010`（Phase 6 Reinforcement AI：条件化句子生成 / 强化文章生成 / 严格 JSON schema / prompt 版本化；沿用现有 typed capability，**不要重写计划器**）。Phase 5（`phase5_reading_009`）已 passed：真实文章导入（来源+指纹可追溯）→ 逐段阅读（首读无辅助、不显示全文翻译）→ 生词标记与后置筛选入库（无释义不入库）→ 难句进 Phase 4 拆句（自动结构=只记接触，练完回原段落）→ 重读真实计时 → 全文理解 + 收尾证据幂等落库；无材料绝不生成阅读任务。Phase 4（`phase4_sentence_grammar_008`）已 passed：语法知识图谱（34 概念 + 先修边，禁循环）、句源契约（12 条 authored 教学句 + gold 结构 + 预教词）、引导式拆句 Lab（L0–L4 辅助 / 即时反馈 / JIT 知识卡）、证据分级（exposed 不计掌握；幂等=会话+句子）、自适应选句、Planner 真实句任务 —— 证据见 `CHECKPOINT.md` §Phase 4、`docs/PHASE4_SENTENCE_GRAMMAR.md`。
 
 ## What is done（累计）
 
@@ -42,7 +42,8 @@ Phase 5 — Reading（Phase 0 / 0.5 / 1 / 2 / 3 / 4 全部完成并通过）
   - `src/sentenceEvidence.ts` 证据服务（幂等键 = 会话 + 句子；`independent/transfer/delayed/error` 进 BKT，`exposed/hint-assisted` 只计接触）+ JIT 知识卡
   - `src/sentenceSelection.ts` 自适应选句（生词/覆盖率/从句层级/长度/目标结构多维难度；先修不具备先补先修）+ Planner 句任务描述；`sentenceGraphMap.ts` / `sentenceStore.ts` 映射与持久化
   - DB **v4 additive**（`sentences` store + `grammarTags` multiEntry 索引；旧 v3 数据继续可读）；`src/app.ts` 句子页 / 拆句页 / 语法图谱页 / 计划内句任务接线
-- **验证证据（最新）**：`npx tsc --noEmit` 0 error；`npm test` **106/106**；`npm run build` 成功；`node scripts/phase4-smoke.mjs` **36/36**；`node scripts/phase3-smoke.mjs` **21/21**（回归）
+- **Phase 5 Reading 新增**：`src/readingText.ts`（无损规范化/段落句子词元切分）、`readingImport.ts`（导入流水线+来源边界+URL 安全+CORS/付费墙分类+OCR 能力诚实探测）、`readingDifficulty.ts`（四分类 known/uncertain/unknown/no-evidence，no-evidence 单列）、`readingEvidence.ts`（幂等键 = sessionId+type+key；自评置信度上限 medium）、`readingSession.ts`（preview→cold-test→reading→support→reread→whole-text→closing→completed 状态机）、`readingVocabulary.ts`（explicit/estimated 生词率带分母与覆盖；学习候选分桶）、`readingSentences.ts`（难句→拆句 handoff，非 gold 结构只记接触）、`readingAnalytics.ts`（首读/重读分开统计）、`readingStore.ts`（复用 Phase 1 store，DB 仍 v4）、`readingPlanner.ts`（无材料不排任务，时长服从预算）、`readingView.ts` + `src/app.ts` 阅读页接线 + `src/style.css` 阅读样式
+- **验证证据（最新）**：`npx tsc --noEmit` 0 error；`npm test` **134/134**（Phase 5 新增 28 例）；`npm run build` / `build:test` 成功；`node scripts/phase5-smoke.mjs` **44/44**；回归 `phase4-smoke` **36/36**、`phase3-smoke` **21/21**
 - **Git 轨迹**：`6c1c625`（基线）→ `9dc0b8b` → `76716a6`（Phase 0.5）→ `8a74ba8`（Phase 1，tag `phase1-data-foundation`）→ Phase 2 提交（tag `phase2-vocabulary-v2`，见 git log）
 
 ## What is currently running
@@ -51,7 +52,7 @@ Phase 5 — Reading（Phase 0 / 0.5 / 1 / 2 / 3 / 4 全部完成并通过）
 
 ## What remains
 
-Phase 5（当前）→ Phase 6–13。
+Phase 6（当前）→ Phase 7–13。
 
 ## Last verified build
 
@@ -59,7 +60,7 @@ Phase 5（当前）→ Phase 6–13。
 
 ## Last verified tests
 
-`npm test` @ 同上 → **106 pass / 0 fail**（Phase 3 的 69 + grammar 7 + sentenceStructure 6 + sentenceLab 11 + sentenceSources 6 + sentenceSelection 6 + sentenceUi 2）；真实浏览器 smoke：`scripts/phase4-smoke.mjs` **36/36**、`scripts/phase3-smoke.mjs` **21/21**。
+`npm test` @ Phase 5 工作树 → **134 pass / 0 fail**（Phase 4 的 106 + readingCore 14 + readingSession 13 + readingUi 1 端到端）；真实浏览器 smoke：`scripts/phase5-smoke.mjs` **44/44**、`scripts/phase4-smoke.mjs` **36/36**、`scripts/phase3-smoke.mjs` **21/21**（dist-test + `?test=1`，独立 profile 无头 Edge/CDP）。
 
 ## Known bugs
 
@@ -67,6 +68,7 @@ Phase 5（当前）→ Phase 6–13。
 - 已知限制（记入 CHECKPOINT/STATE）：bundle >500KB 警告（Phase 13 处理）；fake-indexeddb 基准≠真实性能；Preview 不创建 StudySession（直接落盘，刷新安全）。
 - Phase 3 限制：Planner 每词耗时为集中配置的启发式常量（0.35/0.4/0.6 分钟），非个性化测量；reading/input/output 仅声明 capability；Mini Diagnostic 当前只覆盖真实词汇测试。
 - Phase 4 限制：句源只有 12 条 authored 教学句（AI 生成与外部语料未接入，UI 明示不可用）；BKT-lite 参数为启发式起点未拟合；结构分析只对 gold/启发式结构负责，非 gold 结构一律标注 provenance/confidence。
+- Phase 5 限制：截图导入在没有视觉模型/本地 OCR 时只能人工转录；PDF/DOCX/EPUB 不解析；难度与生词率是估算（explicit 与 estimated 分开、no-evidence 单列）；不做词形还原；阅读只记接触不提掌握；AI 强化文章（Phase 6）未接入。
 - 未验收项（TODO P1）：真实供应商 AI 调用；真机移动端。
 
 ## Files currently being modified

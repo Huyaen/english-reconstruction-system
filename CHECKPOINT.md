@@ -327,6 +327,34 @@ AI 句生成、外部语料 / 阅读 handoff、Mini Diagnostic 非词汇子测�
 - **Git**：commit `6f7c889`（+ 本次状态提交）；`origin/main` 与本地 HEAD 一致；仓库仍为 Private。
 - **下一步**：`phase5_reading_009`（Reading Lab）。
 
+## Checkpoint（Phase 5 · Reading Lab · 2026-10-19）
+
+**状态：passed（`phase5_reading_009`）。DB 仍 v4（复用 Phase 1 store，无迁移）。**
+
+### 交付内容
+- 导入：粘贴正文 / 上传 TXT·MD·HTML / URL（安全边界：拒本机·内网·云元数据、按原因分类 CORS·超时·登录墙·付费墙且不绕过）/ 截图（能力探测：无视觉模型与本地 OCR 时只给“人工转录 + 用户确认”，`extractionMethod=manual`，可靠性 unknown）。来源类型 + 可靠性 + 内容指纹（重复导入可提示）全部随文章落库。
+- 阅读流程：预览（标题/来源/主题/难度估算，**不含正文与译文**）→ 冷读自评 + 翻译依赖 → 逐段首读（可逐词标记、可标难句、可主动要 L0–L4 辅助）→ 难句进 Phase 4 拆句训练（自动分析结构一律只记接触，练完回原段落并保留进度）→ 重读（真实计时，隐藏之前的解释）→ 全文理解（可验证题与自评分开记分）+ 一句话输出 → 收尾。
+- 词汇：explicit / estimated 两套生词率（分母、样本覆盖、置信度、method 齐全）；学习候选分 core / recognition / low-value / proper-noun；新词**没有释义不得入库**（不编造释义），入库即标 `needs-definition`；阅读接触记为 `sourceType='reading'` 的 exposure，掌握证据为 0。
+- 证据：幂等键 `sessionId:type:key`（重复提交不新增不改写），自评置信度上限 medium，no-evidence 单列并压低难度置信度。
+
+### 验收（全部实跑）
+- `npx tsc --noEmit` → 0 error。
+- `npm test` → **134/134 pass**（Phase 5 新增 28：readingCore 14 + readingSession 13 + readingUi 1）。
+- `npm run build` / `npm run build:test` → 成功；生产 `dist` 无测试钩子（`__readTest`/`__labTest` 被摇树移除）。
+- `node scripts/phase5-smoke.mjs` → **44/44**（真实浏览器：独立 profile 无头 Edge + CDP，`dist-test` + `?test=1`）。
+- 回归：`scripts/phase4-smoke.mjs` **36/36**、`scripts/phase3-smoke.mjs` **21/21**；三者均无控制台未捕获错误。
+- 截图证据：`screenshots/phase5-reading-library.png`、`phase5-reading-preview.png`、`phase5-reading-reader.png`、`phase5-smoke-report.md`。
+
+### 修掉的真实缺陷（测试/浏览器驱动）
+1. 重读从未调用 `startReread` → 重读时长恒为 0、重读速度永远不可用（现已真实计时）。
+2. 重读页只渲染第 1 段 → 多段文章重读不完整（现支持逐段导航且必须走完）。
+3. 生词入库路径使用 `CSS.escape` → 环境缺失时直接抛错（现按 `data-def` 收集释义）。
+4. 从阅读进入拆句后“返回”丢失阅读上下文（现回到原段落并保留标记与难句）。
+5. 拆句页“自动结构只记接触”只在作答后出现（现进入即提示，返回按钮也标注“回到阅读”）。
+
+### 未做（诚实边界）
+- 截图自动 OCR（无 provider 视觉能力时不做假识别）；PDF/DOCX/EPUB 解析；词形还原；AI 推荐阅读材料与强化文章（Phase 6）；个性化时间估算仍为启发式常量。
+
 # 归档：旧项目 Checkpoint 06（V1 MVP 交付版，原文保留）
 
 ## 当前项目状态

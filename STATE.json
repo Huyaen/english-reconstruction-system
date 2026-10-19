@@ -2,13 +2,13 @@
   "project": "English Reconstruction System V2",
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
-  "current_phase": "phase_5_reading",
-  "last_updated": "2026-10-19T22:43:20+08:00",
+  "current_phase": "phase_6_reinforcement_ai",
+  "last_updated": "2026-10-19T23:20:54+08:00",
   "last_verified_commit": "a10efd48efa746a76fd2df3acb4c53d188ba9680",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 4,
   "build_status": "passed",
-  "test_status": "passed (106/106 via node --test)",
+  "test_status": "passed (134/134 via node --test)",
   "tasks": {
     "phase0_audit_001": {
       "status": "passed",
@@ -268,6 +268,39 @@
         "CI 权限 contents: read，不部署、不写仓库、不使用任何真实 AI 密钥或用户学习数据",
         "dist 纳入 Git，由 CI 在 Node 22 上核对 dist 与源码一致（git diff --exit-code -- dist）"
       ]
+    },
+    "phase5_reading_009": {
+      "status": "passed",
+      "description": "Phase 5 Reading Lab：真实文章导入（粘贴/文件/URL/截图人工转录，来源类型+可靠性+内容指纹可追溯）→ 逐段阅读（首读无辅助、打开文章不显示全文翻译）→ 生词即时标记（known/vague/unknown/guessed 四分类，可撤销留痕）+ 后置筛选入库（核心/识别/低价值/专名；无释义不得入库）→ 难句交接 Phase 4 拆句训练（自动分析结构=只记接触，练完回原段落）→ 重读（真实计时，与首读分开统计）→ 全文理解（可验证题与自评分开）+ 一句话输出 → 收尾镜像字段只统计真实数据；证据幂等键 = sessionId+type+key，自评置信度上限 medium；无阅读材料时绝不生成阅读任务。DB 仍为 v4（复用 passages/readingSessions/wordExposures，无新增 store）",
+      "files": [
+        "src/readingText.ts",
+        "src/readingImport.ts",
+        "src/readingDifficulty.ts",
+        "src/readingEvidence.ts",
+        "src/readingSession.ts",
+        "src/readingVocabulary.ts",
+        "src/readingSentences.ts",
+        "src/readingAnalytics.ts",
+        "src/readingStore.ts",
+        "src/readingPlanner.ts",
+        "src/readingView.ts",
+        "src/types.ts",
+        "src/planner.ts",
+        "src/app.ts",
+        "src/style.css",
+        "tests/readingCore.test.ts",
+        "tests/readingSession.test.ts",
+        "tests/readingUi.test.ts",
+        "scripts/phase5-smoke.mjs",
+        "docs/PHASE5_READING.md"
+      ],
+      "tests": [
+        "npx tsc --noEmit 0 error",
+        "npm test 134/134 pass（Phase 5 新增 28 例：readingCore 14 + readingSession 13 + readingUi 1 端到端）",
+        "npm run build / npm run build:test 成功；生产 dist 无 __readTest/__labTest（构建期摇树移除）",
+        "node scripts/phase5-smoke.mjs 44/44（无头 Edge + CDP，独立 profile，dist-test + ?test=1）",
+        "回归：phase4-smoke 36/36、phase3-smoke 21/21，均无控制台未捕获错误"
+      ]
     }
   },
   "known_bugs": [],
@@ -281,10 +314,15 @@
     "Phase 4 句源只有 authored 教学句（12 条）；真实 AI 句生成与外部语料（阅读 handoff）未接入，UI 明示不可用、不生成假句",
     "BKT-lite 参数为启发式起点（prior 0.25/learn 0.15/guess 0.25/slip 0.1），未用真实学习数据拟合；界面一律标注“估算”",
     "语法图谱为显式 34 概念 + 先修边（无环），未做自动句法分析；非 gold 结构一律标注 provenance/confidence",
-    "GitHub Actions CI 只做静态/单测/构建验证：不含真实浏览器 E2E、不含真实 AI Provider 调用、不备份 IndexedDB 用户学习数据；浏览器验收仍在本地用独立 profile 的无头 Edge + CDP 执行"
+    "GitHub Actions CI 只做静态/单测/构建验证：不含真实浏览器 E2E、不含真实 AI Provider 调用、不备份 IndexedDB 用户学习数据；浏览器验收仍在本地用独立 profile 的无头 Edge + CDP 执行",
+    "Phase 5 阅读：本机未配置视觉模型/本地 OCR 时，截图导入只提供“人工转录 + 用户确认”路径（extractionMethod=manual，可靠性 unknown），不做假 OCR 识别",
+    "Phase 5 阅读：PDF/DOCX/EPUB 不做本地解析（明示不支持并引导复制正文）；URL 导入受浏览器 CORS 限制时如实报错，不绕付费墙/登录墙",
+    "Phase 5 阅读：难度与生词率都是估算——explicit（用户标记）与 estimated（词库四分类）分开统计并携带分母/样本覆盖/置信度/method；“不在词库”单独计 no-evidence，不并入生词率",
+    "Phase 5 阅读：不做词形还原（lemma 不可靠时留空）；阅读只记接触（exposure），绝不因“读过/被推荐过”提升任何词的掌握证据",
+    "Phase 5 阅读：真实 AI 强化文章生成（Phase 6）尚未接入；阅读库没有“按难度推荐”的 AI 排序，只有启发式难度估算"
   ],
   "blocked": [],
-  "next_task_id": "phase5_reading_009",
+  "next_task_id": "phase6_reinforcement_ai_010",
   "environment": {
     "node": "v26.7.0",
     "npm": "11.19.0",
@@ -315,7 +353,7 @@
     "pending_push": null,
     "last_verified_at": "2026-10-19T22:40:39+08:00",
     "last_error": null,
-    "note": "Phase 4 实测核验：push main b77f2de→ff60099（Phase 4 功能提交）→接着 9d66bbe（状态 pin）与 75caa1f（结构树展开子句修复）；git ls-remote refs/heads/main=75caa1f 与本地 HEAD 一致；annotated tag phase4-sentence-grammar → ff60099（阶段功能提交，与 HEAD 的差值仅为两个后续 docs/UI 提交，已在上文列明）。",
+    "note": "Phase 5 实测核验前：Phase 4 链 a10efd4 → CI 提交 a4b49b9（CI run 39271191340 双绿）→ Phase 5.0/5 提交见 git log；推送后以 git ls-remote 复核 main 与 tag phase5-reading-lab。",
     "tags": [
       "v1.0.0-mvp-baseline",
       "phase1-data-foundation",

@@ -1203,6 +1203,25 @@ Git 是辅助，不替代 `STATE.json / CHECKPOINT.md / HANDOFF.md`。
 `dist` 纳入 Git，CI 在 Node 22 上执行 `git diff --exit-code -- dist`。若出现跨平台合法差异，必须先定位原因；确需调整策略时，必须在 STATE.json 与 `docs/PHASE5_READING.md` 记录原因与替代验证机制，不能为了变绿直接删掉该步骤。
 
 
+## Phase 5 阅读协议（Reading Protocol，2026-10-19 起生效）
+
+处理阅读相关任务时，以下规则是**硬约束**（违反即为缺陷，必须有测试兜底）：
+
+1. 打开文章不显示全文翻译；首读前只有标题/来源/主题。
+2. 阅读材料来源必须可追溯：`sourceType` + `sourceReliability` + 内容指纹（`contentHash`）缺一不可。
+3. 词库里没有的词 ≠ 用户不会的词：四分类 known/uncertain/unknown/no-evidence，`no-evidence` 单独统计，不并入 `unknownRate`。
+4. Unknown Rate 必须区分 explicit（用户点出）与 estimated（词库估算），并携带 denominator / 证据来源 / 样本覆盖 / confidence / method。
+5. 阅读只是接触（exposure），不是掌握证据；“被推荐/打开过一篇文章”不构成任何掌握证据。
+6. 用户自评 confidence 不得高于 medium。
+7. 证据幂等键 = `sessionId + type + key`；重复提交不得新增或改写已有证据。
+8. first-pass 与 re-read 的速度与理解度绝不混算，各自独立计时。
+9. 没有可读文章时不生成阅读任务（绝不造假文章或假任务）。
+10. 任务时长服从 Time Budget First：阅读任务由计划器按剩余预算裁剪。
+11. 没有中文释义的新词不得进入 Preview / Recall（不编造释义），只能标记为待补释义。
+12. 外部材料的结构一律不得冒充 gold；无人工审校时 provenance 只能是 heuristic/manual，且只记接触。
+
+新增/修改阅读代码后，必须同时跑：`npx tsc --noEmit` → `npm test` → `npm run build`/`build:test` → `node scripts/phase5-smoke.mjs`（+ phase4/phase3 回归），并在 `docs/PHASE5_READING.md` 与 STATE/CHECKPOINT 留下证据。
+
 始终遵守：
 
 > **完成 70% 且状态完整、可恢复、可以继续开发，远优于试图一次做完 100% 却因额度或会话中断而丢失状态。**

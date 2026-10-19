@@ -133,3 +133,11 @@ Phase 5 开工前先补远程质量门禁。审计结果：仓库此前**没有�
 实测：`npm test` 106/106；生产构建成功且 `grep __labTest` = 0；`dist-test` = 1；`phase4-smoke` 36/36、`phase3-smoke` 21/21（都在测试构建上）；GitHub Actions run `39271191340` @ `6f7c889` → **success（Node 22 + 24）**，`dist` 跨平台一致；仓库仍 Private。
 
 下一步：`phase5_reading_009` Phase 5 Reading Lab。
+
+## 2026-10-19 · Phase 5：Reading Lab（phase5_reading_009）
+
+- 新增阅读域 11 个纯函数模块（text/import/difficulty/evidence/session/vocabulary/sentences/analytics/store/planner/view）+ `docs/PHASE5_READING.md`；DB 仍 **v4**（复用 Phase 1 的 `passages`/`readingSessions`/`wordExposures`，不新增 store，旧数据可读）。
+- 纪律落地（写进代码与测试，不是文档口号）：打开文章不显示全文翻译；首读无辅助；词库里没有的词 ≠ 不会（no-evidence 单列、不并入生词率）；Unknown Rate 分 explicit/estimated 并带分母/覆盖/置信度/method；证据幂等键 = sessionId+type+key，自评置信度上限 medium；阅读只记接触（exposure）不提掌握；first-pass 与 re-read 绝不混算；没有材料就不生成阅读任务；任务时长服从 Time Budget First。
+- 真实缺陷（由测试与浏览器验收发现并修掉）：① 进入重读从未调用 `startReread` → 重读时长恒为 0、重读速度永远缺失；② 重读页只显示第 1 段 → 多段文章重读不完整（补逐段导航）；③ 生词入库用 `CSS.escape` 在部分环境直接抛错 → 改为按 `data-def` 收集释义；④ 从阅读进拆句后“返回”丢失阅读上下文 → 回到原段落并保留标记；⑤ 拆句页只在作答后提示“自动结构只记接触” → 改为进入即提示。
+- 验证：`tsc --noEmit` 0 error；`npm test` **134/134**（Phase 5 新增 28 例，含 jsdom + fake-indexeddb 的端到端阅读流程）；`npm run build` / `build:test` 成功（生产 dist 无测试钩子）；`scripts/phase5-smoke.mjs` **44/44**（无头 Edge + CDP，独立 profile）；回归 `phase4-smoke` 36/36、`phase3-smoke` 21/21。
+

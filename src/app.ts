@@ -1,6 +1,17 @@
 import './style.css';
 import type { Data, Word, StudySession, Settings, ReviewRecord, Mastery, DailyPlan, PlanItem, EnergyState, GrammarConcept, SentenceRecord, SentenceStepRecord, SentenceAttempt, SentenceEvidenceClass, GrammarCategory } from './types.ts';
 import { testHooksEnabled } from './testMode.ts';
+// —— Phase 5：Reading Lab ——
+import type { Passage, ReadingSession, ReadingToken, ReadingMark, ReadingDifficultyReport, WordExposure, DifficultSentence, ReadingProblemType } from './types.ts';
+import { parsePassageText, sentenceAtSpan, tokenizeSentence } from './readingText.ts';
+import { buildPastedDraft, buildUrlDraft, buildManualImageDraft, classifyFetchFailure, findDuplicate, importFromFile, ocrCapability, toPassage, type PassageDraft } from './readingImport.ts';
+import { estimateReadingDifficulty, classificationLabel } from './readingDifficulty.ts';
+import { createReadingSession, submitColdTest, startReading, submitMainIdea, markWord, revokeMark, requestHelp, captureDifficultSentence, linkDifficultSentenceAttempt, finishFirstPass, startReread, finishReread, submitWholeTextItem, submitOutput, completeReadingSession, sessionProgress, nextChunk, goToChunk, isResumable, stageLabel, maxHelpLevelUsed } from './readingSession.ts';
+import { selectStudyCandidates, buildHandoffPlan, exposureFromMark, readingWordSeed, readyForTraining, explicitUnknownRate, type StudyCandidate } from './readingVocabulary.ts';
+import { difficultSentenceRecord, PROBLEM_TYPE_LABELS, returnTarget, type LabReturnTarget } from './readingSentences.ts';
+import { computeReadingMetrics, computeReadingTrend, targetDifficultyBand } from './readingAnalytics.ts';
+import { queryLibrary, savePassage, saveReadingProgress, latestOpenSession, passageOf, type LibraryQuery } from './readingStore.ts';
+import { importPanelHTML, previewHTML, coldTestHTML, readerHTML, rereadHTML, wholeTextHTML, resultHTML, studyWordsHTML, esc as resc, sourceLabel } from './readingView.ts';
 import { openDB, getDB, loadData, replaceData, saveSettings, putItems, saveAnswer, savePreview, backup, validateBackup, emptyData } from './db.ts';
 import { makeWord, uid, labels, priority, priorityGrade, shuffle, question, validSettings } from './core.ts';
 import { parseFile, parseText, exportWords, type Parsed } from './import.ts';
@@ -16,7 +27,7 @@ import type { StepEvaluation } from './sentenceLab.ts';
 import { loadPlan, savePlan, StalePlanError } from './plannerStore.ts';
 // —— Phase 4：Sentence Lab 与 Grammar Knowledge Graph ——
 import { GRAMMAR_BAND_LABELS, GRAMMAR_CATEGORY_LABELS, type GrammarConceptDef, GRAMMAR_CONFIG, GRAMMAR_TAXONOMY, ancestorConcepts, conceptById, conceptStates, grammarState, prerequisitesSatisfied, validateTaxonomy, weakConcepts, type GrammarConceptState } from './grammar.ts';
-import { CLAUSE_LABELS, ROLE_LABELS, clauseForToken, readStructure, structureRows, structureSummary, validateStructure, type SentenceStructure } from './sentenceStructure.ts';
+import { CLAUSE_LABELS, ROLE_LABELS, clauseForToken, heuristicStructure, readStructure, structureRows, structureSummary, validateStructure, type SentenceStructure } from './sentenceStructure.ts';
 import { EVIDENCE_LABELS, STEP_LABELS, SUPPORT_LABELS, MAX_SUPPORT_LEVEL, buildLabPlan, buildTransferTask, evaluateStep, stepRecord, supportHint, type LabPlan, type LabStep } from './sentenceLab.ts';
 import { applyEvidence, justInTimeCard, stepConceptMap, type AttemptDraft } from './sentenceEvidence.ts';
 import { curatedSentenceRecords, effectiveSourceMix, generationUnavailableReason, sentenceGenerationFallback, sourceCapabilities, userSentenceRecord } from './sentenceSources.ts';
@@ -54,6 +65,8 @@ interface LabRun {
     planTaskId: string | null;
     planTaskKind: string | null;
     startedAt: number;
+    ungraded?: boolean;
+    returnTo?: LabReturnTarget | null;
     current: {
         sentenceId: string;
         plan: LabPlan;
@@ -83,7 +96,30 @@ interface LabRun {
         conceptIds: string[];
     }[];
 }
-const navs = [['home', '◫', '今日学习'], ['books', '▤', '我的词库'], ['weak', '◎', '薄弱词'], ['sentence', '❝', '句子训练'], ['grammar', '◈', '语法图谱'], ['stats', '▥', '学习统计'], ['ai', '✦', 'AI 学情'], ['settings', '⚙', '设置与备份']];
+// —— Phase 5 状态（阅读）——
+type ReadView = 'library' | 'preview' | 'cold' | 'reader' | 'reread' | 'whole' | 'result' | 'words';
+let readView: ReadView = 'library';
+let readPassage: Passage | null = null;
+let readDraft: PassageDraft | null = null;
+let readSession: ReadingSession | null = null;
+let readDifficulty: ReadingDifficultyReport | null = null;
+let readTokens: ReadingToken[] = [];
+let readSelectedToken: ReadingToken | null = null;
+let readHelpState: {
+    show: boolean;
+    text: string;
+} = { show: false, text: '' };
+let readCandidates: StudyCandidate[] = [];
+let readLibraryQuery: LibraryQuery = { readState: 'all' };
+let readMessage = '';
+let readingTask: {
+    planTaskId: string;
+    startedAt: number;
+} | null = null;
+let labReturn: (LabReturnTarget & {
+    planTaskId?: string;
+}) | null = null;
+const navs = [['home', '◫', '今日学习'], ['books', '▤', '我的词库'], ['weak', '◎', '薄弱词'], ['sentence', '❝', '句子训练'], ['reading', '❖', '阅读'], ['grammar', '◈', '语法图谱'], ['stats', '▥', '学习统计'], ['ai', '✦', 'AI 学情'], ['settings', '⚙', '设置与备份']];
 function reindex() { wordMap = new Map(data.words.map(w => [w.id, w])); }
 function setPage(p: string) {
     if ((page === 'quiz' && busy) || startingSession) {
@@ -112,7 +148,7 @@ function shell() {
     on('.brand', 'click', e => { e.preventDefault(); setPage('home'); });
     on('#theme', 'click', async () => { const s = { ...data.settings, theme: data.settings.theme === 'light' ? 'dark' : 'light' } as Settings; await saveSettings(s); data.settings = s; document.documentElement.dataset.theme = s.theme; $('#theme').textContent = s.theme === 'light' ? '☾' : '☀'; });
 }
-function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, grammar: grammarPage, lab: labPage }[page] || home)(); }
+function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage }[page] || home)(); }
 function title(kicker: string, title: string, sub: string, action = '') { return `<div class="page-title"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p>${sub}</p></div>${action}</div>`; }
 function metric(label: string, value: string, note: string) { return `<div class="metric"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`; }
 function rangeControls() { return `<div class="range-controls"><label>学习范围<select id="range-book"><option value="">全部词书</option>${data.books.map(b => `<option value="${b.id}" ${bookFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label><label>本轮词量<select id="range-count">${[50, 100, 300, 500, 1000].map(n => `<option value="${n}" ${n === 100 ? 'selected' : ''}>${n} 词</option>`).join('')}</select></label><label>测试方向<select id="range-ratio">${![0, 30, 50, 70, 100].includes(data.settings.ratio) ? `<option value="${data.settings.ratio}" selected>英→中 ${data.settings.ratio}%（自定义）</option>` : ''}<option value="50" ${data.settings.ratio === 50 ? 'selected' : ''}>双向各 50%</option><option value="70" ${data.settings.ratio === 70 ? 'selected' : ''}>英→中 70%</option><option value="30" ${data.settings.ratio === 30 ? 'selected' : ''}>中→英 70%</option><option value="100" ${data.settings.ratio === 100 ? 'selected' : ''}>识别 · 英→中</option><option value="0" ${data.settings.ratio === 0 ? 'selected' : ''}>提取 · 中→英</option></select></label></div>`; }
@@ -634,6 +670,7 @@ function planInput(minutes: number, energy: EnergyState): PlannerInput {
             sentenceAttempts: data.sentenceAttempts,
             miniUnit: data.miniUnits.find(u => u.status === 'active') ?? null,
         } : null,
+        readingInput: data.passages.length ? { passages: data.passages, sessions: data.readingSessions } : null,
     };
 }
 function energyLabel(e: EnergyState) { return e === 'low' ? '状态差' : e === 'good' ? '状态好' : '正常'; }
@@ -754,6 +791,29 @@ async function startPlanTask(taskId: string) {
     }
     if (task.kind !== 'new-preview' && data.sessions.some(s => !s.ended)) {
         toast('请先继续或结束未完成的训练');
+        return;
+    }
+    if (task.module === 'reading' || task.kind?.startsWith('reading-')) {
+        const passageId = (task.refs ?? [])[0] ?? '';
+        const passage = data.passages.find(p => p.id === passageId);
+        if (!passage) {
+            toast('这篇文章已不在阅读库（可能被删除）');
+            return;
+        }
+        if (data.sessions.some(s => !s.ended)) {
+            toast('请先继续或结束未完成的训练');
+            return;
+        }
+        const started = applyPlanAction(todayPlan, taskId, 'start', { now: Date.now() });
+        if (!started.ok) {
+            toast(started.reasons.join('；'));
+            return;
+        }
+        const savedPlan = await persistPlan(started.plan);
+        if (!savedPlan)
+            return;
+        readingTask = { planTaskId: taskId, startedAt: Date.now() };
+        openReadingMaterial(passage, task.targetSessionId ?? null);
         return;
     }
     if (task.module === 'sentence' || task.kind?.startsWith('sentence-')) {
@@ -1096,13 +1156,16 @@ async function deleteSentence(id: string): Promise<void> {
     render();
 }
 // —— 拆句训练运行 ——
-function startLab(sentenceIds: string[], planTaskId: string | null, planTaskKind: string | null): void {
+function startLab(sentenceIds: string[], planTaskId: string | null, planTaskKind: string | null, opts: {
+    ungraded?: boolean;
+    returnTo?: LabReturnTarget | null;
+} = {}): void {
     const queue = sentenceIds.filter(id => sentenceRecords.some(s => s.id === id));
     if (!queue.length) {
         toast('没有可用的真实句子');
         return;
     }
-    labSession = { sessionId: `lab-${Date.now().toString(36)}`, queue, index: 0, planTaskId, planTaskKind, startedAt: Date.now(), current: null, finished: [] };
+    labSession = { sessionId: `lab-${Date.now().toString(36)}`, queue, index: 0, planTaskId, planTaskKind, startedAt: Date.now(), current: null, finished: [], ungraded: !!opts.ungraded, returnTo: opts.returnTo ?? null };
     openLabSentence();
     page = 'lab';
     render();
@@ -1125,7 +1188,7 @@ function openLabSentence(opts: {
     const structure = readStructure(rec.structure, rec.id, rec.text).structure;
     const plan = buildLabPlan(rec, structure, sentenceRecords.filter(s => s.id !== rec.id));
     session.current = {
-        sentenceId: rec.id, plan, stepIndex: 0, stepRecords: [], supportLevel: 0, answered: null, evaluation: null,
+        sentenceId: rec.id, plan, stepIndex: 0, stepRecords: [], supportLevel: session.ungraded ? MAX_SUPPORT_LEVEL : 0, answered: null, evaluation: null,
         stepStartedAt: Date.now(), transferOf: opts.transferOf ?? null, delayed: !!opts.delayed, attempts: 0, done: false, result: null,
     };
 }
@@ -1151,10 +1214,10 @@ function labPage(): void {
     const progress = `<div class="lab-progress"><span>第 ${cur.stepIndex + 1} / ${total} 步</span><span>${STEP_LABELS[step.kind]}</span><span class="badge ${cur.supportLevel === 0 ? 'fluent' : cur.supportLevel >= 3 ? 'vague' : 'normal'}">${SUPPORT_LABELS[cur.supportLevel]}</span></div>`;
     // 作答前只给候选成分，不给"它是主句主语"这类解析——那等于把答案写在选项上
     const options = step.options.map(o => `<button class="lab-option ${cur.answered === o.id ? 'picked' : ''}" data-lab-option="${o.id}" ${cur.answered ? 'disabled' : ''}><b>${esc(o.label)}</b>${cur.answered && o.detail ? `<small>${esc(o.detail)}</small>` : ''}</button>`).join('');
-    const feedback = cur.evaluation ? `<div class="lab-feedback ${cur.evaluation.correct ? 'ok' : 'bad'}"><p><b>${cur.evaluation.correct ? '正确' : cur.evaluation.partial ? '部分正确' : '还不准确'}</b> · ${cur.evaluation.correct ? '' : `错误类型：${ERROR_LABELS[cur.evaluation.errorType] ?? cur.evaluation.errorType}`}</p><p>${esc(cur.evaluation.feedback)}</p><p class="hint">${esc(cur.evaluation.nextFocus)}</p><div class="actions">${cur.evaluation.correct ? '' : (step.conceptIds[0] ?? 'structure.core') ? `<button class="secondary" data-jit="${step.conceptIds[0] ?? 'structure.core'}">看 30 秒知识卡</button>` : ''}<button class="primary" id="lab-next">${cur.stepIndex + 1 < total ? '下一步' : '完成这句'}</button></div>${cur.supportLevel >= 3 ? '<p class="hint warn">这句你已看过答案／完整解释：会计入接触次数，但不会算作掌握证据。</p>' : ''}</div>` : '';
+    const feedback = cur.evaluation ? `<div class="lab-feedback ${cur.evaluation.correct ? 'ok' : 'bad'}"><p><b>${cur.evaluation.correct ? '正确' : cur.evaluation.partial ? '部分正确' : '还不准确'}</b> · ${cur.evaluation.correct ? '' : `错误类型：${ERROR_LABELS[cur.evaluation.errorType] ?? cur.evaluation.errorType}`}</p><p>${esc(cur.evaluation.feedback)}</p><p class="hint">${esc(cur.evaluation.nextFocus)}</p><div class="actions">${cur.evaluation.correct ? '' : (step.conceptIds[0] ?? 'structure.core') ? `<button class="secondary" data-jit="${step.conceptIds[0] ?? 'structure.core'}">看 30 秒知识卡</button>` : ''}<button class="primary" id="lab-next">${cur.stepIndex + 1 < total ? '下一步' : '完成这句'}</button></div>${cur.supportLevel >= 3 ? '<p class="hint warn">这句你已看过答案／完整解释：会计入接触次数，但不会算作掌握证据。</p>' : ''}${session.ungraded ? '<p class="hint warn">这句来自阅读材料，结构是自动分析的（没有人工审校）：本次只记接触，不推进语法掌握度。</p>' : ''}</div>` : '';
     $('#main').innerHTML = `<div id="lab-page">` + title('SENTENCE LAB', `拆句 · ${cur.stepIndex + 1}/${total}`, '先找主干，再看修饰；不确定时可以要提示，但提示会降低这次证据的可信度。')
-        + `<div class="actions"><button class="secondary" data-lab-back="1">← 回到句库</button><button class="danger-text" id="lab-skip">跳过这句</button></div>`
-        + `<section class="panel lab-panel">${cur.transferOf ? `<p class="hint"><span class="src-badge">迁移验证</span> 这是同一个结构的新句：不看提示，独立判断一次。</p>` : ''}${preTeachHTML(rec)}<div id="lab-sentence" class="lab-sentence">${esc(rec.text)}</div>${progress}
+        + `<div class="actions"><button class="secondary" data-lab-back="1">${session.returnTo ? '← 回到阅读' : '← 回到句库'}</button><button class="danger-text" id="lab-skip">跳过这句</button></div>`
+        + `<section class="panel lab-panel">${session.ungraded ? '<p class="hint warn">这句来自你的阅读材料：结构是自动分析的（没有人工审校），所以本次只记接触，不推进语法掌握度。</p>' : ''}${cur.transferOf ? `<p class="hint"><span class="src-badge">迁移验证</span> 这是同一个结构的新句：不看提示，独立判断一次。</p>` : ''}${preTeachHTML(rec)}<div id="lab-sentence" class="lab-sentence">${esc(rec.text)}</div>${progress}
             <h2 id="lab-question">${esc(step.question)}</h2>
             <div class="lab-options">${options}</div>
             <div class="actions"><button class="secondary" id="lab-hint" ${cur.answered ? 'disabled' : ''}>${level.level === 0 ? '需要提示？（会降低证据强度）' : '再给一点提示'}</button><span class="hint" id="lab-level">当前辅助：${level.label}（L${level.level}/${MAX_SUPPORT_LEVEL}）</span></div>
@@ -1171,7 +1234,13 @@ function labPage(): void {
     });
     on('#lab-next', 'click', () => labAdvance());
     on('#lab-skip', 'click', () => labSkip());
-    document.querySelectorAll<HTMLElement>('[data-lab-back]').forEach(b => b.addEventListener('click', () => { labSession = null; page = 'sentence'; render(); }));
+    document.querySelectorAll<HTMLElement>('[data-lab-back]').forEach(b => b.addEventListener('click', () => {
+        if (labReturnToReading())
+            return;
+        labSession = null;
+        page = 'sentence';
+        render();
+    }));
     document.querySelectorAll<HTMLElement>('[data-jit]').forEach(b => b.addEventListener('click', () => showJitCard(b.dataset.jit ?? '')));
 }
 async function labAnswer(optionId: string): Promise<void> {
@@ -1195,7 +1264,7 @@ function labAdvance(): void {
         cur.stepIndex++;
         cur.answered = null;
         cur.evaluation = null;
-        cur.supportLevel = 0;
+        cur.supportLevel = session.ungraded ? MAX_SUPPORT_LEVEL : 0;
         cur.stepStartedAt = Date.now();
         render();
         return;
@@ -1334,7 +1403,22 @@ async function finishLabSession(): Promise<void> {
     const minutes = Math.max(0.5, Math.round((Date.now() - session.startedAt) / 30000) / 2);
     const taskId = session.planTaskId;
     const kind = session.planTaskKind;
+    const returnTo = session.returnTo ?? null;
     labSession = null;
+    // Phase 5：从阅读里进来的难句，练完回原段落，保留阅读进度
+    if (returnTo && readSession && readPassage) {
+        const last = finished[finished.length - 1];
+        if (last) {
+            const difficult = readSession.detail?.difficultSentences.find(d => d.id === returnTo.difficultId);
+            if (difficult) {
+                const attempt = data.sentenceAttempts.filter(a => a.sentenceId === last.sentenceId).slice(-1)[0];
+                upsertReadSession(linkDifficultSentenceAttempt(readSession, difficult.id, attempt?.id ?? ''));
+                await persistReading();
+            }
+        }
+        labReturnToReading();
+        return;
+    }
     if (taskId) {
         await completePlanTask({ planTaskId: taskId, kind: kind ?? 'sentence-basic-structure', startedAt: Date.now() - minutes * 60000, sessionId: session.sessionId }, minutes);
         page = 'home';
@@ -1384,7 +1468,650 @@ function installTestHook(): void {
         },
     };
     (window as unknown as Record<string, unknown>).__labTest = hook;
+    // Phase 5：阅读状态只读快照（不给任何写库/绕过校验的能力）
+    const readHook = {
+        state: () => ({
+            view: readView,
+            passageId: readPassage?.id ?? null,
+            sessionId: readSession?.id ?? null,
+            passageTitle: readPassage?.title ?? '',
+            chunkIndex: readSession?.detail?.chunkIndex ?? 0,
+            chunks: readSession?.detail?.chunks.length ?? 0,
+            stage: readSession?.detail?.stage ?? '',
+            sessionState: readSession?.detail?.state ?? '',
+            marks: (readSession?.detail?.marks ?? []).filter(m => !m.revokedAt).length,
+            revoked: (readSession?.detail?.marks ?? []).filter(m => m.revokedAt).length,
+            difficult: readSession?.detail?.difficultSentences.length ?? 0,
+            evidence: readSession?.detail?.evidence.length ?? 0,
+            evidenceTypes: [...new Set((readSession?.detail?.evidence ?? []).map(e => e.type))],
+            helps: readSession?.detail?.helps.length ?? 0,
+            maxHelpLevel: maxHelpLevelUsed(readSession ?? ({} as ReadingSession)),
+            comprehension: readSession?.detail?.comprehension.length ?? 0,
+            passages: data.passages.length,
+            sessions: data.readingSessions.length,
+            exposures: data.wordExposures.filter(e => e.sourceType === 'reading').length,
+            firstPass: readSession?.firstPassComprehension ?? null,
+            secondPass: readSession?.secondPassComprehension ?? null,
+        }),
+        library: () => queryLibrary(data.passages, data.readingSessions, { readState: 'all' }).map(r => ({ id: r.passage.id, title: r.passage.title, hash: r.passage.contentHash ?? '', completed: r.completed })),
+    };
+    (window as unknown as Record<string, unknown>).__readTest = readHook;
 }
+// ———————————————— Phase 5：Reading Lab UI（消费层；算法都在 reading*.ts 里） ————————————————
+function readingDifficultyFor(passage: Passage): ReadingDifficultyReport {
+    const weak = weakConcepts(GRAMMAR_TAXONOMY, data.grammarAttempts).length;
+    return estimateReadingDifficulty({
+        sentences: passage.sentences ?? [], text: passage.text,
+        model: {
+            words: data.words, grammarWeakCount: weak,
+            knownVocabSize: data.words.filter(w => (w.state?.total ?? 0) > 0).length,
+        },
+    });
+}
+function refreshReadTokens(): void {
+    if (!readSession || !readPassage)
+        return;
+    const chunk = readSession.detail?.chunks[readSession.detail.chunkIndex];
+    const sentences = readPassage.sentences ?? [];
+    const inChunk = sentences.filter(x => chunk && x.start >= chunk.start && x.end <= chunk.end);
+    readTokens = inChunk.flatMap(x => tokenizeSentence(readPassage!.text, x));
+}
+function upsertReadSession(session: ReadingSession): void {
+    const exists = data.readingSessions.some(s => s.id === session.id);
+    data.readingSessions = exists ? data.readingSessions.map(s => (s.id === session.id ? session : s)) : [...data.readingSessions, session];
+    readSession = session;
+}
+async function persistReading(extra: {
+    words?: Word[];
+    exposures?: WordExposure[];
+    passages?: Passage[];
+} = {}): Promise<void> {
+    if (!readSession)
+        return;
+    try {
+        await saveReadingProgress({ session: readSession, ...extra });
+        upsertReadSession(readSession);
+    }
+    catch (e) {
+        toast(`阅读进度保存失败（本地内存仍保留）：${(e as Error).message}`);
+    }
+}
+function readingHelpText(level: number, sentenceText: string): string {
+    if (!sentenceText)
+        return '';
+    if (level <= 1)
+        return '<p class="hint">先找谓语：哪个词带时态/语态？再问“谁做了这件事”。</p>';
+    const analysis = heuristicStructureFor(sentenceText);
+    const main = analysis.clauses.find(c => c.parentId === null) ?? analysis.clauses[0];
+    const mainText = main ? `${main.start}–${main.end}` : '';
+    const clauseList = analysis.clauses.map(c => `<li>${c.kind === 'main' ? '主句' : CLAUSE_LABELS[c.kind]}：词 ${c.start + 1}–${c.end + 1}${c.parentId ? '（依附上文）' : ''}</li>`).join('');
+    if (level === 2)
+        return `<p class="hint">主干在词 ${mainText.split('–').map(n => Number(n) + 1).join('–') || '?'}：先把这一截读成一句话，再挂修饰。</p>`;
+    if (level === 3)
+        return `<div class="grammar-card"><p><b>结构（自动分析，可能不准）</b></p><ul class="plain-list">${clauseList}</ul><p class="hint">从句不能独立成句：先读主句，再把从句当成一个“大形容词/大状语”。</p></div>`;
+    return `<div class="grammar-card"><p><b>完整讲解（自动分析，可能不准）</b></p><ul class="plain-list">${clauseList}</ul><p class="hint">读法：主句 → 从句引导词 → 从句内部主谓 → 非谓语挂在哪。看完这段讲解后，本次理解只记接触。</p></div>`;
+}
+function heuristicStructureFor(text: string) {
+    return readStructure(heuristicStructure(uid(), text), '', text).structure!;
+}
+function openReadingMaterial(passage: Passage, sessionId: string | null): void {
+    readPassage = passage;
+    readDifficulty = readingDifficultyFor(passage);
+    readMessage = '';
+    readHelpState = { show: false, text: '' };
+    readSelectedToken = null;
+    const existing = sessionId ? data.readingSessions.find(s => s.id === sessionId) ?? null : null;
+    const unfinished = existing && isResumable(existing) ? existing : latestOpenSession(data.readingSessions.filter(s => s.passageId === passage.id));
+    readSession = unfinished ?? null;
+    readView = 'preview';
+    page = 'reading';
+    render();
+}
+function readingPage(): void {
+    if (page !== 'reading')
+        return;
+    if (readView === 'preview' && readPassage)
+        return readingPreview();
+    if (readView === 'cold' && readSession)
+        return readingCold();
+    if (readView === 'reader' && readSession && readPassage)
+        return readingReader();
+    if (readView === 'reread' && readSession)
+        return readingReread();
+    if (readView === 'whole' && readSession)
+        return readingWhole();
+    if (readView === 'result' && readSession && readPassage)
+        return readingResult();
+    if (readView === 'words' && readSession)
+        return readingWords();
+    return readingLibrary();
+}
+function readingLibrary(): void {
+    const rows = queryLibrary(data.passages, data.readingSessions, readLibraryQuery);
+    const trend = computeReadingTrend(data.readingSessions);
+    const open = latestOpenSession(data.readingSessions);
+    const list = rows.slice(0, 30).map(r => `<tr>
+      <td><b>${resc(r.passage.title)}</b><br><small class="hint">${resc(sourceLabel(r.passage))} · ${resc(r.passage.topic)} · ${r.passage.wordCount} 词${r.completed ? ` · 已读 ${r.completed} 次` : ''}${r.unfinished ? ` · <span class="badge vague">未完成 ${sessionProgress(r.unfinished).percent}%</span>` : ''}</small></td>
+      <td>${r.passage.estimatedDifficulty ? r.passage.estimatedDifficulty.toFixed(1) : '—'}</td>
+      <td><button class="primary small" data-read-open="${r.passage.id}">${r.unfinished ? '继续阅读' : r.completed ? '再读一次' : '开始阅读'}</button></td>
+    </tr>`).join('') || '<tr><td colspan="3" class="empty-cell">还没有阅读材料。先在下面导入一篇真实英文文章。</td></tr>';
+    $('#main').innerHTML = `<div id="reading-page">${title('READING LAB', '阅读', '先直接读英文；只有在真的卡住时才要辅助。阅读不会自动提高任何单词的掌握度。')}
+      <div class="metrics">
+        ${metric('阅读库', String(data.passages.length), '真实导入的材料')}
+        ${metric('完成阅读', String(trend.completed), trend.sampleNote)}
+        ${metric('首读速度', trend.avgFirstWpm === null ? '—' : String(trend.avgFirstWpm), '词/分钟（估算）')}
+        ${metric('显式生词率', trend.avgExplicitUnknownRate === null ? '—' : `${trend.avgExplicitUnknownRate}%`, '只统计你标记过的词')}
+      </div>
+      ${open ? `<section class="panel"><div class="section-title">上次没读完</div><p class="hint">${resc(open.detail?.passageTitle ?? '')} · ${esc(sessionProgress(open).label)} · ${sessionProgress(open).percent}%</p><div class="actions"><button class="primary" data-read-resume-open="${open.id}">继续阅读</button></div></section>` : ''}
+      ${readMessage ? `<p class="hint warn">${resc(readMessage)}</p>` : ''}
+      ${importPanelHTML()}
+      <section class="panel"><div class="section-title">阅读库</div>
+        <div class="actions">
+          <input id="read-search" placeholder="搜索标题或正文" value="${resc(readLibraryQuery.text ?? '')}" />
+          <select id="read-filter"><option value="all"${readLibraryQuery.readState === 'all' ? ' selected' : ''}>全部</option><option value="unread"${readLibraryQuery.readState === 'unread' ? ' selected' : ''}>未读</option><option value="unfinished"${readLibraryQuery.readState === 'unfinished' ? ' selected' : ''}>未完成</option><option value="read"${readLibraryQuery.readState === 'read' ? ' selected' : ''}>已读</option></select>
+        </div>
+        <div class="table-scroll"><table><thead><tr><th>文章</th><th>难度</th><th>操作</th></tr></thead><tbody>${list}</tbody></table></div>
+      </section></div>`;
+    wireReadingLibrary();
+}
+function wireReadingLibrary(): void {
+    const paste = document.querySelector<HTMLTextAreaElement>('#read-paste');
+    const count = document.querySelector<HTMLElement>('#read-count');
+    const updateCount = () => {
+        if (!paste || !count)
+            return;
+        const parsed = parsePassageText(paste.value);
+        count.textContent = `${parsed.wordCount} 词 · ${parsed.paragraphs.length} 段 · ${parsed.sentences.length} 句`;
+    };
+    paste?.addEventListener('input', updateCount);
+    updateCount();
+    on('#read-search', 'input', e => { readLibraryQuery = { ...readLibraryQuery, text: (e.target as HTMLInputElement).value }; render(); });
+    on('#read-filter', 'change', e => { readLibraryQuery = { ...readLibraryQuery, readState: (e.target as HTMLSelectElement).value as LibraryQuery['readState'] }; render(); });
+    document.querySelectorAll<HTMLElement>('[data-read-open]').forEach(b => b.addEventListener('click', () => {
+        const p = data.passages.find(x => x.id === b.dataset.readOpen);
+        if (p)
+            openReadingMaterial(p, null);
+    }));
+    document.querySelectorAll<HTMLElement>('[data-read-resume-open]').forEach(b => b.addEventListener('click', () => {
+        const s = data.readingSessions.find(x => x.id === b.dataset.readResumeOpen);
+        const p = s ? data.passages.find(x => x.id === s.passageId) : null;
+        if (s && p)
+            openReadingMaterial(p, s.id);
+    }));
+    document.querySelectorAll<HTMLElement>('[data-read-file-label]').forEach(b => b.addEventListener('click', () => document.querySelector<HTMLInputElement>('#read-file')?.click()));
+    on('#read-file', 'change', async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file)
+            return;
+        const text = await file.text();
+        if (paste)
+            paste.value = text;
+        updateCount();
+        const res = importFromFile({ name: file.name, data: text });
+        readMessage = res.ok ? `已读取 ${file.name}：${res.value.wordCount} 词，点“预览并保存”继续。` : `${res.error.message}${res.error.hint ? `（${res.error.hint}）` : ''}`;
+        render();
+    });
+    on('[data-read-save]', 'click', async () => {
+        const title = document.querySelector<HTMLInputElement>('#read-title')?.value ?? '';
+        const topic = document.querySelector<HTMLInputElement>('#read-topic')?.value ?? '';
+        const raw = paste?.value ?? '';
+        const shortOk = document.querySelector<HTMLInputElement>('#read-allow-short')?.checked ?? false;
+        const res = buildPastedDraft({ raw, title, topic, allowShort: shortOk });
+        if (!res.ok) {
+            readMessage = `${res.error.message}${res.error.hint ? `（${res.error.hint}）` : ''}`;
+            render();
+            return;
+        }
+        await saveDraftAndPreview(res.value);
+    });
+    on('[data-read-url-open]', 'click', () => { document.querySelector<HTMLElement>('#read-url-box')?.removeAttribute('hidden'); });
+    on('[data-read-fetch]', 'click', async () => {
+        const url = document.querySelector<HTMLInputElement>('#read-url')?.value ?? '';
+        const msg = document.querySelector<HTMLElement>('#read-url-msg');
+        if (msg)
+            msg.textContent = '正在抓取……';
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 12000);
+        try {
+            const resp = await fetch(url, { signal: controller.signal, credentials: 'omit' });
+            clearTimeout(timer);
+            if (!resp.ok) {
+                const failure = classifyFetchFailure({ status: resp.status });
+                if (msg)
+                    msg.textContent = `${failure.message}${failure.hint}`;
+                return;
+            }
+            const html = await resp.text();
+            const res = buildUrlDraft({ url, html });
+            if (!res.ok) {
+                if (msg)
+                    msg.textContent = `${res.error.message}${res.error.hint}`;
+                return;
+            }
+            await saveDraftAndPreview(res.value);
+        }
+        catch (err) {
+            clearTimeout(timer);
+            const aborted = (err as Error).name === 'AbortError';
+            const failure = classifyFetchFailure({ timedOut: aborted, cors: !aborted });
+            if (msg)
+                msg.textContent = `${failure.message}${failure.hint}`;
+        }
+    });
+    on('[data-read-ocr-open]', 'click', () => { document.querySelector<HTMLElement>('#read-ocr-box')?.removeAttribute('hidden'); });
+    on('#read-image', 'change', async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        const msg = document.querySelector<HTMLElement>('#read-ocr-msg');
+        if (!file || !msg)
+            return;
+        const cap = ocrCapability({ providerSupportsVision: false, localOcrInstalled: false });
+        msg.innerHTML = `${resc(cap.reason)}。请把截图里的英文录到下面的框里，核对后保存（不会假装识别成功）。`;
+        const box = document.createElement('textarea');
+        box.id = 'read-ocr-text';
+        box.rows = 8;
+        box.placeholder = '把截图中的英文录入/粘贴到这里……';
+        msg.appendChild(box);
+        const save = document.createElement('button');
+        save.className = 'primary';
+        save.textContent = '确认并保存这段文字';
+        save.dataset.readOcrSave = '1';
+        save.addEventListener('click', async () => {
+            const res = buildManualImageDraft({ text: box.value, imageName: file.name, userConfirmed: true, allowShort: true });
+            if (!res.ok) {
+                msg.innerHTML = resc(`${res.error.message}${res.error.hint}`);
+                return;
+            }
+            await saveDraftAndPreview(res.value);
+        });
+        msg.appendChild(save);
+    });
+}
+async function saveDraftAndPreview(draft: PassageDraft): Promise<void> {
+    const dupe = findDuplicate(draft, data.passages);
+    if (dupe) {
+        readMessage = `这篇内容与《${dupe.title}》相同（同一指纹 ${draft.contentHash}）：已存在就不会重复创建。`;
+        openReadingMaterial(dupe, null);
+        toast('检测到重复文章：已打开原有那篇');
+        return;
+    }
+    const passage = toPassage(draft);
+    passage.estimatedDifficulty = readingDifficultyFor(passage).difficulty;
+    try {
+        await savePassage(passage);
+    }
+    catch (e) {
+        readMessage = `保存失败：${(e as Error).message}`;
+        render();
+        return;
+    }
+    data.passages = [passage, ...data.passages];
+    readMessage = '';
+    openReadingMaterial(passage, null);
+    toast(`已保存《${passage.title}》（${passage.wordCount} 词 / ${passage.sentences?.length ?? 0} 句）`);
+}
+function readingPreview(): void {
+    if (!readPassage)
+        return readingLibrary();
+    const p = readPassage;
+    const unfinished = readSession && isResumable(readSession) ? readSession : null;
+    $('#main').innerHTML = `<div id="reading-page">${title('READING', '阅读预览', '先看材料与难度，再决定要不要现在读；首读前不会给你译文。')}
+      ${previewHTML({ passage: p, difficulty: readDifficulty, unfinished })}
+      ${unfinished ? `<p class="hint">上次读到第 ${(unfinished.detail?.chunkIndex ?? 0) + 1}/${unfinished.detail?.chunks.length ?? 0} 段（${esc(stageLabel(unfinished.detail?.stage ?? 'reading'))}）。</p>` : ''}</div>`;
+    document.querySelectorAll<HTMLElement>('[data-read-back]').forEach(b => b.addEventListener('click', () => { readView = 'library'; readPassage = null; readSession = null; render(); }));
+    on('[data-read-start]', 'click', async () => {
+        if (!readPassage)
+            return;
+        const ability = (readDifficulty?.classification === 'too-hard' ? 'weak' : readDifficulty?.classification === 'comfort' ? 'strong' : 'normal') as 'weak' | 'normal' | 'strong';
+        const session = createReadingSession({ passage: readPassage, now: Date.now(), ability });
+        const guess = document.querySelector<HTMLInputElement>('#read-guess')?.value?.trim() ?? '';
+        upsertReadSession(session);
+        if (guess)
+            readSession = submitOutput(session, { kind: 'personal-note', text: guess, language: /[\u4e00-\u9fff]/.test(guess) ? 'zh' : 'en', now: Date.now() });
+        await persistReading();
+        readView = 'cold';
+        render();
+    });
+    on('[data-read-resume]', 'click', () => {
+        if (!readSession) {
+            readView = 'library';
+            render();
+            return;
+        }
+        readSession = { ...readSession, detail: readSession.detail ? { ...readSession.detail, state: 'active' } : readSession.detail };
+        readView = readSession.detail?.coldTestDone ? 'reader' : 'cold';
+        if (readView === 'reader') {
+            readSession = startReading(readSession, Date.now());
+            refreshReadTokens();
+        }
+        render();
+    });
+}
+function readingCold(): void {
+    if (!readSession)
+        return readingLibrary();
+    $('#main').innerHTML = `<div id="reading-page">${title('READING', `冷读：${resc(readPassage?.title ?? '')}`, '这一遍不看译文、不查词。读完（或读不下去）再记录真实状态。')}${coldTestHTML()}</div>`;
+    const range = document.querySelector<HTMLInputElement>('#read-cold-self');
+    const out = document.querySelector<HTMLOutputElement>('#read-cold-self-out');
+    range?.addEventListener('input', () => {
+        if (out)
+            out.textContent = range.value;
+    });
+    on('[data-read-cold-submit]', 'click', async () => {
+        if (!readSession)
+            return;
+        const self = Number(range?.value ?? 50);
+        const dep = (document.querySelector<HTMLSelectElement>('#read-cold-dep')?.value ?? 'B') as 'A' | 'B' | 'C' | 'D' | 'E';
+        let next = submitColdTest(readSession, { selfReport: self, translationDependence: dep, now: Date.now() });
+        next = startReading(next, Date.now());
+        upsertReadSession(next);
+        refreshReadTokens();
+        await persistReading();
+        readView = 'reader';
+        render();
+    });
+}
+function readingReader(): void {
+    if (!readSession || !readPassage)
+        return readingLibrary();
+    const chunk = readSession.detail?.chunks[readSession.detail.chunkIndex];
+    const helpText = readHelpState.show ? readHelpState.text : '';
+    $('#main').innerHTML = `<div id="reading-page">${title('READING', readPassage.title, `${readPassage.wordCount} 词 · 第 ${(readSession.detail?.chunkIndex ?? 0) + 1}/${readSession.detail?.chunks.length ?? 0} 段 · 点词标记卡点，标完再点“下一段”。`)}
+      ${readerHTML({ passage: readPassage, session: readSession, tokens: readTokens, helpText, showHelp: readHelpState.show })}</div>`;
+    document.querySelectorAll<HTMLElement>('[data-tok]').forEach(b => b.addEventListener('click', () => {
+        const idx = Number(b.dataset.tok);
+        readSelectedToken = readTokens.find(t => t.index === idx) ?? null;
+        document.querySelectorAll<HTMLElement>('[data-tok]').forEach(x => x.classList.remove('selected'));
+        b.classList.add('selected');
+        toast(readSelectedToken ? `已选中「${readSelectedToken.surface}」，再点一个标记` : '');
+    }));
+    document.querySelectorAll<HTMLElement>('[data-mark]').forEach(b => b.addEventListener('click', async () => {
+        if (!readSession || !readSelectedToken) {
+            toast('先点正文里的一个词');
+            return;
+        }
+        const judgment = (b.dataset.mark ?? 'unknown') as ReadingMark['judgment'];
+        const sentence = (readPassage!.sentences ?? []).find(s => s.index === readSelectedToken!.sentenceIndex);
+        const result = markWord(readSession, {
+            paragraphIndex: readSelectedToken.paragraphIndex, sentenceIndex: readSelectedToken.sentenceIndex,
+            tokenIndex: readSelectedToken.index, surface: readSelectedToken.surface,
+            contextSentence: sentence?.text ?? '', judgment, now: Date.now(),
+        });
+        upsertReadSession(result.session);
+        await persistReading();
+        toast(result.replaced ? `已把「${readSelectedToken.surface}」改成「${judgment === 'unknown' ? '不知道' : judgment === 'vague' ? '模糊' : judgment === 'known' ? '知道' : '猜出'}」` : '已记录');
+        render();
+    }));
+    document.querySelectorAll<HTMLElement>('[data-unmark]').forEach(b => b.addEventListener('click', async () => {
+        if (!readSession)
+            return;
+        upsertReadSession(revokeMark(readSession, b.dataset.unmark ?? '', Date.now()));
+        await persistReading();
+        render();
+    }));
+    document.querySelectorAll<HTMLElement>('[data-difficult]').forEach(b => b.addEventListener('click', () => {
+        const sentenceIndex = Number(b.dataset.difficult);
+        const sentence = (readPassage!.sentences ?? []).find(s => s.index === sentenceIndex);
+        if (!sentence || !readSession)
+            return;
+        modal(`<h2>这句哪里卡住？</h2><p class="hint">${resc(sentence.text.slice(0, 160))}</p>
+          <div class="actions">${(Object.keys(PROBLEM_TYPE_LABELS) as ReadingProblemType[]).map(t => `<button class="chip" data-problem="${t}">${PROBLEM_TYPE_LABELS[t]}</button>`).join('')}</div>`);
+        document.querySelectorAll<HTMLElement>('[data-problem]').forEach(pb => pb.addEventListener('click', async () => {
+            const types = [pb.dataset.problem as ReadingProblemType];
+            const before = readPassage!.text.slice(Math.max(0, sentence.start - 160), sentence.start).trim();
+            const after = readPassage!.text.slice(sentence.end, Math.min(readPassage!.text.length, sentence.end + 160)).trim();
+            const result = captureDifficultSentence(readSession!, { sentence, problemTypes: types, contextBefore: before, contextAfter: after, now: Date.now() });
+            upsertReadSession(result.session);
+            await persistReading();
+            closeModal();
+            toast('已标记为难句，可以进拆句训练');
+            render();
+        }));
+    }));
+    document.querySelectorAll<HTMLElement>('[data-read-lab]').forEach(b => b.addEventListener('click', () => void openReadingLab(b.dataset.readLab ?? '')));
+    document.querySelectorAll<HTMLElement>('[data-read-help]').forEach(b => b.addEventListener('click', async () => {
+        if (!readSession)
+            return;
+        const level = Number(b.dataset.readHelp) as 1 | 2 | 3 | 4;
+        const sentence = (readPassage!.sentences ?? []).find(s => (readSelectedToken && s.index === readSelectedToken.sentenceIndex) || s.start >= (chunk?.start ?? 0));
+        const type = level <= 2 ? 'grammar-card' : 'sentence-structure';
+        upsertReadSession(requestHelp(readSession, { type, level, concept: null, now: Date.now() }));
+        readHelpState = { show: true, text: readingHelpText(level, sentence?.text ?? '') };
+        await persistReading();
+        render();
+    }));
+    on('[data-read-idea-submit]', 'click', async () => {
+        if (!readSession)
+            return;
+        const text = document.querySelector<HTMLInputElement>('#read-idea')?.value?.trim() ?? '';
+        if (!text) {
+            toast('先写一句你的理解');
+            return;
+        }
+        upsertReadSession(submitMainIdea(readSession, { text, language: /[\u4e00-\u9fff]/.test(text) ? 'zh' : 'en', assisted: maxHelpLevelUsed(readSession) >= 3, now: Date.now() }));
+        await persistReading();
+        toast('已记录这一段的理解');
+        render();
+    });
+    on('[data-read-prev]', 'click', () => {
+        if (readSession) {
+            upsertReadSession(goToChunk(readSession, (readSession.detail?.chunkIndex ?? 0) - 1));
+            refreshReadTokens();
+            render();
+        }
+    });
+    on('[data-read-next]', 'click', async () => {
+        if (!readSession)
+            return;
+        const detail = readSession.detail!;
+        if (detail.chunkIndex + 1 >= detail.chunks.length) {
+            await enterReread();
+            return;
+        }
+        upsertReadSession(nextChunk(readSession));
+        refreshReadTokens();
+        await persistReading();
+        render();
+    });
+    on('[data-read-finish-first]', 'click', async () => {
+        if (!readSession)
+            return;
+        await enterReread();
+    });
+}
+// 从难句训练回到阅读：保留阅读进度与标记，只是回到同一个段落
+function labReturnToReading(): boolean {
+    const target = labReturn;
+    if (!target || !readSession || !readPassage)
+        return false;
+    labSession = null;
+    labReturn = null;
+    readSession = goToChunk(readSession, target.chunkIndex);
+    refreshReadTokens();
+    readSelectedToken = null;
+    readHelpState = { show: false, text: '' };
+    readView = 'reader';
+    page = 'reading';
+    render();
+    toast(`已回到原段落（第 ${(readSession.detail?.chunkIndex ?? 0) + 1} 段）；阅读进度与标记都在`);
+    return true;
+}
+async function openReadingLab(difficultId: string): Promise<void> {
+    if (!readSession || !readPassage)
+        return;
+    const difficult = readSession.detail?.difficultSentences.find(d => d.id === difficultId);
+    if (!difficult) {
+        toast('找不到这句难句记录');
+        return;
+    }
+    const record = difficultSentenceRecord({ difficult, passage: readPassage, now: Date.now(), existingId: `reading.${readPassage.id}.${difficult.start}` });
+    const exists = sentenceRecords.some(s => s.id === record.id);
+    if (!exists) {
+        await saveSentences([record]);
+        sentenceRecords = [record, ...sentenceRecords];
+        data.sentences = sentenceRecords;
+    }
+    labReturn = { ...returnTarget(readSession, difficult, readSession.detail?.chunkIndex ?? 0), planTaskId: readingTask?.planTaskId };
+    startLab([record.id], null, null, { ungraded: record.structureProvenance !== 'gold', returnTo: labReturn });
+    toast('这句的结构是自动分析的：本次只记接触，不推进语法掌握度');
+}
+// 进入重读：先结束首读（support），再真正开始重读计时——否则重读速度永远是 0
+async function enterReread(): Promise<void> {
+    if (!readSession)
+        return;
+    upsertReadSession(startReread(finishFirstPass(readSession, Date.now()), Date.now()));
+    await persistReading();
+    readView = 'reread';
+    render();
+}
+function readingReread(): void {
+    if (!readSession)
+        return readingLibrary();
+    const chunkIndex = readSession.detail?.chunkIndex ?? 0;
+    $('#main').innerHTML = `<div id="reading-page">${title('READING', '重读', '辅助已收起。先自己读一遍，再记录这次的真实状态。')}${rereadHTML({ session: readSession, chunkIndex })}</div>`;
+    document.querySelectorAll<HTMLElement>('[data-reread-prev]').forEach(b => b.addEventListener('click', async () => {
+        if (!readSession)
+            return;
+        upsertReadSession(goToChunk(readSession, (readSession.detail?.chunkIndex ?? 0) - 1));
+        await persistReading();
+        render();
+    }));
+    document.querySelectorAll<HTMLElement>('[data-reread-next]').forEach(b => b.addEventListener('click', async () => {
+        if (!readSession)
+            return;
+        upsertReadSession(goToChunk(readSession, (readSession.detail?.chunkIndex ?? 0) + 1));
+        await persistReading();
+        render();
+    }));
+    const range = document.querySelector<HTMLInputElement>('#read-reread-self');
+    const out = document.querySelector<HTMLOutputElement>('#read-reread-self-out');
+    range?.addEventListener('input', () => {
+        if (out)
+            out.textContent = range.value;
+    });
+    on('[data-read-reread-done]', 'click', async () => {
+        if (!readSession)
+            return;
+        const self = Number(range?.value ?? 50);
+        const dep = (document.querySelector<HTMLSelectElement>('#read-reread-dep')?.value ?? 'B') as 'A' | 'B' | 'C' | 'D' | 'E';
+        upsertReadSession(finishReread(readSession, { selfReport: self, translationDependence: dep, now: Date.now() }));
+        await persistReading();
+        readView = 'whole';
+        render();
+    });
+}
+function readingWhole(): void {
+    if (!readSession)
+        return readingLibrary();
+    $('#main').innerHTML = `<div id="reading-page">${title('READING', '全文理解', '没有标准答案的部分只记录你的回答；系统不会假装给你打分。')}${wholeTextHTML()}</div>`;
+    on('[data-read-whole-submit]', 'click', async () => {
+        if (!readSession)
+            return;
+        let s = readSession;
+        const main = document.querySelector<HTMLInputElement>('#read-whole-main')?.value?.trim() ?? '';
+        const detailAnswer = document.querySelector<HTMLTextAreaElement>('#read-whole-detail')?.value?.trim() ?? '';
+        const infer = document.querySelector<HTMLTextAreaElement>('#read-whole-infer')?.value?.trim() ?? '';
+        const lang = (t: string): 'zh' | 'en' | 'mixed' => /[\u4e00-\u9fff]/.test(t) ? (/[A-Za-z]{3,}/.test(t) ? 'mixed' : 'zh') : 'en';
+        if (main)
+            s = submitWholeTextItem(s, { kind: 'main-idea', prompt: '全文主旨', answer: main, language: lang(main), verifiedScore: null, now: Date.now() });
+        if (detailAnswer)
+            s = submitWholeTextItem(s, { kind: 'detail', prompt: '关键细节', answer: detailAnswer, language: lang(detailAnswer), verifiedScore: null, now: Date.now() });
+        if (infer)
+            s = submitWholeTextItem(s, { kind: 'inference', prompt: '推论', answer: infer, language: lang(infer), verifiedScore: null, now: Date.now() });
+        upsertReadSession(s);
+        await persistReading();
+        toast('已记录');
+        render();
+    });
+    on('[data-read-complete]', 'click', async () => {
+        if (!readSession)
+            return;
+        const summary = document.querySelector<HTMLInputElement>('#read-whole-main')?.value?.trim() ?? '';
+        const done = completeReadingSession(readSession, { summary, now: Date.now() });
+        upsertReadSession(done);
+        await persistReading();
+        if (readingTask) {
+            const minutes = Math.max(1, Math.round((Date.now() - readingTask.startedAt) / 60000));
+            await completePlanTask({ planTaskId: readingTask.planTaskId, kind: 'reading', startedAt: readingTask.startedAt, sessionId: done.id }, minutes);
+            readingTask = null;
+        }
+        readView = 'result';
+        render();
+    });
+}
+function readingResult(): void {
+    if (!readSession || !readPassage)
+        return readingLibrary();
+    const tokens = readPassage.text.match(/[A-Za-z0-9]+(?:['’\-][A-Za-z0-9]+)*/g) ?? [];
+    const byWord = new Map(data.words.map(w => [w.en.trim().toLowerCase(), w]));
+    const metrics = computeReadingMetrics(readSession, { tokens, lookup: n => byWord.get(n) });
+    $('#main').innerHTML = `<div id="reading-page">${title('READING', '阅读结果', '看的是真实记录：自评、速度、标记、难句各自独立标注。')}${resultHTML({ session: readSession, metrics, passage: readPassage })}</div>`;
+    document.querySelectorAll<HTMLElement>('[data-read-back]').forEach(b => b.addEventListener('click', () => { readView = 'library'; readPassage = null; readSession = null; render(); }));
+    on('[data-read-words]', 'click', () => {
+        if (!readSession)
+            return;
+        readCandidates = selectStudyCandidates(readSession.detail?.marks ?? [], data.words);
+        readView = 'words';
+        render();
+    });
+}
+function readingWords(): void {
+    if (!readSession)
+        return readingLibrary();
+    $('#main').innerHTML = `<div id="reading-page">${title('READING', '整理生词', '只把值得学的词交给词汇引擎；新词必须先有释义才能进入 Preview / Recall。')}${studyWordsHTML(readCandidates)}</div>`;
+    document.querySelectorAll<HTMLElement>('[data-read-back]').forEach(b => b.addEventListener('click', () => { readView = 'result'; render(); }));
+    on('[data-read-words-save]', 'click', async () => {
+        if (!readSession)
+            return;
+        const plan = buildHandoffPlan(readCandidates);
+        const now = Date.now();
+        // 用户在页面上填的释义：按 data-def 直接收集（不用 CSS.escape，兼容性更稳，也不依赖选择器转义）
+        const defs = new Map<string, string>();
+        document.querySelectorAll<HTMLInputElement>('[data-def]').forEach(input => {
+            const key = input.dataset.def ?? '';
+            const v = input.value.trim();
+            if (key && v)
+                defs.set(key, v);
+        });
+        const newWords: Word[] = [];
+        const exposures: WordExposure[] = [];
+        let needsDefinition = 0;
+        for (const c of readCandidates) {
+            if (c.bucket === 'proper-noun' || c.bucket === 'low-value')
+                continue;
+            const def = defs.get(c.normalized) ?? '';
+            let word = data.words.find(w => w.en.trim().toLowerCase() === c.normalized);
+            if (!word) {
+                if (!def) {
+                    needsDefinition++;
+                    continue;
+                }
+                word = readingWordSeed(c.surface, data.books[0]?.id ?? 'reading', 5000 + newWords.length, now);
+                word = { ...word, zh: def, previewResult: 'needs-definition' };
+                newWords.push(word);
+            }
+            else if (!readyForTraining(word) && def) {
+                word = { ...word, zh: def };
+                newWords.push(word);
+            }
+            const mark = readSession.detail?.marks.find(m => !m.revokedAt && m.normalized === c.normalized);
+            if (mark)
+                exposures.push(exposureFromMark(mark, word.id, now));
+        }
+        if (!newWords.length && !plan.link.length) {
+            toast(needsDefinition ? `有 ${needsDefinition} 个新词还没有释义：先补释义再保存` : '没有可入库的词');
+            return;
+        }
+        data.words = [...data.words, ...newWords];
+        if (newWords.length)
+            await putItems('words', newWords);
+        await persistReading({ exposures, words: newWords });
+        reindex();
+        toast(`已入库 ${newWords.length} 个新词；${needsDefinition ? `${needsDefinition} 个缺释义未入库；` : ''}阅读只计接触，不会自动提升掌握度`);
+        readView = 'library';
+        render();
+    });
+}
+// —— Phase 5 UI 结束 ——
 async function boot() {
     installTestHook();
     await openDB();

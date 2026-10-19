@@ -88,7 +88,8 @@ test('Phase 3 UI：生成计划 → 预览 → Recall → 校准/重排 → Clos
         const totalTasks = labels.length;
         const gating = w.document.querySelector('#plan-panel')!.textContent!;
         assert.equal(gating.includes('句子与语法（phase4）'), false, 'Phase 4 起句子模块已真实可用，不得再列为未上线');
-        assert.equal(/阅读（phase5）/.test(gating) && /真实输入（phase7）/.test(gating), true, '未上线模块必须显示为不可用');
+        assert.equal(/阅读（phase5）/.test(gating), false, 'Phase 5 起阅读模块已真实可用，不得再列为未上线');
+        assert.equal(/真实输入（phase7）/.test(gating), true, '未上线模块必须显示为不可用');
         // 替换：没有同目标候选时必须明确不可用，不生成假任务
         clickInCard(w, '新词 Recall', 'replace');
         await until(w, () => w.document.querySelector('#toast')!.textContent!.includes('没有可替换'), 'replace unavailable toast');

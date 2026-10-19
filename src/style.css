@@ -96,3 +96,26 @@ button.small{padding:5px 10px;font-size:13px;border-radius:7px}
 .pret.teach{margin-bottom:10px}
 .pret.teach .token{display:inline-flex;align-items:baseline;gap:6px;margin-right:8px}
 .pret.teach .token small{color:var(--muted)}
+
+/* ===== Phase 5：Reading Lab ===== */
+.reading-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+@media(max-width:900px){.reading-layout{grid-template-columns:1fr}}
+.reader-main{min-height:320px}
+.reader-head{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+.reader-text{font-size:1.12rem;line-height:2;letter-spacing:.01em;max-width:62ch}
+.reader-text .word{display:inline;padding:1px 2px;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;border-radius:4px}
+.reader-text .word:hover{background:var(--accent);opacity:.85}
+.reader-text .word.selected{outline:2px solid var(--accent)}
+.reader-text .word.marked{background:var(--accent);opacity:.55}
+.reader-text .word.mark-known{text-decoration:underline dotted}
+.reader-text .word.mark-unknown{background:#f6c6c6}
+.reader-text .word.mark-vague{background:#f7e3b0}
+.reader-text .word.mark-guessed{background:#c8e6c9}
+.reader-side{position:sticky;top:12px}
+.reader-side .section-title{margin-top:10px}
+#read-marks .plain-list li{display:flex;gap:8px;align-items:center}
+.preview-card .metrics{margin:10px 0}
+#reading-page textarea{width:100%;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--foreground)}
+#reading-page input[type="text"],#reading-page input:not([type]){width:100%}
+#read-difficult-tools,#read-help-tools,#read-mark-tools{flex-wrap:wrap}
+.chip.selected{outline:2px solid var(--accent)}

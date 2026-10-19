@@ -97,13 +97,31 @@ test('统一 Task Contract：每个任务都有 module/kind/时间/原因/能力
 });
 test('Capability Gate：未上线模块不可执行，也不生成假任务', () => {
     const words = makeWords(10);
-    // Phase 4：sentence 已真实可用，但仍必须有真实句源才生成任务
+    // Phase 5：reading 能力已实现（available=true），但**没有真实文章**时不得生成任何阅读任务；
+    // input / output 仍未上线（Phase 7/8），既不可执行也不生成任务。
     const noSource = createDailyPlan({ now: NOW, availableMinutes: 45, energy: 'normal', words, records: [] }).plan;
     assert.equal(noSource.capabilities!.vocabulary.available, true);
     assert.equal(noSource.capabilities!.sentence.available, true);
-    for (const m of ['reading', 'input', 'output'])
+    assert.equal(noSource.capabilities!.reading.available, true);
+    for (const m of ['input', 'output'])
         assert.equal(noSource.capabilities![m].available, false);
-    assert.ok(noSource.initialPlan.every(t => t.module === 'vocabulary'), '没有句源时不得生成句子任务');
+    assert.ok(noSource.initialPlan.every(t => t.module === 'vocabulary'), '没有句源与阅读材料时不得生成句子/阅读任务');
+    // Phase 5：reading 已实现，因此有真实文章时**必须**生成真实阅读任务
+    const passage = {
+        id: 'p1', title: 'Real article', text: 'word '.repeat(200), sourceType: 'pasted_text' as const,
+        sourceUrl: '', topic: 'test', wordCount: 200, difficulty: '', createdAt: NOW,
+        paragraphs: [{ index: 0, text: 'word '.repeat(200), start: 0, end: 1000, wordCount: 200 }],
+        sentences: [{ index: 0, paragraphIndex: 0, text: 'word '.repeat(200), start: 0, end: 1000, wordCount: 200 }],
+        estimatedDifficulty: 3,
+    };
+    const withMaterial = createDailyPlan({
+        now: NOW, availableMinutes: 45, energy: 'normal', words, records: [],
+        readingInput: { passages: [passage], sessions: [] },
+    }).plan;
+    const readingTask = withMaterial.initialPlan.find(t => t.module === 'reading');
+    assert.ok(readingTask, '有真实文章时必须生成阅读任务');
+    assert.equal(readingTask!.kind, 'reading-new');
+    assert.deepEqual(readingTask!.refs, ['p1']);
     // 运行时可降级：sentence 被显式关闭时，即使给了句源也不生成
     const gated = createDailyPlan({
         now: NOW, availableMinutes: 45, energy: 'normal', words, records: [],

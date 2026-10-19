@@ -2,7 +2,7 @@
 
 用大量双向检索、反应时间、薄弱词强化和独立间隔调度，建立个人词汇学习记录。本地优先，不需要账号，也不需要 AI 才能刷词。
 
-**当前工程状态（2026-10-19 实测）**：V2 Phase 0/0.5/1/2/3/4 已通过。DB 升到 **v4（additive）**、FSRS 5.4.2 默认调度。Phase 3 Daily Planner：Today 首页为唯一入口（可用时间与状态 → 隔夜检测 → 计划 → Start/Skip/Delay/Replace → Closing Loop），支持 Re-entry / Mini Diagnostic 与刷新恢复。Phase 4 Sentence & Grammar：语法知识图谱（34 概念 + 先修边，禁循环）、12 条 authored 教学句（gold 结构 + 中文预教词）、引导式拆句（L0–L4 分层辅助 / 即时反馈 / JIT 知识卡 / 迁移验证）、证据分级（看过答案不计掌握）、计划内真实句任务。未上线模块（阅读/输入/输出）在 UI 明示不可执行、不生成假任务。验证：`npm test` **106/106**、`npm run build` 成功、HTTP 200、真实浏览器（无头 Edge + CDP，独立 profile）smoke **36/36**（+ Phase 3 回归 21/21）。远程质量门禁：GitHub Actions **Node 22/24 双绿**（run 39271191340 @ `6f7c889`）。真机移动端与真实 AI 供应商调用仍未验收。工程已关联 GitHub **Private** 仓库 `Huyaen/english-reconstruction-system`（源码备份 ≠ IndexedDB 学习数据备份）。
+**当前工程状态（2026-10-19 实测）**：V2 Phase 0/0.5/1/2/3/4/5 已通过。DB 升到 **v4（additive）**、FSRS 5.4.2 默认调度。Phase 3 Daily Planner：Today 首页为唯一入口（可用时间与状态 → 隔夜检测 → 计划 → Start/Skip/Delay/Replace → Closing Loop），支持 Re-entry / Mini Diagnostic 与刷新恢复。Phase 4 Sentence & Grammar：语法知识图谱（34 概念 + 先修边，禁循环）、12 条 authored 教学句（gold 结构 + 中文预教词）、引导式拆句（L0–L4 分层辅助 / 即时反馈 / JIT 知识卡 / 迁移验证）、证据分级（看过答案不计掌握）、计划内真实句任务。Phase 5 Reading Lab：真实文章导入（粘贴/文件/URL/截图人工转录，来源类型与可靠性、内容指纹全部可追溯）、逐段阅读（首读无辅助、**打开文章不显示全文翻译**）、生词四分类即时标记 + 后置筛选入库（**没有释义的新词不得入库**）、难句一键交给 Phase 4 拆句训练（自动分析的结构只记接触，练完回到原段落）、重读（真实计时，与首读分开统计）、全文理解 + 一句话输出；**没有导入材料时不会生成任何阅读任务**。仍未上线模块（真实输入/输出）在 UI 明示不可执行、不生成假任务。验证：`npm test` **134/134**、`npm run build` 成功、HTTP 200、真实浏览器（无头 Edge + CDP，独立 profile）smoke **44/44**（+ Phase 4 回归 36/36、Phase 3 回归 21/21）。远程质量门禁：GitHub Actions **Node 22/24 双绿**（run 39271191340 @ `6f7c889`）。真机移动端与真实 AI 供应商调用仍未验收。工程已关联 GitHub **Private** 仓库 `Huyaen/english-reconstruction-system`（源码备份 ≠ IndexedDB 学习数据备份）。
 
 ## 最快启动（Windows）
 
@@ -66,9 +66,19 @@ JSON：
 
 词库支持搜索、按掌握状态筛选、优先级/字母/复习时间排序、词书重命名/删除、词条释义/词性/标签编辑、单词详情。筛选结果可导出 TXT / CSV / XLSX，或选前1000词测试。
 
+## 阅读（Reading Lab，2026-10-19 新增）
+
+- **入口**：左侧「阅读」。先导入一篇**真实**英文文章：粘贴正文 / 上传 TXT·MD·HTML / 填网址（拒绝本机与内网地址；遇到 CORS、登录墙、付费墙会说明原因，不会绕过）/ 上传截图（没有视觉模型或本地 OCR 时提供人工转录 + 确认，不做假识别）。
+- **纪律**：打开文章**不显示全文翻译**；首读无辅助；只有你主动要 L0–L4 辅助时才给提示（L3 起算“看过答案”，本次理解只记接触）。
+- **标记**：点正文里的词标记 知道 / 模糊 / 不知道 / 根据上下文猜出（可撤销）。词库里没有的词 **不等于** 你不会——这类词单独统计为“无证据”，不并入生词率。生词率区分「你点出来的（explicit）」与「按词库估算的（estimated）」，两者都带分母、样本覆盖与置信度。
+- **难句**：每句可标“难”，选卡点类型后一键进 Phase 4 拆句训练；来自阅读的句子结构是**自动分析**（没有人工审校），练完只记接触、不推进语法掌握度，并会回到原来的段落。
+- **重读与收尾**：重读单独计时（不与首读混算），可逐段走完；全文理解与一句话输出分开记录；自评永远标注为自评。
+- **生词入库**：整理本次生词时，**没有释义的新词不会入库**（不编造释义）；入库后只增加一次 `reading` 来源的接触（exposure），不会提升任何掌握证据。
+- **没有材料就不排任务**：没有导入文章时，今日计划中不会出现任何阅读任务（绝不造假文章）。
+
 ## 数据保存与备份
 
-数据库：浏览器 IndexedDB `vocabulary-memory-v1`（当前 schema 版本 3）。所有版本升级均为「只加不删」的原子迁移（v1→v2→v3 均有 fixture 测试；旧词书与学习记录 100% 保留）；真实升级后首次启动会提示导出一次备份。对象仓库：books / words / records / sessions / analyses / meta + V2 新增 14 个 Learning Model 仓库（wordExposures、grammarConcepts、grammarAttempts、sentenceAttempts、passages、readingSessions、inputSources、inputSessions、outputAttempts、dailyPlans、miniUnits、skillSnapshots、weeklyDiagnostics、libraryItems）。V3 为 words 增加 FSRS 调度状态与预览结果字段。
+数据库：浏览器 IndexedDB `vocabulary-memory-v1`（当前 schema 版本 4）。所有版本升级均为「只加不删」的原子迁移（v1→v2→v3 均有 fixture 测试；旧词书与学习记录 100% 保留）；真实升级后首次启动会提示导出一次备份。对象仓库：books / words / records / sessions / analyses / meta + V2 新增 14 个 Learning Model 仓库（wordExposures、grammarConcepts、grammarAttempts、sentenceAttempts、passages、readingSessions、inputSources、inputSessions、outputAttempts、dailyPlans、miniUnits、skillSnapshots、weeklyDiagnostics、libraryItems）。V3 为 words 增加 FSRS 调度状态与预览结果字段。
 
 **学习数据不在项目文件夹里。复制程序目录不能代替导出学习备份。** 请固定使用同一浏览器配置和 http://localhost:4173；localhost 与 127.0.0.1、不同端口、不同浏览器是不同存储空间。
 
@@ -139,7 +149,7 @@ npm start
 
 ## 恢复开发协议
 
-新会话先读取 `INITIAL_PROMPT.md`、`PROJECT_SPEC.md`、`AGENT_EXECUTION.md`、`STATE.json`、`CHECKPOINT.md`、`HANDOFF.md`、`TODO.md`、`DEVELOPMENT_LOG.md`；检查 `git status/log/tags/remote`、本地与远端 SHA（`git ls-remote origin`）、真实 DB 版本，并运行必要的 `npm test` / `npm run build`，从真实 `STATE.next_task_id` 与 HANDOFF Next Action 继续（当前为 Phase 5 Reading）。浏览器验收脚本必须跑在**测试构建**上：`npm run build:test` → `node server.mjs --dir=dist-test --port=4173` → `node scripts/phase4-smoke.mjs` / `node scripts/phase3-smoke.mjs`（独立 profile 无头 Edge/CDP，端口 9224）。详细 Github Sync / CI 协议见 `AGENT_EXECUTION.md`，最新 Phase 4 工作规格见 `docs/PHASE4_SENTENCE_GRAMMAR.md`（Phase 3 见 `docs/PHASE3_DAILY_PLANNER.md`）。
+新会话先读取 `INITIAL_PROMPT.md`、`PROJECT_SPEC.md`、`AGENT_EXECUTION.md`、`STATE.json`、`CHECKPOINT.md`、`HANDOFF.md`、`TODO.md`、`DEVELOPMENT_LOG.md`；检查 `git status/log/tags/remote`、本地与远端 SHA（`git ls-remote origin`）、真实 DB 版本，并运行必要的 `npm test` / `npm run build`，从真实 `STATE.next_task_id` 与 HANDOFF Next Action 继续（当前为 Phase 6 Reinforcement AI）。浏览器验收脚本必须跑在**测试构建**上：`npm run build:test` → `node server.mjs --dir=dist-test --port=4173` → `node scripts/phase5-smoke.mjs` / `node scripts/phase4-smoke.mjs` / `node scripts/phase3-smoke.mjs`（独立 profile 无头 Edge/CDP，端口 9224）。详细 Github Sync / CI 协议见 `AGENT_EXECUTION.md`，最新 Phase 5 工作规格见 `docs/PHASE5_READING.md`（Phase 4 见 `docs/PHASE4_SENTENCE_GRAMMAR.md`，Phase 3 见 `docs/PHASE3_DAILY_PLANNER.md`）。
 
 旧版 MVP 的遗留验收包括真实手机和真实 AI 服务；当前主要开发阶段依据 `STATE.json` 推进。Phase 2 已完成独立 Edge/CDP smoke，但不等于所有浏览器/手机已验收。详细历史见 `docs/TEST_REPORT.md` 与 `CHECKPOINT.md`。
 

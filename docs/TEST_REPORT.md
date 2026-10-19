@@ -99,3 +99,26 @@
 **Phase 3 回归**：`node scripts/phase3-smoke.mjs` → **21/21 通过**（计划顺序/预算/Preview/Recall/Closing/跳过不滚存/刷新恢复/隔夜检测/Re-entry 均未被 Phase 4 破坏）。
 
 **新增测试文件**：`tests/grammar.test.ts`、`tests/sentenceStructure.test.ts`、`tests/sentenceLab.test.ts`、`tests/sentenceSources.test.ts`、`tests/sentenceSelection.test.ts`、`tests/sentenceUi.test.ts`（jsdom + fake-indexeddb 全流程：拆句 → 反馈/JIT → 独立证据 → 迁移 → 看答案不计掌握 → 语法图谱 → 计划内句任务回写）。
+
+## Phase 5（Reading Lab）验证记录 · 2026-10-19
+
+命令与结果（全部实跑，非推断）：
+
+| 项目 | 命令 | 结果 |
+| --- | --- | --- |
+| 类型检查 | `npx tsc --noEmit -p tsconfig.json` | 0 error |
+| 全量测试 | `npm test` | **134 tests / 134 pass / 0 fail** |
+| 生产构建 | `npm run build` | 成功；`dist` 无 `__readTest`/`__labTest` |
+| 测试构建 | `npm run build:test` | 成功；`dist-test` 含测试钩子（仅 `?test=1` 且测试构建时可用） |
+| 浏览器验收（阅读） | `node scripts/phase5-smoke.mjs` | **44/44**（dist-test + 无头 Edge/CDP，独立 profile） |
+| 回归 | `node scripts/phase4-smoke.mjs` | **36/36** |
+| 回归 | `node scripts/phase3-smoke.mjs` | **21/21** |
+
+Phase 5 新增用例（28）：
+
+- `tests/readingCore.test.ts`（14）：无损规范化；段落/句子 span 与缩写、小数点边界；词元 span 无损还原（标点不丢）；内容指纹；导入校验（空/太短/太长/纯符号，含 `allowShort` 出口）；文件类型边界（TXT/MD/HTML 可解析，DOCX/PNG 明确拒绝）；URL 安全边界与失败分类（CORS/超时/登录墙/付费墙）；OCR 能力探测与人工确认门禁；重复导入检测与 Passage 映射；难度四分类（no-evidence 单列、语法薄弱抬高难度）；证据幂等键与自评置信度上限；explicit/estimated 生词率的分母与覆盖；学习候选分桶与待补释义。
+- `tests/readingSession.test.ts`（13）：状态机顺序与阶段门控；分块不切断句子（超容差必须来自短段合并）；首读前不显示正文/译文、解释默认隐藏；标记替换式幂等、撤销留痕、证据随标记增减；辅助等级（L3 起算看过答案）；难句 provenance 只能是 heuristic/manual；首读与重读速度/理解度分开统计；证据幂等（重复提交不重复写入）；收尾镜像只统计真实数据；持久化（会话+接触+词汇单事务、可查询可续读）；阅读计划（无材料不排任务、未完成优先续读、低分才重读、预算不足不排）；阅读任务进今日计划且不超预算；结果页与生词页只呈现真实数据。
+- `tests/readingUi.test.ts`（1 端到端）：jsdom + fake-indexeddb 全流程（导入 → 预览不泄露正文 → 冷读 → 首读标记 → 难句进拆句并回到原段落 → 重读逐段 → 全文 → 收尾 → 整理生词，含“无释义不入库”与“阅读只记接触”）。
+
+真实浏览器 smoke（`scripts/phase5-smoke.mjs`，44 项）覆盖：测试钩子只在测试构建 + `?test=1` 存在；无材料时引导导入且计划中无阅读任务；导入落库（来源/指纹/段落句子）；预览不含正文；冷读后进入首读；逐词点击标记 + 障碍证据 + 侧栏列出；难句卡点类型；拆句“自动结构只记接触 + 回到阅读”入口；退出拆句回到同一段且标记仍在；重读真实计时并可逐段走完；两次自评分开；收尾 `completed`；结果页首读/重读速度并列；会话落库唯一且含标记/难句/重读起止/证据幂等；整理生词拒绝无释义入库、补释义后才入库且掌握证据为 0、exposure 来源为 `reading`。
+
