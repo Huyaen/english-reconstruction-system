@@ -397,11 +397,25 @@ document.addEventListener('keydown', e => {
             void submit(id, 'answer');
     }
 });
-function showResults(s: StudySession) { stopTimer(); page = 'results'; if (taskExecution && taskExecution.sessionId === s.id) {
-    const exec = taskExecution;
-    taskExecution = null;
-    void completePlanTask(exec, Math.max(0.5, Math.round((Date.now() - exec.startedAt) / 30000) / 2));
-} const rs = data.records.filter(r => r.sessionId === s.id); const st = recordStats(rs); const ids = new Set(rs.map(r => r.wordId)); const ws = data.words.filter(w => ids.has(w.id)); active = null; $('#main').innerHTML = title('SESSION COMPLETE', '这一轮，记住了多少？', '薄弱词已记录，并安排了下一次复习。') + `<div class="metrics">${metric('本轮作答', String(st.attempts), '含本轮强化重复')}${metric('正确率', pct(st.accuracy), st.unique + ' 个不同单词')}${metric('平均反应', seconds(st.meanMs), '有效作答时间')}${metric('待强化', String(ws.filter(isWeak).length), '按本轮结束后的状态')}</div><div class="actions"><button class="primary" id="review-round">重测本轮弱词</button><button class="secondary" id="round-export">导出本轮弱词</button><button class="secondary" id="back-home">返回首页</button></div><div class="two-col">${(['unknown', 'vague'] as Mastery[]).map(l => `<section class="panel"><h2>${labels[l]}</h2>${wordChips(ws.filter(w => w.state.level === l))}</section>`).join('')}</div><details class="panel"><summary>正常与熟练 · ${ws.filter(w => !isWeak(w)).length} 词</summary>${wordChips(ws.filter(w => !isWeak(w)))}</details>`; on('#review-round', 'click', () => startMode('weak', ws.filter(isWeak))); on('#round-export', 'click', () => download(exportWords(ws.filter(isWeak), 'csv'), '本轮弱词.csv')); on('#back-home', 'click', () => setPage('home')); bindDetails(); }
+function showResults(s: StudySession) {
+    stopTimer();
+    page = 'results';
+    if (taskExecution && taskExecution.sessionId === s.id) {
+        const exec = taskExecution;
+        taskExecution = null;
+        void completePlanTask(exec, Math.max(0.5, Math.round((Date.now() - exec.startedAt) / 30000) / 2));
+    }
+    const rs = data.records.filter(r => r.sessionId === s.id);
+    const st = recordStats(rs);
+    const ids = new Set(rs.map(r => r.wordId));
+    const ws = data.words.filter(w => ids.has(w.id));
+    active = null;
+    $('#main').innerHTML = title('SESSION COMPLETE', '这一轮，记住了多少？', '薄弱词已记录，并安排了下一次复习。') + `<div class="metrics">${metric('本轮作答', String(st.attempts), '含本轮强化重复')}${metric('正确率', pct(st.accuracy), st.unique + ' 个不同单词')}${metric('平均反应', seconds(st.meanMs), '有效作答时间')}${metric('待强化', String(ws.filter(isWeak).length), '按本轮结束后的状态')}</div><div class="actions"><button class="primary" id="review-round">重测本轮弱词</button><button class="secondary" id="round-export">导出本轮弱词</button><button class="secondary" id="back-home">返回首页</button></div><div class="two-col">${(['unknown', 'vague'] as Mastery[]).map(l => `<section class="panel"><h2>${labels[l]}</h2>${wordChips(ws.filter(w => w.state.level === l))}</section>`).join('')}</div><details class="panel"><summary>正常与熟练 · ${ws.filter(w => !isWeak(w)).length} 词</summary>${wordChips(ws.filter(w => !isWeak(w)))}</details>`;
+    on('#review-round', 'click', () => startMode('weak', ws.filter(isWeak)));
+    on('#round-export', 'click', () => download(exportWords(ws.filter(isWeak), 'csv'), '本轮弱词.csv'));
+    on('#back-home', 'click', () => setPage('home'));
+    bindDetails();
+}
 function wordChips(ws: Word[]) { return ws.length ? `<div class="chips">${ws.map(w => `<button data-detail="${w.id}">${esc(w.en)}</button>`).join('')}</div>` : '<p class="subtle">没有这一类单词</p>'; }
 function filtered(weak: boolean) { let ws = data.words.filter(w => (!weak || isWeak(w)) && (!bookFilter || w.bookId === bookFilter) && (!levelFilter || w.state.level === levelFilter) && (!search || `${w.en} ${w.zh} ${w.tags}`.toLowerCase().includes(search.toLowerCase()))); return ws.sort(sort === 'alpha' ? (a, b) => a.en.localeCompare(b.en) : sort === 'due' ? (a, b) => effectiveDue(a, data.settings.schedulingAuthority) - effectiveDue(b, data.settings.schedulingAuthority) : (a, b) => priority(b) - priority(a)); }
 function library(weak: boolean) {
@@ -653,11 +667,16 @@ function taskCard(t: PlanItem): string {
     return `<div class="plan-task ${esc(t.status)}" data-task="${esc(t.id)}"><div class="task-main"><div><b>${esc(t.label ?? TASK_LABELS[t.kind ?? ''] ?? t.kind ?? '任务')}</b><span class="task-minutes">${t.minutes} 分钟</span>${t.critical ? '<span class="badge vague">关键记忆</span>' : ''}${t.flexible ? '<span class="badge normal">可调整</span>' : ''}${statusText[t.status] ? `<span class="badge ${badge}">${statusText[t.status]}</span>` : ''}</div><small>${esc((t.reason ?? []).slice(0, 3).join(' · '))}</small><small>${(t.refs ?? []).length} 个词</small></div>${actions}</div>`;
 }
 function bindPlan() {
-    on('#plan-budget', 'change', e => { const v = (e.target as HTMLSelectElement).value; const custom = document.querySelector<HTMLInputElement>('#plan-custom'); if (custom)
-        custom.disabled = v !== 'custom'; if (v !== 'custom')
-        planBudget = Number(v);
-    else
-        custom?.focus(); });
+    on('#plan-budget', 'change', e => {
+        const v = (e.target as HTMLSelectElement).value;
+        const custom = document.querySelector<HTMLInputElement>('#plan-custom');
+        if (custom)
+            custom.disabled = v !== 'custom';
+        if (v !== 'custom')
+            planBudget = Number(v);
+        else
+            custom?.focus();
+    });
     on('#plan-custom', 'input', e => { planBudget = Number((e.target as HTMLInputElement).value); });
     on('#plan-energy', 'change', e => { planEnergy = (e.target as HTMLSelectElement).value as EnergyState; });
     on('#plan-create', 'click', createPlanFromUI);
@@ -668,10 +687,15 @@ function bindPlan() {
     document.querySelectorAll<HTMLElement>('[data-task-delay]').forEach(b => b.onclick = () => void planAction(b.dataset.taskDelay!, 'delay'));
     document.querySelectorAll<HTMLElement>('[data-task-replace]').forEach(b => b.onclick = () => void replacePlanTask(b.dataset.taskReplace!));
 }
-function upsertPlan(list: DailyPlan[], plan: DailyPlan): DailyPlan[] { const i = list.findIndex(p => p.id === plan.id); const next = [...list]; if (i === -1)
-    next.push(plan);
-else
-    next[i] = plan; return next; }
+function upsertPlan(list: DailyPlan[], plan: DailyPlan): DailyPlan[] {
+    const i = list.findIndex(p => p.id === plan.id);
+    const next = [...list];
+    if (i === -1)
+        next.push(plan);
+    else
+        next[i] = plan;
+    return next;
+}
 async function persistPlan(plan: DailyPlan): Promise<DailyPlan | null> {
     if (!todayPlan)
         return null;
@@ -1138,8 +1162,12 @@ function labPage(): void {
         </section>
         <p class="hint">句子来源：${rec.sourceType} · 结构来源：${cur.plan.simplified ? '简化流程（句子较简单）' : readStructure(rec.structure, rec.id, rec.text).structure.provenance}${cur.plan.uncertain ? ' · 结构不确定，已标注' : ''}${cur.plan.notes.length ? ` · ${esc(cur.plan.notes.join('；'))}` : ''}</p></div>`;
     document.querySelectorAll<HTMLElement>('[data-lab-option]').forEach(b => b.addEventListener('click', () => void labAnswer(b.dataset.labOption ?? '')));
-    on('#lab-hint', 'click', () => { if (!labSession?.current || labSession.current.answered)
-        return; labSession.current.supportLevel = Math.min(MAX_SUPPORT_LEVEL, labSession.current.supportLevel + 1); render(); });
+    on('#lab-hint', 'click', () => {
+        if (!labSession?.current || labSession.current.answered)
+            return;
+        labSession.current.supportLevel = Math.min(MAX_SUPPORT_LEVEL, labSession.current.supportLevel + 1);
+        render();
+    });
     on('#lab-next', 'click', () => labAdvance());
     on('#lab-skip', 'click', () => labSkip());
     document.querySelectorAll<HTMLElement>('[data-lab-back]').forEach(b => b.addEventListener('click', () => { labSession = null; page = 'sentence'; render(); }));
@@ -1253,12 +1281,15 @@ function labResultView(rec: SentenceRecord): void {
         + `<section class="panel"><h2>结构树</h2>${structureTreeHTML(rec, structure)}</section></div>`
         + `<div class="actions">${transfer ? `<button class="secondary" id="lab-transfer">换一句同结构的新句（迁移验证）</button>` : ''}<button class="primary" id="lab-next-sentence">${isLast ? '结束本次训练' : '下一句'}</button></div>`
         + (transfer ? `<p class="hint">迁移句：${esc(transfer.candidate.text)}（共用 ${transfer.sameGrammar.map(id => conceptById(id)?.name ?? id).join('、')}）</p>` : '') + '</div>';
-    on('#lab-next-sentence', 'click', () => { session.index++; if (session.index >= session.queue.length)
-        void finishLabSession();
-    else {
-        openLabSentence();
-        render();
-    } });
+    on('#lab-next-sentence', 'click', () => {
+        session.index++;
+        if (session.index >= session.queue.length)
+            void finishLabSession();
+        else {
+            openLabSentence();
+            render();
+        }
+    });
     on('#lab-transfer', 'click', () => {
         if (!transfer)
             return;
@@ -1290,7 +1321,7 @@ function preTeachHTML(rec: SentenceRecord): string {
 function structureTreeHTML(rec: SentenceRecord, structure: SentenceStructure): string {
     const rows = structureRows(structure);
     const clauses = [...structure.clauses].sort((a, b) => a.start - b.start);
-    const body = clauses.map(c => `<details class="tree-clause" ${c.parentId ? '' : 'open'}><summary><span class="clause-kind">${CLAUSE_LABELS[c.kind]}</span> <b>${esc(c.label)}</b> <small>词 ${c.start + 1}–${c.end + 1}</small></summary><div class="tree-tokens">${rows.filter(r => r.clauseId === c.id).map(r => `<span class="token role-${r.role}" title="依存：${esc(r.headText)}${r.note ? ` · ${esc(r.note)}` : ''}"><b>${esc(r.text)}</b><small>${r.roleLabel}</small></span>`).join('')}</div></details>`).join('');
+    const body = clauses.map(c => `<details class="tree-clause" open><summary><span class="clause-kind">${CLAUSE_LABELS[c.kind]}</span> <b>${esc(c.label)}</b> <small>词 ${c.start + 1}–${c.end + 1}</small></summary><div class="tree-tokens">${rows.filter(r => r.clauseId === c.id).map(r => `<span class="token role-${r.role}" title="依存：${esc(r.headText)}${r.note ? ` · ${esc(r.note)}` : ''}"><b>${esc(r.text)}</b><small>${r.roleLabel}</small></span>`).join('')}</div></details>`).join('');
     const warn = structure.provenance === 'gold' ? '' : `<p class="hint warn">结构来源是 ${structure.provenance}（confidence ${structure.confidence}）：这不是可靠的完整句法分析，只用于引导你注意成分位置。</p>`;
     return `<div id="lab-tree" class="tree"><p class="hint">先看主句骨架，再看从句／非谓语如何补足（组内保持原词序）。</p>${body}</div>${warn}<p class="hint">${esc(structure.note)}</p>`;
 }
