@@ -3,7 +3,7 @@
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "active",
   "current_phase": "phase_3_daily_planner",
-  "last_updated": "2026-10-04T03:10:00+08:00",
+  "last_updated": "2026-10-19T20:14:00+08:00",
   "last_verified_commit": "92fdab0246e04367d39b295716288c2315d751b6",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 3,
@@ -152,7 +152,7 @@
       "tests": []
     },
     "infra_github_remote_001": {
-      "status": "planned",
+      "status": "passed",
       "description": "首次核对/必要时创建 GitHub Private 远程仓库；全历史敏感信息扫描、关联 remote、推送本地已有 commits/tags 并核对远端 SHA；建立 task/phase 同步。与 Phase 0.5 GitHub 参考调研无关。",
       "files": [
         "AGENT_EXECUTION.md",
@@ -163,11 +163,19 @@
         "HANDOFF.md",
         "README.md"
       ],
-      "tests": [],
+      "tests": [
+        "git remote -v 初始为空（无 origin）→ 通过 GitHub API 创建 Private 仓库 Huyaen/english-reconstruction-system",
+        "secrets 扫描：git ls-files 48 个跟踪文件；全历史 51 个文件名无 .env/token/credential/备份/DB；git grep 全历史正则（ghp_/github_pat_/sk-/AIza/xox/AKIA/PRIVATE KEY）0 命中",
+        "first push 成功：main f9ef446；git ls-remote 与 API branches/main SHA 一致；3 个阶段 tag 全部推送且 SHA 一致",
+        "API 复核 private=true, default_branch=main"
+      ],
       "preconditions": [
         "确认授权 GitHub owner 和仓库隐私",
         "检查 git remote 和分支/tag",
         "首次 push 前扫描本地全部拟上传历史"
+      ],
+      "artifacts": [
+        "remote https://github.com/Huyaen/english-reconstruction-system.git"
       ]
     }
   },
@@ -180,7 +188,7 @@
     "FSRS 已成为默认调度权威（旧启发式 legacy 作为可回滚备选），不再适用旧版“非 FSRS”限制"
   ],
   "blocked": [],
-  "next_task_id": "infra_github_remote_001",
+  "next_task_id": "phase3_daily_planner_007",
   "environment": {
     "node": "v26.7.0",
     "npm": "11.19.0",
@@ -196,26 +204,26 @@
   ],
   "remote_sync": {
     "setup_task_id": "infra_github_remote_001",
-    "status": "unverified",
+    "status": "verified",
     "provider": "github",
-    "visibility": "unknown",
-    "owner": null,
-    "repository": null,
-    "remote_name": null,
-    "remote_url": null,
-    "local_branch": null,
-    "last_local_commit": null,
-    "last_known_remote_commit": null,
+    "visibility": "private",
+    "owner": "Huyaen",
+    "repository": "english-reconstruction-system",
+    "remote_name": "origin",
+    "remote_url": "https://github.com/Huyaen/english-reconstruction-system.git",
+    "local_branch": "main",
+    "last_local_commit": "f9ef446b7c948823bcb9022b59d6bf0d1352d58e",
+    "last_known_remote_commit": "f9ef446b7c948823bcb9022b59d6bf0d1352d58e",
     "pending_push": null,
-    "last_verified_at": null,
+    "last_verified_at": "2026-10-19T20:12:38Z",
     "last_error": null,
-    "note": "离线文档合并未访问用户本机 Git/GitHub；所有远端状态需由新 Hermes 会话实际核实。"
+    "note": "实测核验：git ls-remote origin 与 GitHub API 的 main/tags SHA 均与本地一致；私有状态来自 API。文档合并提交之后的状态 pin 提交会再次推送，SHA 以远端为准。"
   },
   "document_review": {
     "date": "2026-10-19",
-    "basis": "13 份用户上传离线快照；未接入其 Windows 文件系统/.git",
-    "last_verified_commit_note": "state.last_verified_commit=92fdab0 表示 Phase 2 功能提交；用户曾报告 pin 提交 92f8ec1，但本包没有 Git 仓库可核验 HEAD",
-    "resume_task_after_remote": "phase3_daily_planner_007",
-    "build_and_test_note": "仅保留 2026-10-04 文档验收 39/39、build passed；非当日重新执行"
+    "basis": "文档包离线快照 + 本机实盘核对（Git/源码/npm test/build/IndexedDB schema 未改）",
+    "local_verification": "合并前 HEAD=92f8ec1 clean，无 origin remote，Phase 3 未开工；npm test 39/39、npm run build 通过（2026-10-19 实测）",
+    "last_verified_commit_note": "state.last_verified_commit=92fdab0 是 Phase 2 功能提交；HEAD=92f8ec1 是其上的状态 pin 提交，已核实存在",
+    "merge": "文档包内容与本地 2026-10-04 快照一致（差异全部为新增/纠错），已整体合并；合并前副本存于 scratch 备份目录"
   }
 }
