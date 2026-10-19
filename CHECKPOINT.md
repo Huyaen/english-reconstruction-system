@@ -318,6 +318,15 @@ AI 句生成、外部语料 / 阅读 handoff、Mini Diagnostic 非词汇子测�
 
 ---
 
+## Checkpoint（Phase 5.0 · GitHub Actions CI · 2026-10-19）
+
+- **任务**：`infra_github_actions_ci_002`（passed）。
+- **产出**：`.github/workflows/ci.yml`；`vite.config.ts` + `src/testMode.ts`（构建期开关）；`package.json` 的 `build:test` / `start:test`；`server.mjs --dir/--port`；`AGENT_EXECUTION.md` 的 CI Protocol；STATE/README/TODO/DEVELOPMENT_LOG 同步。
+- **测试钩子隔离（实测）**：生产包 `grep __labTest` = 0；`dist-test` = 1；CI 有独立 step 断言，防止回归。
+- **远程 CI 实测**：run `39271191340` → `success`，Node 22 与 24 均绿；`git diff --exit-code -- dist` 在 ubuntu 通过（构建跨平台可重复）。
+- **Git**：commit `6f7c889`（+ 本次状态提交）；`origin/main` 与本地 HEAD 一致；仓库仍为 Private。
+- **下一步**：`phase5_reading_009`（Reading Lab）。
+
 # 归档：旧项目 Checkpoint 06（V1 MVP 交付版，原文保留）
 
 ## 当前项目状态

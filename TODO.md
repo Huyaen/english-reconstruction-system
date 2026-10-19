@@ -7,6 +7,10 @@
 
 - [x] `infra_github_remote_001`：既有 remote 检查（当时为空）→ 历史 secrets 审核（0 命中）→ 创建 GitHub **Private** 仓库 `Huyaen/english-reconstruction-system` → 关联 origin → push main + 3 个阶段 tag → `git ls-remote`/API 核验 SHA 与 private 状态 ✔ 2026-10-19
 
+## P0 — GitHub Actions CI（passed 2026-10-19）
+
+- [x] `infra_github_actions_ci_002`：`.github/workflows/ci.yml`（Node 22/24：npm ci → tsc → 全量测试 → 构建 → dist 一致性 → 生产包无 `__labTest` 断言）· 测试钩子构建期隔离（`__ERV2_TEST_HOOKS__` + `dist-test`）· `server.mjs --dir/--port` · STATE 纠错（`current_phase=phase_5_reading`）· 长期 Task/Phase 门禁写入 `AGENT_EXECUTION.md` ✔ 远程 run 39271191340 @ `6f7c889` 双绿
+
 ## P0 — Phase 4 Sentence & Grammar（passed 2026-10-19）
 
 - [x] `phase4_sentence_grammar_008`：语法知识图谱（34 概念 / 6 类 / 先修边，禁循环）· 句源契约（12 条 authored 教学句 + gold 结构 + 中文预教词）· 引导式拆句（L0–L4 分层辅助 / 即时反馈 / JIT 知识卡 / 迁移验证）· 证据分级（exposed 不计掌握；幂等=会话+句子）· 自适应选句（多维难度 + 先修修复）· Planner 真实句任务（sentence-basic-structure / sentence-weak-grammar / sentence-transfer）· DB v4 additive ✔（106/106 tests + build + 浏览器 smoke 36/36，Phase 3 回归 21/21）

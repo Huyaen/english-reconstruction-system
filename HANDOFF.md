@@ -82,10 +82,11 @@ Phase 5（当前）→ Phase 6–13。
 
 Phase 5 — Reading（`phase5_reading_009`）：
 
+0. **CI 门禁已就位**（`infra_github_actions_ci_002` passed）：`.github/workflows/ci.yml` 在 GitHub Runner 上跑 Node 22/24（tsc + 全量测试 + build + dist 一致性 + 生产包无测试钩子）。任何 push 到 main 都会触发；阶段完成必须等它 `success`。浏览器验收必须用测试构建：`npm run build:test` → `node server.mjs --dir=dist-test --port=4173`（生产包没有 `__labTest`，这是安全要求）。
 1. 读 `PROJECT_SPEC.md` Phase 5 章节 + `AGENT_EXECUTION.md` 阶段门；确认阅读材料的来源契约（与 Phase 4 的 `sentenceSources.ts` 同构：真实材料必须可追溯，未接入就声明 unavailable，不编造出处）
 2. 接入方式：Planner **不重写** —— 把 `moduleCapabilities()` 的 `reading` 置为 available 并新增 reading 任务类型（走同一 `PlanItem` contract）；阅读中的难句应通过既有 `sentenceSources`/`sentenceLab` handoff 进入拆句，而不是另起一套
 3. 沿用既有纪律：DB 变更必须走 `indexSpecs` + `runBackfills` 串行链并带 fixture 测试；到期口径只用 `effectiveDue()`；测试用 `node --test`（新套件放到 `tests/*.test.ts`）；`node docs/format-source.mjs` → `npm test` → `npm run build`
-4. 验收门：`npm test`（不得低于 106 且全绿）→ `npm run build` → HTTP 200 → 真实浏览器 smoke（复制 `scripts/phase4-smoke.mjs` 的 CDP 骨架，含 ?test=1 测试钩子约定）→ 更新 STATE/CHECKPOINT/HANDOFF/TODO/README/DEVELOPMENT_LOG → commit + tag + push + `git ls-remote` 核对
+4. 验收门：`npm test`（不得低于 106 且全绿）→ `npm run build` → HTTP 200 → 真实浏览器 smoke（复制 `scripts/phase4-smoke.mjs` 的 CDP 骨架；钩子只在 `dist-test` 且 `?test=1` 时存在）→ GitHub Actions `success`→ 更新 STATE/CHECKPOINT/HANDOFF/TODO/README/DEVELOPMENT_LOG → commit + tag + push + `git ls-remote` 核对
 
 ## Important warnings
 

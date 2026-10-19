@@ -116,3 +116,20 @@ Phase 3 Daily Planner：新增 `src/planner.ts`（确定性领域引擎）、`sr
 浏览器实测还发现：迁移句可能选中同一句（同一结构池较小）→ 幂等按会话区分后，同句在不同会话的复练能各自计入，符合"迁移不是重播"。
 
 下一步：Phase 5 Reading（article 导入 + Layered Reading + 难句 handoff 复用 `sentenceSources`/`sentenceLab`）。
+
+## 2026-10-19 · Phase 5.0：GitHub Actions CI 与测试钩子隔离（infra_github_actions_ci_002）
+
+Phase 5 开工前先补远程质量门禁。审计结果：仓库此前**没有任何** `.github/workflows`，所有验证都只发生在 Hermes 本地。
+
+做了什么：
+
+1. `.github/workflows/ci.yml`：push/PR/手动触发；Node 22 + 24 矩阵；`npm ci` → `tsc --noEmit` → `npm test` → `npm run build`；Node 22 上额外跑 `git diff --exit-code -- dist`；再加一步 `grep __labTest dist/assets/*.js` 必须为空。权限只有 `contents: read`，无 secrets、不部署。
+2. 测试钩子隔离：原来是"`?test=1` 就暴露钩子"——这是**仅靠 URL 参数控制高权限测试能力**，违反 Phase 5 规格 §38。改成构建期常量 `__ERV2_TEST_HOOKS__`（`vite.config.ts` 按 `--mode testhooks` 注入）：生产构建里常量是 `false`，整个钩子（含 `window.__labTest` 赋值与点选能力）被摇树移除；只有 `npm run build:test`（输出 `dist-test/`，已 gitignore）才存在，且仍需 `?test=1`。
+3. 为让两次构建可同时存在：`server.mjs` 支持 `--dir` / `--port`；`package.json` 加 `build:test`、`start:test`（4174）。
+4. 修 `scripts/phase3-smoke.mjs` 的可重复性问题：原来只在"首页有计划面板"时才清库，脚本上次停在子页面时会带着残留数据跑，导致 closing 断言偶发失败（本次实测踩到一次）。改成**无条件清空测试 profile 的库**。
+5. STATE 纠错：`current_phase` 从误导性的 `phase_4_sentence_grammar` 改为 `phase_5_reading`；新增 `infra_github_actions_ci_002`（状态枚举 planned/running/verifying/passed/failed/blocked）；`remote_sync` 区分 `latest_local_head` / `latest_remote_head` / `last_verified_commit` / CI `last_success_commit`，避免再靠"状态 pin 提交"凑 SHA。
+6. `AGENT_EXECUTION.md` 写入长期 Task/Phase 门禁与 CI 失败分类（代码失败 vs 基础设施失败），并明确"CI 未成功不得宣称远程门禁通过"。
+
+实测：`npm test` 106/106；生产构建成功且 `grep __labTest` = 0；`dist-test` = 1；`phase4-smoke` 36/36、`phase3-smoke` 21/21（都在测试构建上）；GitHub Actions run `39271191340` @ `6f7c889` → **success（Node 22 + 24）**，`dist` 跨平台一致；仓库仍 Private。
+
+下一步：`phase5_reading_009` Phase 5 Reading Lab。

@@ -3,7 +3,7 @@
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
   "current_phase": "phase_5_reading",
-  "last_updated": "2026-10-19T22:40:39+08:00",
+  "last_updated": "2026-10-19T22:43:20+08:00",
   "last_verified_commit": "a10efd48efa746a76fd2df3acb4c53d188ba9680",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 4,
@@ -241,7 +241,7 @@
       ]
     },
     "infra_github_actions_ci_002": {
-      "status": "verifying",
+      "status": "passed",
       "description": "Phase 5.0 前置工程补强：GitHub Actions CI（Node 22/24 矩阵：tsc --noEmit + 全量测试 + 生产构建 + dist 一致性 + 生产包无测试钩子）+ 测试钩子构建期隔离（__ERV2_TEST_HOOKS__，dist-test）+ server.mjs --dir/--port + STATE 纠错 + 长期 CI Protocol 落盘",
       "files": [
         ".github/workflows/ci.yml",
@@ -261,7 +261,7 @@
         "npm run build:test → dist-test，grep __labTest = 1",
         "node scripts/phase4-smoke.mjs（dist-test）→ 36/36",
         "node scripts/phase3-smoke.mjs（dist-test）→ 21/21",
-        "GitHub Actions 真实运行（Node 22 / 24）→ 见 remote_sync.ci"
+        "GitHub Actions run 39271191340 @ 6f7c889 → success（Node 22 + Node 24 双绿；tsc/tests/build/dist 一致性/无钩子断言全绿）"
       ],
       "artifacts": [
         "生产构建不暴露任何测试钩子；钩子只在 dist-test 且 URL 带 ?test=1 时存在",
@@ -329,10 +329,12 @@
         22,
         24
       ],
-      "status": "running",
-      "last_run_url": "",
-      "last_success_commit": "",
-      "note": "push 后在 GitHub 真实 Runner 上执行；以 API 返回的 conclusion 为准，不以本地测试替代"
+      "status": "success",
+      "last_run_id": 39271191340,
+      "last_run_url": "https://github.com/Huyaen/english-reconstruction-system/actions/runs/39271191340",
+      "last_success_commit": "6f7c889658305f63dde8a77a54313f82661d1d4f",
+      "verified_at": "2026-10-19T22:43:20+08:00",
+      "note": "GitHub Runner 真实执行；dist 跨平台一致（git diff --exit-code -- dist 在 ubuntu 通过）"
     }
   },
   "document_review": {

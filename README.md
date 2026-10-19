@@ -2,7 +2,7 @@
 
 用大量双向检索、反应时间、薄弱词强化和独立间隔调度，建立个人词汇学习记录。本地优先，不需要账号，也不需要 AI 才能刷词。
 
-**当前工程状态（2026-10-19 实测）**：V2 Phase 0/0.5/1/2/3/4 已通过。DB 升到 **v4（additive）**、FSRS 5.4.2 默认调度。Phase 3 Daily Planner：Today 首页为唯一入口（可用时间与状态 → 隔夜检测 → 计划 → Start/Skip/Delay/Replace → Closing Loop），支持 Re-entry / Mini Diagnostic 与刷新恢复。Phase 4 Sentence & Grammar：语法知识图谱（34 概念 + 先修边，禁循环）、12 条 authored 教学句（gold 结构 + 中文预教词）、引导式拆句（L0–L4 分层辅助 / 即时反馈 / JIT 知识卡 / 迁移验证）、证据分级（看过答案不计掌握）、计划内真实句任务。未上线模块（阅读/输入/输出）在 UI 明示不可执行、不生成假任务。验证：`npm test` **106/106**、`npm run build` 成功、HTTP 200、真实浏览器（无头 Edge + CDP，独立 profile）smoke **36/36**（+ Phase 3 回归 21/21）。真机移动端与真实 AI 供应商调用仍未验收。工程已关联 GitHub **Private** 仓库 `Huyaen/english-reconstruction-system`（源码备份 ≠ IndexedDB 学习数据备份）。
+**当前工程状态（2026-10-19 实测）**：V2 Phase 0/0.5/1/2/3/4 已通过。DB 升到 **v4（additive）**、FSRS 5.4.2 默认调度。Phase 3 Daily Planner：Today 首页为唯一入口（可用时间与状态 → 隔夜检测 → 计划 → Start/Skip/Delay/Replace → Closing Loop），支持 Re-entry / Mini Diagnostic 与刷新恢复。Phase 4 Sentence & Grammar：语法知识图谱（34 概念 + 先修边，禁循环）、12 条 authored 教学句（gold 结构 + 中文预教词）、引导式拆句（L0–L4 分层辅助 / 即时反馈 / JIT 知识卡 / 迁移验证）、证据分级（看过答案不计掌握）、计划内真实句任务。未上线模块（阅读/输入/输出）在 UI 明示不可执行、不生成假任务。验证：`npm test` **106/106**、`npm run build` 成功、HTTP 200、真实浏览器（无头 Edge + CDP，独立 profile）smoke **36/36**（+ Phase 3 回归 21/21）。远程质量门禁：GitHub Actions **Node 22/24 双绿**（run 39271191340 @ `6f7c889`）。真机移动端与真实 AI 供应商调用仍未验收。工程已关联 GitHub **Private** 仓库 `Huyaen/english-reconstruction-system`（源码备份 ≠ IndexedDB 学习数据备份）。
 
 ## 最快启动（Windows）
 
@@ -139,7 +139,7 @@ npm start
 
 ## 恢复开发协议
 
-新会话先读取 `INITIAL_PROMPT.md`、`PROJECT_SPEC.md`、`AGENT_EXECUTION.md`、`STATE.json`、`CHECKPOINT.md`、`HANDOFF.md`、`TODO.md`、`DEVELOPMENT_LOG.md`；检查 `git status/log/tags/remote`、本地与远端 SHA（`git ls-remote origin`）、真实 DB 版本，并运行必要的 `npm test` / `npm run build`，从真实 `STATE.next_task_id` 与 HANDOFF Next Action 继续（当前为 Phase 4）。Phase 3 浏览器验收脚本：`node scripts/phase3-smoke.mjs`（需先 build + `node server.mjs` + 独立 profile 无头 Edge/CDP）。详细 Github Sync 协议见 `AGENT_EXECUTION.md`，最新 Phase 4 工作规格见 `docs/PHASE4_SENTENCE_GRAMMAR.md`（Phase 3 见 `docs/PHASE3_DAILY_PLANNER.md`）。
+新会话先读取 `INITIAL_PROMPT.md`、`PROJECT_SPEC.md`、`AGENT_EXECUTION.md`、`STATE.json`、`CHECKPOINT.md`、`HANDOFF.md`、`TODO.md`、`DEVELOPMENT_LOG.md`；检查 `git status/log/tags/remote`、本地与远端 SHA（`git ls-remote origin`）、真实 DB 版本，并运行必要的 `npm test` / `npm run build`，从真实 `STATE.next_task_id` 与 HANDOFF Next Action 继续（当前为 Phase 5 Reading）。浏览器验收脚本必须跑在**测试构建**上：`npm run build:test` → `node server.mjs --dir=dist-test --port=4173` → `node scripts/phase4-smoke.mjs` / `node scripts/phase3-smoke.mjs`（独立 profile 无头 Edge/CDP，端口 9224）。详细 Github Sync / CI 协议见 `AGENT_EXECUTION.md`，最新 Phase 4 工作规格见 `docs/PHASE4_SENTENCE_GRAMMAR.md`（Phase 3 见 `docs/PHASE3_DAILY_PLANNER.md`）。
 
 旧版 MVP 的遗留验收包括真实手机和真实 AI 服务；当前主要开发阶段依据 `STATE.json` 推进。Phase 2 已完成独立 Edge/CDP smoke，但不等于所有浏览器/手机已验收。详细历史见 `docs/TEST_REPORT.md` 与 `CHECKPOINT.md`。
 
@@ -155,6 +155,17 @@ npm start
 - **硬约束**：旧数据 100% 保留；审计 → 复用 → 扩展 → 迁移 → 验证；禁止无理由重写现有词汇模块。
 - **源码格式**：`src/*.ts`、`tests/*.ts` 由 `docs/format-source.mjs` 整理为紧凑格式，编辑后请保持一致或重跑该脚本。
 
+
+## 远程 CI（GitHub Actions，2026-10-19 新增）
+
+- **用途**：在全新 GitHub Runner 上验证代码质量，不依赖本机环境、缓存或已装依赖。仅验证，不部署、不发布、不写仓库。
+- **文件**：`.github/workflows/ci.yml`（权限 `contents: read`，无 secrets）。
+- **触发**：push 到 `main`、向 `main` 发 PR、手动 `workflow_dispatch`。
+- **检查项**：`npm ci` → `npx tsc --noEmit` → `npm test`（全量 node:test） → `npm run build` → Node 22 上 `git diff --exit-code -- dist`（dist 纳入 Git，跨平台可重复）→ 断言生产包内不含 `__labTest`（测试钩子隔离）。
+- **Node 版本矩阵**：22、24。
+- **失败日志**：仓库 Actions 页面 → 对应 run → 点失败 step 展开日志；或本地复现同样四步。
+- **CI 不包含**：真实 AI 供应商调用、真实浏览器 E2E（仍用本地独立 profile 无头 Edge + CDP）、IndexedDB 用户学习数据备份。
+- **测试钩子隔离**：`__ERV2_TEST_HOOKS__` 是构建期常量（`vite.config.ts`）。生产构建为 false → 钩子被摇树移除；`npm run build:test` 输出到 `dist-test/`（gitignore），才是验收脚本使用的产物。
 
 ## GitHub 私有远程仓库与跨会话恢复（2026-10-19 新增）
 
