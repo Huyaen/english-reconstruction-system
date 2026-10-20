@@ -157,3 +157,10 @@ Phase 5 开工前先补远程质量门禁。审计结果：仓库此前**没有�
 - 真实缺陷修复：结果区动态插入后监听器丢失（改为一次性事件委托）；`conceptById` 参数顺序；Mock Provider 的目标词解析（提示词键无引号）。
 - 质量门真实拦截案例：mock 首版短文 51 词 → 被「词数 90–230 / 至少 360 字符」拒绝，扩写后才通过。
 - 结果：176/176 tests、TSC 0 error、build/build:test 通过、生产包测试钩子 0、Phase 6 smoke 31/31、回归 26/26 · 44/44 · 36/36 · 21/21。
+
+## 2026-10-20 · Phase 7 Mini Unit
+
+- 新增 `miniUnit*` 七个模块（状态机 / 推荐 / 证据 / 推进 / 持久化 / 动作 / 视图），app.ts 只做绑定。
+- 修复真实缺陷：①动作完成后内存 `data` 未刷新导致页面不更新、闭包 revision 过期（改为 action 成功后 `loadData()` 重载）；②完成后页面回落到创建页、完成评价看不到（改为保留最近结束单元视图 + 「开始新的 Unit」显式切换）；③`EnergyState` 是 `low/normal/good`，不是 `high`；④`provenanceOf` 的 sourceType 联合缺 `ai_reinforcement` 等分支。
+- 测试：新增 32 例（状态机 10、推荐/目标 6、证据/迁移 4、评价 2、持久化/并发 4、Planner 3 等），合计 208/208。
+- 浏览器验收 33/33；回归 Phase 6 31/31、Phase 5.1 26/26、Phase 5 44/44、Phase 4 36/36、Phase 3 21/21；生产包测试钩子 0。

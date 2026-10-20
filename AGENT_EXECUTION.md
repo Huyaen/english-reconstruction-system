@@ -1233,3 +1233,11 @@ Git 是辅助，不替代 `STATE.json / CHECKPOINT.md / HANDOFF.md`。
 聊天不是项目状态数据库。
 
 磁盘代码、状态文件、测试结果和 Git 才是项目事实。
+
+## 13. 内存快照与 IndexedDB 必须显式同步（Phase 7 教训）
+
+Web 应用的 `data` 是内存快照，写入走独立 store。规则：
+
+- 任何 action 成功后，若页面要展示新状态，必须 `loadData()` 重新载入并 `reindex()`，然后 render；
+- 不要把 action 拿到的旧 `unit/plan` 对象继续用于下一次写入（revision 会过期，触发 StaleError）；
+- 不要靠 `render()` 猜测状态已同步——浏览器验收要断言“页面文字”和“DB 快照”两处一致。

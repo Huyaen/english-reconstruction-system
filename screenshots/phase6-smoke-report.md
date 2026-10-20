@@ -3,7 +3,7 @@
 - PASS · Phase 6 验收钩子与 mock Provider 可达
 - PASS · 设置已保存（endpoint/model/key 进入本地设置）
 - PASS · 有真实弱词时“生成定向句”可用
-- PASS · AI 句生成成功并显示正文 — The team had engineer the old station before the w
+- PASS · AI 句生成成功并显示正文 — The team had current the old station before the wi
 - PASS · 结果标注 AI 生成 / 结构未验证
 - PASS · 结果展示 prompt 版本与用量（可追溯）
 - PASS · 生成记录落库（含 promptVersion / provider / usage） — {"n":1,"v":"1.0.0"}
@@ -16,7 +16,7 @@
 - PASS · 附带阅读题与逐字证据
 - PASS · 质量门结果可见 — 质量门：全部检查通过reading.reinforce@1.0.0 · 指纹 8
 - PASS · 强化文章落库：sourceType=ai_reinforcement / reliability=ai_generated — ai_reinforcement/ai_generated
-- PASS · 强化文章可切分段落与句子（能进入阅读流程） — 1 段 / 5 句
+- PASS · 强化文章可切分段落与句子（能进入阅读流程） — 1 段 / 6 句
 - PASS · 非法输出被拒绝并显示可读错误 — 生成结果未通过校验。可重试；若持续失败，说明当前模型不适合这项生成。模型输出不是
 - PASS · 重试有上限（≤3 次请求） — 3 次
 - PASS · 失败输出不会写入生成记录
@@ -29,5 +29,5 @@
 - PASS · 刷新后生成记录仍在（可用于复用/审计） — 2 条
 - PASS · 刷新后 AI 强化文章仍在阅读库
 - PASS · 生成记录不含 Key，也不含完整词库
-- PASS · 发送内容最小化（不发送完整词库/学习历史） — 最长 user 消息 610 字符
+- PASS · 发送内容最小化（不发送完整词库/学习历史） — 最长 user 消息 606 字符
 - PASS · 无未捕获 JS 异常 — 0 条

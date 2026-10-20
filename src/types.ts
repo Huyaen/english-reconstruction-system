@@ -483,6 +483,130 @@ export interface MiniUnit {
         at: number;
         summary: string;
     }[];
+    // —— Phase 7 增补（全部可选：Phase 2–6 的旧 MiniUnit 记录与备份保持可读）——
+    stage?: MiniUnitStage;
+    themeId?: string;
+    topic?: string;
+    whyRecommended?: string;
+    anchorProvenance?: AnchorProvenance;
+    anchorSnapshotRef?: string;
+    anchorTitle?: string;
+    plannedDays?: number;
+    dayHistory?: MiniUnitDayRecord[];
+    grammarTargets?: MiniUnitGrammarTarget[];
+    baseline?: MiniUnitBaseline;
+    transfer?: MiniUnitTransferRecord;
+    completionEvaluation?: UnitCompletionEvaluation;
+    linkedPassageIds?: string[];
+    linkedSentenceIds?: string[];
+    linkedGenerationIds?: string[];
+    linkedDailyPlanIds?: string[];
+    pausedReason?: string;
+    createdAt?: number;
+    updatedAt?: number;
+    revision?: number;
+}
+// —— Phase 7：Mini Unit（跨学习日的主题学习单元）——
+// 约定：status 保留 Phase 2–3 的四个旧值（备份兼容），stage 表达细粒度状态机。
+export type MiniUnitStage = 'draft' | 'ready' | 'active' | 'paused' | 'completed' | 'abandoned';
+export type AnchorProvenance = 'authentic_external' | 'user_imported_authentic' | 'curated_authentic' | 'ai_generated' | 'authored_educational' | 'unknown';
+export type UnitDayKind = 'build' | 'strengthen' | 'transfer' | 'reinforce';
+export type UnitSupportLevel = 'high' | 'medium' | 'low';
+export interface MiniUnitDayRecord {
+    day: number;
+    kind: UnitDayKind;
+    calendarDate: string;
+    at: number;
+    summary: string;
+    supportLevel: UnitSupportLevel;
+    evidenceIds: string[];
+    targetWordsCovered: string[];
+}
+export interface MiniUnitGrammarTarget {
+    conceptId: string;
+    name: string;
+    /** verified = 在 Anchor/教学句中真实出现过；candidate = 只有薄弱点依据，尚未在材料中核验 */
+    status: 'verified' | 'candidate';
+    evidence: string;
+}
+export interface MiniUnitBaseline {
+    at: number;
+    passageId: string;
+    sessionId: string;
+    source: 'cold_test' | 'estimated';
+    unknownRate: number | null;
+    comprehension: number | null;
+    wordCount: number;
+}
+export interface MiniUnitTransferRecord {
+    at: number;
+    passageId: string;
+    materialKind: 'authentic' | 'ai_assisted';
+    independent: boolean;
+    comprehension: number | null;
+    targetWordRecall: number;
+    grammarObserved: boolean;
+    sessionId: string;
+}
+export interface UnitCompletionMetrics {
+    targetWordsCovered: number;
+    targetWordTotal: number;
+    independentRecallEvidence: number;
+    forgottenWords: string[];
+    grammarEvidence: number;
+    anchorColdResult: number | null;
+    supportedResult: number | null;
+    transferResult: number | null;
+    supportReduction: number;
+    translationDependence: number;
+    unresolvedObstacles: string[];
+    completedLearningDays: number;
+}
+export interface UnitCompletionEvaluation {
+    at: number;
+    decision: 'completed_verified' | 'completed_limited_evidence' | 'extended' | 'user_ended' | 'abandoned';
+    confidence: 'low' | 'medium' | 'high';
+    reasons: string[];
+    evidenceRefs: string[];
+    nextActions: string[];
+    metrics: UnitCompletionMetrics;
+}
+export interface UnitEvidenceRef {
+    kind: 'word' | 'sentence' | 'reading' | 'grammar' | 'plan' | 'ai' | 'exposure';
+    id: string;
+    at: number;
+    note: string;
+}
+export interface UnitEvidenceSummary {
+    unitId: string;
+    wordsCovered: string[];
+    wordsIndependent: string[];
+    forgottenWords: string[];
+    targetWordTotal: number;
+    independentRecall: number;
+    grammar: {
+        conceptId: string;
+        attempts: number;
+        correct: number;
+        independent: boolean;
+    }[];
+    anchorSessions: string[];
+    transferSessions: string[];
+    sentenceAttempts: number;
+    planDays: string[];
+    generations: string[];
+    cold: {
+        unknownRate: number | null;
+        comprehension: number | null;
+    } | null;
+    supported: {
+        comprehension: number | null;
+        translationDependence: number | null;
+    } | null;
+    supportReduction: number;
+    translationDependence: number;
+    obstacles: string[];
+    refs: UnitEvidenceRef[];
 }
 export interface SkillSnapshot {
     id: string;

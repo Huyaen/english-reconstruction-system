@@ -417,3 +417,18 @@ AI 句生成、外部语料 / 阅读 handoff、Mini Diagnostic 非词汇子测�
 - 非法 JSON：3 次有界尝试后失败、**不写生成记录**；429：3 次请求后明确报限流；
 - 无 Key：生成按钮禁用 + 本地功能（阅读库/首页/计划）全部可用且 **0 次 AI 请求**；
 - 刷新后生成记录与 AI 文章仍在；生成记录无 Key；user 消息最长为 610 字符（未发送词库/历史）。
+
+## Phase 7 — Mini Unit（2026-10-20 · passed）
+
+**领域模型**：`MiniUnit` 在原有字段上追加可选字段（stage/themeId/anchorProvenance/anchorSnapshotRef/plannedDays/dayHistory/grammarTargets/baseline/transfer/completionEvaluation/linked*/revision），旧记录与备份保持可读。
+
+**状态机**（`src/miniUnit.ts`，纯函数）：draft → ready（真实 Anchor + 目标词 + 目标语法）→ active（Day 1..4）→ completed；分支 paused/abandoned/extended。顺序闸、证据闸、幂等、已结束保护齐全。`guardDecision()` 把缺真实新材料独立迁移的 `completed_verified` 强制降级为 `completed_limited_evidence`。
+
+**真实闭环**：主题推荐（AI 材料排除）→ Anchor（来源映射，AI 硬拒绝）→ 目标词（Learning Value + 词频 + 薄弱加成，时间动态）→ 目标语法（材料可观察 verified / 薄弱 candidate）→ Day 1 冷测之前 → Day 2 隔夜回忆 → Day 3 新真实材料迁移 → Day 4 残余修复 → 完成评价。
+
+**持久化**：`createUnit` 单事务互斥（不会有两个 active）；`saveUnit(expectedRevision)` 冲突显式抛错；`applyTransition` 读改写同一事务，并发晋级只生效一次。
+
+**真实验收**：`PASS Phase 7 smoke: 33/33`（独立 profile 无头 Edge + CDP）
+- A：创建 → 冷测（真实会话）→ 完成 Day 1 → 刷新状态保留，基线来源 `cold_test`；
+- B：Day 2 隔夜回忆 + 辅助降级；C：Day 3 换新真实材料、迁移 `authentic`、评价 `completed_verified`；
+- D：两天不活动不跳级；E：无 AI 时 0 请求；F：AI 文章不进 Anchor 选择器；G：并发只写一条 Day；H：旧格式单元可读、旧数据完好、0 JS 异常。

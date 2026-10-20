@@ -108,3 +108,14 @@ S≥90、A≥65、B≥40、C≥15、其余D。到期与弱词队列按分数降�
 - **质量门**：词数窗口、目标词出现（允许词形派生但不越过左词边界）、语法可观察标记（语义型概念标 unverifiable）、难度带（本地启发式）、内容指纹去重、来源归属、HTML/脚本/控制字符。
 - **证据纪律**：生成材料只产生 `generated material`；AI 结构 `ai_unverified`；掌握只来自用户独立作答（BKT/FSRS 不变）。
 - **用量**：Provider 给 usage 就用真实值，否则按字符/4 估算并标 `estimated`；预算按 token 计，不换算货币。
+
+## Mini Unit（Phase 7）
+
+- **Ready 判定**：真实 Anchor（provenance ≠ ai_generated）+ ≥1 目标词 + ≥1 目标语法；缺一项只能停在 draft。
+- **学习日推进**：只允许完成 `nextDay()`；完成事件需要 ≥1 条真实活动证据；同一天重复提交返回 noop（幂等）。
+- **目标词预算**：`round(minutes × 0.35 × (1.1 − difficulty) × (1 − min(0.4, dueLoad/100)) × 能量系数)`，夹在 3–18；排序 `learningValue × (1+ln(词频)) + 12(薄弱词)`。
+- **目标语法**：知识图谱中有可观察正则且命中 Anchor → verified（带次数与片段）；否则薄弱概念 → candidate（不假装核验）。
+- **迁移判定**：materialKind = authentic 仅当「不同材料 + 真实来源 + 无辅助 + 独立」；AI 材料或同文重读 → ai_assisted。
+- **完成判定**：verified 需要 独立回忆 ≥3、覆盖 ≥50%、真实迁移理解 ≥0.5、中文依赖 ≤0.6；任一不满足 → limited_evidence（confidence 至少降一级）；`guardDecision` 再做一次硬闸。
+- **置信度**：无证据必然 low；verified 且回忆/语法都有多份证据才 high。
+- **并发**：创建互斥（单事务扫描未结束单元）+ revision 乐观锁 + 读改写同事务，保证并发晋级只生效一次。

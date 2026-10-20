@@ -1,7 +1,7 @@
 
-# HANDOFF — Phase 6 → Phase 7（2026-10-20）
+# HANDOFF — Phase 7 → Phase 8（2026-10-20）
 
-**下一阶段：Phase 7 — Mini Unit（本阶段只做准备，不实现）**
+**下一阶段：Phase 8 — Real Input Hub（本阶段只做准备，不实现）**
 
 ## 1. 当前工程状态
 
@@ -9,84 +9,110 @@
 | --- | --- |
 | 根目录 | `D:\英语重构训练ocabulary-app` |
 | 分支 | `main` |
-| DB 版本 | **v5**（additive：`aiGenerations`；v4 的 `sentences` 与 v2 全部 store 原样保留） |
-| 测试 | **176/176**（`npm test`） |
+| DB 版本 | **v5**（Phase 7 未新增 store/索引；MiniUnit 新字段全部可选，无需迁移） |
+| 测试 | **208/208**（`npm test`） |
 | 类型检查 | `tsc --noEmit` 0 error |
-| 构建 | `npm run build` / `npm run build:test` 均通过；生产包测试钩子 0 |
-| 浏览器验收 | Phase 6 **31/31**、Phase 5.1 OCR **26/26**、Phase 5 **44/44**、Phase 4 **36/36**、Phase 3 **21/21** |
+| 构建 | `npm run build` / `build:test` 通过；生产包测试钩子 0 |
+| 浏览器验收 | Phase 7 **33/33**、Phase 6 31/31、Phase 5.1 26/26、Phase 5 44/44、Phase 4 36/36、Phase 3 21/21 |
+| 远程 | `Huyaen/english-reconstruction-system`（Private），HEAD 与 CI 见 §9 |
 
-## 2. AI Service API（Phase 7 直接复用）
+## 2. Mini Unit API（Phase 8 直接复用）
 
 ```ts
-// 配置
-normalizeAIConfig(settings.ai): AIProviderConfig
-validateAIConfig(cfg): AIErrorInfo | null      // 缺 key/model/endpoint 的明确原因
-isConfigured(settings.ai): boolean
+// 纯逻辑（src/miniUnit.ts）
+stageOf(unit): 'draft'|'ready'|'active'|'paused'|'completed'|'abandoned'
+readiness(unit): { ok, missing[] }              // 真实 Anchor + 目标词 + 目标语法
+nextDay(unit), completedDays(unit), plannedDays(unit)
+dayKind(day), supportLevelFor(day), dayLabel(day)
+applyUnitEvent(unit, event): { ok, unit | error }   // attach-anchor/set-targets/start/complete-day/pause/resume/extend/finish/abandon
+evaluateUnit(unit, evidence, now): UnitCompletionEvaluation
+guardDecision(unit, evaluation): UnitCompletionEvaluation   // 缺真实迁移 → limited
+earlyCompletionCheck(unit, evidence): { allowed, reasons }
+anchorSuitability(passage, report), provenanceOf(passage), targetWordBudget(input)
 
-// 传输（唯一出口；模块不得自己 fetch Provider）
-chat(cfg, { system, user, jsonSchema?, schemaName?, maxOutputTokens? }, deps?, signal?): Promise<ChatResult>
-// ChatResult = { text, usage:{promptTokens,completionTokens,estimated}, mode, model, downgradedFrom? }
+// 推荐与目标（src/miniUnitSelection.ts）
+recommendThemes({ passages, words, grammar, units, now, availableMinutes }): { themes, note }
+selectTargetVocabulary({ passage, words, now, availableMinutes }): { words, uncovered, budget }
+selectTargetGrammar({ passages, grammar }): MiniUnitGrammarTarget[]
+transferCandidates(passages, unit): Passage[]
 
-// 生成（含校验 + 质量门 + 有界重试）
-generateSentence(input, cfg, deps?, signal?): Promise<GenResult<SentenceTarget>>
-generateReading(input, cfg, deps?, signal?): Promise<GenResult<ReadingTarget>>
-// GenResult.ok=false 时带 { error: AIErrorInfo, attempts, issues[] }，绝不返回半成品
+// 证据与推进（src/miniUnitEvidence.ts / miniUnitProgression.ts）
+collectUnitEvidence(data, unit): UnitEvidenceSummary
+dayEvidenceIds(data, unit, day): string[]
+planDay({ unit, day, availableMinutes, energy, data }): DayPlanSpec
+aiReuseKey(unit, day, promptVersion), findReusableGeneration(data, key)
 
-// 记录与预算
-buildGeneration(kind, output, meta, quality, now): AIGeneration
-budgetState(generations, dailyTokenBudget, now): { allowed, usedTokens, limitTokens, dayStart }
-contentHashes(generations, kind): Set<string>
+// 持久化（src/miniUnitStore.ts）与动作（src/miniUnitActions.ts）
+createUnit(unit)            // 未结束单元互斥，冲突抛 ActiveUnitExistsError
+saveUnit(unit, expectedRev) // 冲突抛 StaleUnitError
+applyTransition(id, fn)     // 读改写同事务，幂等
+createFromTheme / createCustomDraft / attachAnchor / startToday / completeToday /
+pauseUnit / resumeUnit / extendUnit / abandonUnit / finishUnit / recordBaseline / recordTransfer
 ```
 
-失败码：`missing-key / missing-model / invalid-endpoint / auth / model-not-found / rate-limit / server / timeout / network / cors / aborted / invalid-response / unsupported-mode / budget-exceeded`。
+## 3. 状态机（Phase 8 不要绕开）
 
-## 3. Provider 能力
+- `draft → ready` 需要：真实 Anchor（provenance ≠ ai_generated）+ ≥1 目标词 + ≥1 目标语法。
+- `complete-day` 只能完成 `nextDay()`，且必须有 ≥1 条真实活动证据；重复提交返回 `noop`。
+- `finish` 的 decision 由 `evaluateUnit` + `guardDecision` 决定：**没有「真实新材料 + 独立 + 理解度 ≥0.5」就只能是 `completed_limited_evidence`**。
+- `status` 保留旧四值（active/completed/extended/abandoned），`stage` 是细粒度状态；两者必须同步写。
 
-- 只依赖 OpenAI-compatible `POST {endpoint}/chat/completions`（`endpoint` 到 `/v1`）。
-- 结构化方式：`json_object` → `json_schema` → `text`（auto 自动降级，`knownMode` 记忆）。
-- 不假设 vision / tools / streaming / 大上下文；当前实现不使用它们。
-- 超时默认 45s（3–180s 可调），重试默认 2（0–3），并发 1（串行）。
+## 4. Anchor 契约
 
-## 4. Prompt 版本（改提示词必须升 version）
+- `anchorMaterialId` + `anchorProvenance`（authentic_external / user_imported_authentic / curated_authentic / ai_generated / authored_educational / unknown）+ `anchorSnapshotRef = passageId#contentHash`；
+- AI 材料（`sourceType='ai' | 'ai_reinforcement'`）**永远不能**成为 Anchor，`applyUnitEvent('attach-anchor')` 会直接报错；
+- Anchor 缺失时只能停在 draft；材料被删除时 `planDay` 会给出警告，不静默继续。
 
-| promptId | version | 文件 |
-| --- | --- | --- |
-| `sentence.generate` | 1.0.0 | `src/prompts/sentence.ts` |
-| `reading.reinforce` | 1.0.0 | `src/prompts/reading.ts` |
+## 5. Day Progression
 
-指纹 = `promptId@version#fnv1a(模板)`，随每条 `AIGeneration` 落库。
+| 天 | kind | 材料 | 辅助 | 关键证据 |
+| --- | --- | --- | --- | --- |
+| 1 | build | Anchor | 高（中文可用） | 真实冷测（在预教前）+ 目标词暴露 |
+| 2 | strengthen | Anchor（辅助减少） | 中 | 隔夜回忆 + 语法独立作答 |
+| 3 | transfer | **新的真实材料**（没有则警告 + AI-assisted） | 低（中文关闭） | 新材料独立理解 |
+| 4 | reinforce | Anchor 相关段落 | 低 | 残余弱词/语法修复 |
 
-## 5. 生成 Schema（Phase 7 复用契约）
+`planDay` 的分钟分配严格不超过预算（Time Budget First）；Planner 仍决定实际任务。
 
-- 句子：`{ sentence, targetWords[], grammarTargets[], difficultyNote, chinese|null, structure|null, provenance:"ai" }`，句子 8–320 字符、词数受窗口限制。
-- 文章：`{ title, topic, passage, targetWords[], targetGrammar[], difficultyRationale, exercises[] }`，`exercises[].{type,question,options[4],answerIndex,explanation,evidenceQuote}`，**evidenceQuote 必须逐字来自 passage**。
+## 6. 证据规则（Phase 8 新增证据必须遵守）
 
-## 6. Reinforcement 契约
+- 只统计 `unit.startedAt` 之后的记录；预览、曝光、生成、阅读接触都不算掌握证据；
+- 目标词独立回忆 = `ReviewRecord(reason='answer', correct)`；语法独立 = `GrammarAttempt(independent !== false && supportLevel === 0)`；
+- 迁移 = 另一篇真实材料上的阅读会话且 `helps.length === 0`；
+- AI 生成只产生材料，永久不产生掌握；
+- 每个学习日的证据 id 写入 `dayHistory.evidenceIds`，重复完成同一天不会重复写。
 
-- AI 句：`sourceType='ai'`、`structureProvenance='ai_unverified'`、`createdBy='ai'`；可用于有提示的探索，**不可**用于自动语法评分。
-- AI 文章：`sourceType='ai_reinforcement'`、`sourceReliability='ai_generated'`、`extractionMethod='ai_generated'`；阅读页明示「AI 生成强化材料」。
-- 生成与采纳**不写掌握证据**；掌握只来自用户独立作答。
-- 内容指纹（`contentHash`）用于去重；`aiGenerations.contentHash` 已建索引。
+## 7. Planner 集成点
 
-## 7. Mini Unit 集成点（Phase 7 注意）
+- `PlannerInput.miniUnit` + `DailyPlan.miniUnitId`（Phase 3 已有），**不要重写 Planner**；
+- 单元只提供：阶段、目标、材料（通过 `readingInput.passages` 收窄）、弱词、辅助级别、时间偏好；
+- 尚未实现的能力（Input Hub / Output Lab）不得出现在计划里：`capabilities` 与 `capabilityRequired` 已保证，测试覆盖。
 
-- Mini Unit 已有 store `miniUnits`（v2）与 `activeMiniUnit()`；AI 生成的句子/文章都应挂到 `miniUnitId`（写进 `sourceMetadata` 或 `SentenceRecord.notes`），以便 Unit 结束时统计。
-- `AIGeneration.sourceMetadata` 已预留 `privacy / attempts / generatedAt`；Phase 7 可加 `miniUnitId`（additive，不动旧记录）。
-- Planner 目前**没有** AI 任务类型：AI 材料经句库/阅读库被既有任务消费。若 Phase 7 需要「Unit 内 AI 句」任务，应新增 capability 并在**材料真实存在**时才排任务。
-- 阅读侧 `Passage.sourceType='ai_reinforcement'` 已被 Phase 5 分析与库查询识别，Unit 统计时需把 AI 文章与真实语料分开。
+## 8. AI 集成点
 
-## 8. 尚未验收 / 风险
+- 唯一入口仍是 `src/aiGenerate.ts` → `aiProvider` → `aiValidate` → `aiQuality`；
+- 单元材料必须带 `sourceMetadata.miniUnitId` 与 `unitReuseKey = unitId|dN|目标词|目标语法|promptVersion`；生成前查同键合格记录，命中复用（防刷新重复扣费）；
+- AI 材料只能进「强化/迁移练习」，UI 必须标 AI，不得进入 Anchor 选择器。
 
-- **真实 AI Provider E2E 未验收**（无凭据）：协议、校验链、质量门、降级已用真实浏览器 + 本地 mock 验证；真实供应商需用户自填 Key 后按 `docs/PHASE6_REINFORCEMENT_AI.md` §11 复验。
-- 语法可观察性是正则启发式；语义型概念标 `unverifiable`。
-- 难度估计为启发式，不是测量模型。
-- 未做流式/批量/工具调用。
+## 9. Git / CI 现状
 
-## 9. 下一条精确操作
+- 交付提交与 tag：见本次 Phase 7 交付报告（`feat(unit): ...` + `phase7-mini-unit`）；
+- 远程核对方式：GitHub API + 代理（`git ls-remote` 在本机会 schannel 握手失败）；
+- CI：Node 22/24 两路（tsc / npm test / build / dist 一致性 / 生产包无测试钩子）。
 
-1. 读取 `STATE.json`（`next_task_id=phase7_mini_unit_012`）与 `docs/PHASE6_REINFORCEMENT_AI.md`。
-2. 先核验 HEAD == origin/main 与 CI 结论（run id 见 STATE.ci 或 `actions/runs?branch=main`）。
-3. Phase 7 第一步：定义 Mini Unit 数据契约（复用 `miniUnits`，不新建平行表），再决定是否给 `AIGeneration.sourceMetadata` 加 `miniUnitId`。
+## 10. Phase 8（Real Input Hub）接入点
+
+- 输入材料必须落到 `passages`（`sourceType` 扩展时同步 `provenanceOf` 映射），否则 Mini Unit 无法把它当 Anchor；
+- 视频/媒体输入：`InputSource` / `InputSession` store 已存在但能力未实现，**不得**在 Unit 中提供假任务；接入后注册 capability 再让 Planner 排任务；
+- 真实 URL 抓取要走 Phase 5 的 `buildUrlDraft` + 可达性校验，失败标 `unverified`，不要凭标题生成正文；
+- 版税/版权：不要把整篇外部文章落入内置资源。
+
+## 11. 下一条精确操作
+
+1. 读 `STATE.json`（`next_task_id=phase8_real_input_hub_013`）与 `docs/PHASE7_MINI_UNIT.md`；
+2. 核对 `git log -1`、remote SHA、CI 结论；
+3. Phase 8 第一步：定义 Input Hub 的数据契约（`InputSource`/`InputSession` 现有字段能否承载视频/字幕/时间轴），再决定是否升 DB v6。
+
 
 # HANDOFF — 换模型 / 换会话所需最小上下文
 

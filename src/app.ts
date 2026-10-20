@@ -14,6 +14,13 @@ import { summarize as summarizeQuality } from './aiQuality.ts';
 import { budgetState, buildGeneration, contentHashes } from './aiStore.ts';
 import type { AIGeneration, AISettings } from './types.ts';
 import { estimateReadingDifficulty, classificationLabel } from './readingDifficulty.ts';
+// —— Phase 7：Mini Unit（跨学习日主题单元）——
+import type { MiniUnit } from './types.ts';
+import { collectUnitEvidence } from './miniUnitEvidence.ts';
+import { applyUnitEvent, dayLabel, nextDay, stageOf } from './miniUnit.ts';
+import { applyTransition } from './miniUnitStore.ts';
+import { unitCreatePage, unitPage, anchorPicker } from './miniUnitView.ts';
+import * as unitActions from './miniUnitActions.ts';
 import { createReadingSession, submitColdTest, startReading, submitMainIdea, markWord, revokeMark, requestHelp, captureDifficultSentence, linkDifficultSentenceAttempt, finishFirstPass, startReread, finishReread, submitWholeTextItem, submitOutput, completeReadingSession, sessionProgress, nextChunk, goToChunk, isResumable, stageLabel, maxHelpLevelUsed } from './readingSession.ts';
 import { selectStudyCandidates, buildHandoffPlan, exposureFromMark, readingWordSeed, readyForTraining, explicitUnknownRate, type StudyCandidate } from './readingVocabulary.ts';
 import { difficultSentenceRecord, PROBLEM_TYPE_LABELS, returnTarget, type LabReturnTarget } from './readingSentences.ts';
@@ -127,7 +134,7 @@ let readingTask: {
 let labReturn: (LabReturnTarget & {
     planTaskId?: string;
 }) | null = null;
-const navs = [['home', '◫', '今日学习'], ['books', '▤', '我的词库'], ['weak', '◎', '薄弱词'], ['sentence', '❝', '句子训练'], ['reading', '❖', '阅读'], ['grammar', '◈', '语法图谱'], ['stats', '▥', '学习统计'], ['ai', '✦', 'AI 学情'], ['settings', '⚙', '设置与备份']];
+const navs = [['home', '◫', '今日学习'], ['books', '▤', '我的词库'], ['weak', '◎', '薄弱词'], ['sentence', '❝', '句子训练'], ['reading', '❖', '阅读'], ['grammar', '◈', '语法图谱'], ['unit', '◐', '主题单元'], ['stats', '▥', '学习统计'], ['ai', '✦', 'AI 学情'], ['settings', '⚙', '设置与备份']];
 function reindex() { wordMap = new Map(data.words.map(w => [w.id, w])); }
 function setPage(p: string) {
     if ((page === 'quiz' && busy) || startingSession) {
@@ -156,7 +163,7 @@ function shell() {
     on('.brand', 'click', e => { e.preventDefault(); setPage('home'); });
     on('#theme', 'click', async () => { const s = { ...data.settings, theme: data.settings.theme === 'light' ? 'dark' : 'light' } as Settings; await saveSettings(s); data.settings = s; document.documentElement.dataset.theme = s.theme; $('#theme').textContent = s.theme === 'light' ? '☾' : '☀'; });
 }
-function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage }[page] || home)(); bindAI(); }
+function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp }[page] || home)(); bindAI(); }
 function title(kicker: string, title: string, sub: string, action = '') { return `<div class="page-title"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p>${sub}</p></div>${action}</div>`; }
 function metric(label: string, value: string, note: string) { return `<div class="metric"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`; }
 function rangeControls() { return `<div class="range-controls"><label>学习范围<select id="range-book"><option value="">全部词书</option>${data.books.map(b => `<option value="${b.id}" ${bookFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label><label>本轮词量<select id="range-count">${[50, 100, 300, 500, 1000].map(n => `<option value="${n}" ${n === 100 ? 'selected' : ''}>${n} 词</option>`).join('')}</select></label><label>测试方向<select id="range-ratio">${![0, 30, 50, 70, 100].includes(data.settings.ratio) ? `<option value="${data.settings.ratio}" selected>英→中 ${data.settings.ratio}%（自定义）</option>` : ''}<option value="50" ${data.settings.ratio === 50 ? 'selected' : ''}>双向各 50%</option><option value="70" ${data.settings.ratio === 70 ? 'selected' : ''}>英→中 70%</option><option value="30" ${data.settings.ratio === 30 ? 'selected' : ''}>中→英 70%</option><option value="100" ${data.settings.ratio === 100 ? 'selected' : ''}>识别 · 英→中</option><option value="0" ${data.settings.ratio === 0 ? 'selected' : ''}>提取 · 中→英</option></select></label></div>`; }
@@ -582,6 +589,162 @@ function deleteBookDialog() {
         closeModal();
         render();
     });
+}
+// ===== Phase 7：Mini Unit 页面（逻辑在 miniUnit*.ts，这里只做绑定）=====
+let unitCustomTopic = '';
+let unitSummaryDraft = '';
+/** 完成后默认仍显示刚结束的单元（否则完成评价看不见）；点“开始新的 Unit”才回到创建页 */
+let unitShowCreate = false;
+function activeUnitInData(): MiniUnit | null {
+    const open = data.miniUnits
+        .filter(u => stageOf(u) === 'draft' || stageOf(u) === 'ready' || stageOf(u) === 'active' || stageOf(u) === 'paused')
+        .sort((a, b) => (b.updatedAt ?? b.startedAt) - (a.updatedAt ?? a.startedAt));
+    return open[0] ?? null;
+}
+function unitBudget(): {
+    minutes: number;
+    energy: 'low' | 'normal' | 'good';
+} {
+    const today = data.dailyPlans.find(p => p.date === dayKey(Date.now()));
+    return {
+        minutes: Math.max(15, Math.min(180, today?.availableMinutes ?? 45)),
+        energy: (today?.energyState as 'low' | 'normal' | 'good' | undefined) ?? 'normal',
+    };
+}
+async function unitRefresh(): Promise<void> {
+    data = await loadData();
+    reindex();
+    render();
+}
+function latestFinishedUnit(): MiniUnit | null {
+    const closed = data.miniUnits
+        .filter(u => stageOf(u) === 'completed' || stageOf(u) === 'abandoned')
+        .sort((a, b) => (b.completedAt ?? b.updatedAt ?? 0) - (a.completedAt ?? a.updatedAt ?? 0));
+    return closed[0] ?? null;
+}
+function unitPageApp() {
+    const openUnit = activeUnitInData();
+    const unit = openUnit ?? (unitShowCreate ? null : latestFinishedUnit());
+    if (!unit) {
+        const { minutes } = unitBudget();
+        const rec = unitActions.unitRecommendations(data, Date.now(), minutes);
+        const finished = latestFinishedUnit();
+        $('#main').innerHTML = unitCreatePage({ data, recommendations: rec.themes, note: rec.note, customTopic: unitCustomTopic })
+            + (finished ? `<section class="panel"><div class="section-title">上一个单元</div><p class="muted">${esc(finished.theme)} · ${finished.completionEvaluation?.decision ?? '已结束'}</p><button data-unit-view-last>查看上一个单元</button></section>` : '');
+        on('[data-unit-view-last]', 'click', () => { unitShowCreate = false; render(); });
+        document.querySelectorAll<HTMLElement>('[data-unit-create]').forEach(b => b.onclick = () => {
+            const theme = rec.themes.find(t => t.themeId === b.dataset.unitCreate);
+            if (!theme)
+                return;
+            unitActions.createFromTheme({ data, recommendation: theme, now: Date.now(), availableMinutes: minutes, energy: unitBudget().energy })
+                .then(r => {
+                if (!r.ok) {
+                    toast(r.error!);
+                    return;
+                }
+                toast(r.note!);
+                unitShowCreate = false;
+                return unitRefresh();
+            });
+        });
+        document.querySelectorAll<HTMLElement>('[data-unit-preview]').forEach(b => b.onclick = () => {
+            const box = document.querySelector<HTMLElement>(`#unit-preview-${b.dataset.unitPreview}`);
+            if (box)
+                box.hidden = !box.hidden;
+        });
+        on('#unit-custom-topic', 'input', (e) => { unitCustomTopic = (e.target as HTMLInputElement).value; });
+        document.querySelectorAll<HTMLElement>('[data-unit-custom]').forEach(b => b.onclick = () => {
+            unitActions.createCustomDraft({ data, topic: unitCustomTopic, now: Date.now() })
+                .then(r => {
+                if (!r.ok) {
+                    toast(r.error!);
+                    return;
+                }
+                toast(r.note!);
+                unitCustomTopic = '';
+                unitShowCreate = false;
+                return unitRefresh();
+            });
+        });
+        document.querySelectorAll<HTMLElement>('[data-unit-open-reading]').forEach(b => b.onclick = () => setPage('reading'));
+        return;
+    }
+    const budget = unitBudget();
+    const stage = stageOf(unit);
+    const spec = stage === 'active' || stage === 'paused' ? unitActions.todaySpec(data, unit, budget.minutes, budget.energy) : null;
+    const evidence = collectUnitEvidence(data, unit);
+    $('#main').innerHTML = unitPage({ data, unit, spec, evidence, now: Date.now() });
+    const run = (p: Promise<unitActions.ActionResult>, after?: () => void) => {
+        void p.then(r => {
+            if (!r.ok) {
+                toast(r.error!);
+                return;
+            }
+            if (r.note)
+                toast(r.note);
+            after?.();
+            return unitRefresh();
+        }).catch(e => toast(e instanceof Error ? e.message : String(e)));
+    };
+    on('[data-unit-start]', 'click', () => run(unitActions.startToday(unit, Date.now())));
+    on('[data-unit-complete]', 'click', () => {
+        unitSummaryDraft = '';
+        const box = document.querySelector<HTMLElement>('#unit-day-summary');
+        if (box && box.hidden === false) {
+            run(unitActions.completeToday({ data, unit, now: Date.now(), summary: unitSummaryDraft }));
+            return;
+        }
+        if (box)
+            box.hidden = false;
+    });
+    on('#unit-summary-input', 'input', (e) => { unitSummaryDraft = (e.target as HTMLInputElement).value; });
+    on('[data-unit-pause]', 'click', () => run(unitActions.pauseUnit(unit, '用户暂停', Date.now())));
+    on('[data-unit-resume]', 'click', () => run(unitActions.resumeUnit(unit, Date.now())));
+    on('[data-unit-extend]', 'click', () => run(unitActions.extendUnit(unit, '仍有残余弱词', Date.now())));
+    on('[data-unit-abandon]', 'click', () => {
+        if (confirm('放弃这个 Mini Unit？已产生的学习证据会保留，但单元会标记为放弃。'))
+            run(unitActions.abandonUnit(unit, '用户放弃', Date.now()));
+    });
+    on('[data-unit-finish]', 'click', () => {
+        const ev = collectUnitEvidence(data, unit);
+        const decision = ev.independentRecall > 0 ? undefined : 'user_ended';
+        const msg = confirm('现在结束并评估这个单元？评估只使用真实证据；缺少真实迁移证据时不会标记为已验证完成。') ? 'ok' : '';
+        if (msg)
+            run(unitActions.finishUnit({ data, unit, now: Date.now(), decision }));
+    });
+    on('[data-unit-pick-anchor]', 'click', () => {
+        const d = modal(anchorPicker({ data, unit }));
+        d.querySelectorAll<HTMLElement>('[data-unit-anchor]').forEach(b => b.onclick = () => {
+            closeModal();
+            run(unitActions.attachAnchor({ data, unit, passageId: b.dataset.unitAnchor!, now: Date.now() }));
+        });
+    });
+    on('[data-unit-new]', 'click', () => { unitShowCreate = true; render(); });
+    document.querySelectorAll<HTMLElement>('[data-unit-open-reading]').forEach(b => b.onclick = () => {
+        const id = b.dataset.unitOpenReading;
+        const passage = id ? data.passages.find(x => x.id === id) : undefined;
+        if (passage)
+            openReadingMaterial(passage, null);
+        else
+            setPage('reading');
+    });
+    const aiBtn = document.querySelector<HTMLElement>('[data-unit-ai]');
+    if (aiBtn)
+        aiBtn.onclick = () => {
+            const ready = aiReady();
+            if (!ready.ok) {
+                toast(ready.reason);
+                return;
+            }
+            const key = unitActions.aiMetadata(unit, nextDay(unit), '1.0.0').unitReuseKey;
+            const reuse = data.aiGenerations.find(g => g.sourceMetadata?.unitReuseKey === key && g.quality?.ok);
+            if (reuse) {
+                toast(`本单元 Day ${nextDay(unit)} 已生成过合格材料，复用记录 ${reuse.id}（不重复请求）`);
+                return;
+            }
+            toast('请在对应页面使用 AI 生成：AI 材料会以 AI 标记保存，不会冒充真实 Anchor');
+            setPage(aiBtn.dataset.unitAi === 'reading' ? 'reading' : 'sentence');
+        };
 }
 function statistics() { const s = summary(data); $('#main').innerHTML = title('MEMORY INSIGHTS', '看见记忆的变化', '统计来自实际作答记录；没有学习数据的日期保持空白。') + `<div class="metrics">${metric('累计作答', String(data.records.length), '全部历史记录')}${metric('测试过的词', String(data.words.filter(w => w.state.total).length), '去重后的词条')}${metric('有效掌握', String(s.effective), '当前未逾期的熟练词')}${metric('待复习', String(s.due), '按每个词独立调度')}</div><div class="two-col"><section class="panel"><h2>双向表现</h2>${Object.entries(s.directions).map(([k, v]) => `<div class="direction-stat"><b>${k === 'en-zh' ? '英文 → 中文' : '中文 → 英文'}</b><strong>${v.attempts ? pct(v.accuracy) : '—'}</strong><span>${v.attempts} 次 · ${seconds(v.meanMs)}</span></div>`).join('')}<p class="hint">两种方向都是选择题。中→英成绩不能代替独立拼写能力。</p></section><section class="panel"><h2>掌握分布</h2>${distribution()}</section></div><section class="panel"><div class="section-title"><h2>长期趋势</h2><select id="trend-days" aria-label="趋势时间"><option value="7">最近 7 天</option><option value="30">最近 30 天</option></select></div><div id="trend"></div></section><p class="hint">有效掌握采用保守规则：跨间隔测试、双向表现与复习到期时间共同判断，是估算值。它不代表经过标准化测量的词汇量。</p>`; drawTrend(7); on('#trend-days', 'change', e => drawTrend(Number((e.target as HTMLSelectElement).value))); }
 function drawTrend(days: number) { const rows = trend(data, days), max = Math.max(1, ...rows.map(r => r.attempts)); $('#trend').innerHTML = `<div class="chart" aria-label="每日作答次数">${rows.map(r => `<div class="bar-col"><span>${r.attempts || ''}</span><div class="bar" style="height:${Math.max(2, r.attempts / max * 120)}px" title="${r.date}：${r.attempts}次"></div><small>${r.date.slice(5)}</small></div>`).join('')}</div><div class="table-scroll"><table><thead><tr><th>日期</th><th>作答</th><th>正确率</th><th>平均反应</th><th>进入熟练次数</th><th>到期答错次数</th></tr></thead><tbody>${rows.filter(r => r.attempts).map(r => `<tr><td>${r.date}</td><td>${r.attempts}</td><td>${pct(r.accuracy)}</td><td>${seconds(r.meanMs)}</td><td>${r.gained}</td><td>${r.forgotten}</td></tr>`).join('') || '<tr><td colspan="6">这段时间还没有学习记录</td></tr>'}</tbody></table></div>`; }
@@ -1508,6 +1671,36 @@ function installTestHook(): void {
         library: () => queryLibrary(data.passages, data.readingSessions, { readState: 'all' }).map(r => ({ id: r.passage.id, title: r.passage.title, hash: r.passage.contentHash ?? '', completed: r.completed })),
     };
     (window as unknown as Record<string, unknown>).__readTest = readHook;
+    // Phase 7 验收钩子：只做“种子数据 / 读取真实状态 / 并发推进”，不改变业务规则
+    (window as unknown as Record<string, unknown>).__unitTest = {
+        async snapshot() {
+            const d = await loadData();
+            return {
+                units: d.miniUnits.map(u => ({ id: u.id, stage: stageOf(u), dayIndex: u.dayIndex, days: (u.dayHistory ?? []).map(x => x.day), evidence: (u.dayHistory ?? []).map(x => x.evidenceIds.length), plannedDays: u.plannedDays ?? 3, baseline: u.baseline?.source ?? null, transfer: u.transfer?.materialKind ?? null, decision: u.completionEvaluation?.decision ?? null })),
+                words: d.words.length, passages: d.passages.map(p => ({ id: p.id, sourceType: p.sourceType, hash: p.contentHash ?? '' })),
+                records: d.records.length, grammar: d.grammarAttempts.length, sessions: d.readingSessions.length,
+                generations: d.aiGenerations.map(g => ({ id: g.id, miniUnitId: g.sourceMetadata?.miniUnitId ?? '', key: g.sourceMetadata?.unitReuseKey ?? '' })),
+                plans: d.dailyPlans.map(p => ({ date: p.date, unitId: p.miniUnitId ?? '', items: p.initialPlan.length })),
+            };
+        },
+        async put(store: string, rows: unknown[]) { await putItems(store as never, rows); },
+        async clear(store: string) {
+            await openDB();
+            const tx = getDB().transaction(store, 'readwrite');
+            tx.objectStore(store).clear();
+            await new Promise<void>((res, rej) => { tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
+        },
+        async advance(id: string, day: number) {
+            const t = await applyTransition(id, (current) => {
+                if (nextDay(current) !== day)
+                    return null;
+                const r = applyUnitEvent(current, { type: 'complete-day', day, calendarDate: dayKey(Date.now()), summary: '并发测试', evidenceIds: [`ev-${id}-${day}`], wordsCovered: [], now: Date.now() });
+                return r.ok ? r.unit : null;
+            });
+            return { dayIndex: t.dayIndex, days: (t.dayHistory ?? []).length };
+        },
+        async reload() { data = await loadData(); reindex(); render(); },
+    };
     // OCR 验收钩子：只暴露“跑一次识别 / 释放”，不改学习证据；用于失败注入与超时验证
     (window as unknown as Record<string, unknown>).__ocrTest = {
         async recognize(file: Blob, opts: {

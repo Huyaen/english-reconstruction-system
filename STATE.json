@@ -2,13 +2,13 @@
   "project": "English Reconstruction System V2",
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
-  "current_phase": "phase_6_reinforcement_ai",
-  "last_updated": "2026-10-20T21:32:00+08:00",
+  "current_phase": "phase_7_mini_unit",
+  "last_updated": "2026-10-20T23:20:00+08:00",
   "last_verified_commit": "56874a3f6f1115e3b57d32e0f45d827f66492e8b",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 5,
   "build_status": "passed",
-  "test_status": "passed (176/176 via node --test)",
+  "test_status": "passed (208/208 via node --test)",
   "tasks": {
     "phase0_audit_001": {
       "status": "passed",
@@ -359,6 +359,35 @@
         "real_provider": "未验收（无凭据）：仅完成协议级 mock 端到端；真实供应商需用户自填 Key 后复验"
       },
       "verified_at": "2026-10-20T21:05:00+08:00"
+    },
+    "phase7_mini_unit_012": {
+      "status": "passed",
+      "description": "Phase 7 Mini Unit：跨学习日主题学习单元 —— 状态机（draft/ready/active/paused/completed/abandoned + Day 1-4）、主题推荐（基于真实材料/薄弱词/可观察语法，AI 材料排除）、Anchor 绑定与来源（AI 不得为 Anchor）、目标词汇（复用 Learning Value，按时间/难度动态）与目标语法（verified/candidate）、Day 1 冷测在前 / Day 2 强化 / Day 3 真实新材料迁移 / Day 4 依证据延长、完成评价（verified / limited_evidence / user_ended / extended / abandoned，缺真实迁移一律降级）、证据汇总（目标词独立回忆/语法/句子/阅读/计划/AI）、持久化（创建互斥 + revision 乐观并发 + 幂等转换）、Planner 集成（复用 Phase 3，不重写）、UI（创建页/单元页/Anchor 选择器）",
+      "files": [
+        "src/miniUnit.ts",
+        "src/miniUnitSelection.ts",
+        "src/miniUnitEvidence.ts",
+        "src/miniUnitProgression.ts",
+        "src/miniUnitStore.ts",
+        "src/miniUnitActions.ts",
+        "src/miniUnitView.ts",
+        "src/types.ts",
+        "src/app.ts",
+        "src/style.css",
+        "tests/miniUnit.test.ts",
+        "tests/miniUnitStore.test.ts",
+        "scripts/phase7-smoke.mjs",
+        "docs/PHASE7_MINI_UNIT.md"
+      ],
+      "verification": {
+        "tests": "208/208 pass（新增 32：miniUnit 25 + miniUnitStore/Planner 7）",
+        "tsc": "0 error",
+        "build": "npm run build / build:test 通过；生产包 __readTest/__labTest/__ocrTest/__unitTest/ERV2_TEST_HOOKS 命中 0",
+        "browser_smoke": "Phase 7 smoke 33/33（真实 Edge + CDP；A–H 八场景）",
+        "regression": "Phase 6 31/31、Phase 5.1 26/26、Phase 5 44/44、Phase 4 36/36、Phase 3 21/21",
+        "real_provider": "仍未验收（无凭据）；Phase 7 复用 Phase 6 协议级 mock，没有新增真实供应商证据"
+      },
+      "verified_at": "2026-10-20T23:20:00+08:00"
     }
   },
   "known_bugs": [],
@@ -381,10 +410,14 @@
     "Phase 6：真实 AI 供应商调用未验收（无凭据）。协议、校验链、质量门与降级路径已用真实浏览器 + 本地 OpenAI-compatible mock 验证；真实供应商需用户配置 Key 后按 docs/PHASE6_REINFORCEMENT_AI.md §11 复验，不得据此宣称真实 E2E 已通过",
     "Phase 6：AI 句法结构一律 ai_unverified（规则可达的语法点会做正则可观察性检查，语义型概念标 unverifiable），不用于自动语法评分",
     "Phase 6：难度控制基于本地启发式（词数/从句标记/生词负荷）+ 学习者真实词表；模型自述难度只作参考，不写入掌握",
-    "Phase 6：Planner 未新增 AI 任务类型——AI 句子进入句库、AI 文章进入阅读库，由既有句/阅读任务消费；未配置或生成失败时不出现假任务"
+    "Phase 6：Planner 未新增 AI 任务类型——AI 句子进入句库、AI 文章进入阅读库，由既有句/阅读任务消费；未配置或生成失败时不出现假任务",
+    "Phase 7：真实迁移必须有另一篇真实材料；只有一篇时只能做 AI-assisted 练习，完成判定会降级为 completed_limited_evidence",
+    "Phase 7：主题推荐没有用户兴趣画像（Settings 无该字段），依据是材料/薄弱词/可观察语法/近期单元；证据不足时页面明说",
+    "Phase 7：语法可观察性仍是正则启发式，语义型概念只标 candidate；输出侧只有一句话自评（Phase 9 未实现）",
+    "Phase 7：Anchor 难度分析未做持久缓存；每次进入单元会读取既有 store 重新汇总证据（未做全表扫描）"
   ],
   "blocked": [],
-  "next_task_id": "phase7_mini_unit_012",
+  "next_task_id": "phase8_real_input_hub_013",
   "environment": {
     "node": "v26.7.0",
     "npm": "11.19.0",
@@ -400,7 +433,8 @@
     "Phase 4 交付：sentence 模块已真实上线（moduleCapabilities.sentence.available=true）；阅读/输入/输出仍未上线，UI 不得声称可用",
     "CI Protocol（Phase 5.0 起长期有效）：Task 级门禁=测试+构建+diff 审核+commit+push+远端核验；Phase 级门禁=全量测试+tsc+build+真实浏览器 smoke+旧模块回归+状态同步+commit+tag+push+GitHub Actions 成功+远端 SHA 核验；CI 失败必须区分代码失败与基础设施失败，不得在 CI 未成功时宣称远程门禁通过",
     "Phase 5.1 交付：截图 OCR 已真实上线（本地 Wasm，extractionMethod=local_ocr）；OCR 不经任何网络上传图片，失败一律保留人工转录出口，绝不假装识别成功",
-    "Phase 6 交付：AI 只做脚手架（生成材料），掌握证据只来自用户真实作答；DB 升到 v5（additive：aiGenerations），旧数据与既有 store 完全不动"
+    "Phase 6 交付：AI 只做脚手架（生成材料），掌握证据只来自用户真实作答；DB 升到 v5（additive：aiGenerations），旧数据与既有 store 完全不动",
+    "Phase 7 交付：Mini Unit 状态机 + 真实 Anchor/目标/证据闭环；DB 仍为 v5（新增字段全可选，无迁移）；完成判定缺真实迁移证据一律降级"
   ],
   "remote_sync": {
     "setup_task_id": "infra_github_remote_001",

@@ -64,3 +64,7 @@
 ## P0 — Phase 6 Reinforcement AI（已完成并核验）
 
 - [x] `phase6_reinforcement_ai_010`：AI Service Layer + 结构化输出校验 + Prompt 版本化 + 定向句/强化阅读 + 质量门 + 证据纪律 + 隐私/用量 + 失败降级 + DB v5 + 真实浏览器验收 31/31 ✔ 2026-10-20
+
+## P0 — Phase 7 Mini Unit（已完成并核验）
+
+- [x] `phase7_mini_unit_012`：状态机 + 主题推荐 + Anchor/目标 + Day 1–4 + 迁移与完成判定 + 证据 + 持久化/并发 + Planner 集成 + UI + 文档 + 真实浏览器验收 33/33 ✔ 2026-10-20

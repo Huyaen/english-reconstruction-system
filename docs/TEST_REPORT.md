@@ -144,3 +144,15 @@ Phase 5 新增用例（28）：
 | 真实浏览器验收 | `SMOKE_PORT=9226 node scripts/phase6-smoke.mjs` | **31/31 PASS** |
 | 回归 | Phase 5.1 OCR / Phase 5 / Phase 4 / Phase 3 | **26/26 · 44/44 · 36/36 · 21/21** |
 | 真实供应商 | — | **未验收**（无凭据）：mock 仅验证协议；真实 E2E 需用户 Key 后按文档复验 |
+
+## Phase 7 — Mini Unit
+
+| 项 | 命令 | 结果 |
+| --- | --- | --- |
+| 类型检查 | `npx tsc --noEmit -p tsconfig.json` | 0 error |
+| 单元/集成 | `npm test` | **208/208 pass**（新增 32 例） |
+| 生产构建 | `npm run build` | 通过；测试钩子命中 0 |
+| 测试构建 | `npm run build:test` | 通过 |
+| 真实浏览器验收 | `SMOKE_PORT=9227 node scripts/phase7-smoke.mjs` | **33/33 PASS** |
+| 回归 | phase6 / phase5.1 / phase5 / phase4 / phase3 | **31/31 · 26/26 · 44/44 · 36/36 · 21/21** |
+| 真实供应商 | — | 仍未验收（无凭据），沿用 Phase 6 结论 |
