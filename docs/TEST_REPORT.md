@@ -122,3 +122,13 @@ Phase 5 新增用例（28）：
 
 真实浏览器 smoke（`scripts/phase5-smoke.mjs`，44 项）覆盖：测试钩子只在测试构建 + `?test=1` 存在；无材料时引导导入且计划中无阅读任务；导入落库（来源/指纹/段落句子）；预览不含正文；冷读后进入首读；逐词点击标记 + 障碍证据 + 侧栏列出；难句卡点类型；拆句“自动结构只记接触 + 回到阅读”入口；退出拆句回到同一段且标记仍在；重读真实计时并可逐段走完；两次自评分开；收尾 `completed`；结果页首读/重读速度并列；会话落库唯一且含标记/难句/重读起止/证据幂等；整理生词拒绝无释义入库、补释义后才入库且掌握证据为 0、exposure 来源为 `reading`。
 
+## Phase 5.1 — 真实截图 OCR
+
+| 项 | 命令 | 结果 |
+| --- | --- | --- |
+| 类型检查 | `npx tsc --noEmit -p tsconfig.json` | 0 error |
+| 单元/集成 | `npm test` | **145/145 pass**（新增 `tests/ocr.test.ts` 11 例） |
+| 生产构建 | `npm run build` | 通过；`__readTest`/`__labTest`/`__ocrTest`/`ERV2_TEST_HOOKS` 命中 **0** |
+| 测试构建 | `npm run build:test` | 通过（含测试钩子） |
+| 真实 OCR 验收 | `SMOKE_PORT=9225 node scripts/phase5-1-ocr-smoke.mjs` | **26/26 PASS**（真实截图 784 字符、置信度 95%、6.8s；0 上传） |
+| 旧模块回归 | `phase5/phase4/phase3 smoke` | **44/44 · 36/36 · 21/21** |

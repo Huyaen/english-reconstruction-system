@@ -3,12 +3,12 @@
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
   "current_phase": "phase_6_reinforcement_ai",
-  "last_updated": "2026-10-19T23:31:00+08:00",
+  "last_updated": "2026-10-20T19:40:00+08:00",
   "last_verified_commit": "7c1bf06655aed18bdd242574dc8859f52434f6a6",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 4,
   "build_status": "passed",
-  "test_status": "passed (134/134 via node --test)",
+  "test_status": "passed (145/145 via node --test)",
   "tasks": {
     "phase0_audit_001": {
       "status": "passed",
@@ -301,6 +301,30 @@
         "node scripts/phase5-smoke.mjs 44/44（无头 Edge + CDP，独立 profile，dist-test + ?test=1）",
         "回归：phase4-smoke 36/36、phase3-smoke 21/21，均无控制台未捕获错误"
       ]
+    },
+    "phase5_1_local_ocr_011": {
+      "status": "passed",
+      "description": "Phase 5.1 真实截图 OCR：tesseract.js v7 本地 Wasm（懒加载动态 import，首屏不加载）→ 真实截图 OCR → 用户编辑 → 必须勾选确认 → 入库（extractionMethod=local_ocr）；格式/大小门禁（仅 PNG/JPG，8MB）、超时与取消（release worker）、模型加载失败/空结果/解码失败分类与人工录入出口、并发串行化；真实 fixture + 真实浏览器验收 26/26",
+      "files": [
+        "src/ocr.ts",
+        "src/ocrEngine.ts",
+        "src/readingView.ts",
+        "src/app.ts",
+        "tests/ocr.test.ts",
+        "scripts/phase5-1-ocr-smoke.mjs",
+        "scripts/make-ocr-fixtures.mjs",
+        "tests/fixtures/reading-ocr.png",
+        "tests/fixtures/reading-blank.png",
+        "docs/PHASE5_1_OCR.md"
+      ],
+      "verification": {
+        "tests": "145/145 pass（新增 tests/ocr.test.ts 11 例）",
+        "tsc": "0 error",
+        "build": "npm run build / build:test 通过；生产包 __readTest/__labTest/__ocrTest 命中 0",
+        "browser_smoke": "Phase 5.1 OCR smoke 26/26（真实截图 784 字符、置信度 95%、6.8s）",
+        "regression": "Phase 5 44/44、Phase 4 36/36、Phase 3 21/21"
+      },
+      "verified_at": "2026-10-20T19:40:00+08:00"
     }
   },
   "known_bugs": [],
@@ -315,11 +339,12 @@
     "BKT-lite 参数为启发式起点（prior 0.25/learn 0.15/guess 0.25/slip 0.1），未用真实学习数据拟合；界面一律标注“估算”",
     "语法图谱为显式 34 概念 + 先修边（无环），未做自动句法分析；非 gold 结构一律标注 provenance/confidence",
     "GitHub Actions CI 只做静态/单测/构建验证：不含真实浏览器 E2E、不含真实 AI Provider 调用、不备份 IndexedDB 用户学习数据；浏览器验收仍在本地用独立 profile 的无头 Edge + CDP 执行",
-    "Phase 5 阅读：本机未配置视觉模型/本地 OCR 时，截图导入只提供“人工转录 + 用户确认”路径（extractionMethod=manual，可靠性 unknown），不做假 OCR 识别",
     "Phase 5 阅读：PDF/DOCX/EPUB 不做本地解析（明示不支持并引导复制正文）；URL 导入受浏览器 CORS 限制时如实报错，不绕付费墙/登录墙",
     "Phase 5 阅读：难度与生词率都是估算——explicit（用户标记）与 estimated（词库四分类）分开统计并携带分母/样本覆盖/置信度/method；“不在词库”单独计 no-evidence，不并入生词率",
     "Phase 5 阅读：不做词形还原（lemma 不可靠时留空）；阅读只记接触（exposure），绝不因“读过/被推荐过”提升任何词的掌握证据",
-    "Phase 5 阅读：真实 AI 强化文章生成（Phase 6）尚未接入；阅读库没有“按难度推荐”的 AI 排序，只有启发式难度估算"
+    "Phase 5 阅读：真实 AI 强化文章生成（Phase 6）尚未接入；阅读库没有“按难度推荐”的 AI 排序，只有启发式难度估算",
+    "Phase 5.1 OCR：只承诺英文 PNG/JPG 截图（BMP/WEBP/GIF/PDF 不支持）；识别模型与 Wasm 首次需联网下载（约 3MB 模型 + 4MB core），离线时明确报“模型加载失败”并退回人工转录，不上传任何图片",
+    "Phase 5.1 OCR：识别质量取决于截图清晰度；程序只做排版级清理（空白/行尾断词），绝不自动改拼写，错字必须由用户核对修改后勾选确认"
   ],
   "blocked": [],
   "next_task_id": "phase6_reinforcement_ai_010",
@@ -336,7 +361,8 @@
     "旧数据 100% 保留为硬约束；任何 DB 版本操作前先备份快照",
     "dist/ 已纳入 Git（commit 前保持 build 与源码一致）",
     "Phase 4 交付：sentence 模块已真实上线（moduleCapabilities.sentence.available=true）；阅读/输入/输出仍未上线，UI 不得声称可用",
-    "CI Protocol（Phase 5.0 起长期有效）：Task 级门禁=测试+构建+diff 审核+commit+push+远端核验；Phase 级门禁=全量测试+tsc+build+真实浏览器 smoke+旧模块回归+状态同步+commit+tag+push+GitHub Actions 成功+远端 SHA 核验；CI 失败必须区分代码失败与基础设施失败，不得在 CI 未成功时宣称远程门禁通过"
+    "CI Protocol（Phase 5.0 起长期有效）：Task 级门禁=测试+构建+diff 审核+commit+push+远端核验；Phase 级门禁=全量测试+tsc+build+真实浏览器 smoke+旧模块回归+状态同步+commit+tag+push+GitHub Actions 成功+远端 SHA 核验；CI 失败必须区分代码失败与基础设施失败，不得在 CI 未成功时宣称远程门禁通过",
+    "Phase 5.1 交付：截图 OCR 已真实上线（本地 Wasm，extractionMethod=local_ocr）；OCR 不经任何网络上传图片，失败一律保留人工转录出口，绝不假装识别成功"
   ],
   "remote_sync": {
     "setup_task_id": "infra_github_remote_001",

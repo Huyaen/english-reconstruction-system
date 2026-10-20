@@ -4,7 +4,9 @@ import { testHooksEnabled } from './testMode.ts';
 // —— Phase 5：Reading Lab ——
 import type { Passage, ReadingSession, ReadingToken, ReadingMark, ReadingDifficultyReport, WordExposure, DifficultSentence, ReadingProblemType } from './types.ts';
 import { parsePassageText, sentenceAtSpan, tokenizeSentence } from './readingText.ts';
-import { buildPastedDraft, buildUrlDraft, buildManualImageDraft, classifyFetchFailure, findDuplicate, importFromFile, ocrCapability, toPassage, type PassageDraft } from './readingImport.ts';
+import { buildPastedDraft, buildUrlDraft, buildImageDraft, buildManualImageDraft, classifyFetchFailure, findDuplicate, importFromFile, ocrCapability, toPassage, type PassageDraft } from './readingImport.ts';
+import { checkImage, classifyOcrFailure } from './ocr.ts';
+import { OcrError, ocrService, ocrServiceWithPaths } from './ocrEngine.ts';
 import { estimateReadingDifficulty, classificationLabel } from './readingDifficulty.ts';
 import { createReadingSession, submitColdTest, startReading, submitMainIdea, markWord, revokeMark, requestHelp, captureDifficultSentence, linkDifficultSentenceAttempt, finishFirstPass, startReread, finishReread, submitWholeTextItem, submitOutput, completeReadingSession, sessionProgress, nextChunk, goToChunk, isResumable, stageLabel, maxHelpLevelUsed } from './readingSession.ts';
 import { selectStudyCandidates, buildHandoffPlan, exposureFromMark, readingWordSeed, readyForTraining, explicitUnknownRate, type StudyCandidate } from './readingVocabulary.ts';
@@ -1496,6 +1498,38 @@ function installTestHook(): void {
         library: () => queryLibrary(data.passages, data.readingSessions, { readState: 'all' }).map(r => ({ id: r.passage.id, title: r.passage.title, hash: r.passage.contentHash ?? '', completed: r.completed })),
     };
     (window as unknown as Record<string, unknown>).__readTest = readHook;
+    // OCR 验收钩子：只暴露“跑一次识别 / 释放”，不改学习证据；用于失败注入与超时验证
+    (window as unknown as Record<string, unknown>).__ocrTest = {
+        async recognize(file: Blob, opts: {
+            timeoutMs?: number;
+        } = {}) {
+            try {
+                const r = await ocrService.recognize(file, opts);
+                return { ok: true, text: r.text, confidence: r.confidence, loaded: ocrService.loaded };
+            }
+            catch (e) {
+                return { ok: false, code: e instanceof OcrError ? e.failure.code : 'unknown', message: e instanceof OcrError ? e.failure.message : String(e) };
+            }
+        },
+        // 失败注入：把资源指到一个不存在的地址，验证真实引擎的报错与分类（不是 mock）
+        async recognizeWithPaths(file: Blob, paths: Record<string, string>, opts: {
+            timeoutMs?: number;
+        } = {}) {
+            const svc = ocrServiceWithPaths(paths);
+            try {
+                const r = await svc.recognize(file, opts);
+                return { ok: true, text: r.text, confidence: r.confidence };
+            }
+            catch (e) {
+                return { ok: false, code: e instanceof OcrError ? e.failure.code : 'unknown', message: e instanceof OcrError ? e.failure.message : String(e) };
+            }
+            finally {
+                await svc.dispose();
+            }
+        },
+        async dispose() { await ocrService.dispose(); return { loaded: ocrService.loaded }; },
+        loaded() { return ocrService.loaded; },
+    };
 }
 // ———————————————— Phase 5：Reading Lab UI（消费层；算法都在 reading*.ts 里） ————————————————
 function readingDifficultyFor(passage: Passage): ReadingDifficultyReport {
@@ -1698,32 +1732,157 @@ function wireReadingLibrary(): void {
                 msg.textContent = `${failure.message}${failure.hint}`;
         }
     });
-    on('[data-read-ocr-open]', 'click', () => { document.querySelector<HTMLElement>('#read-ocr-box')?.removeAttribute('hidden'); });
-    on('#read-image', 'change', async (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        const msg = document.querySelector<HTMLElement>('#read-ocr-msg');
-        if (!file || !msg)
+    on('[data-read-ocr-open]', 'click', () => {
+        document.querySelector<HTMLElement>('#read-ocr-box')?.removeAttribute('hidden');
+    });
+    // —— 截图 OCR（Phase 5.1）：本地识别 → 用户可改 → 必须确认 → 才入库 ——
+    let ocrFile: File | null = null;
+    let ocrAbort: AbortController | null = null;
+    let ocrMode: 'local' | 'manual' = 'local';
+    let ocrConfidence: number | null = null;
+    const ocrQ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel);
+    const ocrToggle = (sel: string, show: boolean) => {
+        const el = ocrQ<HTMLElement>(sel);
+        if (el)
+            el.hidden = !show;
+    };
+    const ocrSay = (html: string) => {
+        const m = ocrQ<HTMLElement>('#read-ocr-msg');
+        if (m)
+            m.innerHTML = html;
+    };
+    const ocrReset = () => {
+        ocrToggle('[data-read-ocr-run]', false);
+        ocrToggle('[data-read-ocr-cancel]', false);
+        ocrToggle('[data-read-ocr-manual]', false);
+        ocrToggle('#read-ocr-progress', false);
+        ocrToggle('#read-ocr-edit-wrap', false);
+        ocrToggle('#read-ocr-confirm-wrap', false);
+        ocrToggle('#read-ocr-save-wrap', false);
+    };
+    on('#read-image', 'change', () => {
+        const input = document.querySelector<HTMLInputElement>('#read-image');
+        const file = input?.files?.[0] ?? null;
+        ocrFile = file;
+        ocrMode = 'local';
+        ocrConfidence = null;
+        ocrReset();
+        const preview = ocrQ<HTMLImageElement>('#read-ocr-preview');
+        if (preview) {
+            preview.hidden = true;
+            preview.removeAttribute('src');
+        }
+        if (!file) {
+            ocrSay('没有选中图片。');
             return;
-        const cap = ocrCapability({ providerSupportsVision: false, localOcrInstalled: false });
-        msg.innerHTML = `${resc(cap.reason)}。请把截图里的英文录到下面的框里，核对后保存（不会假装识别成功）。`;
-        const box = document.createElement('textarea');
-        box.id = 'read-ocr-text';
-        box.rows = 8;
-        box.placeholder = '把截图中的英文录入/粘贴到这里……';
-        msg.appendChild(box);
-        const save = document.createElement('button');
-        save.className = 'primary';
-        save.textContent = '确认并保存这段文字';
-        save.dataset.readOcrSave = '1';
-        save.addEventListener('click', async () => {
-            const res = buildManualImageDraft({ text: box.value, imageName: file.name, userConfirmed: true, allowShort: true });
-            if (!res.ok) {
-                msg.innerHTML = resc(`${res.error.message}${res.error.hint}`);
-                return;
+        }
+        const bad = checkImage({ name: file.name, type: file.type, size: file.size });
+        if (bad) {
+            ocrSay(`${resc(bad.message)} ${resc(bad.hint)}`);
+            ocrToggle('[data-read-ocr-manual]', true);
+            ocrToggle('#read-ocr-edit-wrap', true);
+            return;
+        }
+        if (preview) {
+            preview.src = URL.createObjectURL(file);
+            preview.hidden = false;
+        }
+        ocrSay(`${resc(file.name)} · ${(file.size / 1024).toFixed(0)}KB。点“开始本地识别”：图片只会在这台设备上被读取，不会上传。`);
+        ocrToggle('[data-read-ocr-run]', true);
+    });
+    on('[data-read-ocr-run]', 'click', async () => {
+        const file = ocrFile;
+        if (!file)
+            return;
+        ocrMode = 'local';
+        ocrConfidence = null;
+        ocrAbort = new AbortController();
+        const bar = ocrQ<HTMLProgressElement>('#read-ocr-progress');
+        if (bar) {
+            bar.hidden = false;
+            bar.value = 0;
+        }
+        ocrToggle('[data-read-ocr-run]', false);
+        ocrToggle('[data-read-ocr-cancel]', true);
+        ocrToggle('#read-ocr-edit-wrap', false);
+        ocrToggle('#read-ocr-save-wrap', false);
+        ocrToggle('#read-ocr-confirm-wrap', false);
+        ocrSay('正在加载 OCR 引擎和英文模型（首次约 3MB，之后会缓存）……');
+        try {
+            const res = await ocrService.recognize(file, {
+                signal: ocrAbort.signal,
+                onProgress: p => {
+                    if (bar)
+                        bar.value = p.progress;
+                    const msg = ocrQ<HTMLElement>('#read-ocr-msg');
+                    if (msg)
+                        msg.textContent = `${p.label} —— 识别在本机进行，图片没有离开这台设备。`;
+                },
+            });
+            ocrConfidence = res.confidence === null ? null : res.confidence / 100;
+            const box = ocrQ<HTMLTextAreaElement>('#read-ocr-text');
+            if (box)
+                box.value = res.text;
+            ocrToggle('#read-ocr-edit-wrap', true);
+            ocrToggle('#read-ocr-confirm-wrap', true);
+            ocrToggle('#read-ocr-save-wrap', true);
+            ocrToggle('[data-read-ocr-manual]', true);
+            const conf = res.confidence === null ? '引擎未给出置信度' : `引擎置信度 ${Math.round(res.confidence)}%`;
+            ocrSay(`识别完成（${resc(conf)}，${res.text.length} 个字符）。OCR 一定会有错字：请逐句核对、直接修改，再勾选确认。`);
+        }
+        catch (err) {
+            const failure = err instanceof OcrError ? err.failure : classifyOcrFailure(err);
+            ocrSay(`<strong>${resc(failure.message)}</strong><br>${resc(failure.hint)}`);
+            ocrToggle('[data-read-ocr-manual]', true);
+            if (failure.code !== 'aborted') {
+                ocrToggle('[data-read-ocr-run]', true);
+                const box = ocrQ<HTMLTextAreaElement>('#read-ocr-text');
+                if (box && !box.value)
+                    ocrToggle('#read-ocr-edit-wrap', true);
             }
-            await saveDraftAndPreview(res.value);
-        });
-        msg.appendChild(save);
+        }
+        finally {
+            ocrAbort = null;
+            ocrToggle('[data-read-ocr-cancel]', false);
+            const bar2 = ocrQ<HTMLProgressElement>('#read-ocr-progress');
+            if (bar2)
+                bar2.hidden = true;
+        }
+    });
+    on('[data-read-ocr-cancel]', 'click', () => {
+        ocrAbort?.abort();
+        ocrSay('正在取消……（引擎会一起释放，不会留在后台跑）');
+    });
+    on('[data-read-ocr-manual]', 'click', () => {
+        ocrMode = 'manual';
+        ocrConfidence = null;
+        ocrToggle('#read-ocr-edit-wrap', true);
+        ocrToggle('#read-ocr-confirm-wrap', true);
+        ocrToggle('#read-ocr-save-wrap', true);
+        const box = ocrQ<HTMLTextAreaElement>('#read-ocr-text');
+        if (box && !box.value)
+            box.placeholder = '把截图里的英文照着录入到这里……';
+        ocrSay('手动录入：照着截图打字。保存后会记为“人工转录”，不会假装是 OCR 识别出来的。');
+        box?.focus();
+    });
+    on('[data-read-ocr-save]', 'click', async () => {
+        const file = ocrFile;
+        const box = ocrQ<HTMLTextAreaElement>('#read-ocr-text');
+        const confirmed = ocrQ<HTMLInputElement>('#read-ocr-confirm')?.checked === true;
+        if (!file || !box)
+            return;
+        if (!confirmed) {
+            ocrSay('请先核对下面的文字、改掉错字，并勾选“我已核对”。OCR 结果未经核对不能入库。');
+            return;
+        }
+        const res = ocrMode === 'local'
+            ? buildImageDraft({ text: box.value, imageName: file.name, method: 'local', confidence: ocrConfidence ?? undefined, userConfirmed: true, allowShort: true })
+            : buildManualImageDraft({ text: box.value, imageName: file.name, userConfirmed: true, allowShort: true });
+        if (!res.ok) {
+            ocrSay(`${resc(res.error.message)} ${resc(res.error.hint)}`);
+            return;
+        }
+        await saveDraftAndPreview(res.value);
     });
 }
 async function saveDraftAndPreview(draft: PassageDraft): Promise<void> {

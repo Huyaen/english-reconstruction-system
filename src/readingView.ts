@@ -47,8 +47,18 @@ export function importPanelHTML(duplicateHint = ''): string {
     <p class="hint" id="read-url-msg"></p>
   </div>
   <div id="read-ocr-box" hidden>
-    <label>截图<input type="file" id="read-image" accept="image/*" /></label>
-    <p class="hint" id="read-ocr-msg">OCR 结果会先放进上面的编辑框，核对后再保存。</p>
+    <label>截图（PNG / JPG）<input type="file" id="read-image" accept="image/png,image/jpeg" /></label>
+    <p class="hint" id="read-ocr-msg">OCR 全程在你自己的浏览器里跑（本地 Wasm），图片不会上传到任何服务器。首次使用需要下载约 3MB 的英文识别模型。</p>
+    <div class="actions">
+      <button class="primary" data-read-ocr-run="1" hidden>开始本地识别</button>
+      <button class="secondary" data-read-ocr-cancel="1" hidden>取消识别</button>
+      <button class="secondary" data-read-ocr-manual="1" hidden>手动录入文字</button>
+    </div>
+    <progress id="read-ocr-progress" max="1" value="0" hidden></progress>
+    <img id="read-ocr-preview" alt="待识别截图" hidden />
+    <label id="read-ocr-edit-wrap" hidden>识别文本（可修改；确认后才会入库）<textarea id="read-ocr-text" rows="10"></textarea></label>
+    <label class="hint" id="read-ocr-confirm-wrap" hidden><input type="checkbox" id="read-ocr-confirm" /> 我已核对这份文字，并改掉了识别错字</label>
+    <div class="actions" id="read-ocr-save-wrap" hidden><button class="primary" data-read-ocr-save="1">用这段文字创建阅读材料</button></div>
   </div>
 </section>`;
 }

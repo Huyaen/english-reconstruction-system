@@ -141,3 +141,10 @@ Phase 5 开工前先补远程质量门禁。审计结果：仓库此前**没有�
 - 真实缺陷（由测试与浏览器验收发现并修掉）：① 进入重读从未调用 `startReread` → 重读时长恒为 0、重读速度永远缺失；② 重读页只显示第 1 段 → 多段文章重读不完整（补逐段导航）；③ 生词入库用 `CSS.escape` 在部分环境直接抛错 → 改为按 `data-def` 收集释义；④ 从阅读进拆句后“返回”丢失阅读上下文 → 回到原段落并保留标记；⑤ 拆句页只在作答后提示“自动结构只记接触” → 改为进入即提示。
 - 验证：`tsc --noEmit` 0 error；`npm test` **134/134**（Phase 5 新增 28 例，含 jsdom + fake-indexeddb 的端到端阅读流程）；`npm run build` / `build:test` 成功（生产 dist 无测试钩子）；`scripts/phase5-smoke.mjs` **44/44**（无头 Edge + CDP，独立 profile）；回归 `phase4-smoke` 36/36、`phase3-smoke` 21/21。
 
+## 2026-10-20 · Phase 5.1 真实截图 OCR
+
+- 新增 `src/ocr.ts` / `src/ocrEngine.ts`：本地 Wasm OCR（tesseract.js 7），动态 import 单独切 chunk（生产包首屏不加载 OCR）；单 worker 串行、超时/取消 terminate、dispose 重建。
+- 新增 `tests/ocr.test.ts`（11 例）：格式/大小门禁、排版级清理、失败分类全覆盖、成功/空结果/模型失败/超时/取消/并发串行/释放复用。
+- 新增 `scripts/make-ocr-fixtures.mjs`（生成真实截图 fixture 与空白图）+ `scripts/phase5-1-ocr-smoke.mjs`（26 项真实浏览器验收）。
+- 真实缺陷修复：OCR 面板在保存后消失（`#read-image` 不存在）→ 验收脚本改为重新载入并重开面板；`createWorker` 隐式 any → 显式类型。
+- 结果：145/145 tests、TSC 0 error、build/build:test 通过、生产包测试钩子 0 命中、OCR smoke 26/26、回归 Phase5 44/44 · Phase4 36/36 · Phase3 21/21。

@@ -390,3 +390,15 @@ AI 句生成、外部语料 / 阅读 handoff、Mini Diagnostic 非词汇子测�
 5. AI直连需要供应商支持CORS。
 6. 性能测试使用fake-indexeddb。
 7. 历史每日弱词存量曲线未实现。
+
+## Phase 5.1 — 真实截图 OCR（2026-10-20 · passed）
+
+**范围**：把 Phase 5 的「无 OCR → 人工转录」升级为**真实本地 OCR**，并保留人工路径作为失败出口。
+
+**实现**：`src/ocr.ts`（策略/门禁/清理/失败分类/进度文案，纯函数）+ `src/ocrEngine.ts`（懒加载 `import('tesseract.js')`、单 worker 串行、超时/取消即 terminate、dispose 后可按需重建）+ `readingView.importPanelHTML` 截图面板（预览/进度/可编辑文本/确认勾选）+ `app.ts` 事件接入。资源版本固定：`tesseract.js@7.0.0`、`tesseract.js-core@7.0.0`、`@tesseract.js-data/eng@1.0.0/4.0.0_best_int`。
+
+**真实验收（无头 Edge + CDP，独立 profile）**：`PASS Phase 5.1 OCR smoke: 26/26`
+- 真实截图（760×820@2x，真实渲染页面截图）→ 本地识别 **784 字符 / 置信度 95% / 6.8s**，关键词 `reconstruction`/`comprehension`/`spaced repetition` 全部命中，保留 18 行段落结构；
+- 未勾选确认保存 → 拒绝入库（`勾选` 提示），勾选后入库 `sourceType=uploaded_image`、`sourceReliability=unknown`、`extractionMethod=local_ocr`、`userEdited=true`、`sourceMetadata.confidence=0.95`；
+- 用户修改（追加句子）保留；空白图 → 「没有从这张图里识别出英文文字」且不入库；引擎指向不可达地址 → `model-load-failed`（真实引擎报错，非 mock），恢复网络后立即可再识别；
+- 识别中点「取消」→ 明确提示且 worker `loaded=false`（已释放）；全程 **0 上传**（22 个请求全为 CDN 资源 GET）。
