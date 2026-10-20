@@ -100,6 +100,15 @@ pauseUnit / resumeUnit / extendUnit / abandonUnit / finishUnit / recordBaseline 
 - 远程核对方式：GitHub API + 代理（`git ls-remote` 在本机会 schannel 握手失败）；
 - CI：Node 22/24 两路（tsc / npm test / build / dist 一致性 / 生产包无测试钩子）。
 
+## 10.5 Phase 8 补充：兴趣画像接入点（已完成）
+
+- 数据：`Settings.interests?: InterestProfile`（可选字段，DB 仍 v5、无迁移）。纯函数在 `src/interestProfile.ts`，写入走 `saveSettings`。
+- 推荐：`recommendThemes({..., interest:{profile, signals}})`；每条结果带 `reasonKind / reasonTag / reasonZh / exploration / repeat`。
+- 信号：`activitySignals(data, now)` 只读（阅读 0.4 / 导入 0.15 / 单元 0.3，21 天衰减）；**禁止写回 profile**。
+- UI：单元创建页 `#interest-list`、`#interest-new`、`[data-interest-del]`、`[data-interest-suggest]`、`[data-interest-reset]`。
+- 测试钩子：`window.__unitTest.profile() / recommendations() / saveProfile()`（仅 testhooks 构建）。
+- 规格与验收：`docs/PHASE8_DYNAMIC_INTEREST.md`（L1–L10 / AC1–AC12）。**Input Hub 必须复用同一套理由分类，不得另造推荐逻辑。**
+
 ## 10. Phase 8（Real Input Hub）接入点
 
 - 输入材料必须落到 `passages`（`sourceType` 扩展时同步 `provenanceOf` 映射），否则 Mini Unit 无法把它当 Anchor；
@@ -128,11 +137,13 @@ pauseUnit / resumeUnit / extendUnit / abandonUnit / finishUnit / recordBaseline 
 
 ## Current phase
 
-Phase 6 — Reinforcement AI（Phase 0 / 0.5 / 1 / 2 / 3 / 4 / 5 全部完成并通过）
+phase_8_real_input_hub（in_progress）—— Phase 8 补充「Dynamic Interest Profile」已完成并验收；
+Phase 8 主体 Real Input Hub 尚未开始。Phase 0 / 0.5 / 1 / 2 / 3 / 4 / 5 / 5.1 / 6 / 7 全部完成并通过。
 
 ## Current task_id
 
-`phase6_reinforcement_ai_010`（Phase 6 Reinforcement AI：条件化句子生成 / 强化文章生成 / 严格 JSON schema / prompt 版本化；沿用现有 typed capability，**不要重写计划器**）。Phase 5（`phase5_reading_009`）已 passed：真实文章导入（来源+指纹可追溯）→ 逐段阅读（首读无辅助、不显示全文翻译）→ 生词标记与后置筛选入库（无释义不入库）→ 难句进 Phase 4 拆句（自动结构=只记接触，练完回原段落）→ 重读真实计时 → 全文理解 + 收尾证据幂等落库；无材料绝不生成阅读任务。Phase 4（`phase4_sentence_grammar_008`）已 passed：语法知识图谱（34 概念 + 先修边，禁循环）、句源契约（12 条 authored 教学句 + gold 结构 + 预教词）、引导式拆句 Lab（L0–L4 辅助 / 即时反馈 / JIT 知识卡）、证据分级（exposed 不计掌握；幂等=会话+句子）、自适应选句、Planner 真实句任务 —— 证据见 `CHECKPOINT.md` §Phase 4、`docs/PHASE4_SENTENCE_GRAMMAR.md`。
+`phase8_real_input_hub_013`（下一步）；已完成子任务 `phase8_interest_profile_013a`（spec：`docs/PHASE8_DYNAMIC_INTEREST.md`）。
+Phase 7（`phase7_mini_unit_012`）已 passed：跨学习日的 Mini Unit 状态机 / 主题选择 / Anchor / 证据 / 完成评估 / Planner 交接，见 `docs/PHASE7_MINI_UNIT.md`。
 
 ## What is done（累计）
 
@@ -168,15 +179,16 @@ Phase 6 — Reinforcement AI（Phase 0 / 0.5 / 1 / 2 / 3 / 4 / 5 全部完成并
 
 ## What remains
 
-Phase 6（当前）→ Phase 7–13。
+Phase 8 主体（Real Input Hub，`phase8_real_input_hub_013`）→ Phase 9–13。
+Phase 8 的兴趣画像子任务已完成，后续推荐逻辑不得另起一套。
 
 ## Last verified build
 
-`npm run build` @ Phase 4 工作树 → vite 成功（dist 与源码同步提交；bundle >500 kB 警告保留到 Phase 13 处理）。
+`npm run build` @ Phase 8 兴趣画像工作树 → vite 成功（2.1s）；生产包 `__readTest/__labTest/__ocrTest/__unitTest/ERV2_TEST_HOOKS` 命中 0（bundle >500 kB 警告保留到 Phase 13）。
 
 ## Last verified tests
 
-`npm test` @ Phase 5 工作树 → **134 pass / 0 fail**（Phase 4 的 106 + readingCore 14 + readingSession 13 + readingUi 1 端到端）；真实浏览器 smoke：`scripts/phase5-smoke.mjs` **44/44**、`scripts/phase4-smoke.mjs` **36/36**、`scripts/phase3-smoke.mjs` **21/21**（dist-test + `?test=1`，独立 profile 无头 Edge/CDP）。
+`npm test` @ Phase 8 兴趣画像工作树 → **221 pass / 0 fail**；真实浏览器 smoke：interest **19/19**、phase7 **33/33**、phase6 **31/31**、5.1 **26/26**、5 **44/44**、4 **36/36**、3 **21/21**（dist-test + `?test=1`，独立 profile 无头 Edge/CDP）。
 
 ## Known bugs
 

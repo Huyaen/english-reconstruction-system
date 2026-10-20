@@ -211,3 +211,10 @@ npm start
 - 完成需要真实证据：独立回忆目标词、语法独立作答、真实新材料的独立理解。缺证据时只能标为「证据有限的完成」，不会替你宣布掌握；
 - AI 只能生成强化材料，不能当 Anchor；同一单元/同一天/同样的目标只会生成一次，刷新不会重复扣费；
 - 阅读库里没有真实材料时，系统不会凭空推荐，也不会用 AI 文章冒充真实材料。
+
+### 兴趣画像（Phase 8）
+
+「主题单元」页可管理兴趣：任意主题自由增删改，默认分类只是建议。推荐会标注理由——
+Based on your interests / Based on your recent activity / Related to your Mini Unit / Explore something new。
+兴趣只影响排序，不改变难度与掌握度；近期行为按时间衰减，不会永久改变偏好。
+详见 `docs/PHASE8_DYNAMIC_INTEREST.md`。

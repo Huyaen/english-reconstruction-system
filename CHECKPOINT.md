@@ -432,3 +432,11 @@ AI 句生成、外部语料 / 阅读 handoff、Mini Diagnostic 非词汇子测�
 - A：创建 → 冷测（真实会话）→ 完成 Day 1 → 刷新状态保留，基线来源 `cold_test`；
 - B：Day 2 隔夜回忆 + 辅助降级；C：Day 3 换新真实材料、迁移 `authentic`、评价 `completed_verified`；
 - D：两天不活动不跳级；E：无 AI 时 0 请求；F：AI 文章不进 Anchor 选择器；G：并发只写一条 Day；H：旧格式单元可读、旧数据完好、0 JS 异常。
+
+## 2026-10-21T00:05:00+08:00 — Phase 8 补充：Dynamic Interest Profile
+
+- 规格：`docs/PHASE8_DYNAMIC_INTEREST.md`（L1–L10 长期规格 + AC1–AC12 验收标准，已冻结）。
+- 实现：`src/interestProfile.ts`（CRUD/匹配/衰减信号/理由标签）；`miniUnitSelection` 接入兴趣加分、理由分类、探索位、防重复硬规则；单元页新增画像面板（增删改/建议/重置/持久化）。
+- 存储：`Settings.interests`（可选字段），DB 仍为 v5，无迁移；重置保留计数。
+- 验收：单测 221/221（新增 13）；浏览器 `scripts/phase8-interest-smoke.mjs` **19/19**；回归 phase7 33/33、phase6 31/31、5.1 26/26、5 44/44、4 36/36、3 21/21；tsc 0；生产包无测试钩子。
+- 纪律：行为信号只读不写回；显式偏好优先；兴趣≠能力；无材料/无行为时如实说明。

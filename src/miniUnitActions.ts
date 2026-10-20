@@ -6,6 +6,7 @@ import { collectUnitEvidence, dayEvidenceIds } from './miniUnitEvidence.ts';
 import { createUnit, saveUnit } from './miniUnitStore.ts';
 import { planDay, transferEvidence, type DayPlanSpec } from './miniUnitProgression.ts';
 import { recommendThemes, selectTargetGrammar, selectTargetVocabulary, type ThemeRecommendation } from './miniUnitSelection.ts';
+import { activitySignals } from './interestProfile.ts';
 export interface ActionResult {
     ok: boolean;
     unit?: MiniUnit;
@@ -365,8 +366,13 @@ export function plannerProjection(unit: MiniUnit): MiniUnit {
         targetGrammar: unit.targetGrammar,
     };
 }
-export function unitRecommendations(data: Data, now: number, availableMinutes: number) {
-    return recommendThemes({ passages: data.passages, words: data.words, grammar: data.grammarConcepts, units: data.miniUnits, now, availableMinutes });
+export function unitRecommendations(data: Data, now: number, availableMinutes: number, profile?: import('./types.ts').InterestProfile) {
+    const signals = activitySignals(data, now);
+    const rec = recommendThemes({
+        passages: data.passages, words: data.words, grammar: data.grammarConcepts, units: data.miniUnits, now, availableMinutes,
+        interest: profile ? { profile, signals } : undefined,
+    });
+    return { ...rec, signals };
 }
 export function stageOfUnit(unit: MiniUnit) {
     return stageOf(unit);

@@ -104,6 +104,33 @@ export interface Settings {
     requestRetention: number;
     /** Phase 6：AI 强化设置（可选，旧数据自动补默认值） */
     ai?: AISettings;
+    /** Phase 8：动态兴趣画像（可选，旧数据/旧备份自动视为空画像） */
+    interests?: InterestProfile;
+}
+// —— Phase 8：Dynamic Interest Profile ——
+// 兴趣 ≠ 能力：这里只表示“想读什么”，不参与任何掌握度/难度判定。
+// 允许用户自由增删改任意主题；默认分类只是建议，不是白名单。
+export interface InterestTopic {
+    id: string;
+    /** 用户看到的主题名（自由文本，用户可改） */
+    label: string;
+    /** 显式添加（用户主动）或从建议里采纳（采纳后同样成为显式偏好） */
+    source: 'explicit' | 'suggested';
+    /** 显式权重 0–1：只由用户操作改变，近期行为不会偷偷改它 */
+    weight: number;
+    /** 关键词：用于把材料主题/标题连到这条兴趣上（可编辑，空则用 label 自动生成） */
+    keywords: string[];
+    createdAt: number;
+    updatedAt: number;
+}
+export interface InterestProfile {
+    version: 1;
+    topics: InterestTopic[];
+    /** 探索比例 0–1：保留多少推荐位置给“与你无关但有真实材料”的领域 */
+    exploration: number;
+    /** 用户主动重置的次数（只用于展示，不影响推荐） */
+    resets: number;
+    updatedAt: number;
 }
 export type AIStructuredMode = 'auto' | 'json_schema' | 'json_object' | 'text';
 // Phase 6：AI Provider 设置（Key 只在本机存储，rememberKey=false 时不落盘）

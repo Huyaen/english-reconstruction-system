@@ -21,6 +21,8 @@ import { applyUnitEvent, dayLabel, nextDay, stageOf } from './miniUnit.ts';
 import { applyTransition } from './miniUnitStore.ts';
 import { unitCreatePage, unitPage, anchorPicker } from './miniUnitView.ts';
 import * as unitActions from './miniUnitActions.ts';
+import { SUGGESTED_INTERESTS, addInterest, normalizeProfile, removeInterest, renameInterest, resetInterests } from './interestProfile.ts';
+import type { InterestProfile } from './types.ts';
 import { createReadingSession, submitColdTest, startReading, submitMainIdea, markWord, revokeMark, requestHelp, captureDifficultSentence, linkDifficultSentenceAttempt, finishFirstPass, startReread, finishReread, submitWholeTextItem, submitOutput, completeReadingSession, sessionProgress, nextChunk, goToChunk, isResumable, stageLabel, maxHelpLevelUsed } from './readingSession.ts';
 import { selectStudyCandidates, buildHandoffPlan, exposureFromMark, readingWordSeed, readyForTraining, explicitUnknownRate, type StudyCandidate } from './readingVocabulary.ts';
 import { difficultSentenceRecord, PROBLEM_TYPE_LABELS, returnTarget, type LabReturnTarget } from './readingSentences.ts';
@@ -627,9 +629,14 @@ function unitPageApp() {
     const unit = openUnit ?? (unitShowCreate ? null : latestFinishedUnit());
     if (!unit) {
         const { minutes } = unitBudget();
-        const rec = unitActions.unitRecommendations(data, Date.now(), minutes);
+        const profile = normalizeProfile(data.settings.interests, Date.now());
+        const rec = unitActions.unitRecommendations(data, Date.now(), minutes, profile);
         const finished = latestFinishedUnit();
-        $('#main').innerHTML = unitCreatePage({ data, recommendations: rec.themes, note: rec.note, customTopic: unitCustomTopic })
+        $('#main').innerHTML = unitCreatePage({
+            data, recommendations: rec.themes, note: rec.note, customTopic: unitCustomTopic,
+            interest: { profile, sufficient: rec.signals.sufficient, sampleSize: rec.signals.sampleSize },
+            suggested: SUGGESTED_INTERESTS,
+        })
             + (finished ? `<section class="panel"><div class="section-title">上一个单元</div><p class="muted">${esc(finished.theme)} · ${finished.completionEvaluation?.decision ?? '已结束'}</p><button data-unit-view-last>查看上一个单元</button></section>` : '');
         on('[data-unit-view-last]', 'click', () => { unitShowCreate = false; render(); });
         document.querySelectorAll<HTMLElement>('[data-unit-create]').forEach(b => b.onclick = () => {
@@ -667,6 +674,46 @@ function unitPageApp() {
             });
         });
         document.querySelectorAll<HTMLElement>('[data-unit-open-reading]').forEach(b => b.onclick = () => setPage('reading'));
+        const saveInterests = (next: InterestProfile) => {
+            const s = { ...data.settings, interests: next } as Settings;
+            return saveSettings(s).then(() => { data.settings = s; render(); });
+        };
+        const applyInterest = (change: {
+            profile: InterestProfile;
+            error?: string;
+        }) => {
+            if (change.error) {
+                toast(change.error);
+                return;
+            }
+            void saveInterests(change.profile);
+        };
+        document.querySelectorAll<HTMLElement>('[data-interest-del]').forEach(b => b.onclick = (e) => {
+            e.stopPropagation();
+            applyInterest(removeInterest(profile, b.dataset.interestDel!, Date.now()));
+        });
+        document.querySelectorAll<HTMLElement>('[data-interest-chip]').forEach(b => b.onclick = () => {
+            const current = profile.topics.find(t => t.id === b.dataset.interestChip);
+            const label = prompt('修改兴趣主题（留空则保持不变）', current?.label ?? '');
+            if (!label || label === current?.label)
+                return;
+            applyInterest(renameInterest(profile, b.dataset.interestChip!, label, Date.now()));
+        });
+        document.querySelectorAll<HTMLElement>('[data-interest-suggest]').forEach(b => b.onclick = () => {
+            applyInterest(addInterest(profile, b.dataset.interestSuggest!, { source: 'suggested' }, Date.now()));
+        });
+        on('[data-interest-add]', 'click', () => {
+            const input = document.querySelector<HTMLInputElement>('#interest-new');
+            const label = input?.value.trim() ?? '';
+            if (!label)
+                return;
+            applyInterest(addInterest(profile, label, {}, Date.now()));
+        });
+        on('[data-interest-reset]', 'click', () => {
+            if (!confirm('重置兴趣画像？会清空所有兴趣主题（不影响学习记录与已有单元）。'))
+                return;
+            applyInterest(resetInterests(profile, Date.now()));
+        });
         return;
     }
     const budget = unitBudget();
@@ -1700,6 +1747,23 @@ function installTestHook(): void {
             return { dayIndex: t.dayIndex, days: (t.dayHistory ?? []).length };
         },
         async reload() { data = await loadData(); reindex(); render(); },
+        async profile() {
+            const d = await loadData();
+            return normalizeProfile(d.settings.interests, Date.now());
+        },
+        async recommendations() {
+            const d = await loadData();
+            const profile = normalizeProfile(d.settings.interests, Date.now());
+            const rec = unitActions.unitRecommendations(d, Date.now(), 45, profile);
+            return { note: rec.note, sufficient: rec.signals.sufficient, sampleSize: rec.signals.sampleSize,
+                themes: rec.themes.map(t => ({ topic: t.topic, reasonKind: t.reasonKind, reasonTag: t.reasonTag, exploration: t.exploration, repeat: t.repeat, difficulty: t.estimatedDifficulty })) };
+        },
+        async saveProfile(profile: unknown) {
+            const s = { ...data.settings, interests: profile } as Settings;
+            await saveSettings(s);
+            data.settings = s;
+            return 'saved';
+        },
     };
     // OCR 验收钩子：只暴露“跑一次识别 / 释放”，不改学习证据；用于失败注入与超时验证
     (window as unknown as Record<string, unknown>).__ocrTest = {

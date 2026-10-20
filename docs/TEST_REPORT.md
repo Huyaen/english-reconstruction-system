@@ -156,3 +156,16 @@ Phase 5 新增用例（28）：
 | 真实浏览器验收 | `SMOKE_PORT=9227 node scripts/phase7-smoke.mjs` | **33/33 PASS** |
 | 回归 | phase6 / phase5.1 / phase5 / phase4 / phase3 | **31/31 · 26/26 · 44/44 · 36/36 · 21/21** |
 | 真实供应商 | — | 仍未验收（无凭据），沿用 Phase 6 结论 |
+
+## Phase 8 补充 — Dynamic Interest Profile（2026-10-21T00:05:00+08:00）
+
+| 层级 | 命令 | 结果 |
+| --- | --- | --- |
+| 类型 | `npx tsc --noEmit -p tsconfig.json` | 0 error |
+| 单元/集成 | `npm test` | **221/221 pass**（新增 `tests/interestProfile.test.ts` 13 例） |
+| 浏览器 | `node scripts/phase8-interest-smoke.mjs` | **19/19 PASS**（真实 Edge + CDP，真实 IndexedDB） |
+| 回归 | phase7 / phase6 / phase5.1 / phase5 / phase4 / phase3 | 33/33、31/31、26/26、44/44、36/36、21/21 |
+| 构建 | `npm run build` | pass；`__readTest/__labTest/__ocrTest/__unitTest/ERV2_TEST_HOOKS` 命中 0 |
+
+新增断言覆盖：自定义标签、建议采纳、改名/删除、重置计数、刷新持久化、显式优先、
+探索位存在、行为不写回权重、兴趣不改变难度、防重复排序、无材料时如实说明。

@@ -36,7 +36,9 @@
 - [x] Phase 5 Reading（`phase5_reading_009`）：文章导入（粘贴/文件/URL/截图人工转录，来源+指纹可追溯）、Layered Reading（首读无辅助、不显示全文翻译）、生词即时标记 + 后置筛选入库（无释义不入库）、难句交接（复用 Phase 4 `sentenceLab`，自动结构只记接触）、re-read（真实计时，与首读分开）、阅读分析（explicit/estimated 生词率）✔ 2026-10-19（验收：docs/PHASE5_READING.md §4）
 - [ ] Phase 6 Reinforcement AI（下一个任务 `phase6_reinforcement_ai_010`）：条件化句子生成、强化文章生成、严格 JSON schema、prompt 版本化（prompts/ 目录）
 - [ ] Phase 7 Mini Unit：2–3 天状态机、Anchor Material、targetWords/targetGrammar、Day1/2/3 推进
-- [ ] Phase 8 Input Hub：输入库、手动视频记录（title/url/topic/duration/captionMode/selfReported）+ 复盘工作流；**不含视频 AI 分析**
+- [x] Phase 8 补充：Dynamic Interest Profile（兴趣画像 + 推荐理由 + 探索位 + 13 单测 + 19 浏览器断言）
+- [x] Phase 8 补充：Dynamic Interest Profile（兴趣画像 + 推荐理由 + 探索位 + 13 单测 + 19 浏览器断言）
+- [ ] Phase 8 主体：Real Input Hub 主体：Real Input Hub Input Hub：输入库、手动视频记录（title/url/topic/duration/captionMode/selfReported）+ 复盘工作流；**不含视频 AI 分析**
 - [ ] Phase 9 Output Lab：summary/retelling/opinion、诊断优先反馈、Current Level +0.5 升级、结构化证据
 - [ ] Phase 10 Diagnostics：Dashboard、Skill Snapshot、Weekly Diagnostic、retention（D1/D7/D30）、unknown rate、translation dependence、趋势图
 - [ ] Phase 11 Exam Transfer：错题分类（Vocabulary/Structure/Logic/Evidence/Overthinking/Time）、结果回馈 Learning Model

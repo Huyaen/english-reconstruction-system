@@ -1,5 +1,5 @@
 // —— Phase 7：Mini Unit 视图（只产出 HTML，不碰 IO）——
-import type { Data, MiniUnit, UnitEvidenceSummary } from './types.ts';
+import type { Data, InterestProfile, MiniUnit, UnitEvidenceSummary } from './types.ts';
 import type { ThemeRecommendation } from './miniUnitSelection.ts';
 import type { DayPlanSpec } from './miniUnitProgression.ts';
 import { completedDays, dayKind, dayLabel, nextDay, plannedDays, readiness, stageOf, UNIT_RULES } from './miniUnit.ts';
@@ -35,15 +35,24 @@ export function unitCreatePage(input: {
     recommendations: ThemeRecommendation[];
     note: string;
     customTopic: string;
+    interest: {
+        profile: InterestProfile;
+        sufficient: boolean;
+        sampleSize: number;
+    };
+    suggested?: {
+        label: string;
+    }[];
 }): string {
     const authentic = input.data.passages.filter(p => p.sourceType !== 'ai' && p.sourceType !== 'ai_reinforcement');
     const cards = input.recommendations.map((r, i) => `
     <article class="panel unit-theme" data-theme="${esc(r.themeId)}">
       <div class="unit-theme-head">
         <div><div class="section-title">${esc(r.theme)}</div><p class="muted">${esc(r.topic)}</p></div>
-        <span class="pill">${r.insufficientEvidence ? '依据有限' : '依据充分'} · 约 ${r.estimatedLearningDays} 天</span>
+        <span class="pill ${r.exploration ? 'warn' : ''}">${esc(r.reasonZh)} · ${esc(r.reasonTag)}</span>
       </div>
       <p>${esc(r.whyRecommended)}</p>
+      <p class="muted">${r.repeat ? '⚠ 刚完成过同主题单元：这条推荐已降权，避免重复相似内容。' : ''}${r.insufficientEvidence ? ' 学情证据有限。' : ''} · 约 ${r.estimatedLearningDays} 天</p>
       <div class="ai-targets">
         <span class="muted">目标词 ${r.targetWords.length} 个：</span>
         ${r.targetWords.slice(0, 8).map(w => `<span class="chip">${esc(w.word)}</span>`).join('') || '<span class="muted">（词库尚未覆盖材料中的生词）</span>'}
@@ -78,6 +87,26 @@ export function unitCreatePage(input: {
         </ol>
         <button class="primary" data-unit-open-reading>去阅读库添加材料</button>
       </section>`}
+    <section class="panel">
+      <div class="section-title">兴趣画像 · Dynamic Interest</div>
+      <p class="muted">兴趣只决定“先给你看什么”，不代表英语能力。默认分类只是建议，不是白名单：你可以添加、改名、删除任何主题，也可以随时选与画像无关的材料。</p>
+      <div class="ai-targets" id="interest-list">
+        ${input.interest.profile.topics.length
+        ? input.interest.profile.topics.map(t => `<span class="chip interest" data-interest-chip="${esc(t.id)}">${esc(t.label)}${t.weight >= 0.8 ? ' ★' : ''}<button class="chip-x" data-interest-del="${esc(t.id)}" title="删除">×</button></span>`).join('')
+        : '<span class="muted">还没有设置兴趣：推荐只依据材料与真实行为。</span>'}
+      </div>
+      <div class="row">
+        <input id="interest-new" placeholder="添加任意兴趣（例如：中世纪城市 / 独立游戏 / 机器学习史）">
+        <button data-interest-add>添加</button>
+        <button data-interest-reset>重置画像</button>
+      </div>
+      <div class="ai-targets">
+        <span class="muted">建议（点一下加入，也可以完全不用）：</span>
+        ${(input.suggested ?? []).filter(x => !input.interest.profile.topics.some(t => t.label === x.label)).map(x => `<span class="chip" data-interest-suggest="${esc(x.label)}">${esc(x.label)}</span>`).join('') || '<span class="muted">已全部加入</span>'}
+      </div>
+      <p class="muted">行为证据：${input.interest.sampleSize} 条（近 30 天真实阅读/导入/单元）。${input.interest.sufficient ? '近期行为可以参与排序，但不会永久改变你的显式偏好。' : '不足 3 条，推荐不会声称精准个性化。'} · 探索比例 ${Math.round(input.interest.profile.exploration * 100)}%</p>
+      <p class="muted">${input.interest.profile.resets ? `已重置 ${input.interest.profile.resets} 次。` : ''}兴趣 ≠ 能力：它不会改变难度估计、掌握度或计划时长。</p>
+    </section>
     <section class="panel">
       <div class="section-title">自定义主题</div>
       <p class="muted">自定义主题仍然必须绑定一份真实 Anchor 材料；没有材料时只会创建草稿，不会开始学习日。</p>

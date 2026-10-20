@@ -156,3 +156,8 @@ button.small{padding:5px 10px;font-size:13px;border-radius:7px}
 .callout.warn { border-color: #d97706; }
 .chip.warn { border-color: #d97706; color: #b45309; }
 .chip.ok { border-color: #059669; color: #047857; }
+
+/* ===== Phase 8：兴趣画像 ===== */
+.chip.interest { display: inline-flex; align-items: center; gap: 4px; border-color: var(--accent); }
+.chip-x { border: 0; background: transparent; color: var(--muted-foreground); cursor: pointer; font-size: 13px; line-height: 1; padding: 0 0 0 2px; }
+.chip-x:hover { color: #b91c1c; }

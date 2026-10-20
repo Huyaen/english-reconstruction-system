@@ -5,6 +5,8 @@ import { GRAMMAR_TAXONOMY } from './grammar.ts';
 import { grammarMarker } from './aiQuality.ts';
 import { learningValue } from './pools.ts';
 import { provenanceOf, targetWordBudget, UNIT_RULES } from './miniUnit.ts';
+import { activitySignals, interestFor, REASON_LABELS, type ActivitySignals, type InterestReasonKind } from './interestProfile.ts';
+import type { InterestProfile } from './types.ts';
 export interface ThemeRecommendation {
     themeId: string;
     theme: string;
@@ -31,6 +33,14 @@ export interface ThemeRecommendation {
     difficultyConfidence: 'low' | 'medium' | 'high';
     estimatedLearningDays: number;
     insufficientEvidence: boolean;
+    /** Phase 8：推荐理由分类（interests / recent / unit / explore） */
+    reasonKind: InterestReasonKind;
+    reasonTag: string;
+    reasonZh: string;
+    /** 是否“探索位”（与你当前兴趣/近期行为无关，但有真实材料） */
+    exploration: boolean;
+    /** 是否与刚完成的单元同主题（防重复推荐同一内容） */
+    repeat: boolean;
 }
 export interface ThemeInput {
     passages: Passage[];
@@ -41,6 +51,11 @@ export interface ThemeInput {
     availableMinutes: number;
     /** 用户自定义主题时直接给定 topic（仍然需要真实材料） */
     customTopic?: string;
+    /** Phase 8：动态兴趣画像 + 近期行为信号（都可缺省；缺省时推荐必须说明依据有限） */
+    interest?: {
+        profile: InterestProfile;
+        signals?: ActivitySignals;
+    };
 }
 const STOP = new Set(['the', 'and', 'for', 'with', 'that', 'this', 'from', 'have', 'has', 'had', 'was', 'were', 'are', 'is', 'be', 'been', 'being', 'but', 'not', 'they', 'their', 'them', 'there', 'then', 'than', 'when', 'what', 'which', 'who', 'whom', 'whose', 'into', 'over', 'under', 'about', 'after', 'before', 'more', 'most', 'some', 'such', 'only', 'also', 'just', 'like', 'would', 'could', 'should', 'will', 'can', 'may', 'might', 'must', 'his', 'her', 'its', 'our', 'your', 'all', 'any', 'each', 'other', 'because', 'while', 'where', 'how', 'why', 'these', 'those', 'one', 'two', 'out', 'not', 'you', 'she', 'him', 'did', 'does', 'do', 'very', 'much', 'many']);
 export function tokensOf(text: string): string[] {
@@ -76,6 +91,8 @@ export function recommendThemes(input: ThemeInput): {
         const key = topicKeyOf(p);
         byTopic.set(key, [...(byTopic.get(key) ?? []), p]);
     }
+    const profile = input.interest?.profile;
+    const signals = input.interest?.signals ?? { topics: [], sufficient: false, sampleSize: 0 };
     const scored: {
         rec: ThemeRecommendation;
         score: number;
@@ -94,16 +111,37 @@ export function recommendThemes(input: ThemeInput): {
         const grammar = selectTargetGrammar({ passages: available, grammar: input.grammar, taxonomyIds: GRAMMAR_TAXONOMY.map(g => g.id) });
         const avgWords = Math.round(available.reduce((n, p) => n + p.wordCount, 0) / available.length);
         const estDifficulty = Math.max(0, Math.min(1, 1 - words.words.length / Math.max(4, UNIT_RULES.targetWords.max)));
+        // —— Phase 8：兴趣 / 近期行为 / 当前单元 / 防重复 ——
+        const interestHit = profile ? interestFor(profile, key, available[0].topic, available[0].title) : null;
+        const unitHit = input.units.some(u => u.status === 'active' && u.stage !== 'completed' && u.stage !== 'abandoned' && sameTopic(u, key));
+        const recentHit = bestSignal(signals, key, available[0].title);
+        const daysSinceUnit = (u: MiniUnit) => Math.max(0, (input.now - (u.updatedAt ?? u.startedAt ?? 0)) / 86400000);
+        const justFinished = input.units.filter(u => u.status !== 'abandoned' && (u.stage === 'completed' || u.status === 'completed') && sameTopic(u, key) && daysSinceUnit(u) <= 14).length;
         let score = available.length * 2 + weakInMaterials.length * 3 + grammar.length * 2;
+        if (interestHit)
+            score += 4 + interestHit.weight * 2;
+        if (unitHit)
+            score += 2.5;
+        score += 1.5 * (recentHit?.weight ?? 0);
+        // 防重复：刚完成同主题的单元会显著降权（不是永久拉黑，14 天后自然恢复）
+        if (justFinished)
+            score -= 4 * justFinished;
         if (recentThemes.includes(key) || recentThemes.includes(available[0].topic))
             score -= 4;
         if (avgWords > 900)
             score -= 2;
+        // 理由优先级：显式兴趣 > 当前单元 > 近期行为 > 探索
+        const reasonKind: InterestReasonKind = interestHit ? 'interests' : unitHit ? 'unit' : (recentHit?.weight ?? 0) >= 0.25 ? 'recent' : 'explore';
+        const reason = REASON_LABELS[reasonKind];
         const why = [
             `阅读库里有 ${available.length} 篇关于「${key}」的真实材料（${available[0].title}${available.length > 1 ? ` 等` : ''}）`,
+            interestHit ? `与你设置的兴趣「${interestHit.label}」匹配（显式偏好优先）` : '',
+            unitHit ? '与你当前进行中的 Mini Unit 同主题' : '',
+            !interestHit && !unitHit && (recentHit?.weight ?? 0) >= 0.25 ? `基于你近期的真实输入（${recentHit?.reads ?? 0} 次阅读 / ${recentHit?.imports ?? 0} 次导入）` : '',
+            reasonKind === 'explore' ? '这个主题不在你的兴趣列表里，也不是近期行为：作为探索推荐（有真实材料才出现）' : '',
             weakInMaterials.length ? `其中有 ${weakInMaterials.length} 个你最近的薄弱词：${weakInMaterials.slice(0, 5).join('、')}` : '材料里暂未出现你标记的薄弱词',
             grammarInMaterials.length ? `能练到 ${grammarInMaterials.length} 个可观察的语法结构` : '语法结构以基础主干为主',
-        ];
+        ].filter(Boolean);
         const insufficient = weakInMaterials.length === 0 && grammar.filter(g => g.status === 'verified').length === 0;
         if (insufficient)
             why.push('学情证据有限：推荐主要基于材料主题与长度，学习目标需要你在开始前确认');
@@ -127,13 +165,71 @@ export function recommendThemes(input: ThemeInput): {
                 difficultyConfidence: words.words.length >= 5 ? 'medium' : 'low',
                 estimatedLearningDays: avgWords > 700 ? 4 : 3,
                 insufficientEvidence: insufficient,
+                reasonKind,
+                reasonTag: reason.tag,
+                reasonZh: reason.zh,
+                exploration: reasonKind === 'explore',
+                repeat: justFinished > 0,
             },
         });
     }
-    const themes = scored.sort((a, b) => b.score - a.score || a.rec.theme.localeCompare(b.rec.theme)).slice(0, 3).map(s => s.rec);
+    // 防重复硬规则：刚完成过同主题的候选一律排到未重复候选之后（14 天窗口内），
+    // 仍然展示（有真实材料就可以选），但不会占据第一顺位。
+    const sorted = scored
+        .sort((a, b) => Number(a.rec.repeat) - Number(b.rec.repeat) || b.score - a.score || a.rec.theme.localeCompare(b.rec.theme))
+        .map(s => s.rec);
+    let themes = sorted.slice(0, 3);
+    // 探索位：画像非空时，至少保留 1 个“与你无关但有真实材料”的主题（若存在）
+    if (profile && profile.topics.length && themes.length >= 2 && !themes.some(t => t.exploration)) {
+        const candidate = sorted.find(t => t.exploration && !themes.includes(t));
+        if (candidate)
+            themes = [...themes.slice(0, Math.max(1, themes.length - 1)), candidate];
+    }
+    const personalized = !!(profile?.topics.length) || signals.sufficient;
+    const insufficientOverall = !personalized;
+    if (insufficientOverall && themes.length)
+        return { themes, note: '兴趣画像还是空的，行为证据也不足（少于 3 条真实输入）：以下推荐只依据材料本身，不算精准个性化。' };
     if (themes.length && themes[0].insufficientEvidence)
         return { themes, note: '推荐依据有限：词库或语法证据还不充分，建议先完成几次真实练习再开新的 Unit。' };
     return { themes, note: themes.length < 3 ? `当前只有 ${themes.length} 个主题有真实材料支撑，不凑数。` : '' };
+}
+/** 单元主题与候选主题是否同一类（双向包含，避免 “rivers” 与 “rivers and records” 被当成两个） */
+function sameTopic(unit: MiniUnit, key: string): boolean {
+    const t = normTopic(`${unit.topic ?? ''} ${unit.theme ?? ''}`);
+    if (!t)
+        return false;
+    return t.includes(key) || key.includes(t);
+}
+function normTopic(s: string): string {
+    return s.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+/** 在近期行为信号里找与当前主题最相关的一条（双向包含） */
+function bestSignal(signals: {
+    topics: {
+        key: string;
+        weight: number;
+        reads: number;
+        imports: number;
+    }[];
+}, key: string, title: string): {
+    weight: number;
+    reads: number;
+    imports: number;
+} | null {
+    const hay = normTopic(`${key} ${title}`);
+    let best: {
+        weight: number;
+        reads: number;
+        imports: number;
+    } | null = null;
+    for (const row of signals.topics) {
+        const hit = row.key.includes(key) || key.includes(row.key) || hay.includes(row.key) || row.key.includes(hay);
+        if (!hit)
+            continue;
+        if (!best || row.weight > best.weight)
+            best = { weight: row.weight, reads: row.reads, imports: row.imports };
+    }
+    return best;
 }
 function titleCase(s: string): string {
     return s.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
