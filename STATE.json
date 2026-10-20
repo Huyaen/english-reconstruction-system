@@ -3,8 +3,8 @@
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
   "current_phase": "phase_7_mini_unit",
-  "last_updated": "2026-10-20T23:20:00+08:00",
-  "last_verified_commit": "56874a3f6f1115e3b57d32e0f45d827f66492e8b",
+  "last_updated": "2026-10-20T23:45:00+08:00",
+  "last_verified_commit": "e26c325daa97f26d32a7c560ec09da44857f1a22",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 5,
   "build_status": "passed",
@@ -446,10 +446,10 @@
     "remote_name": "origin",
     "remote_url": "https://github.com/Huyaen/english-reconstruction-system.git",
     "local_branch": "main",
-    "last_local_commit": "56874a3f6f1115e3b57d32e0f45d827f66492e8b",
-    "last_known_remote_commit": "56874a3f6f1115e3b57d32e0f45d827f66492e8b",
+    "last_local_commit": "e26c325daa97f26d32a7c560ec09da44857f1a22",
+    "last_known_remote_commit": "e26c325daa97f26d32a7c560ec09da44857f1a22",
     "pending_push": null,
-    "last_verified_at": "2026-10-20T21:32:00+08:00",
+    "last_verified_at": "2026-10-20T23:45:00+08:00",
     "last_error": null,
     "note": "Phase 5 实测核验：push a4b49b9→7c1bf06（Phase 5 Reading Lab 功能提交），GitHub API git/ref/heads/main 复核 sha=7c1bf06655aed18bdd242574dc8859f52434f6a6 与本地 HEAD 一致；annotated tag phase5-reading-lab → 7c1bf06 已推送。Phase 4 tag 仍固定在 a10efd4-f 功能提交，CI 提交 a4b49b9 仅含 .github/workflows/ci.yml 与测试钩子隔离。",
     "tags": [
@@ -474,8 +474,8 @@
       "note": "GitHub Runner 真实执行；dist 跨平台一致（git diff --exit-code -- dist 在 ubuntu 通过）"
     },
     "last_ci_run": {
-      "id": 39418752290,
-      "commit": "56874a3f6f11",
+      "id": 39426842769,
+      "commit": "e26c325daa97",
       "status": "completed",
       "conclusion": "success",
       "jobs": [
