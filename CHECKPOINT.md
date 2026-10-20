@@ -402,3 +402,18 @@ AI 句生成、外部语料 / 阅读 handoff、Mini Diagnostic 非词汇子测�
 - 未勾选确认保存 → 拒绝入库（`勾选` 提示），勾选后入库 `sourceType=uploaded_image`、`sourceReliability=unknown`、`extractionMethod=local_ocr`、`userEdited=true`、`sourceMetadata.confidence=0.95`；
 - 用户修改（追加句子）保留；空白图 → 「没有从这张图里识别出英文文字」且不入库；引擎指向不可达地址 → `model-load-failed`（真实引擎报错，非 mock），恢复网络后立即可再识别；
 - 识别中点「取消」→ 明确提示且 worker `loaded=false`（已释放）；全程 **0 上传**（22 个请求全为 CDN 资源 GET）。
+
+## Phase 6 — Reinforcement AI（2026-10-20 · passed）
+
+**架构**：`src/aiProvider.ts`（唯一出口：配置校验/URL 归一/HTTP 分类/有界重试/超时/取消/结构化降级/用量）→ `src/aiJson.ts`（围栏/平衡提取/尾逗号修复，修不好就失败）→ `src/aiValidate.ts`（严格契约：字段/类型/枚举/长度/引用/证据逐字）→ `src/aiQuality.ts`（八道质量门）→ `src/aiGenerate.ts`（Prompt → Provider → 校验 → 质量门 → 最多 3 次修正）→ `src/aiStore.ts`（记录/用量/预算）。
+
+**Prompt 版本化**：`sentence.generate@1.0.0`、`reading.reinforce@1.0.0`，指纹 `promptId@version#fnv` 写入每条生成记录；提示词在 `src/prompts/`，不再内联在 app.ts。
+
+**证据与来源**：AI 句 `sourceType=ai`、`structureProvenance=ai_unverified`；AI 文章 `sourceType=ai_reinforcement`、`sourceReliability=ai_generated`、`extractionMethod=ai_generated`。UI 明示「AI 生成 · 不是真实语料」。生成与采纳都不改变任何词的 state（浏览器验收逐字段比对）。
+
+**真实验收**：`PASS Phase 6 smoke: 31/31`（独立 profile 无头 Edge + CDP + 本地 mock Provider，`tools/mock-ai-provider.mjs`）
+- 真实设置表单保存 → 生成定向句（1 次请求）→ 句库写入 `ai_unverified` → 掌握状态零变化；
+- 强化阅读：51 词被质量门正确拒绝（词数 90–230），扩到 110+ 词后通过；题目证据逐字来自正文；
+- 非法 JSON：3 次有界尝试后失败、**不写生成记录**；429：3 次请求后明确报限流；
+- 无 Key：生成按钮禁用 + 本地功能（阅读库/首页/计划）全部可用且 **0 次 AI 请求**；
+- 刷新后生成记录与 AI 文章仍在；生成记录无 Key；user 消息最长为 610 字符（未发送词库/历史）。

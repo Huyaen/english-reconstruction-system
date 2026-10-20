@@ -3,12 +3,12 @@
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
   "current_phase": "phase_6_reinforcement_ai",
-  "last_updated": "2026-10-20T19:40:00+08:00",
+  "last_updated": "2026-10-20T21:05:00+08:00",
   "last_verified_commit": "7c1bf06655aed18bdd242574dc8859f52434f6a6",
   "baseline_tag": "v1.0.0-mvp-baseline",
-  "database_version": 4,
+  "database_version": 5,
   "build_status": "passed",
-  "test_status": "passed (145/145 via node --test)",
+  "test_status": "passed (176/176 via node --test)",
   "tasks": {
     "phase0_audit_001": {
       "status": "passed",
@@ -325,11 +325,44 @@
         "regression": "Phase 5 44/44、Phase 4 36/36、Phase 3 21/21"
       },
       "verified_at": "2026-10-20T19:40:00+08:00"
+    },
+    "phase6_reinforcement_ai_010": {
+      "status": "passed",
+      "description": "Phase 6 Reinforcement AI：统一 AI Service Layer（Provider 配置/请求适配/能力声明/结构化输出/校验/重试/超时/取消/失败分类/用量元数据/安全日志）+ JSON 修复 + Prompt 版本化注册表（sentence.generate@1.0.0、reading.reinforce@1.0.0）+ 定向句与强化阅读生成 + 八道质量门（Schema/词数/目标词/目标语法/难度/重复/来源归属/安全渲染）+ 证据纪律（AI 只产出材料，不写掌握；结构标 ai_unverified）+ 隐私最小化（只发目标词/语法点/主题）+ 用量与每日 token 预算 + 失败降级（本地 authored 句/真实阅读材料不受影响）+ DB v5（additive：aiGenerations）",
+      "files": [
+        "src/aiProvider.ts",
+        "src/aiJson.ts",
+        "src/aiValidate.ts",
+        "src/aiQuality.ts",
+        "src/aiGenerate.ts",
+        "src/aiStore.ts",
+        "src/prompts/registry.ts",
+        "src/prompts/sentence.ts",
+        "src/prompts/reading.ts",
+        "src/types.ts",
+        "src/db.ts",
+        "src/app.ts",
+        "src/style.css",
+        "tests/aiProvider.test.ts",
+        "tests/aiStructured.test.ts",
+        "tests/aiGenerate.test.ts",
+        "scripts/phase6-smoke.mjs",
+        "tools/mock-ai-provider.mjs",
+        "docs/PHASE6_REINFORCEMENT_AI.md"
+      ],
+      "verification": {
+        "tests": "176/176 pass（新增 aiProvider 13 / aiStructured 8 / aiGenerate 10）",
+        "tsc": "0 error",
+        "build": "npm run build / build:test 通过；生产包 __readTest/__labTest/__ocrTest/ERV2_TEST_HOOKS 命中 0",
+        "browser_smoke": "Phase 6 smoke 31/31（真实 Edge + CDP + 本地 OpenAI-compatible mock Provider）",
+        "regression": "Phase 5.1 OCR 26/26、Phase 5 44/44、Phase 4 36/36、Phase 3 21/21",
+        "real_provider": "未验收（无凭据）：仅完成协议级 mock 端到端；真实供应商需用户自填 Key 后复验"
+      },
+      "verified_at": "2026-10-20T21:05:00+08:00"
     }
   },
   "known_bugs": [],
   "known_limitations": [
-    "真实 AI 供应商调用未验收（无凭据；用户需在应用设置自填，勿在聊天提供 Key）",
     "干扰项同义排除是文本启发式，不理解语义近义词",
     "性能基准基于 fake-indexeddb，非真实浏览器长期容量/延迟",
     "FSRS 已成为默认调度权威（旧启发式 legacy 作为可回滚备选）",
@@ -344,10 +377,14 @@
     "Phase 5 阅读：不做词形还原（lemma 不可靠时留空）；阅读只记接触（exposure），绝不因“读过/被推荐过”提升任何词的掌握证据",
     "Phase 5 阅读：真实 AI 强化文章生成（Phase 6）尚未接入；阅读库没有“按难度推荐”的 AI 排序，只有启发式难度估算",
     "Phase 5.1 OCR：只承诺英文 PNG/JPG 截图（BMP/WEBP/GIF/PDF 不支持）；识别模型与 Wasm 首次需联网下载（约 3MB 模型 + 4MB core），离线时明确报“模型加载失败”并退回人工转录，不上传任何图片",
-    "Phase 5.1 OCR：识别质量取决于截图清晰度；程序只做排版级清理（空白/行尾断词），绝不自动改拼写，错字必须由用户核对修改后勾选确认"
+    "Phase 5.1 OCR：识别质量取决于截图清晰度；程序只做排版级清理（空白/行尾断词），绝不自动改拼写，错字必须由用户核对修改后勾选确认",
+    "Phase 6：真实 AI 供应商调用未验收（无凭据）。协议、校验链、质量门与降级路径已用真实浏览器 + 本地 OpenAI-compatible mock 验证；真实供应商需用户配置 Key 后按 docs/PHASE6_REINFORCEMENT_AI.md §11 复验，不得据此宣称真实 E2E 已通过",
+    "Phase 6：AI 句法结构一律 ai_unverified（规则可达的语法点会做正则可观察性检查，语义型概念标 unverifiable），不用于自动语法评分",
+    "Phase 6：难度控制基于本地启发式（词数/从句标记/生词负荷）+ 学习者真实词表；模型自述难度只作参考，不写入掌握",
+    "Phase 6：Planner 未新增 AI 任务类型——AI 句子进入句库、AI 文章进入阅读库，由既有句/阅读任务消费；未配置或生成失败时不出现假任务"
   ],
   "blocked": [],
-  "next_task_id": "phase6_reinforcement_ai_010",
+  "next_task_id": "phase7_mini_unit_012",
   "environment": {
     "node": "v26.7.0",
     "npm": "11.19.0",
@@ -362,7 +399,8 @@
     "dist/ 已纳入 Git（commit 前保持 build 与源码一致）",
     "Phase 4 交付：sentence 模块已真实上线（moduleCapabilities.sentence.available=true）；阅读/输入/输出仍未上线，UI 不得声称可用",
     "CI Protocol（Phase 5.0 起长期有效）：Task 级门禁=测试+构建+diff 审核+commit+push+远端核验；Phase 级门禁=全量测试+tsc+build+真实浏览器 smoke+旧模块回归+状态同步+commit+tag+push+GitHub Actions 成功+远端 SHA 核验；CI 失败必须区分代码失败与基础设施失败，不得在 CI 未成功时宣称远程门禁通过",
-    "Phase 5.1 交付：截图 OCR 已真实上线（本地 Wasm，extractionMethod=local_ocr）；OCR 不经任何网络上传图片，失败一律保留人工转录出口，绝不假装识别成功"
+    "Phase 5.1 交付：截图 OCR 已真实上线（本地 Wasm，extractionMethod=local_ocr）；OCR 不经任何网络上传图片，失败一律保留人工转录出口，绝不假装识别成功",
+    "Phase 6 交付：AI 只做脚手架（生成材料），掌握证据只来自用户真实作答；DB 升到 v5（additive：aiGenerations），旧数据与既有 store 完全不动"
   ],
   "remote_sync": {
     "setup_task_id": "infra_github_remote_001",

@@ -60,3 +60,7 @@
 ## P0 — Phase 5.1 真实截图 OCR（已完成并核验）
 
 - [x] `phase5_1_local_ocr_011`：tesseract.js 本地 Wasm OCR + 懒加载 + 单 worker 串行 + 超时/取消释放 + 失败分类（格式/大小/模型/解码/空结果/取消/超时）+ 用户确认门禁 + 真实截图 fixture + 真实浏览器验收 26/26 ✔ 2026-10-20
+
+## P0 — Phase 6 Reinforcement AI（已完成并核验）
+
+- [x] `phase6_reinforcement_ai_010`：AI Service Layer + 结构化输出校验 + Prompt 版本化 + 定向句/强化阅读 + 质量门 + 证据纪律 + 隐私/用量 + 失败降级 + DB v5 + 真实浏览器验收 31/31 ✔ 2026-10-20

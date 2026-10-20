@@ -1,3 +1,93 @@
+
+# HANDOFF — Phase 6 → Phase 7（2026-10-20）
+
+**下一阶段：Phase 7 — Mini Unit（本阶段只做准备，不实现）**
+
+## 1. 当前工程状态
+
+| 项 | 值 |
+| --- | --- |
+| 根目录 | `D:\英语重构训练ocabulary-app` |
+| 分支 | `main` |
+| DB 版本 | **v5**（additive：`aiGenerations`；v4 的 `sentences` 与 v2 全部 store 原样保留） |
+| 测试 | **176/176**（`npm test`） |
+| 类型检查 | `tsc --noEmit` 0 error |
+| 构建 | `npm run build` / `npm run build:test` 均通过；生产包测试钩子 0 |
+| 浏览器验收 | Phase 6 **31/31**、Phase 5.1 OCR **26/26**、Phase 5 **44/44**、Phase 4 **36/36**、Phase 3 **21/21** |
+
+## 2. AI Service API（Phase 7 直接复用）
+
+```ts
+// 配置
+normalizeAIConfig(settings.ai): AIProviderConfig
+validateAIConfig(cfg): AIErrorInfo | null      // 缺 key/model/endpoint 的明确原因
+isConfigured(settings.ai): boolean
+
+// 传输（唯一出口；模块不得自己 fetch Provider）
+chat(cfg, { system, user, jsonSchema?, schemaName?, maxOutputTokens? }, deps?, signal?): Promise<ChatResult>
+// ChatResult = { text, usage:{promptTokens,completionTokens,estimated}, mode, model, downgradedFrom? }
+
+// 生成（含校验 + 质量门 + 有界重试）
+generateSentence(input, cfg, deps?, signal?): Promise<GenResult<SentenceTarget>>
+generateReading(input, cfg, deps?, signal?): Promise<GenResult<ReadingTarget>>
+// GenResult.ok=false 时带 { error: AIErrorInfo, attempts, issues[] }，绝不返回半成品
+
+// 记录与预算
+buildGeneration(kind, output, meta, quality, now): AIGeneration
+budgetState(generations, dailyTokenBudget, now): { allowed, usedTokens, limitTokens, dayStart }
+contentHashes(generations, kind): Set<string>
+```
+
+失败码：`missing-key / missing-model / invalid-endpoint / auth / model-not-found / rate-limit / server / timeout / network / cors / aborted / invalid-response / unsupported-mode / budget-exceeded`。
+
+## 3. Provider 能力
+
+- 只依赖 OpenAI-compatible `POST {endpoint}/chat/completions`（`endpoint` 到 `/v1`）。
+- 结构化方式：`json_object` → `json_schema` → `text`（auto 自动降级，`knownMode` 记忆）。
+- 不假设 vision / tools / streaming / 大上下文；当前实现不使用它们。
+- 超时默认 45s（3–180s 可调），重试默认 2（0–3），并发 1（串行）。
+
+## 4. Prompt 版本（改提示词必须升 version）
+
+| promptId | version | 文件 |
+| --- | --- | --- |
+| `sentence.generate` | 1.0.0 | `src/prompts/sentence.ts` |
+| `reading.reinforce` | 1.0.0 | `src/prompts/reading.ts` |
+
+指纹 = `promptId@version#fnv1a(模板)`，随每条 `AIGeneration` 落库。
+
+## 5. 生成 Schema（Phase 7 复用契约）
+
+- 句子：`{ sentence, targetWords[], grammarTargets[], difficultyNote, chinese|null, structure|null, provenance:"ai" }`，句子 8–320 字符、词数受窗口限制。
+- 文章：`{ title, topic, passage, targetWords[], targetGrammar[], difficultyRationale, exercises[] }`，`exercises[].{type,question,options[4],answerIndex,explanation,evidenceQuote}`，**evidenceQuote 必须逐字来自 passage**。
+
+## 6. Reinforcement 契约
+
+- AI 句：`sourceType='ai'`、`structureProvenance='ai_unverified'`、`createdBy='ai'`；可用于有提示的探索，**不可**用于自动语法评分。
+- AI 文章：`sourceType='ai_reinforcement'`、`sourceReliability='ai_generated'`、`extractionMethod='ai_generated'`；阅读页明示「AI 生成强化材料」。
+- 生成与采纳**不写掌握证据**；掌握只来自用户独立作答。
+- 内容指纹（`contentHash`）用于去重；`aiGenerations.contentHash` 已建索引。
+
+## 7. Mini Unit 集成点（Phase 7 注意）
+
+- Mini Unit 已有 store `miniUnits`（v2）与 `activeMiniUnit()`；AI 生成的句子/文章都应挂到 `miniUnitId`（写进 `sourceMetadata` 或 `SentenceRecord.notes`），以便 Unit 结束时统计。
+- `AIGeneration.sourceMetadata` 已预留 `privacy / attempts / generatedAt`；Phase 7 可加 `miniUnitId`（additive，不动旧记录）。
+- Planner 目前**没有** AI 任务类型：AI 材料经句库/阅读库被既有任务消费。若 Phase 7 需要「Unit 内 AI 句」任务，应新增 capability 并在**材料真实存在**时才排任务。
+- 阅读侧 `Passage.sourceType='ai_reinforcement'` 已被 Phase 5 分析与库查询识别，Unit 统计时需把 AI 文章与真实语料分开。
+
+## 8. 尚未验收 / 风险
+
+- **真实 AI Provider E2E 未验收**（无凭据）：协议、校验链、质量门、降级已用真实浏览器 + 本地 mock 验证；真实供应商需用户自填 Key 后按 `docs/PHASE6_REINFORCEMENT_AI.md` §11 复验。
+- 语法可观察性是正则启发式；语义型概念标 `unverifiable`。
+- 难度估计为启发式，不是测量模型。
+- 未做流式/批量/工具调用。
+
+## 9. 下一条精确操作
+
+1. 读取 `STATE.json`（`next_task_id=phase7_mini_unit_012`）与 `docs/PHASE6_REINFORCEMENT_AI.md`。
+2. 先核验 HEAD == origin/main 与 CI 结论（run id 见 STATE.ci 或 `actions/runs?branch=main`）。
+3. Phase 7 第一步：定义 Mini Unit 数据契约（复用 `miniUnits`，不新建平行表），再决定是否给 `AIGeneration.sourceMetadata` 加 `miniUnitId`。
+
 # HANDOFF — 换模型 / 换会话所需最小上下文
 
 （更新：2026-10-19 · 最新提交见 git log；Phase 3、Phase 4、Phase 5 已完成并通过实测，下一个任务是 Phase 6）

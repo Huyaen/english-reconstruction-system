@@ -3,10 +3,16 @@ import type { Data, Word, StudySession, Settings, ReviewRecord, Mastery, DailyPl
 import { testHooksEnabled } from './testMode.ts';
 // —— Phase 5：Reading Lab ——
 import type { Passage, ReadingSession, ReadingToken, ReadingMark, ReadingDifficultyReport, WordExposure, DifficultSentence, ReadingProblemType } from './types.ts';
-import { parsePassageText, sentenceAtSpan, tokenizeSentence } from './readingText.ts';
+import { parsePassageText, sentenceAtSpan, tokenizeSentence, countWords } from './readingText.ts';
 import { buildPastedDraft, buildUrlDraft, buildImageDraft, buildManualImageDraft, classifyFetchFailure, findDuplicate, importFromFile, ocrCapability, toPassage, type PassageDraft } from './readingImport.ts';
 import { checkImage, classifyOcrFailure } from './ocr.ts';
 import { OcrError, ocrService, ocrServiceWithPaths } from './ocrEngine.ts';
+// —— Phase 6：AI 强化（Provider / 生成 / 质量门 / 记录）——
+import { AIError, normalizeAIConfig, validateAIConfig, type AIErrorInfo, type AIProviderConfig } from './aiProvider.ts';
+import { generateReading, generateSentence, EVIDENCE_NOTE } from './aiGenerate.ts';
+import { summarize as summarizeQuality } from './aiQuality.ts';
+import { budgetState, buildGeneration, contentHashes } from './aiStore.ts';
+import type { AIGeneration, AISettings } from './types.ts';
 import { estimateReadingDifficulty, classificationLabel } from './readingDifficulty.ts';
 import { createReadingSession, submitColdTest, startReading, submitMainIdea, markWord, revokeMark, requestHelp, captureDifficultSentence, linkDifficultSentenceAttempt, finishFirstPass, startReread, finishReread, submitWholeTextItem, submitOutput, completeReadingSession, sessionProgress, nextChunk, goToChunk, isResumable, stageLabel, maxHelpLevelUsed } from './readingSession.ts';
 import { selectStudyCandidates, buildHandoffPlan, exposureFromMark, readingWordSeed, readyForTraining, explicitUnknownRate, type StudyCandidate } from './readingVocabulary.ts';
@@ -150,7 +156,7 @@ function shell() {
     on('.brand', 'click', e => { e.preventDefault(); setPage('home'); });
     on('#theme', 'click', async () => { const s = { ...data.settings, theme: data.settings.theme === 'light' ? 'dark' : 'light' } as Settings; await saveSettings(s); data.settings = s; document.documentElement.dataset.theme = s.theme; $('#theme').textContent = s.theme === 'light' ? '☾' : '☀'; });
 }
-function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage }[page] || home)(); }
+function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage }[page] || home)(); bindAI(); }
 function title(kicker: string, title: string, sub: string, action = '') { return `<div class="page-title"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p>${sub}</p></div>${action}</div>`; }
 function metric(label: string, value: string, note: string) { return `<div class="metric"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`; }
 function rangeControls() { return `<div class="range-controls"><label>学习范围<select id="range-book"><option value="">全部词书</option>${data.books.map(b => `<option value="${b.id}" ${bookFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label><label>本轮词量<select id="range-count">${[50, 100, 300, 500, 1000].map(n => `<option value="${n}" ${n === 100 ? 'selected' : ''}>${n} 词</option>`).join('')}</select></label><label>测试方向<select id="range-ratio">${![0, 30, 50, 70, 100].includes(data.settings.ratio) ? `<option value="${data.settings.ratio}" selected>英→中 ${data.settings.ratio}%（自定义）</option>` : ''}<option value="50" ${data.settings.ratio === 50 ? 'selected' : ''}>双向各 50%</option><option value="70" ${data.settings.ratio === 70 ? 'selected' : ''}>英→中 70%</option><option value="30" ${data.settings.ratio === 30 ? 'selected' : ''}>中→英 70%</option><option value="100" ${data.settings.ratio === 100 ? 'selected' : ''}>识别 · 英→中</option><option value="0" ${data.settings.ratio === 0 ? 'selected' : ''}>提取 · 中→英</option></select></label></div>`; }
@@ -613,11 +619,14 @@ function aiPage() {
 }
 function settingsPage() {
     const s = data.settings;
-    $('#main').innerHTML = title('PREFERENCES', '按你的速度来', '时间阈值、测试难度和数据备份，都由你控制。') + `<form id="settings-form"><div class="two-col"><section class="panel"><h2>测试与节奏</h2><div class="form-grid"><label>秒答上限（秒）<input name="fast" type="number" min="0.1" step="0.1" value="${s.fast / 1000}" required></label><label>正常上限（秒）<input name="normal" type="number" min="0.2" step="0.1" value="${s.normal / 1000}" required></label><label>超时（秒）<input name="timeout" type="number" min="0.3" max="120" step="0.1" value="${s.timeout / 1000}" required></label><label>英→中比例（%）<input name="ratio" type="number" min="0" max="100" value="${s.ratio}" required></label><label>难度<select name="difficulty">${[['easy', '简单 · 4项'], ['normal', '普通 · 4项'], ['hard', '困难 · 6项']].map(([v, t]) => `<option value="${v}" ${s.difficulty === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>答错反馈<select name="feedback">${[[0, '立即下一题'], [500, '停留 0.5 秒'], [1000, '停留 1 秒'], [-1, '手动继续']].map(([v, t]) => `<option value="${v}" ${s.feedback === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>调度引擎<select name="schedulingAuthority"><option value="fsrs" ${s.schedulingAuthority === 'fsrs' ? 'selected' : ''}>FSRS（默认）</option><option value="legacy" ${s.schedulingAuthority === 'legacy' ? 'selected' : ''}>旧调度器（兼容回滚）</option></select></label><label>目标保留率<input name="requestRetention" type="number" min="0.5" max="0.99" step="0.01" value="${s.requestRetention}" required></label></div><p class="hint">答对立即下一题。正常上限至超时之间为模糊。切换标签页会自动暂停计时。</p></section><section class="panel"><h2>AI API 配置</h2><label>Endpoint<input name="endpoint" type="url" placeholder="https://你的服务地址/v1" value="${esc(s.endpoint)}" autocomplete="off"></label><label>Model Name<input name="model" value="${esc(s.model)}" placeholder="填写供应商提供的模型名称"></label><label>API Key<input name="key" type="password" value="${esc(s.key)}" autocomplete="off" placeholder="仅用于你配置的地址"></label><label class="check"><input name="rememberKey" type="checkbox" ${s.rememberKey ? 'checked' : ''}> 在这台设备记住 Key</label><p class="hint">不勾选则只保留到页面关闭。勾选后明文保存在本地浏览器数据库，完整备份仍会剔除 Key。浏览器直连需要供应商支持 CORS。</p></section></div><button class="primary" type="submit">保存设置</button></form><section class="panel backup-panel"><h2>备份与迁移</h2><p>导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。</p><div class="actions"><button id="backup" class="primary">导出全部学习数据</button><label class="button secondary">导入备份<input id="restore" type="file" accept=".json" hidden></label><button id="persist" class="secondary">申请持久存储</button><button id="clear" class="danger-text">清空本地数据</button></div><p id="storage-info" class="hint">学习数据按浏览器和站点地址保存。请一直使用相同的 localhost:4173 地址。</p></section>`;
+    $('#main').innerHTML = title('PREFERENCES', '按你的速度来', '时间阈值、测试难度和数据备份，都由你控制。') + `<form id="settings-form"><div class="two-col"><section class="panel"><h2>测试与节奏</h2><div class="form-grid"><label>秒答上限（秒）<input name="fast" type="number" min="0.1" step="0.1" value="${s.fast / 1000}" required></label><label>正常上限（秒）<input name="normal" type="number" min="0.2" step="0.1" value="${s.normal / 1000}" required></label><label>超时（秒）<input name="timeout" type="number" min="0.3" max="120" step="0.1" value="${s.timeout / 1000}" required></label><label>英→中比例（%）<input name="ratio" type="number" min="0" max="100" value="${s.ratio}" required></label><label>难度<select name="difficulty">${[['easy', '简单 · 4项'], ['normal', '普通 · 4项'], ['hard', '困难 · 6项']].map(([v, t]) => `<option value="${v}" ${s.difficulty === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>答错反馈<select name="feedback">${[[0, '立即下一题'], [500, '停留 0.5 秒'], [1000, '停留 1 秒'], [-1, '手动继续']].map(([v, t]) => `<option value="${v}" ${s.feedback === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>调度引擎<select name="schedulingAuthority"><option value="fsrs" ${s.schedulingAuthority === 'fsrs' ? 'selected' : ''}>FSRS（默认）</option><option value="legacy" ${s.schedulingAuthority === 'legacy' ? 'selected' : ''}>旧调度器（兼容回滚）</option></select></label><label>目标保留率<input name="requestRetention" type="number" min="0.5" max="0.99" step="0.01" value="${s.requestRetention}" required></label></div><p class="hint">答对立即下一题。正常上限至超时之间为模糊。切换标签页会自动暂停计时。</p></section><section class="panel"><h2>AI API 配置</h2><label>Endpoint<input name="endpoint" type="url" placeholder="https://你的服务地址/v1" value="${esc(s.endpoint)}" autocomplete="off"></label><label>Model Name<input name="model" value="${esc(s.model)}" placeholder="填写供应商提供的模型名称"></label><label>API Key<input name="key" type="password" value="${esc(s.key)}" autocomplete="off" placeholder="仅用于你配置的地址"></label><label class="check"><input name="rememberKey" type="checkbox" ${s.rememberKey ? 'checked' : ''}> 在这台设备记住 Key</label>
+<label>结构化输出<select name="structuredMode">${[['auto', '自动（JSON Mode → Schema → 文本）'], ['json_object', '仅 JSON Mode'], ['json_schema', '仅 JSON Schema'], ['text', '仅纯文本抽取']].map(([v, t]) => `<option value="${v}" ${(s.ai?.structuredMode ?? 'auto') === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+<div class="form-grid"><label>超时（秒）<input name="aiTimeout" type="number" min="3" max="180" value="${Math.round((s.ai?.timeoutMs ?? 45000) / 1000)}"></label><label>重试上限<input name="aiRetries" type="number" min="0" max="3" value="${s.ai?.maxRetries ?? 2}"></label><label>最大输出 tokens<input name="aiMaxTokens" type="number" min="64" max="8000" value="${s.ai?.maxOutputTokens ?? 1200}"></label><label>每日 token 上限<input name="aiBudget" type="number" min="0" placeholder="留空 = 不限" value="${s.ai?.dailyTokenBudget ?? ''}"></label></div>
+<p class="hint">不勾选记住 Key 则只保留到页面关闭。勾选后明文保存在本地浏览器数据库，完整备份仍会剔除 Key。浏览器直连需要供应商支持 CORS。预算按 token 计，不折算货币金额（没有可信价格信息）。</p></section></div><button class="primary" type="submit">保存设置</button></form><section class="panel backup-panel"><h2>备份与迁移</h2><p>导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。</p><div class="actions"><button id="backup" class="primary">导出全部学习数据</button><label class="button secondary">导入备份<input id="restore" type="file" accept=".json" hidden></label><button id="persist" class="secondary">申请持久存储</button><button id="clear" class="danger-text">清空本地数据</button></div><p id="storage-info" class="hint">学习数据按浏览器和站点地址保存。请一直使用相同的 localhost:4173 地址。</p></section>`;
     on('#settings-form', 'submit', async (e) => {
         e.preventDefault();
         const f = new FormData(e.target as HTMLFormElement);
-        const updated: Settings = { ...data.settings, fast: Number(f.get('fast')) * 1000, normal: Number(f.get('normal')) * 1000, timeout: Number(f.get('timeout')) * 1000, ratio: Number(f.get('ratio')), difficulty: f.get('difficulty') as Settings['difficulty'], feedback: Number(f.get('feedback')), endpoint: String(f.get('endpoint') || '').trim(), model: String(f.get('model') || '').trim(), key: String(f.get('key') || '').trim(), rememberKey: f.get('rememberKey') === 'on', schedulingAuthority: (f.get('schedulingAuthority') === 'legacy' ? 'legacy' : 'fsrs') as Settings['schedulingAuthority'], requestRetention: Number(f.get('requestRetention')) };
+        const updated: Settings = { ...data.settings, fast: Number(f.get('fast')) * 1000, normal: Number(f.get('normal')) * 1000, timeout: Number(f.get('timeout')) * 1000, ratio: Number(f.get('ratio')), difficulty: f.get('difficulty') as Settings['difficulty'], feedback: Number(f.get('feedback')), endpoint: String(f.get('endpoint') || '').trim(), model: String(f.get('model') || '').trim(), key: String(f.get('key') || '').trim(), rememberKey: f.get('rememberKey') === 'on', schedulingAuthority: (f.get('schedulingAuthority') === 'legacy' ? 'legacy' : 'fsrs') as Settings['schedulingAuthority'], requestRetention: Number(f.get('requestRetention')), ai: { ...(data.settings.ai ?? { endpoint: '', model: '', key: '', structuredMode: 'auto', timeoutMs: 45000, maxRetries: 2, maxOutputTokens: 1200, temperature: 0.7, concurrency: 1, dailyTokenBudget: null }), endpoint: String(f.get('endpoint') || '').trim(), model: String(f.get('model') || '').trim(), key: String(f.get('key') || '').trim(), structuredMode: (String(f.get('structuredMode') || 'auto') as AISettings['structuredMode']), timeoutMs: Math.max(3000, Math.min(180000, Number(f.get('aiTimeout') || 45) * 1000)), maxRetries: Math.max(0, Math.min(3, Number(f.get('aiRetries') ?? 2))), maxOutputTokens: Math.max(64, Math.min(8000, Number(f.get('aiMaxTokens') ?? 1200))), dailyTokenBudget: String(f.get('aiBudget') ?? '').trim() === '' ? null : Math.max(0, Number(f.get('aiBudget'))) } };
         if (!validSettings(updated))
             throw Error('阈值需满足：0 < 秒答 < 正常 < 超时 ≤ 120 秒');
         if (updated.endpoint)
@@ -1100,6 +1109,7 @@ function sentencePage(): void {
     $('#main').innerHTML = `<div id="sentence-page">` + title('SENTENCE LAB', '句子训练', '不是背语法，是拆句：先找主干，再认修饰，再看从句与非谓语。默认不给完整翻译。')
         + `<div class="metrics">${metric('句库', String(sentenceRecords.length), '句源见下表')}${metric('做过拆句', String(data.sentenceAttempts.length), '每次练习都留证据')}${metric('已独立完成', String(data.sentenceAttempts.filter(a => a.structureCorrect && (a.maxSupportLevel ?? 0) === 0).length), '不看提示、一次判断正确')}${metric('句源构成', mix.degraded ? '降级补位' : '目标配比', `${mix.unavailable.length} 个来源当前不可用`)}</div>`
         + `<div class="two-col"><section class="panel"><h2>句源与能力</h2><ul class="plain-list">${capabilityRows}</ul><p class="hint">目标配比：AI 40% · 你自己遇到的句子 40% · 真实材料 20%。当前实际：${mixText || '仅有人工教学句'}。${mix.reasons.length ? `原因：${esc(mix.reasons.join('；'))}` : ''}</p><p class="hint">${esc(generationUnavailableReason(aiConfigured, false))}</p></section>`
+        + aiSentencePanelHTML()
         + `<section class="panel"><h2>添加你遇到的真实句子</h2><form id="user-sentence-form"><label>英文原句<textarea id="user-sentence-input" rows="3" required maxlength="400" placeholder="粘贴你在文章、视频或对话里遇到的那一句"></textarea></label><label>中文意思（可选，先自己理解再填）<input id="user-sentence-zh" maxlength="300" placeholder="不填也可以，训练时会先让你自己判断"></label><div class="actions"><button class="primary" type="submit">保存到句库</button><button class="secondary" type="button" id="sentence-quick-start">按当前薄弱点开始训练</button></div></form><p class="hint">没有 gold 结构的句子不会伪造完整句法树：训练会使用带不确定标记的启发式切分，并允许你手动确认成分。</p></section></div>`
         + `<section class="panel"><h2>句库（${sentenceRecords.length}）</h2><div class="table-scroll"><table><thead><tr><th>句子</th><th>目标语法</th><th>结构</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div><p class="hint">auto 标记的句子由本应用作者撰写（authored 教学句），不是任何文章原句。</p></section></div>`;
     document.querySelectorAll<HTMLElement>('[data-sentence-start]').forEach(b => b.addEventListener('click', () => startLab([b.dataset.sentenceStart ?? ''], null, null)));
@@ -1639,6 +1649,7 @@ function readingLibrary(): void {
       ${open ? `<section class="panel"><div class="section-title">上次没读完</div><p class="hint">${resc(open.detail?.passageTitle ?? '')} · ${esc(sessionProgress(open).label)} · ${sessionProgress(open).percent}%</p><div class="actions"><button class="primary" data-read-resume-open="${open.id}">继续阅读</button></div></section>` : ''}
       ${readMessage ? `<p class="hint warn">${resc(readMessage)}</p>` : ''}
       ${importPanelHTML()}
+      ${aiReadingPanelHTML()}
       <section class="panel"><div class="section-title">阅读库</div>
         <div class="actions">
           <input id="read-search" placeholder="搜索标题或正文" value="${resc(readLibraryQuery.text ?? '')}" />
@@ -2313,4 +2324,366 @@ if (navigator.locks) {
 }
 else {
     $('#app').textContent = '此浏览器缺少安全的多窗口存储锁，请使用较新的 Chrome、Edge、Firefox 或 Safari。';
+}
+// ———————————————————— Phase 6：AI 强化（消费层） ————————————————————
+// 纪律：这里只做 UI 与持久化；生成/校验/质量门都在 ai*.ts 里；
+//       AI 结果一律标 ai_unverified / ai_generated，绝不写掌握证据。
+let aiTheme = '';
+let aiReadingTopic = '';
+let aiRunning: AbortController | null = null;
+let aiDelegated = false;
+let aiSentenceResult: {
+    text: string;
+    zh: string;
+    meta: Record<string, unknown>;
+    quality: string;
+} | null = null;
+let aiReadingResult: {
+    title: string;
+    topic: string;
+    passage: string;
+    exercises: Array<{
+        question: string;
+        options: string[];
+        answerIndex: number;
+        evidenceQuote: string;
+    }>;
+    meta: Record<string, unknown>;
+    quality: string;
+    contentHash: string;
+} | null = null;
+function aiSettings(): AISettings {
+    const s = data.settings;
+    const legacy = { endpoint: s.endpoint, model: s.model, key: s.rememberKey ? s.key : (s.ai?.key ?? s.key) };
+    return {
+        endpoint: s.ai?.endpoint ?? legacy.endpoint,
+        model: s.ai?.model ?? legacy.model,
+        key: s.ai?.key ?? legacy.key,
+        structuredMode: s.ai?.structuredMode ?? 'auto',
+        timeoutMs: s.ai?.timeoutMs ?? 45000,
+        maxRetries: s.ai?.maxRetries ?? 2,
+        maxOutputTokens: s.ai?.maxOutputTokens ?? 1200,
+        temperature: s.ai?.temperature ?? 0.7,
+        concurrency: s.ai?.concurrency ?? 1,
+        dailyTokenBudget: s.ai?.dailyTokenBudget ?? null,
+        knownMode: s.ai?.knownMode,
+    };
+}
+function aiConfig(): AIProviderConfig {
+    return normalizeAIConfig(aiSettings());
+}
+function aiReady(): {
+    ok: boolean;
+    reason: string;
+} {
+    const bad = validateAIConfig(aiConfig());
+    if (bad)
+        return { ok: false, reason: bad.message };
+    return { ok: true, reason: '' };
+}
+function aiWeakWords(): Word[] {
+    return data.words.filter(isWeak).sort((a, b) => priority(b) - priority(a)).slice(0, 3);
+}
+function aiWeakGrammar(): Array<{
+    id: string;
+    name: string;
+    description: string;
+}> {
+    return weakConcepts(GRAMMAR_TAXONOMY, data.grammarAttempts).slice(0, 2).map(w => {
+        const def = conceptById(w.conceptId);
+        return { id: w.conceptId, name: w.name, description: def?.description ?? w.name };
+    });
+}
+function aiErrorBlock(info: AIErrorInfo, issues: string[] = []): string {
+    return `<div class="ai-error"><strong>${esc(info.message)}</strong><p>${esc(info.hint)}</p>${issues.length ? `<ul>${issues.slice(0, 6).map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}<p class="hint">本地功能不受影响：词库、复习、authored 教学句、真实阅读材料与今日计划仍然可用。</p></div>`;
+}
+function aiMetaLine(meta: Record<string, unknown>): string {
+    const usage = (meta.usage ?? {}) as {
+        promptTokens?: number;
+        completionTokens?: number;
+        estimated?: boolean;
+    };
+    return `<p class="hint">${esc(String(meta.promptId))}@${esc(String(meta.promptVersion))} · 指纹 ${esc(String(meta.promptHash).slice(-8))} · ${esc(String(meta.model))}（${esc(String(meta.providerHost))}）· ${esc(String(meta.structuredMode))} · 第 ${esc(String(meta.attempts))} 次通过 · 用量 ${usage.promptTokens ?? 0}+${usage.completionTokens ?? 0} tokens${usage.estimated ? '（估算）' : ''}</p>`;
+}
+function aiSentencePanelHTML(): string {
+    const ready = aiReady();
+    const weak = aiWeakWords();
+    const grammar = aiWeakGrammar();
+    const disabled = !ready.ok || weak.length === 0;
+    const why = !ready.ok ? ready.reason : weak.length === 0 ? '还没有弱词：先做几轮检索或阅读标记，AI 才知道该练什么。' : '';
+    return `<section class="panel" id="ai-sentence-panel">
+    <div class="section-title"><h2>AI 定向句</h2><span class="chip">AI 生成 · 结构未验证</span></div>
+    <p class="hint">用你当前的真实薄弱词与语法点造一句练习句。${esc(EVIDENCE_NOTE)}</p>
+    <div class="ai-targets">目标词：${weak.length ? weak.map(w => `<span class="chip">${esc(w.en)}</span>`).join('') : '<em>无</em>'}　语法：${grammar.length ? grammar.map(g => `<span class="chip">${esc(g.name)}</span>`).join('') : '<em>无</em>'}</div>
+    <label>场景 / 主题<input id="ai-sentence-theme" maxlength="60" placeholder="例如：修一座旧桥" value="${esc(aiTheme)}"></label>
+    <div class="actions"><button class="primary" data-ai-sentence ${disabled ? 'disabled' : ''}>生成定向句</button><button class="secondary" data-ai-cancel hidden>取消</button></div>
+    ${why ? `<p class="hint">${esc(why)}</p>` : `<p class="hint">将发送：目标词 ${weak.length} 个、语法点 ${grammar.length} 个、主题与你填写的场景。不会发送完整词库、学习历史或备份。</p>`}
+    <div id="ai-sentence-result">${aiSentenceResultHTML()}</div></section>`;
+}
+function aiSentenceResultHTML(): string {
+    if (!aiSentenceResult)
+        return '';
+    const r = aiSentenceResult;
+    return `<div class="ai-result"><blockquote>${esc(r.text)}</blockquote>${r.zh ? `<p class="hint">${esc(r.zh)}</p>` : ''}
+    <p><span class="chip">AI 生成</span> <span class="chip">结构 ai_unverified</span></p>
+    <p class="hint">质量门：${esc(r.quality)}</p>${aiMetaLine(r.meta)}
+    <div class="actions"><button class="primary" data-ai-sentence-adopt>加入句库并开始练习</button></div></div>`;
+}
+function aiReadingPanelHTML(): string {
+    const ready = aiReady();
+    const weak = aiWeakWords();
+    const grammar = aiWeakGrammar();
+    const obstacles = aiObstacles();
+    const disabled = !ready.ok || (weak.length === 0 && grammar.length === 0);
+    const why = !ready.ok ? ready.reason : disabled ? '还没有可用的薄弱词/语法点：先读一篇真实文章并标记障碍。' : '';
+    return `<section class="panel" id="ai-reading-panel">
+    <div class="section-title"><h2>AI 强化阅读</h2><span class="chip">AI 生成 · 不是真实语料</span></div>
+    <p class="hint">针对你真实遇到的阅读障碍生成一篇略高于当前水平的短文，练完再回到真实材料验证。</p>
+    <div class="ai-targets">目标词：${weak.length ? weak.map(w => `<span class="chip">${esc(w.en)}</span>`).join('') : '<em>无</em>'}　语法：${grammar.length ? grammar.map(g => `<span class="chip">${esc(g.name)}</span>`).join('') : '<em>无</em>'}</div>
+    <label>主题<input id="ai-reading-topic" maxlength="60" placeholder="例如：river engineering" value="${esc(aiReadingTopic)}"></label>
+    ${obstacles.length ? `<p class="hint">将围绕这些真实障碍：${obstacles.map(o => esc(o)).join('；')}</p>` : ''}
+    <div class="actions"><button class="primary" data-ai-reading ${disabled ? 'disabled' : ''}>生成强化文章</button><button class="secondary" data-ai-cancel hidden>取消</button></div>
+    ${why ? `<p class="hint">${esc(why)}</p>` : ''}
+    <div id="ai-reading-result">${aiReadingResultHTML()}</div></section>`;
+}
+function aiReadingResultHTML(): string {
+    if (!aiReadingResult)
+        return '';
+    const r = aiReadingResult;
+    return `<div class="ai-result"><h3>${esc(r.title)}</h3>
+    <p class="hint"><span class="chip">AI 生成强化材料</span> 来源可靠性：ai_generated（不是真实出版物）</p>
+    <div class="ai-passage">${r.passage.split(/\n{2,}/).map(p => `<p>${esc(p)}</p>`).join('')}</div>
+    <details><summary>阅读题（${r.exercises.length}）</summary>${r.exercises.map((e, i) => `<div class="ai-ex"><strong>${i + 1}. ${esc(e.question)}</strong><ol>${e.options.map((o, j) => `<li${j === e.answerIndex ? ' class="ok"' : ''}>${esc(o)}</li>`).join('')}</ol><p class="hint">证据：${esc(e.evidenceQuote)}</p></div>`).join('')}</details>
+    <p class="hint">质量门：${esc(r.quality)}</p>${aiMetaLine(r.meta)}
+    <div class="actions"><button class="primary" data-ai-reading-save>保存并开始阅读</button></div></div>`;
+}
+function aiObstacles(): string[] {
+    const last = [...data.readingSessions].filter(s => (s as unknown as {
+        detail?: {
+            difficult?: Array<{
+                problemType?: string;
+            }>;
+        };
+    }).detail).pop();
+    const detail = (last as unknown as {
+        detail?: {
+            difficult?: Array<{
+                problemType?: string;
+            }>;
+        };
+    } | undefined)?.detail;
+    const types = (detail?.difficult ?? []).map(d => d.problemType).filter(Boolean) as string[];
+    return [...new Set(types)].slice(0, 3).map(t => PROBLEM_TYPE_LABELS[t as keyof typeof PROBLEM_TYPE_LABELS] ?? t);
+}
+async function aiGenerateSentence(): Promise<void> {
+    const cfg = aiConfig();
+    const bad = validateAIConfig(cfg);
+    const box = $('#ai-sentence-result');
+    if (!box)
+        return;
+    if (bad) {
+        box.innerHTML = aiErrorBlock(bad);
+        return;
+    }
+    const budget = budgetState(data.aiGenerations, cfg.dailyTokenBudget, Date.now());
+    if (!budget.allowed) {
+        box.innerHTML = aiErrorBlock({ code: 'budget-exceeded', message: '今天的 AI 用量已达上限。', hint: `已用 ${budget.usedTokens} / ${budget.limitTokens} tokens；可调高上限或明天再用。`, retryable: false, status: null });
+        return;
+    }
+    const weak = aiWeakWords();
+    const grammar = aiWeakGrammar();
+    if (!weak.length) {
+        box.innerHTML = aiErrorBlock({ code: 'missing-model', message: '还没有弱词。', hint: '先做几轮词卡检索或读一篇文章并标记障碍，再来生成定向句。', retryable: false, status: null });
+        return;
+    }
+    aiRunning = new AbortController();
+    const btn = document.querySelector<HTMLButtonElement>('[data-ai-sentence]');
+    const cancel = document.querySelector<HTMLElement>('[data-ai-cancel]');
+    const sendNote = document.querySelector<HTMLElement>('#ai-sentence-panel .hint');
+    if (btn)
+        btn.disabled = true;
+    if (cancel)
+        cancel.hidden = false;
+    box.innerHTML = '<p class="hint">正在生成（最多 3 次校验尝试）……</p>';
+    try {
+        const r = await generateSentence({
+            targetWords: weak.map(w => w.en),
+            targetGrammar: grammar.map(g => ({ id: g.id, name: g.name, description: g.description })),
+            theme: aiTheme || 'daily life',
+            level: 'B1',
+            minWords: 8, maxWords: 22,
+            knownSample: data.words.filter(w => (w.state?.total ?? 0) > 0).slice(0, 20).map(w => w.en),
+            knownCount: data.words.filter(w => (w.state?.total ?? 0) > 0).length,
+            miniUnit: data.miniUnits.find(u => u.status === 'active')?.theme ?? null,
+            maxUnknownWords: 3,
+            desired: 'medium',
+            unknownWords: [],
+            existingHashes: contentHashes(data.aiGenerations, 'sentence'),
+        }, cfg, { knownMode: aiSettings().knownMode }, aiRunning.signal);
+        if (!r.ok) {
+            box.innerHTML = aiErrorBlock(r.error, r.issues);
+            toast('生成失败：' + r.error.message);
+            return;
+        }
+        aiSentenceResult = { text: r.value.sentence, zh: r.value.chinese ?? '', meta: r.meta as unknown as Record<string, unknown>, quality: summarizeQuality(r.quality) };
+        const now = Date.now();
+        const rec = buildGeneration('sentence', { ...r.value }, r.meta, { ok: true, notes: [summarizeQuality(r.quality)] }, now);
+        await putItems('aiGenerations', [rec]);
+        data.aiGenerations.push(rec);
+        box.innerHTML = aiSentenceResultHTML();
+        toast('已生成（AI 材料，不会提升掌握度）');
+    }
+    catch (e) {
+        box.innerHTML = aiErrorBlock(e instanceof AIError ? e.info : { code: 'unknown' as never, message: String((e as Error).message), hint: '可重试。', retryable: true, status: null });
+    }
+    finally {
+        aiRunning = null;
+        if (btn)
+            btn.disabled = false;
+        if (cancel)
+            cancel.hidden = true;
+        void sendNote;
+    }
+}
+async function aiAdoptSentence(): Promise<void> {
+    if (!aiSentenceResult)
+        return;
+    const text = aiSentenceResult.text.trim();
+    const now = Date.now();
+    const id = `sen.ai.${Math.abs([...text].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7)).toString(36)}`;
+    if (sentenceRecords.some(x => x.id === id || x.text === text)) {
+        toast('这句已经在句库里了');
+        return;
+    }
+    const record: SentenceRecord = {
+        id, text, zh: aiSentenceResult.zh,
+        sourceType: 'ai', sourceId: 'ai.generate', attribution: 'AI 生成（结构未验证）',
+        grammarTags: aiWeakGrammar().map(g => g.id), targetWordIds: aiWeakWords().map(w => w.id),
+        theme: aiTheme || 'AI 定向句', difficulty: 2,
+        structure: heuristicStructure(`sen.ai.${now}`, text), structureProvenance: 'ai_unverified',
+        createdBy: 'ai', createdAt: now, usedCount: 0, lastUsedAt: 0,
+        notes: 'AI 生成：结构未验证，仅用于有提示的探索；不作为自动语法评分依据。',
+    };
+    await saveSentences([record]);
+    sentenceRecords = [record, ...sentenceRecords];
+    data.sentences = sentenceRecords;
+    toast('已加入句库（标注 AI 未验证结构）');
+    startLab([record.id], null, null);
+}
+async function aiGenerateReading(): Promise<void> {
+    const cfg = aiConfig();
+    const bad = validateAIConfig(cfg);
+    const box = $('#ai-reading-result');
+    if (!box)
+        return;
+    if (bad) {
+        box.innerHTML = aiErrorBlock(bad);
+        return;
+    }
+    const budget = budgetState(data.aiGenerations, cfg.dailyTokenBudget, Date.now());
+    if (!budget.allowed) {
+        box.innerHTML = aiErrorBlock({ code: 'budget-exceeded', message: '今天的 AI 用量已达上限。', hint: `已用 ${budget.usedTokens} / ${budget.limitTokens} tokens。`, retryable: false, status: null });
+        return;
+    }
+    const weak = aiWeakWords();
+    const grammar = aiWeakGrammar();
+    if (!weak.length && !grammar.length) {
+        box.innerHTML = aiErrorBlock({ code: 'missing-model', message: '还没有阅读障碍或弱项。', hint: '先读一篇真实文章，标记不会的词与读不懂的句子。', retryable: false, status: null });
+        return;
+    }
+    aiRunning = new AbortController();
+    const btn = document.querySelector<HTMLButtonElement>('[data-ai-reading]');
+    const cancel = document.querySelector<HTMLElement>('[data-ai-cancel]');
+    if (btn)
+        btn.disabled = true;
+    if (cancel)
+        cancel.hidden = false;
+    box.innerHTML = '<p class="hint">正在生成强化文章（会校验证据句、目标词与难度）……</p>';
+    try {
+        const r = await generateReading({
+            topic: aiReadingTopic || 'a small town by a river',
+            obstacles: aiObstacles(),
+            targetWords: (weak.length ? weak.map(w => w.en) : ['notebook', 'current']).slice(0, 4),
+            targetGrammar: (grammar.length ? grammar : [{ id: 'clause.adverbial', name: '状语从句' }]).map(g => ({ id: g.id, name: g.name })),
+            targetWordCount: 150, level: 'B1',
+            originalDifficulty: 'medium', desiredDifficulty: 'medium',
+            sourceExcerpt: '', exerciseCount: 3,
+            grammarIds: (grammar.length ? grammar : [{ id: 'clause.adverbial', name: '状语从句' }]).map(g => g.id),
+            minWords: 90, maxWords: 230, minExercises: 3, maxExercises: 4,
+            maxUnknownWords: 8, desired: 'medium',
+            unknownWords: [], existingHashes: contentHashes(data.aiGenerations, 'reading'),
+        }, cfg, { knownMode: aiSettings().knownMode }, aiRunning.signal);
+        if (!r.ok) {
+            box.innerHTML = aiErrorBlock(r.error, r.issues);
+            toast('生成失败：' + r.error.message);
+            return;
+        }
+        aiReadingResult = {
+            title: r.value.title, topic: r.value.topic, passage: r.value.passage,
+            exercises: r.value.exercises.map(e => ({ question: e.question, options: e.options, answerIndex: e.answerIndex, evidenceQuote: e.evidenceQuote })),
+            meta: r.meta as unknown as Record<string, unknown>, quality: summarizeQuality(r.quality), contentHash: r.meta.contentHash,
+        };
+        const rec = buildGeneration('reading', { ...r.value }, r.meta, { ok: true, notes: [summarizeQuality(r.quality)] }, Date.now());
+        await putItems('aiGenerations', [rec]);
+        data.aiGenerations.push(rec);
+        box.innerHTML = aiReadingResultHTML();
+        toast('已生成强化文章（不是真实语料）');
+    }
+    catch (e) {
+        box.innerHTML = aiErrorBlock(e instanceof AIError ? e.info : { code: 'unknown' as never, message: String((e as Error).message), hint: '可重试。', retryable: true, status: null });
+    }
+    finally {
+        aiRunning = null;
+        if (btn)
+            btn.disabled = false;
+        if (cancel)
+            cancel.hidden = true;
+    }
+}
+async function aiSaveReading(): Promise<void> {
+    if (!aiReadingResult)
+        return;
+    const now = Date.now();
+    const parsed = parsePassageText(aiReadingResult.passage);
+    const passage: Passage = {
+        id: uid(), title: aiReadingResult.title, text: aiReadingResult.passage,
+        sourceType: 'ai_reinforcement', sourceUrl: '', topic: aiReadingResult.topic,
+        wordCount: countWords(aiReadingResult.passage), difficulty: 'medium', createdAt: now,
+        sourceName: 'AI 强化生成（非真实语料）', language: 'en',
+        paragraphs: parsed.paragraphs, sentences: parsed.sentences,
+        sourceReliability: 'ai_generated', extractionMethod: 'ai_generated',
+        contentHash: aiReadingResult.contentHash, userEdited: false, importedAt: now,
+        sourceMetadata: { origin: 'ai_reinforcement', prompt: String(aiReadingResult.meta.promptVersion ?? ''), model: String(aiReadingResult.meta.model ?? '') },
+    };
+    passage.estimatedDifficulty = readingDifficultyFor(passage).difficulty;
+    await savePassage(passage);
+    data.passages.push(passage);
+    aiReadingResult = null;
+    openReadingMaterial(passage, null);
+    toast('已保存为 AI 强化阅读材料（可随时删除）');
+}
+function bindAI(): void {
+    on('#ai-sentence-panel input#ai-sentence-theme', 'input', (e: Event) => { aiTheme = (e.target as HTMLInputElement).value; });
+    on('#ai-reading-panel input#ai-reading-topic', 'input', (e: Event) => { aiReadingTopic = (e.target as HTMLInputElement).value; });
+    if (aiDelegated)
+        return;
+    aiDelegated = true;
+    // 结果区是动态插入的：用一次性委托，避免每渲染一次就重复绑定
+    document.addEventListener('click', (e: Event) => {
+        const t = e.target as HTMLElement | null;
+        if (!t)
+            return;
+        if (t.closest('[data-ai-sentence-adopt]'))
+            void aiAdoptSentence();
+        else if (t.closest('[data-ai-reading-save]'))
+            void aiSaveReading();
+        else if (t.closest('[data-ai-cancel]')) {
+            aiRunning?.abort();
+            toast('正在取消……');
+        }
+        else if (t.closest('[data-ai-sentence]'))
+            void aiGenerateSentence();
+        else if (t.closest('[data-ai-reading]'))
+            void aiGenerateReading();
+    });
 }

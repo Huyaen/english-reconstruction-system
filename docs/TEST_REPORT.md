@@ -132,3 +132,15 @@ Phase 5 新增用例（28）：
 | 测试构建 | `npm run build:test` | 通过（含测试钩子） |
 | 真实 OCR 验收 | `SMOKE_PORT=9225 node scripts/phase5-1-ocr-smoke.mjs` | **26/26 PASS**（真实截图 784 字符、置信度 95%、6.8s；0 上传） |
 | 旧模块回归 | `phase5/phase4/phase3 smoke` | **44/44 · 36/36 · 21/21** |
+
+## Phase 6 — Reinforcement AI
+
+| 项 | 命令 | 结果 |
+| --- | --- | --- |
+| 类型检查 | `npx tsc --noEmit -p tsconfig.json` | 0 error |
+| 单元/集成 | `npm test` | **176/176 pass**（新增 31 例：Provider 13 / 结构化 8 / 生成编排 10） |
+| 生产构建 | `npm run build` | 通过；测试钩子命中 0 |
+| 测试构建 | `npm run build:test` | 通过 |
+| 真实浏览器验收 | `SMOKE_PORT=9226 node scripts/phase6-smoke.mjs` | **31/31 PASS** |
+| 回归 | Phase 5.1 OCR / Phase 5 / Phase 4 / Phase 3 | **26/26 · 44/44 · 36/36 · 21/21** |
+| 真实供应商 | — | **未验收**（无凭据）：mock 仅验证协议；真实 E2E 需用户 Key 后按文档复验 |

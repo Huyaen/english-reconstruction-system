@@ -112,7 +112,7 @@ test('IndexedDB 版本在 Phase 4 additive 提升到 v4（dailyPlans 仍复用 v
         r.onsuccess = () => resolve(r.result);
         r.onerror = () => reject(r.error);
     });
-    assert.equal(db.version, 4);
+    assert.equal(db.version, 5);
     const tx4 = db.transaction('sentences');
     assert.equal(tx4.objectStore('sentences').keyPath, 'id');
     assert.ok(tx4.objectStore('sentences').indexNames.contains('grammarTags'));

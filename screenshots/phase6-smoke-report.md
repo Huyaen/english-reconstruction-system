@@ -1,0 +1,33 @@
+# Phase 6 AI 强化验收 · 31/31
+
+- PASS · Phase 6 验收钩子与 mock Provider 可达
+- PASS · 设置已保存（endpoint/model/key 进入本地设置）
+- PASS · 有真实弱词时“生成定向句”可用
+- PASS · AI 句生成成功并显示正文 — The team had engineer the old station before the w
+- PASS · 结果标注 AI 生成 / 结构未验证
+- PASS · 结果展示 prompt 版本与用量（可追溯）
+- PASS · 生成记录落库（含 promptVersion / provider / usage） — {"n":1,"v":"1.0.0"}
+- PASS · 记录里没有 API Key
+- PASS · 请求确实发到 Provider，且带 Authorization — 1 次
+- PASS · AI 句进入句库并标 ai_unverified — ai_unverified
+- PASS · 生成/采纳不会改变任何词的掌握状态
+- PASS · 强化文章生成成功并显示标题
+- PASS · 明确标注“AI 生成 · 不是真实语料”
+- PASS · 附带阅读题与逐字证据
+- PASS · 质量门结果可见 — 质量门：全部检查通过reading.reinforce@1.0.0 · 指纹 8
+- PASS · 强化文章落库：sourceType=ai_reinforcement / reliability=ai_generated — ai_reinforcement/ai_generated
+- PASS · 强化文章可切分段落与句子（能进入阅读流程） — 1 段 / 5 句
+- PASS · 非法输出被拒绝并显示可读错误 — 生成结果未通过校验。可重试；若持续失败，说明当前模型不适合这项生成。模型输出不是
+- PASS · 重试有上限（≤3 次请求） — 3 次
+- PASS · 失败输出不会写入生成记录
+- PASS · 429 明确提示限流 — Provider 限流（HTTP 429）。Provider 限流（429）：稍
+- PASS · 429 有界重试（≤3 次，不无限扣费） — 3 次
+- PASS · 没有 Key 时生成按钮禁用并说明原因
+- PASS · 无 Key 时阅读库仍正常打开（本地功能不受影响）
+- PASS · 无 Key 时首页/计划正常渲染
+- PASS · 无 Key 时没有发出任何 AI 请求
+- PASS · 刷新后生成记录仍在（可用于复用/审计） — 2 条
+- PASS · 刷新后 AI 强化文章仍在阅读库
+- PASS · 生成记录不含 Key，也不含完整词库
+- PASS · 发送内容最小化（不发送完整词库/学习历史） — 最长 user 消息 610 字符
+- PASS · 无未捕获 JS 异常 — 0 条

@@ -148,3 +148,12 @@ Phase 5 开工前先补远程质量门禁。审计结果：仓库此前**没有�
 - 新增 `scripts/make-ocr-fixtures.mjs`（生成真实截图 fixture 与空白图）+ `scripts/phase5-1-ocr-smoke.mjs`（26 项真实浏览器验收）。
 - 真实缺陷修复：OCR 面板在保存后消失（`#read-image` 不存在）→ 验收脚本改为重新载入并重开面板；`createWorker` 隐式 any → 显式类型。
 - 结果：145/145 tests、TSC 0 error、build/build:test 通过、生产包测试钩子 0 命中、OCR smoke 26/26、回归 Phase5 44/44 · Phase4 36/36 · Phase3 21/21。
+
+## 2026-10-20 · Phase 6 Reinforcement AI
+
+- 新增 AI Service Layer（aiProvider/aiJson/aiValidate/aiQuality/aiGenerate/aiStore）与 Prompt 注册表（sentence.generate@1.0.0、reading.reinforce@1.0.0）。
+- DB 升到 v5（additive：`aiGenerations`），备份格式版本上限改为 `DB_VERSION`；迁移测试改为版本无关断言。
+- 句页新增「AI 定向句」、阅读页新增「AI 强化阅读」，设置页新增结构化模式/超时/重试/最大 tokens/每日 token 预算。
+- 真实缺陷修复：结果区动态插入后监听器丢失（改为一次性事件委托）；`conceptById` 参数顺序；Mock Provider 的目标词解析（提示词键无引号）。
+- 质量门真实拦截案例：mock 首版短文 51 词 → 被「词数 90–230 / 至少 360 字符」拒绝，扩写后才通过。
+- 结果：176/176 tests、TSC 0 error、build/build:test 通过、生产包测试钩子 0、Phase 6 smoke 31/31、回归 26/26 · 44/44 · 36/36 · 21/21。

@@ -102,6 +102,49 @@ export interface Settings {
     rememberKey: boolean;
     schedulingAuthority: 'legacy' | 'fsrs';
     requestRetention: number;
+    /** Phase 6：AI 强化设置（可选，旧数据自动补默认值） */
+    ai?: AISettings;
+}
+export type AIStructuredMode = 'auto' | 'json_schema' | 'json_object' | 'text';
+// Phase 6：AI Provider 设置（Key 只在本机存储，rememberKey=false 时不落盘）
+export interface AISettings {
+    endpoint: string;
+    model: string;
+    key: string;
+    structuredMode: AIStructuredMode;
+    timeoutMs: number;
+    maxRetries: number;
+    maxOutputTokens: number;
+    temperature: number;
+    concurrency: number;
+    dailyTokenBudget: number | null;
+    /** 已确认可用的结构化模式（自动降级后记住，避免每次重试） */
+    knownMode?: 'json_schema' | 'json_object' | 'text';
+}
+export interface AIUsageRecord {
+    promptTokens: number;
+    completionTokens: number;
+    estimated: boolean;
+}
+// AI 生成物：永远标 ai_unverified，绝不冒充真实语料或 gold 结构
+export interface AIGeneration {
+    id: string;
+    kind: 'sentence' | 'reading';
+    createdAt: number;
+    promptId: string;
+    promptVersion: string;
+    promptHash: string;
+    providerHost: string;
+    model: string;
+    structuredMode: string;
+    contentHash: string;
+    usage: AIUsageRecord;
+    output: unknown;
+    quality: {
+        ok: boolean;
+        notes: string[];
+    };
+    sourceMetadata: Record<string, string>;
 }
 export interface AIAnalysis {
     id: string;
@@ -132,6 +175,7 @@ export interface Data {
     skillSnapshots: SkillSnapshot[];
     weeklyDiagnostics: WeeklyDiagnostic[];
     libraryItems: LibraryItem[];
+    aiGenerations: AIGeneration[];
     migration?: MigrationRecord | null;
 }
 export const defaults: Settings = { fast: 1500, normal: 3000, timeout: 6000, ratio: 50, difficulty: 'normal', feedback: 500, theme: 'light', endpoint: '', model: '', key: '', rememberKey: false, schedulingAuthority: 'fsrs', requestRetention: 0.9 };
@@ -203,7 +247,7 @@ export interface GrammarAttempt {
 }
 // 句源契约（PROJECT_SPEC §46；AI 未上线时不得伪造 AI 句）
 export type SentenceSourceType = 'curated' | 'user' | 'saved' | 'real-material' | 'reading' | 'ai';
-export type SentenceStructureProvenance = 'gold' | 'heuristic' | 'manual' | 'none';
+export type SentenceStructureProvenance = 'gold' | 'verified' | 'heuristic' | 'manual' | 'ai_unverified' | 'none';
 export interface SentenceRecord {
     id: string;
     text: string;
@@ -491,8 +535,8 @@ export interface FSRSWordState {
 // 约定：所有新字段都是可选或带默认值，DB 仍为 v4（passages / readingSessions 两个 store 在 Phase 1 已建）。
 // 阅读材料的来源必须可追溯：sourceType 区分真实来源，禁止把人工/AI 材料伪装成外部真实文章。
 export type ReadingSourceType = 'pasted_text' | 'uploaded_file' | 'uploaded_image' | 'web_article' | 'curated_real_material' | 'ai_reinforcement' | 'library_item';
-export type ReadingSourceReliability = 'authoritative' | 'editorial' | 'user_provided' | 'unknown';
-export type ReadingExtractionMethod = 'paste' | 'file_text' | 'file_html' | 'url_fetch' | 'vision_ocr' | 'local_ocr' | 'manual';
+export type ReadingSourceReliability = 'authoritative' | 'editorial' | 'user_provided' | 'unknown' | 'ai_generated';
+export type ReadingExtractionMethod = 'paste' | 'file_text' | 'file_html' | 'url_fetch' | 'vision_ocr' | 'local_ocr' | 'manual' | 'ai_generated';
 export type ReadingStage = 'preview' | 'cold-test' | 'reading' | 'comprehension' | 'support' | 'reread' | 'whole-text' | 'closing' | 'completed';
 export type ReadingSessionState = 'created' | 'active' | 'paused' | 'completed' | 'abandoned';
 export type TranslationDependenceGrade = 'A' | 'B' | 'C' | 'D' | 'E';

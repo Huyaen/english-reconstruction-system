@@ -99,3 +99,12 @@ S≥90、A≥65、B≥40、C≥15、其余D。到期与弱词队列按分数降�
 - 比例：foundation 55% / miniUnit 25% / encountered 20%（空池自动重分配，绝不造假数据）；Forgotten 优先回流、不计入新词数（上限 ceil(count×0.5)）。
 - Learning Value（确定性）：foundation 标签/词书顺序 + encountered + forgotten + 难度适配 − 专名启发式；返回 `{score, reasons[], components{}}`。
 - 动态新词量 `recommendedNewWordCount()`：`base=(availableMinutes×0.35)/0.6` × retentionFactor（D7≥0.8→1.2；<0.6→0.6；D1<0.6 再封顶 0.7）× energyFactor（low 0.7 / good 1.1）× loadFactor（due>80→0.5，>40→0.7；weak>100→0.8；近正确率<0.6→0.8），钳制 [5,40]。
+
+## AI 强化（Phase 6）
+
+- **结构化降级**：`auto` 模式按 `json_object → json_schema → text` 顺序尝试；只有 “该模型不接受 response_format” 才换模式，鉴权/限流/超时立即结束，避免成倍扣费。
+- **重试边界**：传输层只对 429/5xx/超时/网络错误退避重试（≤ maxRetries）；生成层最多 3 次“生成 → 校验 → 修正”，限流不再整轮重试。
+- **严格校验**：缺字段/多字段/类型错/枚举错/长度越界/目标词或语法点不在允许集合/证据句不在正文 → 一律拒绝；JSON 只做围栏、平衡提取、尾逗号三类修复。
+- **质量门**：词数窗口、目标词出现（允许词形派生但不越过左词边界）、语法可观察标记（语义型概念标 unverifiable）、难度带（本地启发式）、内容指纹去重、来源归属、HTML/脚本/控制字符。
+- **证据纪律**：生成材料只产生 `generated material`；AI 结构 `ai_unverified`；掌握只来自用户独立作答（BKT/FSRS 不变）。
+- **用量**：Provider 给 usage 就用真实值，否则按字符/4 估算并标 `estimated`；预算按 token 计，不换算货币。

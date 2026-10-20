@@ -1,13 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import 'fake-indexeddb/auto';
-import { openDB, closeDB, loadData, replaceData, backup, validateBackup, emptyData, DB_NAME } from '../src/db.ts';
+import { DB_VERSION, openDB, closeDB, loadData, replaceData, backup, validateBackup, emptyData, DB_NAME } from '../src/db.ts';
 import { dueWords, recordsForWord, exposuresForWord, exposureStats, activeMiniUnit, planForDate, latestSnapshots, unfinishedSessions } from '../src/model.ts';
 import { defaults, fsrsDefaults } from '../src/types.ts';
 const legacyStores = ['books', 'words', 'records', 'sessions', 'analyses', 'meta'];
 const v2Stores = ['wordExposures', 'grammarConcepts', 'grammarAttempts', 'sentenceAttempts', 'passages', 'readingSessions', 'inputSources', 'inputSessions', 'outputAttempts', 'dailyPlans', 'miniUnits', 'skillSnapshots', 'weeklyDiagnostics', 'libraryItems'];
 // Phase 4 新增的 store（v4 additive）
 const v4Stores = ['sentences'];
+// v5（Phase 6）：AI 生成记录 —— 迁移只做 additive
+const v5Stores = ['aiGenerations'];
 function openRaw(version?: number): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
         const r = version === undefined ? indexedDB.open(DB_NAME) : indexedDB.open(DB_NAME, version);
@@ -61,11 +63,11 @@ test('v1 → v2 migration preserves all legacy data and adds new schema', async 
     assert.equal(w.previewResult, '');
     assert.equal(d.records.length, 1);
     assert.equal(d.sessions.length, 1);
-    assert.ok(d.migration && d.migration.from === 1 && d.migration.to === 4 && d.migration.at > 0);
+    assert.ok(d.migration && d.migration.from === 1 && d.migration.to === DB_VERSION && d.migration.at > 0);
     assert.equal(d.wordExposures.length, 0);
     assert.equal(d.libraryItems.length, 0);
     const raw = await openRaw();
-    assert.ok([...v2Stores, ...v4Stores].every(n => raw.objectStoreNames.contains(n)));
+    assert.ok([...v2Stores, ...v4Stores, ...v5Stores].every(n => raw.objectStoreNames.contains(n)));
     assert.ok(raw.transaction('words').objectStore('words').indexNames.contains('bookId'));
     assert.ok(raw.transaction('words').objectStore('words').indexNames.contains('schedule.due'));
     assert.ok(raw.transaction('words').objectStore('words').indexNames.contains('fsrs.due'));
@@ -117,7 +119,7 @@ test('v2 backup roundtrip carries new stores; validator rejects dangling referen
     assert.equal(loaded.wordExposures.length, 2);
     const encoded = backup(loaded);
     const parsed = JSON.parse(encoded);
-    assert.equal(parsed.version, 4);
+    assert.equal(parsed.version, DB_VERSION);
     const validated = validateBackup(parsed);
     assert.equal(validated.wordExposures.length, 2);
     assert.equal(validated.miniUnits.length, 1);
@@ -181,7 +183,7 @@ test('v2 → v4 migration backfills FSRS defaults (fixture), adds sentences stor
     assert.equal(w.previewedAt, 111);
     assert.deepEqual(w.fsrs, fsrsDefaults);
     assert.equal(w.previewResult, '');
-    assert.ok(d.migration && d.migration.from === 2 && d.migration.to === 4);
+    assert.ok(d.migration && d.migration.from === 2 && d.migration.to === DB_VERSION);
     const check = await openRaw();
     assert.ok(check.objectStoreNames.contains('sentences'), 'v4 迁移必须新增 sentences store');
     assert.ok(check.transaction('words').objectStore('words').indexNames.contains('fsrs.due'));
