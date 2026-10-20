@@ -3,8 +3,8 @@
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
   "current_phase": "phase_8_real_input_hub",
-  "last_updated": "2026-10-21T00:05:00+08:00",
-  "last_verified_commit": "e26c325daa97f26d32a7c560ec09da44857f1a22",
+  "last_updated": "2026-10-21T00:20:00+08:00",
+  "last_verified_commit": "9f11b8cf88f72dbb7a6d92f3c1daa7361cf893f9",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 5,
   "build_status": "passed",
@@ -484,19 +484,7 @@
       "phase4-sentence-grammar",
       "phase5-reading-lab"
     ],
-    "ci": {
-      "workflow": ".github/workflows/ci.yml",
-      "node_matrix": [
-        22,
-        24
-      ],
-      "status": "success",
-      "last_run_id": 39271191340,
-      "last_run_url": "https://github.com/Huyaen/english-reconstruction-system/actions/runs/39271191340",
-      "last_success_commit": "6f7c889658305f63dde8a77a54313f82661d1d4f",
-      "verified_at": "2026-10-19T22:43:20+08:00",
-      "note": "GitHub Runner 真实执行；dist 跨平台一致（git diff --exit-code -- dist 在 ubuntu 通过）"
-    },
+    "ci": "39435327832 success (Node 22 + 24)",
     "last_ci_run": {
       "id": 39426842769,
       "commit": "e26c325daa97",
@@ -506,7 +494,10 @@
         "Verify Node 22: success",
         "Verify Node 24: success"
       ]
-    }
+    },
+    "branch": "main",
+    "head": "9f11b8cf88f72dbb7a6d92f3c1daa7361cf893f9",
+    "verified_at": "2026-10-21T00:20:00+08:00"
   },
   "document_review": {
     "date": "2026-10-19",
