@@ -202,6 +202,8 @@ export interface Data {
     skillSnapshots: SkillSnapshot[];
     weeklyDiagnostics: WeeklyDiagnostic[];
     libraryItems: LibraryItem[];
+    transcripts: Transcript[];
+    inputEvidence: InputEvidenceRecord[];
     aiGenerations: AIGeneration[];
     migration?: MigrationRecord | null;
 }
@@ -385,6 +387,25 @@ export interface InputSource {
     durationMinutes: number;
     difficultyEstimate: number | null;
     createdAt: number;
+    // —— Phase 8：真实材料域（全部可选，旧数据保持可读）——
+    provider?: 'youtube' | 'bilibili' | 'vimeo' | 'web' | 'other';
+    language?: string;
+    /** 材料是怎么进来的：用户提供 / 平台官方 / 手工转录 / 未验证机器生成 / 未知 */
+    provenance?: InputProvenance;
+    /** 我们到底验证到了什么：只保存链接 = unverified，绝不冒充 */
+    verificationStatus?: InputVerification;
+    verifiedAt?: number | null;
+    subtitleStatus?: InputSubtitleStatus;
+    transcriptRef?: string | null;
+    thumbnailUrl?: string;
+    contentType?: InputContentType;
+    notes?: string;
+    updatedAt?: number;
+    normalizedUrl?: string;
+    videoId?: string;
+    contentHash?: string;
+    /** 难度估计的依据：没有 transcript 时只能是 none（不猜视频里的词汇） */
+    difficultyBasis?: 'transcript' | 'none';
 }
 export interface InputSession {
     id: string;
@@ -399,8 +420,26 @@ export interface InputSession {
     difficultyReasons: string[];
     outputAttemptId: string;
     notes: string;
-    mode: 'light' | 'standard' | 'deep';
+    mode: InputMode;
     createdAt: number;
+    // —— Phase 8：会话生命周期（旧字段保留为平表镜像供统计）——
+    status?: InputSessionStatus;
+    revision?: number;
+    startedAt?: number;
+    pausedAt?: number | null;
+    completedAt?: number | null;
+    abandonedAt?: number | null;
+    miniUnitId?: string | null;
+    plannedMinutes?: number;
+    /** 用户自报的观看时长（我们没有也不应假装知道第三方播放器的真实进度） */
+    reportedWatchedMinutes?: number | null;
+    coldComprehension?: number | null;
+    afterComprehension?: number | null;
+    translationDependence?: number | null;
+    transcriptRef?: string | null;
+    baseline?: InputBaseline;
+    reflection?: InputReflection;
+    evidenceBasis?: 'self_report' | 'transcript' | 'mixed' | 'none';
 }
 export interface OutputCorrection {
     from: string;
@@ -633,6 +672,9 @@ export interface UnitEvidenceSummary {
     supportReduction: number;
     translationDependence: number;
     obstacles: string[];
+    /** Phase 8：与单元关联的真实媒体输入（只算曝光，不算迁移/掌握） */
+    mediaSessions?: string[];
+    mediaMinutes?: number;
     refs: UnitEvidenceRef[];
 }
 export interface SkillSnapshot {
@@ -669,6 +711,80 @@ export interface LibraryItem {
     status: 'saved' | 'used' | 'archived';
     notes: string;
     savedAt: number;
+    // —— Phase 8：与 InputSource 一对一（可选，旧条目仍然合法）——
+    sourceId?: string;
+    contentType?: InputContentType;
+    durationMinutes?: number;
+    captionStatus?: InputSubtitleStatus;
+    lastOpenedAt?: number | null;
+    completion?: number;
+    miniUnitId?: string | null;
+    updatedAt?: number;
+}
+
+// —— Phase 8：Real Input Hub 的领域类型 ——
+export type InputProvider = 'youtube' | 'bilibili' | 'vimeo' | 'web' | 'other';
+export type InputMode = 'light' | 'standard' | 'deep';
+export type InputSessionStatus = 'created' | 'active' | 'paused' | 'reflection' | 'completed' | 'abandoned';
+export type InputProvenance = 'user_supplied' | 'official_subtitle' | 'manually_transcribed' | 'machine_generated_unverified' | 'unknown';
+export type InputVerification = 'unverified' | 'metadata_verified' | 'user_confirmed';
+export type InputSubtitleStatus = 'unknown' | 'none' | 'user_supplied' | 'official' | 'machine';
+export type InputContentType = 'youtube' | 'bilibili' | 'online_video' | 'documentary' | 'esports' | 'game_content' | 'series_clip' | 'article' | 'other';
+export type InputEvidenceType = 'watching_exposure' | 'self_report' | 'transcript_reading' | 'independent_comprehension' | 'output_attempt';
+export interface CaptionCue {
+    startMs: number;
+    endMs: number;
+    text: string;
+    language: string;
+    provenance: InputProvenance;
+}
+export interface Transcript {
+    id: string;
+    sourceId: string;
+    language: string;
+    provenance: InputProvenance;
+    /** 没有时间轴（TXT）时为 false，此时 cue 时间全为 0，不能当作字幕时间轴 */
+    timed: boolean;
+    cues: CaptionCue[];
+    hash: string;
+    fileName?: string;
+    createdAt: number;
+    updatedAt: number;
+    warnings?: string[];
+}
+export interface InputBaseline {
+    status: 'recorded' | 'skipped';
+    captionMode: CaptionMode;
+    comprehension: number | null;
+    blocker: string;
+    watchedMinutes: number | null;
+    at: number;
+}
+export interface InputReflection {
+    mode: InputMode;
+    captionMode: CaptionMode;
+    comprehension: number | null;
+    difficultyReasons: string[];
+    notes: string;
+    /** Standard：英文总结原文（不做无依据的事实评分） */
+    summary?: string;
+    /** Deep */
+    mainIdea?: string;
+    keyPoints?: string[];
+    opinion?: string;
+    retelling?: string;
+    completion: number;
+    savedAt: number;
+}
+export interface InputEvidenceRecord {
+    id: string;
+    sourceId: string;
+    sessionId: string;
+    evidenceType: InputEvidenceType;
+    at: number;
+    confidence: number;
+    provenance: InputProvenance;
+    meta?: Record<string, unknown>;
 }
 // —— V3：FSRS 调度状态（字段以 ts-fsrs@5.4.2 实际 API 为准，见 src/fsrs.ts）——
 export interface FSRSWordState {

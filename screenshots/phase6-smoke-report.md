@@ -3,7 +3,7 @@
 - PASS · Phase 6 验收钩子与 mock Provider 可达
 - PASS · 设置已保存（endpoint/model/key 进入本地设置）
 - PASS · 有真实弱词时“生成定向句”可用
-- PASS · AI 句生成成功并显示正文 — The team had engineer the old station before the w
+- PASS · AI 句生成成功并显示正文 — The team had current the old station before the wi
 - PASS · 结果标注 AI 生成 / 结构未验证
 - PASS · 结果展示 prompt 版本与用量（可追溯）
 - PASS · 生成记录落库（含 promptVersion / provider / usage） — {"n":1,"v":"1.0.0"}
@@ -29,5 +29,5 @@
 - PASS · 刷新后生成记录仍在（可用于复用/审计） — 2 条
 - PASS · 刷新后 AI 强化文章仍在阅读库
 - PASS · 生成记录不含 Key，也不含完整词库
-- PASS · 发送内容最小化（不发送完整词库/学习历史） — 最长 user 消息 618 字符
+- PASS · 发送内容最小化（不发送完整词库/学习历史） — 最长 user 消息 616 字符
 - PASS · 无未捕获 JS 异常 — 0 条

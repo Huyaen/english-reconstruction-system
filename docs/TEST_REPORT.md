@@ -169,3 +169,15 @@ Phase 5 新增用例（28）：
 
 新增断言覆盖：自定义标签、建议采纳、改名/删除、重置计数、刷新持久化、显式优先、
 探索位存在、行为不写回权重、兴趣不改变难度、防重复排序、无材料时如实说明。
+
+## Phase 8 — Real Input Hub（2026-10-21T20:45:00+08:00）
+
+| 层 | 命令 | 结果 |
+| --- | --- | --- |
+| 单元 | `npm test` | **275/275**（新增 inputCore 31、inputRecommendation 21、backupV6 2） |
+| 类型 | `npx tsc --noEmit -p tsconfig.json` | 0 error |
+| 构建 | `npm run build` / `npm run build:test` | 通过；生产包 `__readTest/__labTest/__ocrTest/__unitTest/__interestTest/__inputTest/ERV2_TEST_HOOKS` 命中 0 |
+| 浏览器 | `SMOKE_PORT=9229 node scripts/phase8-smoke.mjs` | **34/34** |
+| 回归 | phase7 / 6 / 5.1 / 5 / 4 / 3 | 33/33、31/31、26/26、44/44、36/36、21/21 |
+
+冒烟分组：A 兴趣命中理由与事实、B 画像外材料 + 探索位、C 冷测→Standard 复盘→完成与证据、D Light/Deep 完成度与产出证据、E SRT 解析/去重/送 Reading/送句法、F Mini Unit 只记媒体曝光不算 verified transfer、G Planner 输入任务、H 无材料不生成任务、I 兴趣重置两端同步、J 无 AI Key 可用、K 并发完成幂等、L 备份恢复（材料 + 兴趣 + 旧学习数据）、Z 0 未捕获异常。

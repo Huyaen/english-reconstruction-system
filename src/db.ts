@@ -5,7 +5,7 @@ import { validSettings } from './core.ts';
 // 设计依据：REFERENCE_RESEARCH.md §6.1（Dexie 版本化 schema 思想）与 §2.1（Lute migration 模式）。
 // 原则：只加不删（additive only）；逐版本迁移；升级事务原子性（失败自动回滚，旧数据安全）。
 export const DB_NAME = 'vocabulary-memory-v1';
-export const DB_VERSION = 5;
+export const DB_VERSION = 6;
 const legacyStores = ['books', 'words', 'records', 'sessions', 'analyses', 'meta'] as const;
 const legacyDataStores = ['books', 'words', 'records', 'sessions', 'analyses'] as const;
 const v2Stores = ['wordExposures', 'grammarConcepts', 'grammarAttempts', 'sentenceAttempts', 'passages', 'readingSessions', 'inputSources', 'inputSessions', 'outputAttempts', 'dailyPlans', 'miniUnits', 'skillSnapshots', 'weeklyDiagnostics', 'libraryItems'] as const;
@@ -13,8 +13,10 @@ const v2Stores = ['wordExposures', 'grammarConcepts', 'grammarAttempts', 'senten
 const v4Stores = ['sentences'] as const;
 // v5（Phase 6）：AI 生成记录与用量（additive only；旧 store 与数据完全不动）
 const v5Stores = ['aiGenerations'] as const;
+// v6（Phase 8）：真实输入域 —— 字幕（含时间轴）与输入证据账本（additive only）
+const v6Stores = ['transcripts', 'inputEvidence'] as const;
 // 所有 Learning Model store（v2 + v4）：ID 安全性与唯一性校验共用
-const modelStores = [...v2Stores, ...v4Stores, ...v5Stores] as const;
+const modelStores = [...v2Stores, ...v4Stores, ...v5Stores, ...v6Stores] as const;
 export const dataStores = [...legacyDataStores, ...modelStores] as const;
 export const stores = [...dataStores, 'meta'] as const;
 type StoreName = (typeof stores)[number];
@@ -46,6 +48,9 @@ const indexSpecs: Partial<Record<StoreName, readonly IndexSpec[]>> = {
     sentences: [['sourceType', 'sourceType'], ['createdAt', 'createdAt'], ['grammarTags', 'grammarTags', { multiEntry: true }]],
     // v5：AI 生成记录（按种类/时间/内容指纹检索；指纹用于去重与恢复）
     aiGenerations: [['kind', 'kind'], ['createdAt', 'createdAt'], ['contentHash', 'contentHash']],
+    // v6：字幕与输入证据
+    transcripts: [['sourceId', 'sourceId'], ['hash', 'hash'], ['createdAt', 'createdAt']],
+    inputEvidence: [['sessionId', 'sessionId'], ['sourceId', 'sourceId'], ['at', 'at'], ['evidenceType', 'evidenceType']],
 };
 // 旧词条缺少 v2 字段时回填默认值；已具备字段的词原样返回（幂等，可反复调用）
 export function withV2WordDefaults(w: Word): Word {
@@ -118,6 +123,12 @@ function runMigration(database: IDBDatabase, tx: IDBTransaction, oldVersion: num
             if (!database.objectStoreNames.contains(name))
                 database.createObjectStore(name, { keyPath: 'id' });
     }
+    // v6（Phase 8）：additive — 字幕与输入证据
+    if (oldVersion < 6) {
+        for (const name of v6Stores as readonly string[])
+            if (!database.objectStoreNames.contains(name))
+                database.createObjectStore(name, { keyPath: 'id' });
+    }
     // v5（Phase 6）：additive — AI 生成记录
     if (oldVersion < 5) {
         for (const name of v5Stores as readonly string[])
@@ -162,7 +173,7 @@ export function getDB(): IDBDatabase { return db; }
 export function closeDB() { db?.close(); db = undefined as unknown as IDBDatabase; }
 function done(tx: IDBTransaction) { return new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onabort = () => reject(tx.error || Error('保存事务中止')); tx.onerror = () => reject(tx.error || Error('数据保存失败')); }); }
 function req<T>(r: IDBRequest<T>) { return new Promise<T>((resolve, reject) => { r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); }); }
-export function emptyData(): Data { return { books: [], words: [], records: [], sessions: [], analyses: [], settings: { ...defaults }, wordExposures: [], grammarConcepts: [], grammarAttempts: [], sentenceAttempts: [], sentences: [], passages: [], readingSessions: [], inputSources: [], inputSessions: [], outputAttempts: [], dailyPlans: [], miniUnits: [], skillSnapshots: [], weeklyDiagnostics: [], libraryItems: [], aiGenerations: [], migration: null }; }
+export function emptyData(): Data { return { books: [], words: [], records: [], sessions: [], analyses: [], settings: { ...defaults }, wordExposures: [], grammarConcepts: [], grammarAttempts: [], sentenceAttempts: [], sentences: [], passages: [], readingSessions: [], inputSources: [], inputSessions: [], outputAttempts: [], dailyPlans: [], miniUnits: [], skillSnapshots: [], weeklyDiagnostics: [], libraryItems: [], aiGenerations: [], transcripts: [], inputEvidence: [], migration: null }; }
 export async function loadData(): Promise<Data> {
     await openDB();
     const tx = db.transaction([...stores], 'readonly');
@@ -266,7 +277,7 @@ export function validateBackup(value: unknown): Data {
             return fail();
         const ids = new Set();
         for (const x of d[k]) {
-            if (!x || typeof x.id !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(x.id) || ['__proto__', 'constructor', 'prototype'].includes(x.id) || ids.has(x.id))
+            if (!x || typeof x.id !== 'string' || !/^[a-zA-Z0-9._:-]{1,128}$/.test(x.id) || ['__proto__', 'constructor', 'prototype'].includes(x.id) || ids.has(x.id))
                 return fail();
             ids.add(x.id);
         }
@@ -338,7 +349,7 @@ export function validateBackup(value: unknown): Data {
             const id = (x as {
                 id?: unknown;
             } | null)?.id;
-            if (!x || typeof x !== 'object' || typeof id !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(id) || ['__proto__', 'constructor', 'prototype'].includes(id) || ids.has(id))
+            if (!x || typeof x !== 'object' || typeof id !== 'string' || !/^[a-zA-Z0-9._:-]{1,128}$/.test(id) || ['__proto__', 'constructor', 'prototype'].includes(id) || ids.has(id))
                 return fail();
             ids.add(id);
         }

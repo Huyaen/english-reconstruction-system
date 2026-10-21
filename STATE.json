@@ -3,14 +3,14 @@
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
   "current_phase": "phase_8_real_input_hub",
-  "last_updated": "2026-10-21T00:20:00+08:00",
+  "last_updated": "2026-10-21T20:45:00+08:00",
   "last_verified_commit": "9f11b8cf88f72dbb7a6d92f3c1daa7361cf893f9",
   "baseline_tag": "v1.0.0-mvp-baseline",
-  "database_version": 5,
+  "database_version": 6,
   "build_status": "passed",
   "test_status": {
-    "unit": "221/221 pass",
-    "browser": "interest 19/19, phase7 33/33, phase6 31/31, phase5.1 26/26, phase5 44/44, phase4 36/36, phase3 21/21",
+    "unit": "275/275 pass",
+    "browser": "phase8 34/34, interest 19/19, phase7 33/33, phase6 31/31, phase5.1 26/26, phase5 44/44, phase4 36/36, phase3 21/21",
     "tsc": "0 error",
     "build": "pass, 生产包无测试钩子"
   },
@@ -409,6 +409,49 @@
         "scripts/phase8-interest-smoke.mjs"
       ],
       "acceptance": "AC1–AC12 全部有自动化证据（13 单测 + 19 浏览器断言）"
+    },
+    "phase8_real_input_hub_013": {
+      "id": "phase8_real_input_hub_013",
+      "title": "Real Input Hub（Phase 8：真实输入中心）",
+      "status": "passed",
+      "completed_at": "2026-10-21T20:45:00+08:00",
+      "spec": "docs/PHASE8_REAL_INPUT_HUB.md",
+      "deliverables": [
+        "src/inputUrl.ts",
+        "src/transcript.ts",
+        "src/inputSource.ts",
+        "src/inputLibrary.ts",
+        "src/inputReflection.ts",
+        "src/inputSession.ts",
+        "src/inputEvidence.ts",
+        "src/inputRecommendation.ts",
+        "src/inputHandoff.ts",
+        "src/inputDifficulty.ts",
+        "src/inputStore.ts",
+        "src/inputActions.ts",
+        "src/inputView.ts",
+        "src/inputPlanner.ts",
+        "src/types.ts（Input 域类型）",
+        "src/db.ts（v6 + 5 stores）",
+        "src/planner.ts（输入任务）",
+        "src/app.ts（Input Hub 页面 + __inputTest 钩子）",
+        "tests/inputCore.test.ts",
+        "tests/inputRecommendation.test.ts",
+        "tests/backupV6.test.ts",
+        "scripts/phase8-smoke.mjs",
+        "docs/PHASE8_REAL_INPUT_HUB.md"
+      ],
+      "tests": [
+        "npm test 275/275 pass（新增 54）",
+        "scripts/phase8-smoke.mjs 34/34（真实 Edge + CDP + IndexedDB，A–L + Z）",
+        "回归 phase7 33/33、phase6 31/31、phase5.1 26/26、phase5 44/44、phase4 36/36、phase3 21/21",
+        "tsc --noEmit 0 error；npm run build 通过；生产包测试钩子命中 0"
+      ],
+      "risks": [
+        "不抓取平台内容：标题/时长/字幕全靠用户提供",
+        "不做站内播放与自动转写",
+        "推荐是规则排序，不是语义去重"
+      ]
     }
   },
   "known_bugs": [],
@@ -436,10 +479,14 @@
     "Phase 7：语法可观察性仍是正则启发式，语义型概念只标 candidate；输出侧只有一句话自评（Phase 9 未实现）",
     "Phase 7：Anchor 难度分析未做持久缓存；每次进入单元会读取既有 store 重新汇总证据（未做全表扫描）",
     "兴趣画像只做排序与理由，不做语义去重：同一主题下的多篇材料仍会分别推荐（相似内容聚合留给 Input Hub 主题聚合）。",
-    "兴趣匹配基于标签关键词与材料 topic/title 的字符串命中，不做语义相似度；关键词可由用户改写。"
+    "兴趣匹配基于标签关键词与材料 topic/title 的字符串命中，不做语义相似度；关键词可由用户改写。",
+    "真实输入不抓取平台内容：标题、时长、语言、字幕全部依赖用户提供，链接仅保存与外部打开",
+    "真实输入不做站内播放器与音频自动转写（图片 OCR 属 Phase 5.1）",
+    "输入难度估计基于 transcript 启发式，低置信度，不等于 CEFR 评级",
+    "输入推荐是规则排序（主题关键词 + 行为 + 难度适配），不是 embedding 语义推荐"
   ],
   "blocked": [],
-  "next_task_id": "phase8_real_input_hub_013",
+  "next_task_id": "await_user_phase9_directive",
   "environment": {
     "node": "v26.7.0",
     "npm": "11.19.0",
@@ -448,18 +495,7 @@
     "browser_verification_path": "Hermes 内置 browser_exec 不可用；如需浏览器实测用 CDP 无头 Edge（见 skill sillytavern-live-ui-verification 的自建方案）"
   },
   "source_format_convention": "src/*.ts 与 tests/*.ts 由 docs/format-source.mjs 整理为紧凑格式；编辑后保持一致或重跑该脚本",
-  "notes": [
-    "项目唯一根目录 D:\\英语重构训练\\vocabulary-app；禁止另起工程或从零重写",
-    "旧数据 100% 保留为硬约束；任何 DB 版本操作前先备份快照",
-    "dist/ 已纳入 Git（commit 前保持 build 与源码一致）",
-    "Phase 4 交付：sentence 模块已真实上线（moduleCapabilities.sentence.available=true）；阅读/输入/输出仍未上线，UI 不得声称可用",
-    "CI Protocol（Phase 5.0 起长期有效）：Task 级门禁=测试+构建+diff 审核+commit+push+远端核验；Phase 级门禁=全量测试+tsc+build+真实浏览器 smoke+旧模块回归+状态同步+commit+tag+push+GitHub Actions 成功+远端 SHA 核验；CI 失败必须区分代码失败与基础设施失败，不得在 CI 未成功时宣称远程门禁通过",
-    "Phase 5.1 交付：截图 OCR 已真实上线（本地 Wasm，extractionMethod=local_ocr）；OCR 不经任何网络上传图片，失败一律保留人工转录出口，绝不假装识别成功",
-    "Phase 6 交付：AI 只做脚手架（生成材料），掌握证据只来自用户真实作答；DB 升到 v5（additive：aiGenerations），旧数据与既有 store 完全不动",
-    "Phase 7 交付：Mini Unit 状态机 + 真实 Anchor/目标/证据闭环；DB 仍为 v5（新增字段全可选，无迁移）；完成判定缺真实迁移证据一律降级",
-    "Phase 8 补充：Dynamic Interest Profile 已实现并通过验收（兴趣不进入难度/掌握度路径；行为信号只读不落盘）。",
-    "Phase 8 主体（Real Input Hub）尚未开始：状态为 in_progress，未创建 Hub 代码。"
-  ],
+  "notes": "Phase 8 主体 Real Input Hub 已交付：DB v6（5 个新 store）、状态机、三档复盘、证据 ledger（曝光/自评/产出分离）、字幕交接、Planner 时间预算、与兴趣画像共用的推荐理由；同时修复 validateBackup 无法恢复含句点/冒号 id 的备份。",
   "remote_sync": {
     "setup_task_id": "infra_github_remote_001",
     "status": "verified",
@@ -473,7 +509,7 @@
     "last_local_commit": "e26c325daa97f26d32a7c560ec09da44857f1a22",
     "last_known_remote_commit": "e26c325daa97f26d32a7c560ec09da44857f1a22",
     "pending_push": null,
-    "last_verified_at": "2026-10-20T23:45:00+08:00",
+    "last_verified_at": "2026-10-21T20:45:00+08:00",
     "last_error": null,
     "note": "Phase 5 实测核验：push a4b49b9→7c1bf06（Phase 5 Reading Lab 功能提交），GitHub API git/ref/heads/main 复核 sha=7c1bf06655aed18bdd242574dc8859f52434f6a6 与本地 HEAD 一致；annotated tag phase5-reading-lab → 7c1bf06 已推送。Phase 4 tag 仍固定在 a10efd4-f 功能提交，CI 提交 a4b49b9 仅含 .github/workflows/ci.yml 与测试钩子隔离。",
     "tags": [
@@ -497,7 +533,8 @@
     },
     "branch": "main",
     "head": "9f11b8cf88f72dbb7a6d92f3c1daa7361cf893f9",
-    "verified_at": "2026-10-21T00:20:00+08:00"
+    "verified_at": "2026-10-21T00:20:00+08:00",
+    "last_pushed_commit": "见交付报告"
   },
   "document_review": {
     "date": "2026-10-19",

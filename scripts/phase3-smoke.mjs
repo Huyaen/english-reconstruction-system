@@ -133,7 +133,8 @@ try {
     await wait(`!!document.querySelector('#plan-setup')`, 'plan setup');
     // Phase 5 起阅读模块也已真实可用（但没有材料就不排阅读任务）；仍未上线的必须明确标为不可用（不得假装可用）
     const gatingText = await ev(`document.querySelector('#plan-setup').textContent`);
-    const gating = /真实输入（phase7）/.test(gatingText) && !/句子与语法（phase4）/.test(gatingText) && !/阅读（phase5）/.test(gatingText);
+    // Phase 8 起真实输入也已上线：只有仍在上线中的“输出（phase8）”允许被列为不可用
+    const gating = !/真实输入（phase7）/.test(gatingText) && !/句子与语法（phase4）/.test(gatingText) && !/阅读（phase5）/.test(gatingText) && /输出（phase8）/.test(gatingText);
     check('Capability Gate 只把未上线模块标为不可用', gating, gatingText.slice(0, 160));
     await click('#plan-create');
     await wait(`!!document.querySelector('#plan-panel')`, 'plan panel');

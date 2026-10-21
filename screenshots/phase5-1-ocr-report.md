@@ -7,7 +7,7 @@
 - PASS · 被拒绝时不会出现“开始识别”按钮
 - PASS · 选择截图后显示本地预览（blob:，未上传） — blob:http://
 - PASS · 有效图片才出现“开始本地识别”
-- PASS · 真实 OCR 识别出英文正文（本地 Wasm 执行） — 784 chars, 21059ms
+- PASS · 真实 OCR 识别出英文正文（本地 Wasm 执行） — 784 chars, 17101ms
 - PASS · 识别结果包含关键词：reconstruction / comprehension / spaced repetition — Why reading slowly can make you faster  The Reading Notes - 
 - PASS · 识别结果保留段落结构（不是一整行） — 18 lines
 - PASS · 识别完成后进度条收起

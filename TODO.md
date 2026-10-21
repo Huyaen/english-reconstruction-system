@@ -28,6 +28,14 @@
 - [x] `phase2_vocabulary_v2_006`：ts-fsrs@5.4.2 调度（shadow→默认+回滚）、DB v3、Rating 映射、Preview→Recall、三维证据、多词池/Learning Value/动态新词量、UI ✔ 2026-10-04（39/39 tests + 浏览器 smoke）
 - [x] `phase3_daily_planner_007`：Time Budget First / 状态三档 / Yesterday Recall / 计划生成 / 动态调整 / Closing Loop / 中断恢复（调用 recommendedNewWordCount 等已就绪 API）✔ 2026-10-19
 
+## P0 — Phase 8 主体 Real Input Hub（已完成并核验 2026-10-21）
+
+- [x] DB v6 + 输入域类型
+- [x] URL/字幕/材料/库/复盘/状态机/证据/推荐/交接/难度/存储/动作/视图/规划 14 个模块
+- [x] Input Hub 页面与 Planner 接入
+- [x] 275/275 单测 + 34/34 浏览器 + 六阶段回归
+- [x] `docs/PHASE8_REAL_INPUT_HUB.md`（L1–L12 + AC1–AC14）
+
 ## P1 — 后续开发阶段（AGENT_EXECUTION.md Phase 2–13）
 
 - [x] Phase 2 Vocabulary V2：Preview、word lifecycle、三维 mastery、多词池选词、Learning Value Score、forgotten 回流、exposure 证据、动态新词量（已于 2026-10-04 文档验收）

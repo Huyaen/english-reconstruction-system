@@ -128,3 +128,12 @@ S≥90、A≥65、B≥40、C≥15、其余D。到期与弱词队列按分数降�
 - 理由四分类（互斥，按优先级）：`interests` → `unit` → `recent(≥0.25)` → `explore`。
 - 探索位：画像非空时，若前 3 条无 explore 候选，则用最高分 explore 候选替换末位。
 - 防重复：`repeat=true` 的候选整体排在未重复候选之后（14 天窗口），仍可见、可解释。
+
+## 真实输入状态机与证据口径（Phase 8）
+
+- 状态：`created → active → paused → reflection → completed`；非终态 → `abandoned`。`complete` 前置：`reflection` 已存在；`completed` 再 `complete` 返回 noop（幂等）。
+- 并发：转换在单事务内 read → compare `expectedRevision` → write；旧 revision 返回 `stale`，不会出现两个标签页互相覆盖。
+- 证据：`watching_exposure`（自报时长）、`self_report`（自评，confidence<1）、`transcript_reading`（阅读字幕）、`independent_comprehension`（保留，本阶段未产生）、`output_attempt`（总结/复述原文）。id = `sessionId:type`，重复写入 no-op。
+- 观看时长上限：`min(自报, duration+5)` 或 600 分钟（无时长时），防止误填把统计拉爆。
+- 难度：仅当存在英文 transcript 时，用词长/句长/生词比例启发式估计；否则 `null`，`difficultyBasis='none'`。
+- 推荐：显式兴趣命中 > Mini Unit 主题 > 近期真实行为 > 探索位；兴趣只影响排序，不进入难度/能力路径；无候选返回解释。

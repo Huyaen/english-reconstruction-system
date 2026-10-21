@@ -22,6 +22,17 @@ import { applyTransition } from './miniUnitStore.ts';
 import { unitCreatePage, unitPage, anchorPicker } from './miniUnitView.ts';
 import * as unitActions from './miniUnitActions.ts';
 import { SUGGESTED_INTERESTS, addInterest, normalizeProfile, removeInterest, renameInterest, resetInterests } from './interestProfile.ts';
+import { activitySignals as inputActivitySignals } from './interestProfile.ts';
+import * as inputActions from './inputActions.ts';
+import { filterLibrary, setLibraryStatus } from './inputLibrary.ts';
+import { recommendInputs } from './inputRecommendation.ts';
+import { inputAnalytics } from './inputEvidence.ts';
+import { inputHubPage, inputSessionPage } from './inputView.ts';
+import { planInputMinutes, suggestMode } from './inputSession.ts';
+import { captionCaveat } from './inputReflection.ts';
+import { sentenceCandidates, transcriptSentenceRecord } from './inputHandoff.ts';
+import { providerLabel } from './inputUrl.ts';
+import type { CaptionMode, InputMode } from './types.ts';
 import type { InterestProfile } from './types.ts';
 import { createReadingSession, submitColdTest, startReading, submitMainIdea, markWord, revokeMark, requestHelp, captureDifficultSentence, linkDifficultSentenceAttempt, finishFirstPass, startReread, finishReread, submitWholeTextItem, submitOutput, completeReadingSession, sessionProgress, nextChunk, goToChunk, isResumable, stageLabel, maxHelpLevelUsed } from './readingSession.ts';
 import { selectStudyCandidates, buildHandoffPlan, exposureFromMark, readingWordSeed, readyForTraining, explicitUnknownRate, type StudyCandidate } from './readingVocabulary.ts';
@@ -136,7 +147,7 @@ let readingTask: {
 let labReturn: (LabReturnTarget & {
     planTaskId?: string;
 }) | null = null;
-const navs = [['home', '◫', '今日学习'], ['books', '▤', '我的词库'], ['weak', '◎', '薄弱词'], ['sentence', '❝', '句子训练'], ['reading', '❖', '阅读'], ['grammar', '◈', '语法图谱'], ['unit', '◐', '主题单元'], ['stats', '▥', '学习统计'], ['ai', '✦', 'AI 学情'], ['settings', '⚙', '设置与备份']];
+const navs = [['home', '◫', '今日学习'], ['books', '▤', '我的词库'], ['weak', '◎', '薄弱词'], ['sentence', '❝', '句子训练'], ['reading', '❖', '阅读'], ['input', '▶', '真实输入'], ['grammar', '◈', '语法图谱'], ['unit', '◐', '主题单元'], ['stats', '▥', '学习统计'], ['ai', '✦', 'AI 学情'], ['settings', '⚙', '设置与备份']];
 function reindex() { wordMap = new Map(data.words.map(w => [w.id, w])); }
 function setPage(p: string) {
     if ((page === 'quiz' && busy) || startingSession) {
@@ -165,7 +176,7 @@ function shell() {
     on('.brand', 'click', e => { e.preventDefault(); setPage('home'); });
     on('#theme', 'click', async () => { const s = { ...data.settings, theme: data.settings.theme === 'light' ? 'dark' : 'light' } as Settings; await saveSettings(s); data.settings = s; document.documentElement.dataset.theme = s.theme; $('#theme').textContent = s.theme === 'light' ? '☾' : '☀'; });
 }
-function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp }[page] || home)(); bindAI(); }
+function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp, input: inputPageApp }[page] || home)(); bindAI(); }
 function title(kicker: string, title: string, sub: string, action = '') { return `<div class="page-title"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p>${sub}</p></div>${action}</div>`; }
 function metric(label: string, value: string, note: string) { return `<div class="metric"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`; }
 function rangeControls() { return `<div class="range-controls"><label>学习范围<select id="range-book"><option value="">全部词书</option>${data.books.map(b => `<option value="${b.id}" ${bookFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label><label>本轮词量<select id="range-count">${[50, 100, 300, 500, 1000].map(n => `<option value="${n}" ${n === 100 ? 'selected' : ''}>${n} 词</option>`).join('')}</select></label><label>测试方向<select id="range-ratio">${![0, 30, 50, 70, 100].includes(data.settings.ratio) ? `<option value="${data.settings.ratio}" selected>英→中 ${data.settings.ratio}%（自定义）</option>` : ''}<option value="50" ${data.settings.ratio === 50 ? 'selected' : ''}>双向各 50%</option><option value="70" ${data.settings.ratio === 70 ? 'selected' : ''}>英→中 70%</option><option value="30" ${data.settings.ratio === 30 ? 'selected' : ''}>中→英 70%</option><option value="100" ${data.settings.ratio === 100 ? 'selected' : ''}>识别 · 英→中</option><option value="0" ${data.settings.ratio === 0 ? 'selected' : ''}>提取 · 中→英</option></select></label></div>`; }
@@ -592,6 +603,299 @@ function deleteBookDialog() {
         render();
     });
 }
+// ===== Phase 8：Real Input Hub（逻辑在 input*.ts，这里只做绑定）=====
+let inputSessionId: string | null = null;
+let inputModeDraft: InputMode | null = null;
+let inputFilterState = { search: '', status: 'all', captions: 'any', contentType: 'all' };
+function inputEnergy(): 'low' | 'normal' | 'good' {
+    return (todayPlan?.energyState as 'low' | 'normal' | 'good' | undefined) ?? 'normal';
+}
+function inputBudgetMinutes(): number {
+    return Math.max(5, Math.min(240, todayPlan?.availableMinutes ?? planBudget ?? 30));
+}
+function inputSourceById(id: string | null | undefined) {
+    return id ? data.inputSources.find(s => s.id === id) : undefined;
+}
+function inputSessionById(id: string | null) {
+    return id ? data.inputSessions.find(s => s.id === id) : undefined;
+}
+function inputUnfinished() {
+    return data.inputSessions
+        .filter(s => s.status && s.status !== 'completed' && s.status !== 'abandoned')
+        .sort((a, b) => (b.startedAt ?? b.createdAt) - (a.startedAt ?? a.createdAt));
+}
+function inputRecent() {
+    return data.inputSessions
+        .filter(s => s.status === 'completed')
+        .sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0));
+}
+function inputPageApp(): void {
+    const session = inputSessionById(inputSessionId);
+    if (session) {
+        const source = inputSourceById(session.sourceId);
+        const transcript = data.transcripts.find(t => t.sourceId === session.sourceId && (t.id === (session.transcriptRef ?? source?.transcriptRef) || !session.transcriptRef));
+        inputModeDraft = inputModeDraft ?? session.mode;
+        $('#main').innerHTML = inputSessionPage({
+            data, session, source, transcript,
+            candidates: transcript ? sentenceCandidates(transcript, { limit: 6, minWords: 8 }) : [],
+            captionCaveat: captionCaveat(session.reflection?.captionMode ?? session.captionMode),
+        });
+        bindInputSession(session, source, transcript);
+        return;
+    }
+    const now = Date.now();
+    const profile = normalizeProfile(data.settings.interests, now);
+    const signals = inputActivitySignals(data, now);
+    const rec = recommendInputs({
+        data, profile, signals, now, availableMinutes: inputBudgetMinutes(), energy: inputEnergy(),
+        unitDay: activeUnitInData()?.dayIndex ?? null,
+    });
+    const library = filterLibrary(data.libraryItems, {
+        search: inputFilterState.search,
+        status: inputFilterState.status === 'all' ? 'all' : inputFilterState.status as 'saved' | 'used' | 'archived',
+        captions: inputFilterState.captions === 'all' ? 'any' : inputFilterState.captions as 'any' | 'has' | 'none' | 'unknown',
+        contentType: inputFilterState.contentType,
+    }, now);
+    $('#main').innerHTML = inputHubPage({
+        data, candidates: rec.candidates, note: rec.note, target: rec.target,
+        unfinished: inputUnfinished(), recent: inputRecent(), library,
+        analytics: inputAnalytics(data, now),
+        filter: inputFilterState,
+        interestLabels: profile.topics.map(t => t.label),
+    });
+    bindInputHub();
+}
+function bindInputHub(): void {
+    const refresh = () => void unitRefresh();
+    on('[data-input-add]', 'click', async () => {
+        const url = document.querySelector<HTMLInputElement>('#input-url')?.value ?? '';
+        const title = document.querySelector<HTMLInputElement>('#input-title')?.value ?? '';
+        const topic = document.querySelector<HTMLInputElement>('#input-topic')?.value ?? '';
+        const duration = Number(document.querySelector<HTMLInputElement>('#input-duration')?.value ?? 0);
+        const language = document.querySelector<HTMLSelectElement>('#input-language')?.value ?? 'en';
+        const contentType = (document.querySelector<HTMLSelectElement>('#input-content-type')?.value ?? '') as never;
+        const result = await inputActions.addSource(data, { title, url, topic, durationMinutes: duration, language, contentType });
+        if (!result.ok) {
+            toast(result.message);
+            return;
+        }
+        toast('已加入 Input Hub。开始输入时会记录真实复盘，不会自动“学会”。');
+        await refresh();
+    });
+    document.querySelectorAll<HTMLElement>('[data-input-start]').forEach(b => b.onclick = async () => {
+        const sourceId = b.dataset.inputStart!;
+        const mode = suggestMode({ energy: inputEnergy(), unitDay: activeUnitInData()?.dayIndex ?? null });
+        const source = inputSourceById(sourceId);
+        const minutes = planInputMinutes({ availableMinutes: inputBudgetMinutes(), durationMinutes: source?.durationMinutes ?? 0, mode }).watchMinutes;
+        const started = await inputActions.startInputAction(data, { sourceId, mode, minutes, miniUnitId: activeUnitInData()?.id ?? null });
+        if (!started.ok) {
+            toast(started.message);
+            return;
+        }
+        inputSessionId = started.value.id;
+        inputModeDraft = started.value.mode;
+        await refresh();
+    });
+    document.querySelectorAll<HTMLElement>('[data-input-open]').forEach(b => b.onclick = async () => {
+        inputSessionId = b.dataset.inputOpen!;
+        inputModeDraft = null;
+        render();
+    });
+    document.querySelectorAll<HTMLElement>('[data-input-library]').forEach(b => b.onclick = async () => {
+        const result = await inputActions.saveLibraryAction(data, b.dataset.inputLibrary!);
+        toast(result.ok ? '已收藏到 Library（收藏不等于看完）' : result.message);
+        await refresh();
+    });
+    document.querySelectorAll<HTMLElement>('[data-library-source]').forEach(b => b.onclick = async () => {
+        const sourceId = b.dataset.librarySource;
+        if (!sourceId)
+            return;
+        const mode = suggestMode({ energy: inputEnergy(), unitDay: activeUnitInData()?.dayIndex ?? null });
+        const source = inputSourceById(sourceId);
+        const minutes = planInputMinutes({ availableMinutes: inputBudgetMinutes(), durationMinutes: source?.durationMinutes ?? 0, mode }).watchMinutes;
+        const started = await inputActions.startInputAction(data, { sourceId, mode, minutes, miniUnitId: activeUnitInData()?.id ?? null });
+        if (!started.ok) {
+            toast(started.message);
+            return;
+        }
+        inputSessionId = started.value.id;
+        inputModeDraft = started.value.mode;
+        await refresh();
+    });
+    document.querySelectorAll<HTMLElement>('[data-library-archive]').forEach(b => b.onclick = async () => {
+        const result = await inputActions.archiveLibraryAction(data, b.dataset.libraryArchive!);
+        toast(result.ok ? '已归档（材料与学习记录都保留）' : result.message);
+        await refresh();
+    });
+    document.querySelectorAll<HTMLElement>('[data-library-delete]').forEach(b => b.onclick = async () => {
+        if (!confirm('从 Library 删除这条收藏？材料本身与已有学习记录不会被删除。'))
+            return;
+        await inputActions.deleteLibraryAction(b.dataset.libraryDelete!);
+        await refresh();
+    });
+    on('#input-search', 'input', e => {
+        inputFilterState.search = (e.target as HTMLInputElement).value;
+        render();
+    });
+    on('#input-status', 'change', e => {
+        inputFilterState.status = (e.target as HTMLSelectElement).value;
+        render();
+    });
+    on('#input-captions', 'change', e => {
+        inputFilterState.captions = (e.target as HTMLSelectElement).value;
+        render();
+    });
+    on('#input-type', 'change', e => {
+        inputFilterState.contentType = (e.target as HTMLSelectElement).value;
+        render();
+    });
+    on('[data-input-goto-interest]', 'click', () => setPage('unit'));
+}
+function bindInputSession(session: NonNullable<ReturnType<typeof inputSessionById>>, source: ReturnType<typeof inputSourceById>, transcript: ReturnType<typeof data.transcripts.find>): void {
+    const refresh = () => void unitRefresh();
+    const rev = () => inputSessionById(session.id)?.revision ?? session.revision;
+    const caption = (id: string) => (document.querySelector<HTMLSelectElement>(id)?.value ?? 'none') as CaptionMode;
+    on('[data-input-back]', 'click', () => { inputSessionId = null; inputModeDraft = null; render(); });
+    on('[data-input-mark-open]', 'click', async () => {
+        const lib = data.libraryItems.find(i => i.sourceId === session.sourceId);
+        if (lib)
+            await inputActions.markOpenedAction(data, lib.id);
+        toast('已记录“打开过”。这不算看完，也不产生任何能力证据。');
+        await refresh();
+    });
+    on('[data-baseline-save]', 'click', async () => {
+        const comprehension = Number(document.querySelector<HTMLInputElement>('#baseline-comprehension')?.value ?? 0) / 100;
+        const watched = Number(document.querySelector<HTMLInputElement>('#baseline-minutes')?.value ?? 0);
+        const blocker = document.querySelector<HTMLInputElement>('#baseline-blocker')?.value ?? '';
+        const result = await inputActions.baselineAction(session.id, rev(), { captionMode: caption('#baseline-caption'), comprehension, blocker, watchedMinutes: watched });
+        toast(result.ok ? '冷测已记录（这是自报基线，不是能力分数）' : result.message);
+        await refresh();
+    });
+    on('[data-baseline-skip]', 'click', async () => {
+        const result = await inputActions.baselineAction(session.id, rev(), { captionMode: 'none', comprehension: null, skipped: true });
+        toast(result.ok ? '已跳过冷测，记录为 no_baseline' : result.message);
+        await refresh();
+    });
+    document.querySelectorAll<HTMLElement>('[data-mode]').forEach(b => b.onclick = () => {
+        inputModeDraft = b.dataset.mode as InputMode;
+        render();
+    });
+    on('[data-session-pause]', 'click', async () => {
+        const r = await inputActions.sessionAction(session.id, rev(), 'pause');
+        toast(r.ok ? '已暂停，可以稍后继续' : r.message);
+        await refresh();
+    });
+    on('[data-session-resume]', 'click', async () => {
+        const r = await inputActions.sessionAction(session.id, rev(), 'resume');
+        toast(r.ok ? '已继续' : r.message);
+        await refresh();
+    });
+    on('[data-session-abandon]', 'click', async () => {
+        if (!confirm('放弃这次输入？已填写的复盘不会当作完成证据。'))
+            return;
+        const r = await inputActions.sessionAction(session.id, rev(), 'abandon');
+        toast(r.ok ? '已放弃这次输入' : r.message);
+        await refresh();
+    });
+    on('[data-refl-save]', 'click', async () => {
+        const mode = (inputModeDraft ?? session.mode) as InputMode;
+        const watchedRaw = document.querySelector<HTMLInputElement>('#refl-watched')?.value ?? '';
+        const payload = {
+            mode,
+            captionMode: caption('#refl-caption'),
+            comprehension: Number(document.querySelector<HTMLInputElement>('#refl-comprehension')?.value ?? 0) / 100,
+            notes: document.querySelector<HTMLInputElement>('#refl-notes')?.value ?? '',
+            difficultyReasons: [...document.querySelectorAll<HTMLInputElement>('[data-reason]:checked')].map(i => i.dataset.reason!),
+            reportedWatchedMinutes: watchedRaw ? Number(watchedRaw) : null,
+            summary: document.querySelector<HTMLTextAreaElement>('#refl-summary')?.value,
+            mainIdea: document.querySelector<HTMLInputElement>('#refl-main')?.value,
+            keyPoints: (document.querySelector<HTMLTextAreaElement>('#refl-points')?.value ?? '').split('\n').map(x => x.trim()).filter(Boolean),
+            opinion: document.querySelector<HTMLInputElement>('#refl-opinion')?.value,
+            retelling: document.querySelector<HTMLTextAreaElement>('#refl-retelling')?.value,
+        };
+        const r = await inputActions.reflectionAction(session.id, rev(), payload);
+        toast(r.ok ? '复盘已保存（原文保留；不做无依据的内容评分）' : r.message);
+        await refresh();
+    });
+    on('[data-session-complete]', 'click', async () => {
+        const r = await inputActions.sessionAction(session.id, rev(), 'complete');
+        toast(r.ok ? '这次输入已完成：只记录曝光与自评，不会自动提高能力' : r.message);
+        await refresh();
+    });
+    on('[data-transcript-import]', 'click', async () => {
+        const raw = document.querySelector<HTMLTextAreaElement>('#transcript-raw')?.value ?? '';
+        const provenance = (document.querySelector<HTMLSelectElement>('#transcript-provenance')?.value ?? 'user_supplied') as never;
+        const language = document.querySelector<HTMLSelectElement>('#transcript-language')?.value ?? 'en';
+        if (!raw.trim()) {
+            toast('请先选择文件或粘贴字幕内容。');
+            return;
+        }
+        const r = await inputActions.importTranscriptAction(data, { sourceId: session.sourceId, raw, provenance, language });
+        if (!r.ok) {
+            toast(r.message);
+            return;
+        }
+        toast(r.value.duplicate ? '这段字幕已经导入过，未重复保存。' : `字幕已导入：${r.value.transcript.cues.length} 条${r.value.warnings.length ? '（' + r.value.warnings[0] + '）' : ''}`);
+        await refresh();
+    });
+    const fileInput = document.querySelector<HTMLInputElement>('#transcript-file');
+    if (fileInput)
+        fileInput.onchange = () => {
+            const file = fileInput.files?.[0];
+            if (!file)
+                return;
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const text = String(reader.result ?? '');
+                const provenance = (document.querySelector<HTMLSelectElement>('#transcript-provenance')?.value ?? 'user_supplied') as never;
+                const language = document.querySelector<HTMLSelectElement>('#transcript-language')?.value ?? 'en';
+                const r = await inputActions.importTranscriptAction(data, { sourceId: session.sourceId, raw: text, fileName: file.name, provenance, language });
+                toast(r.ok ? (r.value.duplicate ? '这段字幕已经导入过。' : `已从 ${file.name} 导入 ${r.value.transcript.cues.length} 条字幕`) : r.message);
+                await refresh();
+            };
+            reader.readAsText(file, 'utf-8');
+        };
+    on('[data-transcript-reading]', 'click', async () => {
+        if (!transcript) {
+            toast('还没有字幕可送。');
+            return;
+        }
+        const r = await inputActions.sendTranscriptToReading(data, { sourceId: session.sourceId, transcriptId: transcript.id });
+        if (!r.ok) {
+            toast(r.message);
+            return;
+        }
+        await putItems('passages', [r.value]);
+        toast('已生成阅读材料（保留来源与字幕时间范围），去 Reading Lab 继续。');
+        await unitRefresh();
+        setPage('reading');
+    });
+    on('[data-transcript-sentences]', 'click', () => toast(transcript ? '难句候选在下方；送入句法练习时结构标记为“未验证”，不会伪造 gold parse。' : '没有字幕。'));
+    document.querySelectorAll<HTMLElement>('[data-sentence-pick]').forEach(b => b.onclick = async () => {
+        if (!transcript) {
+            toast('没有字幕。');
+            return;
+        }
+        const idx = Number(b.dataset.sentencePick);
+        const cands = sentenceCandidates(transcript, { limit: 6, minWords: 8 });
+        const cand = cands[idx];
+        if (!cand) {
+            toast('候选句已变化，请刷新。');
+            return;
+        }
+        const built = await inputActions.sendTranscriptToReading(data, { sourceId: session.sourceId, transcriptId: transcript.id });
+        if (!built.ok) {
+            toast(built.message);
+            return;
+        }
+        await putItems('passages', [built.value]);
+        const { record } = transcriptSentenceRecord({ passage: built.value, candidate: cand });
+        await putItems('sentences', [record]);
+        toast('已送入句法练习（结构未验证，仅引导练习）。');
+        await unitRefresh();
+    });
+}
+
 // ===== Phase 7：Mini Unit 页面（逻辑在 miniUnit*.ts，这里只做绑定）=====
 let unitCustomTopic = '';
 let unitSummaryDraft = '';
@@ -892,6 +1196,7 @@ function planInput(minutes: number, energy: EnergyState): PlannerInput {
             miniUnit: data.miniUnits.find(u => u.status === 'active') ?? null,
         } : null,
         readingInput: data.passages.length ? { passages: data.passages, sessions: data.readingSessions } : null,
+        inputInput: data.inputSources.length ? { sources: data.inputSources, sessions: data.inputSessions } : null,
     };
 }
 function energyLabel(e: EnergyState) { return e === 'low' ? '状态差' : e === 'good' ? '状态好' : '正常'; }
@@ -1173,8 +1478,9 @@ async function regeneratePlan(minutes: number, energy: EnergyState) {
     if (!todayPlan || planBusy)
         return;
     const spent = planProgress(todayPlan).doneMinutes;
-    if (!Number.isFinite(minutes) || minutes < spent) {
-        toast(`新的总预算不能小于已投入的 ${spent} 分钟`);
+    const floor = Math.max(spent, PLANNER_CONFIG.budget.min);
+    if (!Number.isFinite(minutes) || minutes < floor) {
+        toast(`新的总预算不能小于 ${floor} 分钟${spent ? `（已投入 ${spent} 分钟）` : ''}`);
         return;
     }
     planBusy = true;
@@ -1763,6 +2069,65 @@ function installTestHook(): void {
             await saveSettings(s);
             data.settings = s;
             return 'saved';
+        },
+    };
+    // Phase 8 验收钩子：真实 IndexedDB + 真实 UI 路径；只读/可控写入，不伪造证据
+    (window as unknown as Record<string, unknown>).__inputTest = {
+        async snapshot() {
+            const d = await loadData();
+            return {
+                sources: d.inputSources.map(x => ({ id: x.id, title: x.title, topic: x.topic, provider: x.provider, verification: x.verificationStatus, transcript: x.transcriptRef ?? '', difficulty: x.difficultyEstimate, basis: x.difficultyBasis })),
+                sessions: d.inputSessions.map(x => ({ id: x.id, sourceId: x.sourceId, status: x.status, hasReflection: !!x.reflection, mode: x.reflection?.mode ?? x.mode, watched: x.reportedWatchedMinutes ?? 0, caption: x.reflection?.captionMode ?? x.captionMode, baseline: x.baseline?.status ?? 'none', unit: x.miniUnitId ?? '', revision: x.revision ?? 1 })),
+                transcripts: d.transcripts.map(x => ({ id: x.id, sourceId: x.sourceId, cues: x.cues.length, timed: x.timed, provenance: x.provenance, language: x.language })),
+                library: d.libraryItems.map(x => ({ id: x.id, sourceId: x.sourceId ?? '', status: x.status, completion: x.completion ?? 0 })),
+                evidence: d.inputEvidence.map(x => ({ sessionId: x.sessionId, type: x.evidenceType, confidence: x.confidence })),
+                passages: d.passages.map(p => ({ id: p.id, inputSourceId: p.sourceMetadata?.inputSourceId ?? '', transcriptId: p.sourceMetadata?.transcriptId ?? '' })),
+                sentences: d.sentences.length,
+                plans: d.dailyPlans.map(p => ({ date: p.date, input: p.initialPlan.filter(t => t.module === 'input').length })),
+            };
+        },
+        async recommendations() {
+            const d = await loadData();
+            const profile = normalizeProfile(d.settings.interests, Date.now());
+            const rec = recommendInputs({ data: d, profile, signals: inputActivitySignals(d, Date.now()), now: Date.now(), availableMinutes: 30, energy: 'normal' });
+            return { note: rec.note, target: rec.target, candidates: rec.candidates.map(c => ({ sourceId: c.sourceId, topic: c.topic, reasonKind: c.reasonKind, reasonTag: c.reasonTag, exploration: c.exploration, repeat: c.repeat, difficulty: c.difficulty.estimate, facts: c.facts })) };
+        },
+        async analytics() { return inputAnalytics(await loadData(), Date.now()); },
+        async candidates(sourceId: string) {
+            const d = await loadData();
+            const t = d.transcripts.find(x => x.sourceId === sourceId);
+            if (!t)
+                return { cues: [], candidates: [] };
+            return { cues: t.cues.map(c => ({ text: c.text, words: c.text.trim().split(/\s+/).length })), candidates: sentenceCandidates(t, { limit: 6, minWords: 8 }).map(c => c.text) };
+        },
+        async backupJson() { return backup(await loadData()); },
+        async restoreJson(text: string) {
+            const parsed = validateBackup(JSON.parse(text));
+            await replaceData(parsed);
+            data = await loadData();
+            reindex();
+            render();
+            return { ok: true, words: data.words.length, interests: data.settings.interests?.topics.length ?? 0, sources: data.inputSources.length };
+        },
+        async start(sourceId: string, mode: 'light' | 'standard' | 'deep' = 'standard', minutes = 12, unitId: string | null = null) {
+            const r = await inputActions.startInputAction(await loadData(), { sourceId, mode, minutes, miniUnitId: unitId });
+            return r.ok ? { ok: true, id: r.value.id } : { ok: false, message: r.message };
+        },
+        async reflect(id: string, payload: Record<string, unknown>) {
+            const d = await loadData();
+            const s = d.inputSessions.find(x => x.id === id);
+            if (!s)
+                return { ok: false, message: 'missing' };
+            const r = await inputActions.reflectionAction(id, s.revision, payload as never);
+            return r.ok ? { ok: true, revision: r.value.revision, completion: r.value.reflection?.completion ?? 0 } : { ok: false, message: r.message };
+        },
+        async complete(id: string) {
+            const d = await loadData();
+            const s = d.inputSessions.find(x => x.id === id);
+            if (!s)
+                return { ok: false, message: 'missing' };
+            const r = await inputActions.sessionAction(id, s.revision, 'complete');
+            return r.ok ? { ok: true, status: r.value.status } : { ok: false, message: r.message };
         },
     };
     // OCR 验收钩子：只暴露“跑一次识别 / 释放”，不改学习证据；用于失败注入与超时验证

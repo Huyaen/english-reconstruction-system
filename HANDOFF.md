@@ -1,19 +1,19 @@
 
-# HANDOFF — Phase 7 → Phase 8（2026-10-20）
+# HANDOFF — Phase 8 → Phase 9（2026-10-21）
 
-**下一阶段：Phase 8 — Real Input Hub（本阶段只做准备，不实现）**
+**Phase 8（Real Input Hub）已交付并推送。下一阶段由用户指定（`STATE.next_task_id = await_user_phase9_directive`）。**
 
 ## 1. 当前工程状态
 
 | 项 | 值 |
 | --- | --- |
-| 根目录 | `D:\英语重构训练ocabulary-app` |
+| 根目录 | `D:\英语重构训练\vocabulary-app` |
 | 分支 | `main` |
-| DB 版本 | **v5**（Phase 7 未新增 store/索引；MiniUnit 新字段全部可选，无需迁移） |
-| 测试 | **208/208**（`npm test`） |
+| DB 版本 | **v6**（Phase 8 新增 `inputSources` / `inputSessions` / `libraryItems` / `transcripts` / `inputEvidence`） |
+| 测试 | **275/275**（`npm test`） |
 | 类型检查 | `tsc --noEmit` 0 error |
 | 构建 | `npm run build` / `build:test` 通过；生产包测试钩子 0 |
-| 浏览器验收 | Phase 7 **33/33**、Phase 6 31/31、Phase 5.1 26/26、Phase 5 44/44、Phase 4 36/36、Phase 3 21/21 |
+| 浏览器验收 | Phase 8 **34/34**、兴趣 19/19、Phase 7 33/33、Phase 6 31/31、Phase 5.1 26/26、Phase 5 44/44、Phase 4 36/36、Phase 3 21/21 |
 | 远程 | `Huyaen/english-reconstruction-system`（Private），HEAD 与 CI 见 §9 |
 
 ## 2. Mini Unit API（Phase 8 直接复用）
@@ -109,19 +109,25 @@ pauseUnit / resumeUnit / extendUnit / abandonUnit / finishUnit / recordBaseline 
 - 测试钩子：`window.__unitTest.profile() / recommendations() / saveProfile()`（仅 testhooks 构建）。
 - 规格与验收：`docs/PHASE8_DYNAMIC_INTEREST.md`（L1–L10 / AC1–AC12）。**Input Hub 必须复用同一套理由分类，不得另造推荐逻辑。**
 
-## 10. Phase 8（Real Input Hub）接入点
+## 10. Phase 8（Real Input Hub）— 已交付
 
-- 输入材料必须落到 `passages`（`sourceType` 扩展时同步 `provenanceOf` 映射），否则 Mini Unit 无法把它当 Anchor；
-- 视频/媒体输入：`InputSource` / `InputSession` store 已存在但能力未实现，**不得**在 Unit 中提供假任务；接入后注册 capability 再让 Planner 排任务；
-- 真实 URL 抓取要走 Phase 5 的 `buildUrlDraft` + 可达性校验，失败标 `unverified`，不要凭标题生成正文；
-- 版税/版权：不要把整篇外部文章落入内置资源。
+规格：`docs/PHASE8_REAL_INPUT_HUB.md`（L1–L12 + AC1–AC14）。
 
+- 数据：DB v6，5 个新 store；旧 store 与旧数据不变。
+- 纯逻辑模块：`inputUrl` / `transcript` / `inputSource` / `inputLibrary` / `inputReflection` / `inputSession` /
+  `inputEvidence` / `inputRecommendation` / `inputHandoff` / `inputDifficulty` / `inputStore` / `inputActions` /
+  `inputView` / `inputPlanner`。
+- 不变量：新材料 `unverified`；无英文 transcript 时 `difficulty=null`；字幕 provenance 不升级；
+  观看时长只算曝光；证据无“听力分数”；`complete` 必须先复盘；revision 并发保护；证据幂等键 `sessionId:type`。
+- 与既有模块的边界：字幕 → Phase 5 `Passage`（保留来源/时间范围）；难句 → Phase 4 句库（`structureProvenance='none'`）；
+  任务排布仍由 Phase 3 Planner 决定；推荐与 Mini Unit 共用一份兴趣画像。
+- 已知边界：不抓取平台内容、不做站内播放、不做音频转写、推荐为规则排序而非语义推荐。
 ## 11. 下一条精确操作
 
-1. 读 `STATE.json`（`next_task_id=phase8_real_input_hub_013`）与 `docs/PHASE7_MINI_UNIT.md`；
-2. 核对 `git log -1`、remote SHA、CI 结论；
-3. Phase 8 第一步：定义 Input Hub 的数据契约（`InputSource`/`InputSession` 现有字段能否承载视频/字幕/时间轴），再决定是否升 DB v6。
-
+1. 读 `STATE.json`：`current_phase=phase_8_real_input_hub`、`next_task_id=await_user_phase9_directive`；
+2. 核对 `git log -1`、remote SHA 与 CI 结论（本阶段最后一次推送见交付报告）；
+3. **等用户指定 Phase 9**。不要自动开始下一阶段；若要扩展输入域，先读
+   `docs/PHASE8_REAL_INPUT_HUB.md` §15「诚实边界」，避免把“不抓取/不转写”当成已实现。
 
 # HANDOFF — 换模型 / 换会话所需最小上下文
 
@@ -179,8 +185,8 @@ Phase 7（`phase7_mini_unit_012`）已 passed：跨学习日的 Mini Unit 状态
 
 ## What remains
 
-Phase 8 主体（Real Input Hub，`phase8_real_input_hub_013`）→ Phase 9–13。
-Phase 8 的兴趣画像子任务已完成，后续推荐逻辑不得另起一套。
+Phase 9–13（尚未定义具体规格，等用户指示）。
+Phase 8 主体（Real Input Hub）与兴趣画像子任务均已完成；后续推荐逻辑不得另起一套兴趣系统。
 
 ## Last verified build
 
@@ -200,6 +206,8 @@ Phase 8 的兴趣画像子任务已完成，后续推荐逻辑不得另起一套
 - 未验收项（TODO P1）：真实供应商 AI 调用；真机移动端。
 
 ## Files currently being modified
+
+无（工作区待提交内容已随 Phase 8 交付提交）。
 
 无。
 

@@ -147,6 +147,12 @@ export interface TopicSignal {
     imports: number;
     unitActive: boolean;
     unitCompleted: number;
+    /** Phase 8：完成的真实输入 Session 数（比收藏更有证据价值） */
+    inputs: number;
+    /** Phase 8：开始过但未完成的输入（弱信号：打开 ≠ 看完） */
+    inputStarted: number;
+    /** Phase 8：仅收藏（保存 ≠ 完成输入） */
+    saved: number;
     lastAt: number;
     /** 0–1，按时间衰减并封顶 */
     weight: number;
@@ -159,6 +165,15 @@ export interface ActivitySignals {
 }
 const dayMs = 86400000;
 const decay = (at: number, now: number) => Math.exp(-Math.max(0, now - at) / (DECAY_DAYS * dayMs));
+/** 行为信号权重集中配置（改动必须同时改测试；保持既有 0.4 / 0.15 / 0.3 不变） */
+export const SIGNAL_WEIGHTS = {
+    read: 0.4,
+    import: 0.15,
+    unitCompleted: 0.3,
+    inputCompleted: 0.5,
+    inputStarted: 0.15,
+    saved: 0.1,
+} as const;
 /** 近期行为信号：只用于排序与解释，绝不写回 profile */
 export function activitySignals(data: Data, now = Date.now(), opts: {
     windowDays?: number;
@@ -173,13 +188,16 @@ export function activitySignals(data: Data, now = Date.now(), opts: {
     const bump = (key: string, patch: Partial<TopicSignal>) => {
         if (!key)
             return;
-        const row = map.get(key) ?? { key, reads: 0, imports: 0, unitActive: false, unitCompleted: 0, lastAt: 0, weight: 0 };
+        const row = map.get(key) ?? { key, reads: 0, imports: 0, unitActive: false, unitCompleted: 0, inputs: 0, inputStarted: 0, saved: 0, lastAt: 0, weight: 0 };
         map.set(key, {
             ...row,
             reads: row.reads + (patch.reads ?? 0),
             imports: row.imports + (patch.imports ?? 0),
             unitActive: row.unitActive || !!patch.unitActive,
             unitCompleted: row.unitCompleted + (patch.unitCompleted ?? 0),
+            inputs: row.inputs + (patch.inputs ?? 0),
+            inputStarted: row.inputStarted + (patch.inputStarted ?? 0),
+            saved: row.saved + (patch.saved ?? 0),
             lastAt: Math.max(row.lastAt, patch.lastAt ?? 0),
         });
     };
@@ -201,6 +219,26 @@ export function activitySignals(data: Data, now = Date.now(), opts: {
         bump(keyOf(p), { imports: 1, lastAt: at });
         sample++;
     }
+    // Phase 8：真实输入（完成 Session 权重大于收藏/开始；保存 ≠ 完成输入）
+    const sourceById = new Map((data.inputSources ?? []).map(x => [x.id, x]));
+    for (const s of data.inputSessions ?? []) {
+        const at = s.completedAt ?? s.startedAt ?? s.createdAt ?? 0;
+        if (at < since)
+            continue;
+        const src = sourceById.get(s.sourceId);
+        const key = keyOf(src ?? { topic: s.topic, title: s.title });
+        if (s.status === 'completed')
+            bump(key, { inputs: 1, lastAt: at });
+        else if (s.status !== 'abandoned')
+            bump(key, { inputStarted: 1, lastAt: at });
+        sample++;
+    }
+    for (const item of data.libraryItems ?? []) {
+        if ((item.savedAt ?? 0) < since)
+            continue;
+        bump(keyOf({ topic: item.topic, title: item.title }), { saved: 1, lastAt: item.savedAt });
+        sample++;
+    }
     for (const u of data.miniUnits) {
         const at = u.updatedAt ?? u.startedAt ?? 0;
         if (at < since)
@@ -211,7 +249,7 @@ export function activitySignals(data: Data, now = Date.now(), opts: {
     }
     const topics = [...map.values()].map(t => ({
         ...t,
-        weight: Math.min(1, decay(t.lastAt || now, now) * (t.unitActive ? 1 : 0.8) * (t.reads * 0.4 + t.imports * 0.15 + t.unitCompleted * 0.3 + (t.unitActive ? 0.6 : 0))),
+        weight: Math.min(1, decay(t.lastAt || now, now) * (t.unitActive ? 1 : 0.8) * (t.reads * SIGNAL_WEIGHTS.read + t.imports * SIGNAL_WEIGHTS.import + t.unitCompleted * SIGNAL_WEIGHTS.unitCompleted + t.inputs * SIGNAL_WEIGHTS.inputCompleted + t.inputStarted * SIGNAL_WEIGHTS.inputStarted + t.saved * SIGNAL_WEIGHTS.saved + (t.unitActive ? 0.6 : 0))),
     })).filter(t => t.weight > 0.01).sort((a, b) => b.weight - a.weight);
     return { topics, sufficient: sample >= 3, sampleSize: sample };
 }

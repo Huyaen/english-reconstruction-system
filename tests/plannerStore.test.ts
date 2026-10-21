@@ -105,14 +105,14 @@ test('备份兼容：Phase 3 计划字段可往返导出/校验，旧计划形�
     await replaceData(restored);
     assert.equal((await listPlans()).length, 2);
 });
-test('IndexedDB 版本在 Phase 4 additive 提升到 v4（dailyPlans 仍复用 v3 的 store/index）', async () => {
+test('IndexedDB 版本 additive 提升到 DB_VERSION（v4 sentences / v5 ai / v6 字幕与输入证据；旧 store 不变）', async () => {
     await freshDB();
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
         const r = indexedDB.open(DB_NAME);
         r.onsuccess = () => resolve(r.result);
         r.onerror = () => reject(r.error);
     });
-    assert.equal(db.version, 5);
+    assert.equal(db.version, 6);
     const tx4 = db.transaction('sentences');
     assert.equal(tx4.objectStore('sentences').keyPath, 'id');
     assert.ok(tx4.objectStore('sentences').indexNames.contains('grammarTags'));

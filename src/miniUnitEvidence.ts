@@ -108,6 +108,10 @@ export function collectUnitEvidence(data: Data, unit: MiniUnit): UnitEvidenceSum
     // —— 计划 / 生成 ——
     const planDays = data.dailyPlans.filter(p => p.miniUnitId === unit.id).map(p => p.date);
     const generations = data.aiGenerations.filter(g => g.sourceMetadata?.miniUnitId === unit.id).map(g => g.id);
+    // Phase 8：真实媒体输入只作为 exposure，绝不进入 transfer / 掌握判定
+    const media = (data.inputSessions ?? []).filter(s => s.miniUnitId === unit.id && s.status === 'completed' && after(s.completedAt ?? 0, since));
+    const mediaSessions = media.map(s => s.id);
+    const mediaMinutes = Math.round(media.reduce((n, s) => n + (s.reportedWatchedMinutes ?? 0), 0));
     const supportReduction = unit.dayHistory?.length
         ? 1 - (['high', 'medium', 'low'].indexOf(unit.dayHistory[unit.dayHistory.length - 1].supportLevel) / 2)
         : 0;
@@ -129,6 +133,8 @@ export function collectUnitEvidence(data: Data, unit: MiniUnit): UnitEvidenceSum
         supportReduction: Math.round(supportReduction * 100) / 100,
         translationDependence: Math.round(translationDependence * 100) / 100,
         obstacles: [...new Set(obstacles)].slice(0, 6),
+        mediaSessions,
+        mediaMinutes,
         refs,
     };
 }

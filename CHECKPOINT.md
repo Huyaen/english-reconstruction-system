@@ -440,3 +440,24 @@ AI 句生成、外部语料 / 阅读 handoff、Mini Diagnostic 非词汇子测�
 - 存储：`Settings.interests`（可选字段），DB 仍为 v5，无迁移；重置保留计数。
 - 验收：单测 221/221（新增 13）；浏览器 `scripts/phase8-interest-smoke.mjs` **19/19**；回归 phase7 33/33、phase6 31/31、5.1 26/26、5 44/44、4 36/36、3 21/21；tsc 0；生产包无测试钩子。
 - 纪律：行为信号只读不写回；显式偏好优先；兴趣≠能力；无材料/无行为时如实说明。
+
+## 2026-10-21T20:45:00+08:00 — Phase 8 主体：Real Input Hub
+
+**交付**：`docs/PHASE8_REAL_INPUT_HUB.md`（L1–L12 长期规格 + AC1–AC14 验收标准）。
+
+**数据层**：DB 升至 **v6**（additive only）。新增 `inputSources` / `inputSessions` / `libraryItems` / `transcripts` / `inputEvidence`；旧 store 与旧数据不变，`validateBackup` 白名单自动跟随 `DB_VERSION`。
+
+**核心不变量**：
+- 新材料的 `verificationStatus` 恒为 `unverified`；没有英文 transcript 时 `difficultyEstimate = null`（不按标题/封面猜难度）。
+- 字幕 provenance 原样保留，`user_supplied` 永不升级为 `official_subtitle`；时间轴不可靠时报错/警告，不“修复”。
+- 会话 `created → active → paused → reflection → completed`，非终态可 `abandoned`；`complete` 必须先有复盘；每次成功转换 `revision+1`，写入带 `expectedRevision`（并发只有一个成功）。
+- 观看时长只有自报（exposure）；证据只有 5 类，**没有“听力分数”**；幂等键 `sessionId:type`，并发完成不翻倍。
+- 字幕 → Reading 复用 Phase 5 `Passage`（保留 `inputSourceId`/`transcriptId`/时间范围）；难句 → 句库，`structureProvenance='none'`。
+- Planner 时间预算优先：只排装得进剩余时间的片段；无材料不生成输入任务、不伪造推荐。
+
+**真实缺陷修复**：
+1. `validateBackup` 的 model-store id 正则只允许 `[a-zA-Z0-9_-]`，而默认句库 id 含 `.`、输入证据键含 `:` → 导出后无法恢复。已放宽为 `[a-zA-Z0-9._:-]`，并加 `tests/backupV6.test.ts` 锁死两条路径。
+2. UI 难句候选沿用 12 词阈值，短字幕行永远为空 → 改 8 词并显示候选条数。
+3. DB 升 v6 打穿 `plannerStore`（写死 v4）、`plannerUi`（预算/能力断言）、phase3 能力门控文案 → 全部改为跟随常量与当前能力。
+
+**验收**：单测 **275/275**；Phase 8 浏览器冒烟 **34/34**（A 兴趣接入 / B 画像外材料 / C 冷测+Standard 复盘 / D Light-Deep / E 字幕交接 / F 单元仅曝光 / G Planner 任务 / H 无材料不造假 / I 兴趣同步 / J 无 AI Key 可用 / K 并发幂等 / L 备份恢复）；回归 33/33、31/31、26/26、44/44、36/36、21/21；tsc 0；生产包钩子 0。
