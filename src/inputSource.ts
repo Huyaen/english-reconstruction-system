@@ -6,9 +6,16 @@
 //  * 重复材料按规范化 URL / 同平台 videoId 判定，不静默覆盖。
 import type { InputContentType, InputSource, InputSubtitleStatus } from './types.ts';
 import { contentTypeOf, parseInputUrl, sameInputTarget } from './inputUrl.ts';
-
 export type SourceErrorCode = 'empty-title' | 'empty-topic' | 'invalid-url' | 'unsafe-url' | 'duplicate' | 'invalid-duration' | 'invalid-kind';
-export type SourceResult = { ok: true; source: InputSource } | { ok: false; code: SourceErrorCode; message: string; existingId?: string };
+export type SourceResult = {
+    ok: true;
+    source: InputSource;
+} | {
+    ok: false;
+    code: SourceErrorCode;
+    message: string;
+    existingId?: string;
+};
 export interface CreateSourceInput {
     title: string;
     url: string;

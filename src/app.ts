@@ -615,7 +615,6 @@ function deleteBookDialog() {
         render();
     });
 }
-
 // ===== Phase 9：Output Lab（逻辑在 output*.ts，这里只做绑定）=====
 let outputAttemptId: string | null = null;
 let outputSelectedType = null as import('./types.ts').OutputTaskType | null;
@@ -625,8 +624,11 @@ let outputHintCache: ReturnType<typeof buildSupportHint> | null = null;
 let outputMessage = '';
 let outputSaveTimer: ReturnType<typeof setTimeout> | undefined;
 let outputCandidates: ReturnType<typeof selectOutputTasks>['candidates'] = [];
-let outputHandoffSeed: { text: string; task: import('./types.ts').OutputTaskSpec; inputSessionId: string | null } | null = null;
-
+let outputHandoffSeed: {
+    text: string;
+    task: import('./types.ts').OutputTaskSpec;
+    inputSessionId: string | null;
+} | null = null;
 function outputMinutesNow(): number {
     return Math.max(5, Math.min(60, todayPlan?.availableMinutes ?? planBudget ?? 20));
 }
@@ -688,10 +690,12 @@ function bindOutputHub(): void {
         render();
     });
     on('#out-topic', 'change', (e) => { outputTopicDraft = (e.target as HTMLInputElement).value; render(); });
-    on('#out-use-suggestion', 'click', () => { if (outputCandidates[0]) void startOutputTask(outputCandidates[0]); });
+    on('#out-use-suggestion', 'click', () => { if (outputCandidates[0])
+        void startOutputTask(outputCandidates[0]); });
     document.querySelectorAll<HTMLElement>('[data-out-start]').forEach(b => b.onclick = () => {
         const t = outputCandidates.find(x => x.id === b.dataset.outStart);
-        if (t) void startOutputTask(t);
+        if (t)
+            void startOutputTask(t);
     });
     document.querySelectorAll<HTMLElement>('[data-out-open]').forEach(b => b.onclick = () => {
         outputAttemptId = b.dataset.outOpen ?? null;
@@ -703,7 +707,10 @@ function bindOutputHub(): void {
         const [kind, id] = (b.dataset.outHandoff ?? '').split(':');
         if (kind === 'input') {
             const h = handoutFromInput(data, id!);
-            if (!h.ok) { toast(h.message); return; }
+            if (!h.ok) {
+                toast(h.message);
+                return;
+            }
             outputHandoffSeed = { text: h.value.text, task: h.value.task, inputSessionId: id! };
             void startOutputTask(h.value.task, h.value.text, id!);
         }
@@ -723,7 +730,10 @@ function bindOutputHub(): void {
 async function startOutputTask(task: import('./types.ts').OutputTaskSpec, initialDraft = '', inputSessionId: string | null = null, readingSessionId: string | null = null, miniUnitId: string | null = null): Promise<void> {
     const linkedUnit = miniUnitId ?? (task.sourceType === 'mini_unit' ? task.sourceId : null);
     const created = await createOutputAttempt({ task, initialDraft, inputSessionId, readingSessionId, miniUnitId: linkedUnit, sourceProvenance: initialDraft ? 'user_text+input_summary' : 'user_text' });
-    if (!created.ok) { toast(created.message); return; }
+    if (!created.ok) {
+        toast(created.message);
+        return;
+    }
     outputAttemptId = created.value.id;
     outputHintLevel = null;
     outputHintCache = null;
@@ -753,20 +763,28 @@ function bindOutputSession(attempt: import('./types.ts').OutputAttempt): void {
             return;
         const text = editor.value;
         const r = await saveDraft(attempt.id, attempt.revision, text);
-        if (r.ok) { outputMessage = ''; data = await loadData(); }
-        else outputMessage = r.message;
+        if (r.ok) {
+            outputMessage = '';
+            data = await loadData();
+        }
+        else
+            outputMessage = r.message;
     };
     if (editor) {
         editor.oninput = () => {
             const c = document.querySelector('#out-count');
-            if (c) c.textContent = `${outputWords(editor.value)} words`;
+            if (c)
+                c.textContent = `${outputWords(editor.value)} words`;
             const st = document.querySelector('#out-save-state');
-            if (st) st.textContent = '保存中…';
-            if (outputSaveTimer) clearTimeout(outputSaveTimer);
+            if (st)
+                st.textContent = '保存中…';
+            if (outputSaveTimer)
+                clearTimeout(outputSaveTimer);
             outputSaveTimer = setTimeout(async () => {
                 await flush();
                 const s2 = document.querySelector('#out-save-state');
-                if (s2) s2.textContent = '已保存到本地';
+                if (s2)
+                    s2.textContent = '已保存到本地';
             }, 600);
         };
     }
@@ -779,7 +797,8 @@ function bindOutputSession(attempt: import('./types.ts').OutputAttempt): void {
         render();
     });
     on('#out-submit', 'click', async () => {
-        if (outputSaveTimer) clearTimeout(outputSaveTimer);
+        if (outputSaveTimer)
+            clearTimeout(outputSaveTimer);
         await flush();
         const text = editor?.value ?? '';
         const supportLevel = (outputHintLevel ?? 0) as import('./types.ts').OutputSupportLevel;
@@ -788,7 +807,10 @@ function bindOutputSession(attempt: import('./types.ts').OutputAttempt): void {
             support: attempt.support ?? emptySupport(text),
             hintsUsed: attempt.support?.requestedHints ?? [],
         });
-        if (!r.ok) { toast(r.message); return; }
+        if (!r.ok) {
+            toast(r.message);
+            return;
+        }
         const meaning = document.querySelector<HTMLInputElement>('#out-repair-meaning')?.value ?? '';
         const blocked = document.querySelector<HTMLInputElement>('#out-repair-blocked')?.value ?? '';
         if (attempt.task?.taskType === 'repair' && meaning.trim()) {
@@ -800,38 +822,53 @@ function bindOutputSession(attempt: import('./types.ts').OutputAttempt): void {
     });
     on('#out-feedback', 'click', async () => {
         const fresh = data.outputAttempts.find(a => a.id === attempt.id);
-        if (!fresh) return;
+        if (!fresh)
+            return;
         const r = await requestOutputFeedback(attempt.id, fresh.revision, {
             data,
             materialText: outputMaterial(fresh),
             grammarConceptIds: data.grammarConcepts.map(c => c.id),
             targetWordIds: (fresh.targetWords ?? []).map(en => data.words.find(w => w.en.toLowerCase() === en.toLowerCase())?.id).filter((x): x is string => !!x),
         });
-        if (!r.ok) { toast(r.message); return; }
+        if (!r.ok) {
+            toast(r.message);
+            return;
+        }
         outputMessage = r.value.message;
         await unitRefresh();
     });
     on('#out-revise', 'click', async () => {
         const fresh = data.outputAttempts.find(a => a.id === attempt.id);
-        if (!fresh || !rev) return;
+        if (!fresh || !rev)
+            return;
         const r = await reviseOutput(attempt.id, fresh.revision, rev.value, { suggestion: fresh.feedback?.upgrade?.suggested ?? null, supportLevel: (outputHintLevel ?? 0) as import('./types.ts').OutputSupportLevel });
-        if (!r.ok) { toast(r.message); return; }
+        if (!r.ok) {
+            toast(r.message);
+            return;
+        }
         outputMessage = '修改已保存。';
         await unitRefresh();
     });
     on('#out-finish', 'click', async () => {
         const fresh = data.outputAttempts.find(a => a.id === attempt.id);
-        if (!fresh) return;
+        if (!fresh)
+            return;
         const r = await finishOutput(attempt.id, fresh.revision, data);
-        if (!r.ok) { toast(r.message); return; }
+        if (!r.ok) {
+            toast(r.message);
+            return;
+        }
         outputMessage = '这次表达已完成。证据按独立性记录；照抄或完整示范不会算作独立掌握。';
         await unitRefresh();
     });
     on('#out-back', 'click', () => { outputAttemptId = null; outputHintLevel = null; outputMessage = ''; render(); });
     document.querySelectorAll<HTMLElement>('[data-out-transfer-start]').forEach(b => b.onclick = () => {
         const t = buildOutputTransfer(attempt.task!, { now: Date.now(), seed: attempt.id }).task;
-        void createOutputAttempt({ task: t, transferOf: attempt.id, sourceProvenance: 'user_text' }).then(async r => {
-            if (!r.ok) { toast(r.message); return; }
+        void createOutputAttempt({ task: t, transferOf: attempt.id, sourceProvenance: 'user_text' }).then(async (r) => {
+            if (!r.ok) {
+                toast(r.message);
+                return;
+            }
             outputAttemptId = r.value.id;
             outputHintLevel = null;
             outputMessage = '迁移任务：换一个语境，不看上次答案再表达一次。';
@@ -839,7 +876,6 @@ function bindOutputSession(attempt: import('./types.ts').OutputAttempt): void {
         });
     });
 }
-
 // ===== Phase 8：Real Input Hub（逻辑在 input*.ts，这里只做绑定）=====
 let inputSessionId: string | null = null;
 let inputModeDraft: InputMode | null = null;
@@ -1132,7 +1168,6 @@ function bindInputSession(session: NonNullable<ReturnType<typeof inputSessionByI
         await unitRefresh();
     });
 }
-
 // ===== Phase 7：Mini Unit 页面（逻辑在 miniUnit*.ts，这里只做绑定）=====
 let unitCustomTopic = '';
 let unitSummaryDraft = '';
@@ -2414,14 +2449,19 @@ function installTestHook(): void {
         async save(id: string, text: string) {
             const d = await loadData();
             const a = d.outputAttempts.find(x => x.id === id);
-            if (!a) return { ok: false, message: 'missing' };
+            if (!a)
+                return { ok: false, message: 'missing' };
             const r = await saveDraft(id, a.revision, text);
             return r.ok ? { ok: true, revision: r.value.revision } : { ok: false, message: r.message };
         },
-        async submit(id: string, text: string, level = 0, repair?: { meaning: string; blocked: string }) {
+        async submit(id: string, text: string, level = 0, repair?: {
+            meaning: string;
+            blocked: string;
+        }) {
             const d = await loadData();
             const a = d.outputAttempts.find(x => x.id === id);
-            if (!a) return { ok: false, message: 'missing' };
+            if (!a)
+                return { ok: false, message: 'missing' };
             const r = await submitOutputAttempt(id, a.revision, text, { supportLevel: level as never });
             if (!r.ok)
                 return { ok: false, message: r.message };
@@ -2434,7 +2474,8 @@ function installTestHook(): void {
         async feedback(id: string) {
             const d = await loadData();
             const a = d.outputAttempts.find(x => x.id === id);
-            if (!a) return { ok: false, message: 'missing' };
+            if (!a)
+                return { ok: false, message: 'missing' };
             const r = await requestOutputFeedback(id, a.revision, {
                 data: d, materialText: outputMaterial(a),
                 grammarConceptIds: d.grammarConcepts.map(c => c.id),
@@ -2445,21 +2486,24 @@ function installTestHook(): void {
         async revise(id: string, text: string) {
             const d = await loadData();
             const a = d.outputAttempts.find(x => x.id === id);
-            if (!a) return { ok: false, message: 'missing' };
+            if (!a)
+                return { ok: false, message: 'missing' };
             const r = await reviseOutput(id, a.revision, text, { suggestion: a.feedback?.upgrade?.suggested ?? null, supportLevel: (a.supportLevel ?? 0) as never });
             return r.ok ? { ok: true, revision: r.value.revision, kind: (r.value.revisions ?? []).slice(-1)[0]?.kind ?? '' } : { ok: false, message: r.message };
         },
         async finish(id: string) {
             const d = await loadData();
             const a = d.outputAttempts.find(x => x.id === id);
-            if (!a) return { ok: false, message: 'missing' };
+            if (!a)
+                return { ok: false, message: 'missing' };
             const r = await finishOutput(id, a.revision, d);
             return r.ok ? { ok: true, status: r.value.status, evidence: r.value.productiveEvidence?.length ?? 0, revision: r.value.revision } : { ok: false, message: r.message };
         },
         async transfer(id: string) {
             const d = await loadData();
             const a = d.outputAttempts.find(x => x.id === id);
-            if (!a || !a.task) return { ok: false, message: 'missing' };
+            if (!a || !a.task)
+                return { ok: false, message: 'missing' };
             const plan = buildOutputTransfer(a.task, { now: Date.now(), seed: a.id });
             const r = await createOutputAttempt({ task: plan.task, transferOf: a.id, sourceProvenance: 'user_text' });
             return r.ok ? { ok: true, id: r.value.id, topic: plan.task.topic, strength: plan.strength } : { ok: false, message: r.message };

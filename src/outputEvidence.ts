@@ -5,12 +5,10 @@
 //  * 同一 attempt + word 只写一条（幂等），并发/刷新不翻倍。
 import type { OutputAttempt, OutputFeedback, OutputRepairRecord, ProductiveEvidence, ProductiveEvidenceSource } from './types.ts';
 import type { IndependenceClass } from './outputScaffolding.ts';
-
 export interface EvidenceWord {
     id: string;
     en: string;
 }
-
 export interface ExtractInput {
     attemptId: string;
     text: string;
@@ -22,11 +20,9 @@ export interface ExtractInput {
     delayed?: boolean;
     now?: number;
 }
-
 export function evidenceKey(attemptId: string, wordId: string): string {
     return `${attemptId}:${wordId}`;
 }
-
 export function extractProductiveEvidence(input: ExtractInput): ProductiveEvidence[] {
     const now = input.now ?? Date.now();
     const text = String(input.text ?? '');
@@ -60,8 +56,11 @@ export function extractProductiveEvidence(input: ExtractInput): ProductiveEviden
     }
     return out;
 }
-
-export function findWord(text: string, en: string): { start: number; end: number; word: string } | null {
+export function findWord(text: string, en: string): {
+    start: number;
+    end: number;
+    word: string;
+} | null {
     const w = String(en ?? '').trim();
     if (!w)
         return null;
@@ -75,7 +74,6 @@ export function findWord(text: string, en: string): { start: number; end: number
     const word = m[2]!;
     return { start: start2, end: start2 + word.length, word };
 }
-
 /** 只覆盖规则变化：复数、过去式、进行时；不规则动词不猜（避免误判掌握） */
 function wordVariants(w: string): string[] {
     const base = w.toLowerCase();
@@ -102,14 +100,12 @@ function wordVariants(w: string): string[] {
 function escapeRe(s: string): string {
     return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
-
 export function sentenceAround(text: string, start: number, end: number): string {
     const before = Math.max(text.lastIndexOf('.', start), text.lastIndexOf('!', start), text.lastIndexOf('?', start));
     const candidates = [text.indexOf('.', end), text.indexOf('!', end), text.indexOf('?', end)].filter(i => i >= 0);
     const after = candidates.length ? Math.min(...candidates) : text.length;
     return text.slice(before + 1, after + 1).trim().slice(0, 240);
 }
-
 /** 证据 → 能力增量：独立/迁移/延迟更高；照抄与 AI 反馈不提升 */
 export function productiveDelta(e: ProductiveEvidence): number {
     if (e.copied)
@@ -123,16 +119,19 @@ export function productiveDelta(e: ProductiveEvidence): number {
             : e.evidenceSource === 'output_independent' ? 0.08 : 0.02;
     return base;
 }
-
 export interface WordScorePatch {
     productiveScore: number;
     productionEvidence: number;
     activeRecallScore: number;
     confidence: number;
 }
-
 /** 有界更新：单次最多 +0.12，总分封顶 0.95；出现新错误允许下降 */
-export function applyEvidenceScores(word: { productiveScore?: number; productionEvidence?: number; activeRecallScore?: number; exposureCount?: number }, evidence: ProductiveEvidence[], now = Date.now()): WordScorePatch {
+export function applyEvidenceScores(word: {
+    productiveScore?: number;
+    productionEvidence?: number;
+    activeRecallScore?: number;
+    exposureCount?: number;
+}, evidence: ProductiveEvidence[], now = Date.now()): WordScorePatch {
     let score = clamp(word.productiveScore ?? 0, 0, 0.95);
     let recall = clamp(word.activeRecallScore ?? 0, 0, 1);
     let count = Math.max(0, word.productionEvidence ?? 0);
@@ -152,14 +151,12 @@ export function applyEvidenceScores(word: { productiveScore?: number; production
     }
     return { productiveScore: round3(score), productionEvidence: count, activeRecallScore: round3(recall), confidence: round3(confidence) };
 }
-
 function clamp(n: number, lo: number, hi: number): number {
     return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo;
 }
 function round3(n: number): number {
     return Math.round(n * 1000) / 1000;
 }
-
 /** 合并新旧证据：按 id 去重，新证据覆盖旧证据 */
 export function mergeEvidence(existing: ProductiveEvidence[] | undefined, incoming: ProductiveEvidence[]): ProductiveEvidence[] {
     const map = new Map<string, ProductiveEvidence>();
@@ -169,12 +166,10 @@ export function mergeEvidence(existing: ProductiveEvidence[] | undefined, incomi
         map.set(e.id, e);
     return [...map.values()].sort((a, b) => a.at - b.at);
 }
-
 /** 是否为"独立产出"证据：只有这类可以进入 productive mastery 路径 */
 export function isIndependentEvidence(e: ProductiveEvidence): boolean {
     return e.independent && !e.assisted && !e.copied && e.evidenceSource !== 'output_copied';
 }
-
 /** 把 AI 反馈转成"候选薄弱"，不直接改 mastery */
 export interface CandidateWeakness {
     kind: 'grammar' | 'vocabulary' | 'support';
@@ -183,7 +178,6 @@ export interface CandidateWeakness {
     reason: string;
     at: number;
 }
-
 export function candidateWeaknesses(attempt: OutputAttempt, now = Date.now()): CandidateWeakness[] {
     const out: CandidateWeakness[] = [];
     if ((attempt.supportLevel ?? 0) >= 3)

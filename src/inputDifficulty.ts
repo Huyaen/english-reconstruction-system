@@ -2,7 +2,6 @@
 // 只有在有英文 transcript 时才能估计“这份材料对你有多难”；
 // 没有 transcript 一律返回 null（绝不根据标题/封面猜）。
 import type { InputEvidenceRecord, InputSource, LibraryItem, Transcript, Word } from './types.ts';
-
 export interface InputDifficultyEstimate {
     estimate: number;
     confidence: 'low' | 'none';
@@ -11,7 +10,11 @@ export interface InputDifficultyEstimate {
     avgSentenceWords: number;
     basis: 'transcript';
 }
-export function estimateInputDifficulty(input: { transcript: Transcript; words: Word[]; grammarKnown?: string[] }): InputDifficultyEstimate | null {
+export function estimateInputDifficulty(input: {
+    transcript: Transcript;
+    words: Word[];
+    grammarKnown?: string[];
+}): InputDifficultyEstimate | null {
     if (!input.transcript.timed || input.transcript.language !== 'en')
         return null;
     const text = input.transcript.cues.map(c => c.text).join(' ');

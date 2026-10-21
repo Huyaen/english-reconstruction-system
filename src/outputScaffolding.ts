@@ -5,7 +5,6 @@
 //  * 用了 L4 完整示范之后的正确表达，绝不能算独立产出证据。
 import type { OutputSupportLevel, OutputSupportRecord, OutputTaskSpec } from './types.ts';
 import { countWords } from './outputTask.ts';
-
 export interface SupportHint {
     level: OutputSupportLevel;
     type: 'keywords' | 'skeleton' | 'partial_model' | 'full_model';
@@ -14,19 +13,20 @@ export interface SupportHint {
     /** 提示本身包含多少"可直接照抄"的成分（用于证据判定） */
     answerReveal: number;
 }
-
-export const SUPPORT_LEVELS: { level: OutputSupportLevel; zh: string; reveal: number }[] = [
+export const SUPPORT_LEVELS: {
+    level: OutputSupportLevel;
+    zh: string;
+    reveal: number;
+}[] = [
     { level: 0, zh: '独立表达（无辅助）', reveal: 0 },
     { level: 1, zh: '关键词提示', reveal: 0.15 },
     { level: 2, zh: '句型骨架', reveal: 0.35 },
     { level: 3, zh: '部分表达示例', reveal: 0.6 },
     { level: 4, zh: '完整示范', reveal: 1 },
 ];
-
 export function supportLevelZh(level: OutputSupportLevel): string {
     return SUPPORT_LEVELS.find(x => x.level === level)?.zh ?? '独立表达（无辅助）';
 }
-
 /** 生成某级提示：越高越具体；L4 才给完整示范，且明确标注"不能算独立掌握" */
 export function buildSupportHint(spec: OutputTaskSpec, level: OutputSupportLevel): SupportHint {
     const words = spec.targetWords;
@@ -57,11 +57,9 @@ export function buildSupportHint(spec: OutputTaskSpec, level: OutputSupportLevel
         answerReveal: 1,
     };
 }
-
 export function emptySupport(text: string): OutputSupportRecord {
     return { highestLevel: 0, requestedHints: [], hintTypes: [], independentText: text, textAfterSupport: text };
 }
-
 /** 记录一次提示使用：只升不降，保留独立原文与辅助后文本 */
 export function recordSupport(prev: OutputSupportRecord | undefined, hint: SupportHint, textAfter: string): OutputSupportRecord {
     const base = prev ?? emptySupport(textAfter);
@@ -74,7 +72,6 @@ export function recordSupport(prev: OutputSupportRecord | undefined, hint: Suppo
         textAfterSupport: textAfter,
     };
 }
-
 export interface IndependenceClass {
     independent: boolean;
     assisted: boolean;
@@ -83,7 +80,6 @@ export interface IndependenceClass {
     dependence: number;
     reason: string;
 }
-
 /**
  * 证据独立性判定：
  * - L0 且没有复制 → independent
@@ -106,7 +102,6 @@ export function classifyIndependence(input: {
         return { independent: false, assisted: true, copied: false, dependence: 0.5, reason: `使用 L${level} 提示` };
     return { independent: false, assisted: true, copied: false, dependence: 0.8, reason: `使用 L${level} 提示（示例级）` };
 }
-
 /** 归一化 token Jaccard：只用于判定"是否照抄"，不用于评分 */
 export function textSimilarity(a: string, b: string): number {
     const ta = tokens(a);
@@ -119,17 +114,14 @@ export function textSimilarity(a: string, b: string): number {
             inter += 1;
     return inter / (ta.size + tb.size - inter);
 }
-
 function tokens(s: string): Set<string> {
     return new Set(String(s ?? '').toLowerCase().replace(/[^a-z0-9'\s]/g, ' ').split(/\s+/).filter(Boolean));
 }
-
 /** 学习者的辅助是否应逐步减少：连续多次独立完成 → 建议不再默认给提示 */
 export function shouldFadeSupport(recentIndependent: boolean[]): boolean {
     const last = recentIndependent.slice(-3);
     return last.length === 3 && last.every(Boolean);
 }
-
 export function hintWordBudget(spec: OutputTaskSpec): number {
     return Math.max(8, Math.round(countWords(spec.communicationGoal) * 2));
 }

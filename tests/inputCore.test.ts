@@ -3,29 +3,31 @@ import assert from 'node:assert/strict';
 import type { InputSource } from '../src/types.ts';
 import { createInputSource, isAvailable, updateInputSource } from '../src/inputSource.ts';
 import { contentTypeOf, isSafeExternalUrl, parseInputUrl, providerLabel, sameInputTarget } from '../src/inputUrl.ts';
-import {
-    deleteLibraryItem, filterLibrary, libraryItemFromSource, libraryStats, linkLibraryToUnit, markOpened,
-    saveToLibrary, setLibraryCompletion, setLibraryStatus,
-} from '../src/inputLibrary.ts';
-import {
-    abandonInputSession, beginReflection, canTransition, completeInputSession, createInputSession, pauseInputSession,
-    planInputMinutes, recordBaseline, resumeInputSession, startInputSession, suggestMode, submitInputReflection,
-} from '../src/inputSession.ts';
+import { deleteLibraryItem, filterLibrary, libraryItemFromSource, libraryStats, linkLibraryToUnit, markOpened, saveToLibrary, setLibraryCompletion, setLibraryStatus, } from '../src/inputLibrary.ts';
+import { abandonInputSession, beginReflection, canTransition, completeInputSession, createInputSession, pauseInputSession, planInputMinutes, recordBaseline, resumeInputSession, startInputSession, suggestMode, submitInputReflection, } from '../src/inputSession.ts';
 import { captionCaveat, DIFFICULTY_REASONS, REFLECTION_SPECS, validateReflection } from '../src/inputReflection.ts';
 import { cuesToText, detectFormat, findDuplicateTranscript, formatTimestamp, parseTimestamp, parseTranscript, transcriptStats } from '../src/transcript.ts';
 import { sentenceCandidates, transcriptPassage, transcriptSentenceRecord } from '../src/inputHandoff.ts';
-
 const NOW = new Date(2026, 9, 21, 10, 0, 0).getTime();
 /** 断言 ok 并返回成功分支（避免 SessionResult 联合类型在每个断言里重复收窄） */
-function must<T extends { ok: boolean }>(r: T): Extract<T, { ok: true }> {
+function must<T extends {
+    ok: boolean;
+}>(r: T): Extract<T, {
+    ok: true;
+}> {
     if (!r.ok)
         throw new Error(`expected ok, got ${JSON.stringify(r)}`);
-    return r as Extract<T, { ok: true }>;
+    return r as Extract<T, {
+        ok: true;
+    }>;
 }
 function src(over: Partial<Parameters<typeof createInputSource>[0]> = {}): InputSource {
     const r = createInputSource({ title: 'Rome: Engineering an Empire', url: 'https://www.youtube.com/watch?v=abc123XYZ_-', topic: 'roman history', durationMinutes: 42, now: NOW, ...over });
     assert.equal(r.ok, true, JSON.stringify(r));
-    return (r as { ok: true; source: InputSource }).source;
+    return (r as {
+        ok: true;
+        source: InputSource;
+    }).source;
 }
 const SRT = `1
 00:00:01,000 --> 00:00:03,500
@@ -51,7 +53,6 @@ cue-2
 00:00:04.000 --> 00:00:07.500
 Some of them are still standing today.
 `;
-
 // ————— URL / Source —————
 test('URL：YouTube 各种写法被规范化成同一个地址', () => {
     for (const raw of ['https://youtu.be/abc123XYZ_-?si=track', 'https://www.youtube.com/shorts/abc123XYZ_-', 'youtube.com/watch?v=abc123XYZ_-&utm_source=x']) {
@@ -124,7 +125,6 @@ test('Source：可改标题/主题/备注，但不改 URL 归属', () => {
     assert.equal((r.source.notes ?? '').length, 500);
     assert.equal(r.source.url, s.url);
 });
-
 // ————— Library —————
 test('Library：保存幂等，归档后再次保存回到 saved', () => {
     const s = src();
@@ -162,7 +162,6 @@ test('Library：打开记录、删除不影响其它条目', () => {
     assert.equal(after.length, 0);
     assert.equal(libraryItemFromSource(s).topic, s.topic);
 });
-
 // ————— Session —————
 function session() {
     const s = src();
@@ -235,7 +234,6 @@ test('Session：模式建议与合法状态表', () => {
     assert.equal(canTransition('created', 'active'), true);
     assert.equal(canTransition('completed', 'active'), false);
 });
-
 // ————— Reflection —————
 test('Reflection：Light 只给有限完成度，不要求写总结', () => {
     const r = validateReflection({ mode: 'light', captionMode: 'en', comprehension: 0.6, notes: 'ok', now: NOW });
@@ -267,7 +265,6 @@ test('Reflection：字幕模式与难度原因口径', () => {
     assert.equal(ok.reflection.captionMode, 'zh');
     assert.match(captionCaveat('zh'), /不能当作英语听力能力证据/);
 });
-
 // ————— Transcript —————
 test('Transcript：SRT 解析（含跨小时、毫秒、多行文本）', () => {
     const r = parseTranscript({ raw: SRT, sourceId: 's1', provenance: 'user_supplied', now: NOW });

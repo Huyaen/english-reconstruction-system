@@ -11,9 +11,7 @@ import { createAttemptRecord, getAttempt, updateAttempt } from '../src/outputSto
 import { collectUnitEvidence } from '../src/miniUnitEvidence.ts';
 import { buildUnavailableFeedback } from '../src/outputFeedback.ts';
 import type { Data, MiniUnit, OutputAttempt, Passage, Transcript } from '../src/types.ts';
-
-const NOW = 1_700_000_000_000;
-
+const NOW = 1700000000000;
 function data(): Data {
     return emptyData();
 }
@@ -32,7 +30,6 @@ function unit(): MiniUnit {
 function passage(): Passage {
     return { id: 'p1', title: 'Roman aqueducts', topic: 'ancient aqueducts', text: 'The aqueduct carried water into the city.', source: 'user', sourceType: 'user_paste', estimatedDifficulty: 42, createdAt: NOW } as unknown as Passage;
 }
-
 test('任务选择：优先当前 Mini Unit，其次最近真实输入，最后才是自由表达', () => {
     const d = data();
     d.miniUnits.push(unit());
@@ -43,7 +40,6 @@ test('任务选择：优先当前 Mini Unit，其次最近真实输入，最后�
     assert.ok(r.candidates.some(c => c.sourceType === 'mini_unit'));
     assert.ok(r.note.length > 0);
 });
-
 test('任务选择：真实输入与阅读都能成为表达任务，没有材料时不伪造', () => {
     const d = data();
     d.passages.push(passage());
@@ -58,7 +54,6 @@ test('任务选择：真实输入与阅读都能成为表达任务，没有材�
     assert.equal(empty.candidates.some(c => c.sourceType === 'input' || c.sourceType === 'reading'), false);
     assert.equal(suggestedTypeFor({ minutes: 5, energy: 'low', hasSource: false, hasUnit: false }), 'one_sentence');
 });
-
 test('任务选择：用户指定类型优先过滤，兴趣不上能力路径', () => {
     const d = data();
     d.passages.push(passage());
@@ -69,7 +64,6 @@ test('任务选择：用户指定类型优先过滤，兴趣不上能力路径',
     const again = selectOutputTasks({ data: d, now: NOW, availableMinutes: 25, energy: 'good' });
     assert.equal(again.task?.difficultyEstimate, r.task?.difficultyEstimate, '兴趣不能改变难度');
 });
-
 test('Input → Output 交接用真实总结，缺失时明确不可用', () => {
     const d = data();
     d.inputSources.push({ id: 'is1', title: 'Water video', topic: 'water', transcriptRef: 't1', createdAt: NOW } as never);
@@ -77,13 +71,13 @@ test('Input → Output 交接用真实总结，缺失时明确不可用', () => 
     d.inputSessions.push({ id: 'ins1', sourceId: 'is1', status: 'completed', completedAt: NOW, reflection: { summary: 'Water is heavy and moves slowly.' } } as never);
     const r = handoutFromInput(d, 'ins1');
     assert.equal(r.ok, true);
-    if (!r.ok) return;
+    if (!r.ok)
+        return;
     assert.match(r.value.text, /Water is heavy/);
     assert.match(r.value.text, /Water is heavy and moves slowly/);
     assert.equal(r.value.task.sourceType, 'input');
     assert.equal(handoutFromInput(d, 'nope').ok, false);
 });
-
 test('Planner：有真实任务契约时才排 Output，且不超预算', () => {
     const d = data();
     d.passages.push(passage());
@@ -96,7 +90,6 @@ test('Planner：有真实任务契约时才排 Output，且不超预算', () => 
     const none = createDailyPlan({ now: NOW, availableMinutes: 40, energy: 'good', words: [], records: [] });
     assert.equal(none.plan.initialPlan.some(t => t.module === 'output'), false);
 });
-
 test('Analytics 在样本不足时明确说 insufficient evidence', () => {
     const d = data();
     let a = outputAnalytics(d);
@@ -117,7 +110,6 @@ test('Analytics 在样本不足时明确说 insufficient evidence', () => {
     assert.equal(a.independent, 1);
     assert.ok(a.productiveWords >= 1);
 });
-
 test('备份往返保留 Output 的新字段与证据，不丢任务契约', () => {
     const d = data();
     d.passages.push(passage());
@@ -136,7 +128,6 @@ test('备份往返保留 Output 的新字段与证据，不丢任务契约', () 
     assert.equal(round.outputAttempts[0]!.task?.sourceType, 'reading');
     assert.equal(round.outputAttempts[0]!.revision, 3);
 });
-
 test('Mini Unit：关联 Output 记录可见，但不会自动完成学习日', () => {
     const d = data();
     const u = unit();
@@ -155,7 +146,6 @@ test('Mini Unit：关联 Output 记录可见，但不会自动完成学习日', 
     assert.equal(d.miniUnits[0]!.dayHistory?.length ?? 0, 0, '表达不会自动写 dayHistory');
     assert.equal(d.miniUnits[0]!.status, 'active', '表达不会自动完成单元');
 });
-
 test('Store：并发写只允许一个 revision 前进，旧 revision 返回 stale', async () => {
     const task = buildTaskSpec({ taskType: 'one_sentence', topic: 'x', sourceType: 'free', now: NOW });
     const a: OutputAttempt = {
@@ -169,7 +159,8 @@ test('Store：并发写只允许一个 revision 前进，旧 revision 返回 sta
     assert.equal(first.ok, true);
     const stale = await updateAttempt(a.id, 1, cur => ({ ...cur, draftText: 'two', revision: (cur.revision ?? 0) + 1 }));
     assert.equal(stale.ok, false);
-    if (!stale.ok) assert.equal(stale.code, 'stale');
+    if (!stale.ok)
+        assert.equal(stale.code, 'stale');
     const fresh = await getAttempt(a.id);
     assert.equal(fresh?.draftText, 'one');
     assert.equal(fresh?.revision, 2);

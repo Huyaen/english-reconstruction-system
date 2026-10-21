@@ -3,7 +3,6 @@
 // 提交/反馈/修改都是幂等的：重复调用只前进一次 revision。
 import type { OutputAttempt } from './types.ts';
 import { getDB, openDB, putItems } from './db.ts';
-
 function req<T>(r: IDBRequest<T>): Promise<T> {
     return new Promise<T>((resolve, reject) => {
         r.onsuccess = () => resolve(r.result);
@@ -17,21 +16,25 @@ function done(tx: IDBTransaction): Promise<void> {
         tx.onerror = () => reject(tx.error || Error('Output 保存失败'));
     });
 }
-
 export async function createAttemptRecord(attempt: OutputAttempt): Promise<void> {
     await openDB();
     await putItems('outputAttempts', [attempt]);
 }
-
 export async function getAttempt(id: string): Promise<OutputAttempt | null> {
     await openDB();
     const tx = getDB().transaction('outputAttempts', 'readonly');
     const v = await req<OutputAttempt | undefined>(tx.objectStore('outputAttempts').get(id) as IDBRequest<OutputAttempt | undefined>);
     return v ?? null;
 }
-
-export type AttemptUpdate = { ok: true; attempt: OutputAttempt; noop?: boolean } | { ok: false; code: 'missing' | 'stale'; message: string };
-
+export type AttemptUpdate = {
+    ok: true;
+    attempt: OutputAttempt;
+    noop?: boolean;
+} | {
+    ok: false;
+    code: 'missing' | 'stale';
+    message: string;
+};
 /** 读 → 比较 revision → 写；apply 返回 null 表示"无需改动"（noop） */
 export async function updateAttempt(id: string, expectedRevision: number | undefined, apply: (cur: OutputAttempt) => OutputAttempt | null): Promise<AttemptUpdate> {
     await openDB();
@@ -57,19 +60,16 @@ export async function updateAttempt(id: string, expectedRevision: number | undef
     await done(tx);
     return { ok: true, attempt: saved };
 }
-
 /** 是否已经为这个 attempt 写过某个词的产出证据（幂等键：attemptId:wordId） */
 export function evidenceExists(attempt: OutputAttempt, key: string): boolean {
     return (attempt.productiveEvidence ?? []).some(e => e.id === key);
 }
-
 export async function deleteAttempt(id: string): Promise<void> {
     await openDB();
     const tx = getDB().transaction('outputAttempts', 'readwrite');
     tx.objectStore('outputAttempts').delete(id);
     await done(tx);
 }
-
 /** 同一 Draft + Prompt 版本 + 参数只应调用一次 AI：以本地指纹做结果复用键 */
 export function feedbackFingerprint(attempt: OutputAttempt, promptVersion: string): string {
     return `${attempt.id}|${promptVersion}|${(attempt.draftText ?? attempt.originalText).length}`;

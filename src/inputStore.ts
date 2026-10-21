@@ -6,7 +6,6 @@
 import type { InputEvidenceRecord, InputSession, InputSource, LibraryItem, Transcript } from './types.ts';
 import { getDB, openDB } from './db.ts';
 import type { SessionResult } from './inputSession.ts';
-
 function req<T>(r: IDBRequest<T>): Promise<T> {
     return new Promise<T>((resolve, reject) => {
         r.onsuccess = () => resolve(r.result);
@@ -74,7 +73,9 @@ export async function transitionSession(id: string, expectedRevision: number | u
     await done(tx);
     return result;
 }
-export async function appendInputEvidence(records: InputEvidenceRecord[]): Promise<{ added: number }> {
+export async function appendInputEvidence(records: InputEvidenceRecord[]): Promise<{
+    added: number;
+}> {
     if (!records.length)
         return { added: 0 };
     await openDB();

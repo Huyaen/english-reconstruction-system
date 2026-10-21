@@ -4,13 +4,11 @@
 import type { OutputErrorSpan, OutputErrorType, OutputFeedback, OutputFeedbackScope, OutputMeaningBasis, OutputTaskSpec, OutputUpgrade } from './types.ts';
 import { countWords } from './outputTask.ts';
 import { LANGUAGE_ERROR_TYPES, spanIsGrounded } from './outputDiagnosis.ts';
-
 const ERROR_TYPES: OutputErrorType[] = ['tense', 'subject_verb_agreement', 'article', 'preposition', 'word_form', 'word_order', 'clause_structure', 'missing_subject', 'missing_predicate', 'vocabulary_choice', 'collocation', 'reference', 'coherence', 'meaning_ambiguity', 'other'];
 const SEVERITIES: OutputErrorSpan['severity'][] = ['blocking', 'major', 'minor', 'style'];
 const MEANING: OutputFeedback['meaningAssessment'][] = ['delivered', 'partly_delivered', 'not_delivered', 'unavailable'];
 const BASIS: OutputMeaningBasis[] = ['verified', 'supported_by_source', 'ai_estimated', 'self_reported', 'unknown'];
 const SCOPES: OutputFeedbackScope[] = ['language_only', 'content_checked', 'content_unverified'];
-
 export interface FeedbackContext {
     text: string;
     spec: OutputTaskSpec;
@@ -23,11 +21,15 @@ export interface FeedbackContext {
     /** 允许关联的目标词（小写英文即可；没有就传空） */
     targetWords?: string[];
 }
-
-export type FeedbackCheck =
-    | { ok: true; value: OutputFeedback; warnings: string[] }
-    | { ok: false; issues: string[]; partial?: unknown };
-
+export type FeedbackCheck = {
+    ok: true;
+    value: OutputFeedback;
+    warnings: string[];
+} | {
+    ok: false;
+    issues: string[];
+    partial?: unknown;
+};
 function isObj(v: unknown): v is Record<string, unknown> {
     return !!v && typeof v === 'object' && !Array.isArray(v);
 }
@@ -40,7 +42,6 @@ function arr(v: unknown): unknown[] {
 function num(v: unknown): number | null {
     return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }
-
 function checkSpan(raw: unknown, text: string, i: number, issues: string[], ctx: FeedbackContext): OutputErrorSpan | null {
     if (!isObj(raw)) {
         issues.push(`corrections[${i}] 不是对象`);
@@ -81,7 +82,6 @@ function checkSpan(raw: unknown, text: string, i: number, issues: string[], ctx:
     const targetWordId = raw.targetWordId === undefined || raw.targetWordId === null ? null : str(raw.targetWordId);
     return { type, original, proposed, start, end, explanation, severity, confidence: confidence ?? 0, grammarConceptId, targetWordId };
 }
-
 function checkUpgrade(raw: unknown, text: string, issues: string[]): OutputUpgrade | null {
     if (raw === null || raw === undefined)
         return null;
@@ -116,7 +116,6 @@ function checkUpgrade(raw: unknown, text: string, issues: string[]): OutputUpgra
         issues.push('upgrade.singleDimension 必须为 true（默认只提升一个维度）');
     return { original, suggested, why, changes, newGrammar, newWords, singleDimension };
 }
-
 /** 结构化校验 + 语义/引用的硬约束 */
 export function validateOutputFeedback(value: unknown, ctx: FeedbackContext): FeedbackCheck {
     if (!isObj(value))
@@ -150,7 +149,6 @@ export function validateOutputFeedback(value: unknown, ctx: FeedbackContext): Fe
         issues.push('promptVersion 不能为空');
     else if (promptVersion !== ctx.promptVersion)
         warnings.push(`promptVersion=${promptVersion}（期望 ${ctx.promptVersion}）`);
-
     const rawIssues = arr(value.priorityIssues);
     const rawCorrections = arr(value.corrections);
     const priorityIssues: OutputErrorSpan[] = [];
@@ -169,13 +167,10 @@ export function validateOutputFeedback(value: unknown, ctx: FeedbackContext): Fe
         issues.push('priorityIssues 超过 3 条：初学者一次只需要 1–3 个重点');
     if (priorityIssues.length + corrections.length > 6)
         warnings.push('错误条目较多：展示时只放前 3 条，避免把三句话改出二十个红点');
-
     const strengths = arr(value.strengths).map(str).filter(Boolean).slice(0, 5);
     if (!strengths.length)
         issues.push('strengths 至少给一条具体做对的地方');
-
     const upgrade = checkUpgrade(value.upgrade, ctx.text, issues);
-
     const grammarConceptIds = arr(value.grammarConceptIds).map(str).filter(Boolean).slice(0, 6);
     for (const id of grammarConceptIds)
         if (ctx.grammarConceptIds && !ctx.grammarConceptIds.includes(id))
@@ -187,7 +182,6 @@ export function validateOutputFeedback(value: unknown, ctx: FeedbackContext): Fe
     const uncertainty = str(value.uncertainty);
     if (!uncertainty)
         warnings.push('缺少 uncertainty：模型应说明自己不确定的地方');
-
     const all = [...priorityIssues, ...corrections];
     const hasSerious = all.some(s => s.severity === 'blocking' || s.severity === 'major');
     const noCorrectionNeeded = value.noCorrectionNeeded === true;
@@ -195,20 +189,16 @@ export function validateOutputFeedback(value: unknown, ctx: FeedbackContext): Fe
         issues.push('noCorrectionNeeded=true 但存在 blocking/major 问题，自相矛盾');
     if (!noCorrectionNeeded && all.length === 0)
         warnings.push('没有给出任何问题，却也没有声明 noCorrectionNeeded');
-
     // 语言范围之外的事实判断：只有 content_checked 才允许
     const claim = `${strengths.join(' ')} ${str(value.meaningBasis)} ${str(value.uncertainty)}`;
     if (ctx.scope === 'language_only' && /(事实|内容)(完全)?(正确|准确)|accurately (summari[sz]ed|describes)|factually correct/i.test(claim))
         issues.push('language_only 反馈不能宣称用户对材料内容的理解"事实正确"');
-
     // targetWordIds 必须真实存在（调用方给的白名单）
     for (const id of targetWordIds)
         if (ctx.targetWords && ctx.targetWords.length && !ctx.targetWords.includes(id) && !/^w_/.test(id))
             warnings.push(`targetWordIds 中的 ${id} 不在本次目标词内`);
-
     if (issues.length)
         return { ok: false, issues, partial: value };
-
     return {
         ok: true,
         warnings,
@@ -232,7 +222,6 @@ export function validateOutputFeedback(value: unknown, ctx: FeedbackContext): Fe
         },
     };
 }
-
 /** AI 不可用时的确定性反馈：只说"能确定"的东西，绝不冒充语法诊断 */
 export function buildUnavailableFeedback(ctx: FeedbackContext, localSpans: OutputErrorSpan[], reason: string): OutputFeedback {
     const issues = localSpans.filter(s => s.severity === 'blocking' || s.severity === 'major');
@@ -255,13 +244,11 @@ export function buildUnavailableFeedback(ctx: FeedbackContext, localSpans: Outpu
         noCorrectionNeeded: issues.length === 0 && localSpans.length === 0,
     };
 }
-
 export interface GateResult {
     ok: boolean;
     issues: string[];
     warnings: string[];
 }
-
 /** 质量门：展示前最后一道，防止"看起来很专业"的越界反馈 */
 export function qualityGate(feedback: OutputFeedback, ctx: FeedbackContext): GateResult {
     const issues: string[] = [];
@@ -280,7 +267,6 @@ export function qualityGate(feedback: OutputFeedback, ctx: FeedbackContext): Gat
         issues.push('声明无需修改却存在主要问题');
     return { ok: issues.length === 0, issues, warnings };
 }
-
 /** 逐条修改建议的可读标题（UI 用） */
 export const ERROR_LABELS: Record<OutputErrorType, string> = {
     tense: '时态', subject_verb_agreement: '主谓一致', article: '冠词', preposition: '介词',

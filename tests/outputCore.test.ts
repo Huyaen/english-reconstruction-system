@@ -5,12 +5,10 @@ import { buildSupportHint, recordSupport, classifyIndependence, textSimilarity, 
 import { evaluateRepair, repairSummary, keywordCoverage } from '../src/outputRepair.ts';
 import { localChecks, dropUngrounded, prioritize, mergeSpans, applySpans, splitSentences } from '../src/outputDiagnosis.ts';
 import type { OutputTaskSpec } from '../src/types.ts';
-
-const NOW = 1_700_000_000_000;
+const NOW = 1700000000000;
 function spec(over: Partial<OutputTaskSpec> = {}): OutputTaskSpec {
     return { ...buildTaskSpec({ taskType: 'one_sentence', topic: 'my day', sourceType: 'free', now: NOW }), ...over };
 }
-
 test('任务类型：一句话任务不要求篇章结构，总结任务要求衔接', () => {
     const one = spec();
     assert.equal(taskMeta('one_sentence').needsCoherence, false);
@@ -21,14 +19,12 @@ test('任务类型：一句话任务不要求篇章结构，总结任务要求�
     for (const t of Object.keys(OUTPUT_TASK_TYPES))
         assert.ok(taskMeta(t as never).label);
 });
-
 test('任务规模由时间与状态决定：时间少只写一句，不强制长度', () => {
     assert.equal(defaultTaskType({ minutes: 5, energy: 'normal', hasSource: true, hasUnit: false }), 'one_sentence');
     assert.equal(defaultTaskType({ minutes: 30, energy: 'good', hasSource: true, hasUnit: false }), 'paragraph_summary');
     assert.equal(defaultTaskType({ minutes: 12, energy: 'normal', hasSource: true, hasUnit: false }), 'short_summary');
     assert.equal(defaultTaskType({ minutes: 6, energy: 'low', hasSource: false, hasUnit: false }), 'one_sentence');
 });
-
 test('提交检查只做规模判断：短但意思清楚可以提交', () => {
     const s = spec({ minWords: 25, maxWords: 90 });
     assert.equal(checkAttemptText(s, '').ok, false);
@@ -39,14 +35,12 @@ test('提交检查只做规模判断：短但意思清楚可以提交', () => {
     assert.equal(checkAttemptText(s, 'word '.repeat(500)).ok, false);
     assert.equal(countWords(' one  two '), 2);
 });
-
 test('首次作答之前不展示范文', () => {
     assert.equal(canShowModelAnswer(null), false);
     assert.equal(canShowModelAnswer({ status: 'draft' }), false);
     assert.equal(canShowModelAnswer({ status: 'submitted' }), true);
     assert.equal(canShowModelAnswer({ status: 'draft', supportLevel: 4 }), true);
 });
-
 test('Scaffolding：分层提示、最高级别只升不降、独立性判定', () => {
     const s = spec({ targetWords: ['aqueduct'] });
     const l1 = buildSupportHint(s, 1);
@@ -58,7 +52,6 @@ test('Scaffolding：分层提示、最高级别只升不降、独立性判定', 
     assert.equal(rec.highestLevel, 2);
     assert.equal(rec.independentText, 'I saw a bridge.');
     assert.equal(rec.requestedHints.length, 2);
-
     assert.equal(classifyIndependence({ support: rec, text: 'I wrote this myself.' }).independent, false);
     const fresh = classifyIndependence({ support: emptySupport('x'), text: 'The aqueduct carried water.' });
     assert.equal(fresh.independent, true);
@@ -68,26 +61,21 @@ test('Scaffolding：分层提示、最高级别只升不降、独立性判定', 
     assert.equal(shouldFadeSupport([true, true, true]), true);
     assert.ok(textSimilarity('a b c', 'a b c') > 0.9);
 });
-
 test('Communication Repair：没有目标意义依据时不得判定成功', () => {
     const unknown = evaluateRepair({ intendedMeaning: '', blockedExpression: 'assassination', userAlternative: 'Someone killed the leader.', basis: 'unknown', now: NOW });
     assert.equal(unknown.record.meaningPreserved, null);
     assert.equal(unknown.verdict, 'unknown');
     assert.match(unknown.notes.join(' '), /没有可靠的目标意义/);
-
     const self = evaluateRepair({ intendedMeaning: '有人暗杀了政治领袖', blockedExpression: 'assassination', userAlternative: 'Someone killed the political leader.', basis: 'self_reported', now: NOW });
     assert.equal(self.record.meaningPreserved, true);
     assert.ok(self.record.evaluatorConfidence <= 0.5);
     assert.match(repairSummary(self), /真实交流能力/);
-
     const tooShort = evaluateRepair({ intendedMeaning: 'x', blockedExpression: '', userAlternative: 'killed', basis: 'self_reported' });
     assert.equal(tooShort.record.meaningPreserved, false);
-
     const stillUsed = evaluateRepair({ intendedMeaning: '有人暗杀了领袖', blockedExpression: 'assassination', userAlternative: 'It was an assassination.', basis: 'self_reported' });
     assert.match(stillUsed.notes.join(' '), /仍然使用了/);
     assert.ok(keywordCoverage('the leader was killed', 'someone killed the leader') > 0.5);
 });
-
 test('确定性检查：只报能确定的，span 必须能在原文找到', () => {
     const text = 'i saw the the water';
     const r = localChecks(text);
@@ -97,16 +85,12 @@ test('确定性检查：只报能确定的，span 必须能在原文找到', () 
     const grounded = r.spans.filter(s => text.slice(s.start, s.end) === s.original);
     assert.equal(grounded.length, r.spans.length);
     assert.equal(dropUngrounded(text, [{ ...r.spans[0]!, start: 999, end: 1002 }]).kept.length, 0);
-
     const long = 'word '.repeat(60) + '.';
     assert.ok(localChecks(long).spans.some(s => s.type === 'coherence'));
-
     const noVerb = 'The big red car on the road.';
     assert.ok(localChecks(noVerb).spans.some(s => s.type === 'missing_predicate' && s.confidence <= 0.5));
-
     assert.equal(splitSentences('One. Two! Three?').length, 3);
 });
-
 test('最小纠错策略：优先 blocking/major，最多 3 条；重叠 span 只留一条', () => {
     const text = 'He go to school yesterday.';
     const a = { type: 'tense' as const, original: 'go', proposed: 'went', start: 3, end: 5, explanation: '过去时间需要过去式', severity: 'major' as const, confidence: 0.8 };

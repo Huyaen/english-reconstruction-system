@@ -1,7 +1,6 @@
 // —— Phase 9：Output → Planner ——
 // 只提供"装得进剩余时间"的表达任务；任务本身由 outputSelection 依据真实材料生成。
 import type { OutputTaskSpec } from './types.ts';
-
 export interface OutputPlanDescriptor {
     kind: 'output-task';
     minutes: number;
@@ -10,8 +9,11 @@ export interface OutputPlanDescriptor {
     sourceId: string;
     task: OutputTaskSpec;
 }
-
-export function planOutputTask(task: OutputTaskSpec | null, input: { now?: number; availableMinutes: number; energy: 'low' | 'normal' | 'good' }): OutputPlanDescriptor | null {
+export function planOutputTask(task: OutputTaskSpec | null, input: {
+    now?: number;
+    availableMinutes: number;
+    energy: 'low' | 'normal' | 'good';
+}): OutputPlanDescriptor | null {
     if (!task)
         return null;
     const minutes = Math.round(input.availableMinutes);
@@ -33,7 +35,6 @@ export function planOutputTask(task: OutputTaskSpec | null, input: { now?: numbe
         task,
     };
 }
-
 function taskLabel(type: OutputTaskSpec['taskType']): string {
     switch (type) {
         case 'one_sentence': return '真实表达：一句话';

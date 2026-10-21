@@ -8,13 +8,19 @@ import { qualityGate, validateOutputFeedback, type FeedbackContext } from './out
 import { localChecks } from './outputDiagnosis.ts';
 import type { GenMeta } from './aiGenerate.ts';
 import type { OutputFeedback } from './types.ts';
-
-export type OutputGenResult =
-    | { ok: true; feedback: OutputFeedback; meta: GenMeta; warnings: string[] }
-    | { ok: false; error: AIErrorInfo; attempts: number; issues: string[]; localSpans: ReturnType<typeof localChecks>['spans'] };
-
+export type OutputGenResult = {
+    ok: true;
+    feedback: OutputFeedback;
+    meta: GenMeta;
+    warnings: string[];
+} | {
+    ok: false;
+    error: AIErrorInfo;
+    attempts: number;
+    issues: string[];
+    localSpans: ReturnType<typeof localChecks>['spans'];
+};
 const MAX_ATTEMPTS = 3;
-
 function hostOf(endpoint: string): string {
     try {
         return new URL(endpoint).host;
@@ -23,11 +29,9 @@ function hostOf(endpoint: string): string {
         return 'unknown';
     }
 }
-
 function repairSuffix(issues: string[]): string {
     return `上一份输出没有通过契约校验，问题如下：\n${issues.slice(0, 8).map((x, i) => `${i + 1}. ${x}`).join('\n')}\n\n只输出修正后的 JSON 对象；不要解释；所有 original 必须逐字来自学习者的 TEXT，start/end 必须精确对应。`;
 }
-
 export interface DiagnoseInput extends OutputPromptInput {
     spec: FeedbackContext['spec'];
     /** 允许引用的语法概念 id（来自 Phase 4 图谱） */
@@ -35,8 +39,12 @@ export interface DiagnoseInput extends OutputPromptInput {
     /** 目标词白名单 */
     targetWordIds: string[];
 }
-
-export async function diagnoseOutput(input: DiagnoseInput, cfg: AIProviderConfig, deps: { fetchImpl?: typeof fetch; sleep?: (ms: number) => Promise<void>; now?: () => number; knownMode?: 'json_schema' | 'json_object' | 'text' } = {}, signal?: AbortSignal): Promise<OutputGenResult> {
+export async function diagnoseOutput(input: DiagnoseInput, cfg: AIProviderConfig, deps: {
+    fetchImpl?: typeof fetch;
+    sleep?: (ms: number) => Promise<void>;
+    now?: () => number;
+    knownMode?: 'json_schema' | 'json_object' | 'text';
+} = {}, signal?: AbortSignal): Promise<OutputGenResult> {
     const now = deps.now ?? (() => Date.now());
     const local = localChecks(input.text, input.spec);
     const ctx: FeedbackContext = {
@@ -55,7 +63,6 @@ export async function diagnoseOutput(input: DiagnoseInput, cfg: AIProviderConfig
     let attempts = 0;
     let lastIssues: string[] = [];
     let lastError: AIErrorInfo | null = null;
-
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
         attempts = attempt;
         try {
@@ -117,9 +124,13 @@ export async function diagnoseOutput(input: DiagnoseInput, cfg: AIProviderConfig
         localSpans: local.spans,
     };
 }
-
 /** 材料摘要只允许来自真实 transcript / passage；没有就返回空串（不编造内容） */
-export function materialExcerptOf(input: { transcriptText?: string; passageText?: string; reflectionSummary?: string; limit?: number }): string {
+export function materialExcerptOf(input: {
+    transcriptText?: string;
+    passageText?: string;
+    reflectionSummary?: string;
+    limit?: number;
+}): string {
     const raw = input.transcriptText || input.passageText || '';
     if (!raw)
         return '';

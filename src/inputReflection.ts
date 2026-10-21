@@ -5,7 +5,6 @@
 //  * Deep 允许跳过某项，但必须记录完成度；
 //  * 这里没有任何“听力分数”，只有自评与产出记录。
 import type { CaptionMode, InputMode, InputReflection } from './types.ts';
-
 export const DIFFICULTY_REASONS = ['vocabulary', 'speed', 'connected_speech', 'grammar', 'proper_nouns', 'background', 'other'] as const;
 export type DifficultyReason = (typeof DIFFICULTY_REASONS)[number];
 export const DIFFICULTY_REASON_LABELS: Record<DifficultyReason, string> = {
@@ -14,7 +13,10 @@ export const DIFFICULTY_REASON_LABELS: Record<DifficultyReason, string> = {
 };
 export interface ReflectionSpec {
     mode: InputMode;
-    minutes: [number, number];
+    minutes: [
+        number,
+        number
+    ];
     requiresSummary: boolean;
     completionCap: number;
     evidenceConfidence: number;
@@ -40,7 +42,14 @@ export interface ReflectionInput {
     reportedWatchedMinutes?: number | null;
     now?: number;
 }
-export type ReflectionResult = { ok: true; reflection: InputReflection } | { ok: false; errors: string[]; completion: number };
+export type ReflectionResult = {
+    ok: true;
+    reflection: InputReflection;
+} | {
+    ok: false;
+    errors: string[];
+    completion: number;
+};
 function sentenceCount(text: string): number {
     return text.split(/[.!?]+(?:\s|$)/).map(s => s.trim()).filter(Boolean).length;
 }

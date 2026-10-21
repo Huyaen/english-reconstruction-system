@@ -2,7 +2,6 @@
 // Time Budget First：只安排能装进剩余时间的片段，不强迫看完整个视频。
 // 没有真实材料 → 不生成任务（也不生成假任务）。
 import type { InputSession, InputSource } from './types.ts';
-
 export interface InputTaskDescriptor {
     kind: 'input-session' | 'input-continue';
     sourceId: string;
@@ -11,7 +10,13 @@ export interface InputTaskDescriptor {
     label: string;
     reasons: string[];
 }
-export function planInputTask(input: { sources: InputSource[]; sessions: InputSession[]; now: number; availableMinutes: number; energy: 'low' | 'normal' | 'good' }): InputTaskDescriptor | null {
+export function planInputTask(input: {
+    sources: InputSource[];
+    sessions: InputSession[];
+    now: number;
+    availableMinutes: number;
+    energy: 'low' | 'normal' | 'good';
+}): InputTaskDescriptor | null {
     const available = Math.floor(input.availableMinutes);
     if (available < 5)
         return null;

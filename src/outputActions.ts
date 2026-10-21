@@ -14,9 +14,13 @@ import { diagnoseOutput, materialExcerptOf } from './outputAi.ts';
 import { OUTPUT_PROMPT_VERSION } from './prompts/output.ts';
 import { extractProductiveEvidence, applyEvidenceScores, mergeEvidence } from './outputEvidence.ts';
 import { countWords } from './outputTask.ts';
-
-export type ActionResult<T> = { ok: true; value: T } | { ok: false; message: string };
-
+export type ActionResult<T> = {
+    ok: true;
+    value: T;
+} | {
+    ok: false;
+    message: string;
+};
 export interface CreateOutputInput {
     task: OutputTaskSpec;
     readingSessionId?: string | null;
@@ -29,7 +33,6 @@ export interface CreateOutputInput {
     delayedOf?: string | null;
     now?: number;
 }
-
 export async function createOutputAttempt(input: CreateOutputInput): Promise<ActionResult<OutputAttempt>> {
     const now = input.now ?? Date.now();
     const text = String(input.initialDraft ?? '');
@@ -79,7 +82,6 @@ export async function createOutputAttempt(input: CreateOutputInput): Promise<Act
     await createAttemptRecord(attempt);
     return { ok: true, value: attempt };
 }
-
 export async function saveDraft(id: string, expectedRevision: number | undefined, text: string): Promise<ActionResult<OutputAttempt>> {
     const r = await updateAttempt(id, expectedRevision, cur => {
         if ((cur.draftText ?? '') === text)
@@ -88,14 +90,16 @@ export async function saveDraft(id: string, expectedRevision: number | undefined
     });
     return r.ok ? { ok: true, value: r.attempt } : { ok: false, message: r.message };
 }
-
 export async function pauseOutput(id: string, expectedRevision: number | undefined): Promise<ActionResult<OutputAttempt>> {
     const r = await updateAttempt(id, expectedRevision, cur => (cur.status === 'draft' ? { ...cur, status: 'draft', updatedAt: Date.now() } : null));
     return r.ok ? { ok: true, value: r.attempt } : { ok: false, message: r.message };
 }
-
 /** 提交：保存初稿原文；重复提交幂等（noop） */
-export async function submitOutput(id: string, expectedRevision: number | undefined, text: string, opts: { supportLevel?: OutputSupportLevel; hintsUsed?: string[]; support?: OutputSupportRecord } = {}): Promise<ActionResult<OutputAttempt>> {
+export async function submitOutput(id: string, expectedRevision: number | undefined, text: string, opts: {
+    supportLevel?: OutputSupportLevel;
+    hintsUsed?: string[];
+    support?: OutputSupportRecord;
+} = {}): Promise<ActionResult<OutputAttempt>> {
     const clean = String(text ?? '').trim();
     if (!clean)
         return { ok: false, message: '还没有写内容。' };
@@ -116,7 +120,6 @@ export async function submitOutput(id: string, expectedRevision: number | undefi
     });
     return r.ok ? { ok: true, value: r.attempt } : { ok: false, message: r.message };
 }
-
 export interface FeedbackOptions {
     cfg?: AIProviderConfig | null;
     data: Data;
@@ -126,11 +129,15 @@ export interface FeedbackOptions {
     grammarConceptIds?: string[];
     targetWordIds?: string[];
     level?: string;
-    deps?: { fetchImpl?: typeof fetch; sleep?: (ms: number) => Promise<void>; now?: () => number; knownMode?: 'json_schema' | 'json_object' | 'text' };
+    deps?: {
+        fetchImpl?: typeof fetch;
+        sleep?: (ms: number) => Promise<void>;
+        now?: () => number;
+        knownMode?: 'json_schema' | 'json_object' | 'text';
+    };
     signal?: AbortSignal;
     now?: number;
 }
-
 export interface FeedbackOutcome {
     attempt: OutputAttempt;
     feedback: OutputFeedback;
@@ -138,7 +145,6 @@ export interface FeedbackOutcome {
     reused: boolean;
     message: string;
 }
-
 /** 请求反馈：同一初稿 + prompt 版本只调用一次；AI 不可用则本地确定性反馈 */
 export async function requestOutputFeedback(id: string, expectedRevision: number | undefined, opts: FeedbackOptions): Promise<ActionResult<FeedbackOutcome>> {
     const now = opts.now ?? Date.now();
@@ -159,12 +165,14 @@ export async function requestOutputFeedback(id: string, expectedRevision: number
         grammarConceptIds: opts.grammarConceptIds,
         targetWords: opts.targetWordIds,
     };
-
     // 1) 复用同一 attempt + 版本 + 文本的结果（刷新不重复付费）
     const key = `${id}|${OUTPUT_PROMPT_VERSION}|${hash(text)}`;
     const reusable = findReusable(opts.data.aiGenerations ?? [], 'output', key);
     if (reusable) {
-        const fb = reusable.output as { feedback?: OutputFeedback; requestKey?: string };
+        const fb = reusable.output as {
+            feedback?: OutputFeedback;
+            requestKey?: string;
+        };
         if (fb?.feedback) {
             const saved = await updateAttempt(id, expectedRevision, cur => ({ ...cur, feedback: fb.feedback!, feedbackStatus: 'ai', feedbackSource: 'ai', aiGenerationId: reusable.id, promptVersion: OUTPUT_PROMPT_VERSION, updatedAt: now }));
             return saved.ok
@@ -172,7 +180,6 @@ export async function requestOutputFeedback(id: string, expectedRevision: number
                 : { ok: false, message: saved.message };
         }
     }
-
     // 2) 没有 Key：明确不可用，但仍给确定性检查
     if (!isConfigured(cfg)) {
         const local = localChecks(text, ctx.spec);
@@ -182,7 +189,6 @@ export async function requestOutputFeedback(id: string, expectedRevision: number
             ? { ok: true, value: { attempt: saved.attempt, feedback, aiUsed: false, reused: false, message: 'AI 反馈不可用：已保留原文，并给出本地格式检查。' } }
             : { ok: false, message: saved.message };
     }
-
     // 3) 真 AI
     const res = await diagnoseOutput({
         text,
@@ -198,7 +204,6 @@ export async function requestOutputFeedback(id: string, expectedRevision: number
         grammarConceptIds: opts.grammarConceptIds ?? [],
         targetWordIds: opts.targetWordIds ?? [],
     }, cfg, opts.deps ?? {}, opts.signal);
-
     if (!res.ok) {
         const local = localChecks(text, ctx.spec);
         const feedback = buildUnavailableFeedback(ctx, local.spans, `AI 反馈失败（${res.error.code}）：${res.error.message}。原文与你的修改都已保存，可以稍后重试。`);
@@ -207,7 +212,6 @@ export async function requestOutputFeedback(id: string, expectedRevision: number
             ? { ok: true, value: { attempt: saved.attempt, feedback, aiUsed: false, reused: false, message: feedback.uncertainty } }
             : { ok: false, message: saved.message };
     }
-
     const gen: AIGeneration = buildGeneration('output', { requestKey: key, feedback: res.feedback }, res.meta, { ok: true, notes: res.warnings }, now);
     await putItems('aiGenerations', [gen]);
     const saved = await updateAttempt(id, expectedRevision, cur => ({
@@ -226,13 +230,19 @@ export async function requestOutputFeedback(id: string, expectedRevision: number
         return { ok: false, message: saved.message };
     return { ok: true, value: { attempt: saved.attempt, feedback: res.feedback, aiUsed: true, reused: false, message: res.warnings.slice(0, 2).join('；') } };
 }
-
-export async function reviseOutput(id: string, expectedRevision: number | undefined, text: string, opts: { suggestion?: string | null; supportLevel?: OutputSupportLevel; now?: number } = {}): Promise<ActionResult<OutputAttempt>> {
+export async function reviseOutput(id: string, expectedRevision: number | undefined, text: string, opts: {
+    suggestion?: string | null;
+    supportLevel?: OutputSupportLevel;
+    now?: number;
+} = {}): Promise<ActionResult<OutputAttempt>> {
     const now = opts.now ?? Date.now();
     const clean = String(text ?? '').trim();
     if (!clean)
         return { ok: false, message: '修改后的内容还是空的。' };
-    let classified: { kind: ReturnType<typeof classifyRevision>['kind']; similarity: number } | null = null;
+    let classified: {
+        kind: ReturnType<typeof classifyRevision>['kind'];
+        similarity: number;
+    } | null = null;
     const r = await updateAttempt(id, expectedRevision, cur => {
         classified = classifyRevision(clean, { suggestion: opts.suggestion, supportLevel: opts.supportLevel ?? cur.supportLevel ?? 0 });
         return {
@@ -246,12 +256,13 @@ export async function reviseOutput(id: string, expectedRevision: number | undefi
     });
     if (!r.ok)
         return { ok: false, message: r.message };
-    const kind = classified ? (classified as { kind: string }).kind : '';
+    const kind = classified ? (classified as {
+        kind: string;
+    }).kind : '';
     const msg = kind === 'copied' ? '已保存修改。注意：这条修改与建议高度相似，按“照抄”记录，不会产生独立掌握证据。'
         : kind === 'after_hint' ? '已保存修改（提示后完成）。' : '已保存修改。';
     return { ok: true, value: r.attempt };
 }
-
 export async function finishOutput(id: string, expectedRevision: number | undefined, data: Data): Promise<ActionResult<OutputAttempt>> {
     const now = Date.now();
     const cur = data.outputAttempts.find(a => a.id === id);
@@ -269,7 +280,6 @@ export async function finishOutput(id: string, expectedRevision: number | undefi
     });
     const lastKind = cur.revisions?.[cur.revisions.length - 1]?.kind;
     const copied = independence.copied || lastKind === 'copied' || lastKind === 'after_model';
-
     let evidence = copied || !words.length ? [] : extractProductiveEvidence({
         attemptId: id,
         text,
@@ -287,7 +297,6 @@ export async function finishOutput(id: string, expectedRevision: number | undefi
         const patch = applyEvidenceScores(w, mine, now);
         return { ...w, ...patch };
     }).filter((w): w is NonNullable<typeof w> => !!w);
-
     const saved = await updateAttempt(id, expectedRevision, c => ({
         ...c,
         status: 'completed',
@@ -311,15 +320,20 @@ export async function finishOutput(id: string, expectedRevision: number | undefi
     }
     return { ok: true, value: saved.attempt };
 }
-
 /** 记录一次 Communication Repair（用户在提交时说明"我本来想说 X"） */
 export async function attachRepair(id: string, expectedRevision: number | undefined, repair: OutputRepairRecord): Promise<ActionResult<OutputAttempt>> {
     const r = await updateAttempt(id, expectedRevision, cur => ({ ...cur, repair, meaningPreserved: repair.meaningPreserved, repairAbility: repair.meaningPreserved === true ? 0.6 : repair.meaningPreserved === false ? 0.2 : null, updatedAt: repair.at }));
     return r.ok ? { ok: true, value: r.attempt } : { ok: false, message: r.message };
 }
-
 /** 从 InputSession 的标准英文总结直接进入 Output（不要求用户重新输入） */
-export function handoutFromInput(data: Data, sessionId: string, now = Date.now()): ActionResult<{ text: string; task: OutputTaskSpec; meta: { topic: string; sourceLabel: string } }> {
+export function handoutFromInput(data: Data, sessionId: string, now = Date.now()): ActionResult<{
+    text: string;
+    task: OutputTaskSpec;
+    meta: {
+        topic: string;
+        sourceLabel: string;
+    };
+}> {
     const s = data.inputSessions.find(x => x.id === sessionId);
     if (!s)
         return { ok: false, message: '找不到这次输入会话。' };
@@ -330,7 +344,6 @@ export function handoutFromInput(data: Data, sessionId: string, now = Date.now()
     const task = buildTaskFromInput(s, src?.title ?? '', src?.topic ?? s.topic, now);
     return { ok: true, value: { text, task, meta: { topic: task.topic, sourceLabel: task.sourceLabel } } };
 }
-
 function buildTaskFromInput(s: Data['inputSessions'][number], title: string, topic: string, now: number): OutputTaskSpec {
     return {
         id: `otask_input_${s.id}`,
@@ -351,7 +364,6 @@ function buildTaskFromInput(s: Data['inputSessions'][number], title: string, top
         createdAt: now,
     };
 }
-
 function hash(s: string): string {
     let h = 0x811c9dc5;
     for (let i = 0; i < s.length; i += 1) {

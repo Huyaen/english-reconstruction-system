@@ -1,7 +1,6 @@
 // —— Phase 9：Output Analytics（为 Phase 10 预留契约，不伪造精度）——
 import type { Data, OutputAttempt } from './types.ts';
 import { countWords } from './outputTask.ts';
-
 export interface OutputAnalytics {
     attempts: number;
     completed: number;
@@ -23,7 +22,6 @@ export interface OutputAnalytics {
     productiveWords: number;
     sampleNote: string;
 }
-
 export function outputAnalytics(data: Data): OutputAnalytics {
     const all = data.outputAttempts ?? [];
     const completed = all.filter(a => a.status === 'completed');
@@ -90,7 +88,6 @@ export function outputAnalytics(data: Data): OutputAnalytics {
         sampleNote: enough ? '样本仍然很小：这些比例只用于观察趋势，不是能力评级。' : 'insufficient evidence：练习次数太少，暂不计算比例。',
     };
 }
-
 /** 历史列表：只显示真实存在的字段，不比较"字数越来越多" */
 export function attemptHeadline(a: OutputAttempt): string {
     const label = a.task?.taskType ?? a.taskType ?? 'free_expression';

@@ -9,9 +9,16 @@ import type { CaptionMode, InputBaseline, InputMode, InputReflection, InputSessi
 const CAPTION_MODES = ['none', 'en', 'zh', 'other'] as const;
 import { validateReflection, type ReflectionInput } from './inputReflection.ts';
 import type { InputSource } from './types.ts';
-
 export type SessionErrorCode = 'illegal-transition' | 'stale' | 'invalid-input' | 'ended';
-export type SessionResult = { ok: true; session: InputSession; noop?: boolean } | { ok: false; code: SessionErrorCode; message: string };
+export type SessionResult = {
+    ok: true;
+    session: InputSession;
+    noop?: boolean;
+} | {
+    ok: false;
+    code: SessionErrorCode;
+    message: string;
+};
 const NEXT: Record<InputSessionStatus, InputSessionStatus[]> = {
     created: ['active', 'abandoned'],
     active: ['paused', 'reflection', 'abandoned', 'completed'],
@@ -71,33 +78,47 @@ function check(session: InputSession, to: InputSessionStatus, expectedRevision?:
     return null;
 }
 const bump = (session: InputSession, patch: Partial<InputSession>, now: number): InputSession => {
-    const next = { ...session, ...patch, revision: revisionOf(session) + 1, updatedAt: now } as InputSession & { updatedAt: number };
+    const next = { ...session, ...patch, revision: revisionOf(session) + 1, updatedAt: now } as InputSession & {
+        updatedAt: number;
+    };
     if (patch.status)
         next.status = patch.status;
     return next;
 };
-export function startInputSession(session: InputSession, opts: { expectedRevision?: number; now?: number } = {}): SessionResult {
+export function startInputSession(session: InputSession, opts: {
+    expectedRevision?: number;
+    now?: number;
+} = {}): SessionResult {
     const now = opts.now ?? Date.now();
     const blocked = check(session, 'active', opts.expectedRevision);
     if (blocked)
         return blocked;
     return { ok: true, session: bump(session, { status: 'active', startedAt: session.startedAt ?? now, pausedAt: null }, now) };
 }
-export function pauseInputSession(session: InputSession, opts: { expectedRevision?: number; now?: number } = {}): SessionResult {
+export function pauseInputSession(session: InputSession, opts: {
+    expectedRevision?: number;
+    now?: number;
+} = {}): SessionResult {
     const now = opts.now ?? Date.now();
     const blocked = check(session, 'paused', opts.expectedRevision);
     if (blocked)
         return blocked;
     return { ok: true, session: bump(session, { status: 'paused', pausedAt: now }, now) };
 }
-export function resumeInputSession(session: InputSession, opts: { expectedRevision?: number; now?: number } = {}): SessionResult {
+export function resumeInputSession(session: InputSession, opts: {
+    expectedRevision?: number;
+    now?: number;
+} = {}): SessionResult {
     const now = opts.now ?? Date.now();
     const blocked = check(session, 'active', opts.expectedRevision);
     if (blocked)
         return blocked;
     return { ok: true, session: bump(session, { status: 'active', pausedAt: null }, now) };
 }
-export function beginReflection(session: InputSession, opts: { expectedRevision?: number; now?: number } = {}): SessionResult {
+export function beginReflection(session: InputSession, opts: {
+    expectedRevision?: number;
+    now?: number;
+} = {}): SessionResult {
     const now = opts.now ?? Date.now();
     const blocked = check(session, 'reflection', opts.expectedRevision);
     if (blocked)
@@ -105,7 +126,14 @@ export function beginReflection(session: InputSession, opts: { expectedRevision?
     return { ok: true, session: bump(session, { status: 'reflection' }, now) };
 }
 /** 冷测：必须在正式复盘之前记录；跳过则显式留空，不允许把复盘自评反填 */
-export function recordBaseline(session: InputSession, input: { captionMode: CaptionMode; comprehension: number | null; blocker?: string; watchedMinutes?: number | null; skipped?: boolean; now?: number }): SessionResult {
+export function recordBaseline(session: InputSession, input: {
+    captionMode: CaptionMode;
+    comprehension: number | null;
+    blocker?: string;
+    watchedMinutes?: number | null;
+    skipped?: boolean;
+    now?: number;
+}): SessionResult {
     const now = input.now ?? Date.now();
     const from = statusOf(session);
     if (from === 'completed' || from === 'abandoned')
@@ -126,7 +154,12 @@ export function recordBaseline(session: InputSession, input: { captionMode: Capt
     };
     return { ok: true, session: bump(session, { baseline, coldComprehension: baseline.comprehension, captionMode: baseline.captionMode }, now) };
 }
-export function submitInputReflection(session: InputSession, input: Omit<ReflectionInput, 'mode' | 'now'> & { mode?: InputMode }, opts: { expectedRevision?: number; now?: number } = {}): SessionResult {
+export function submitInputReflection(session: InputSession, input: Omit<ReflectionInput, 'mode' | 'now'> & {
+    mode?: InputMode;
+}, opts: {
+    expectedRevision?: number;
+    now?: number;
+} = {}): SessionResult {
     const now = opts.now ?? Date.now();
     const from = statusOf(session);
     if (from === 'completed' || from === 'abandoned')
@@ -154,7 +187,10 @@ export function submitInputReflection(session: InputSession, input: Omit<Reflect
         }, now),
     };
 }
-export function completeInputSession(session: InputSession, opts: { expectedRevision?: number; now?: number } = {}): SessionResult {
+export function completeInputSession(session: InputSession, opts: {
+    expectedRevision?: number;
+    now?: number;
+} = {}): SessionResult {
     const now = opts.now ?? Date.now();
     const from = statusOf(session);
     if (from === 'completed')
@@ -169,7 +205,10 @@ export function completeInputSession(session: InputSession, opts: { expectedRevi
         return { ok: false, code: 'illegal-transition', message: '当前状态不能结束。' };
     return { ok: true, session: bump(session, { status: 'completed', completedAt: now }, now) };
 }
-export function abandonInputSession(session: InputSession, opts: { expectedRevision?: number; now?: number } = {}): SessionResult {
+export function abandonInputSession(session: InputSession, opts: {
+    expectedRevision?: number;
+    now?: number;
+} = {}): SessionResult {
     const now = opts.now ?? Date.now();
     const from = statusOf(session);
     if (from === 'abandoned')
@@ -181,7 +220,10 @@ export function abandonInputSession(session: InputSession, opts: { expectedRevis
     return { ok: true, session: bump(session, { status: 'abandoned', abandonedAt: now }, now) };
 }
 /** 默认模式建议（用户始终可以改）：低能量 Light；正常 Standard；高能量或单元 Day 3 Deep */
-export function suggestMode(input: { energy: 'low' | 'normal' | 'good'; unitDay?: number | null }): InputMode {
+export function suggestMode(input: {
+    energy: 'low' | 'normal' | 'good';
+    unitDay?: number | null;
+}): InputMode {
     if (input.energy === 'low')
         return 'light';
     if (input.energy === 'good' || (input.unitDay ?? 0) >= 3)
@@ -189,7 +231,14 @@ export function suggestMode(input: { energy: 'low' | 'normal' | 'good'; unitDay?
     return 'standard';
 }
 /** 时间预算 → 计划观看/复盘分钟数（允许只看片段，不强求整段视频） */
-export function planInputMinutes(input: { availableMinutes: number; durationMinutes: number; mode: InputMode }): { watchMinutes: number; reflectionMinutes: number } {
+export function planInputMinutes(input: {
+    availableMinutes: number;
+    durationMinutes: number;
+    mode: InputMode;
+}): {
+    watchMinutes: number;
+    reflectionMinutes: number;
+} {
     const spec = input.mode === 'light' ? 1 : input.mode === 'standard' ? 4 : 8;
     const available = Math.max(5, input.availableMinutes);
     const reflectionMinutes = Math.min(spec, Math.max(1, Math.round(available * 0.2)));

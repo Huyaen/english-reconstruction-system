@@ -8,7 +8,6 @@ import { buildPastedDraft, toPassage, type ImportResult, type PassageDraft } fro
 import { cuesToText } from './transcript.ts';
 import { handoffToSentenceRecord } from './sentenceSources.ts';
 import type { SentenceRecord } from './types.ts';
-
 export interface TranscriptHandoffOptions {
     title?: string;
     topic?: string;
@@ -54,7 +53,10 @@ export interface SentenceCandidate {
     context: string;
 }
 /** 从字幕里挑出“长得像难句”的片段（启发式，仅用于候选；不声称结构已分析） */
-export function sentenceCandidates(transcript: Transcript, opts: { limit?: number; minWords?: number } = {}): SentenceCandidate[] {
+export function sentenceCandidates(transcript: Transcript, opts: {
+    limit?: number;
+    minWords?: number;
+} = {}): SentenceCandidate[] {
     const limit = opts.limit ?? 8;
     const minWords = opts.minWords ?? 12;
     const out: SentenceCandidate[] = [];
@@ -74,7 +76,14 @@ export function sentenceCandidates(transcript: Transcript, opts: { limit?: numbe
     }
     return out;
 }
-export function transcriptSentenceRecord(input: { passage: Passage; candidate: SentenceCandidate; now?: number }): { record: SentenceRecord; issues: string[] } {
+export function transcriptSentenceRecord(input: {
+    passage: Passage;
+    candidate: SentenceCandidate;
+    now?: number;
+}): {
+    record: SentenceRecord;
+    issues: string[];
+} {
     return handoffToSentenceRecord({
         sentence: input.candidate.text,
         passageId: input.passage.id,

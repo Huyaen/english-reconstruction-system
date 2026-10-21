@@ -5,7 +5,6 @@
 import type { Data, EnergyState, InputSource, InterestProfile } from './types.ts';
 import { interestFor, REASON_LABELS, type ActivitySignals, type InterestReasonKind } from './interestProfile.ts';
 import { providerLabel } from './inputUrl.ts';
-
 export const INPUT_TARGETS = {
     comfort: { min: 0.8, max: 0.9, label: 'Comfort（目标理解 80–90%）' },
     growth: { min: 0.65, max: 0.8, label: 'Growth（目标理解 65–80%）' },
@@ -24,7 +23,11 @@ export interface InputCandidate {
     captionStatus: string;
     transcriptRef: string | null;
     hasTranscript: boolean;
-    difficulty: { estimate: number | null; basis: 'transcript' | 'none'; confidence: 'low' | 'none' };
+    difficulty: {
+        estimate: number | null;
+        basis: 'transcript' | 'none';
+        confidence: 'low' | 'none';
+    };
     reasonKind: InterestReasonKind;
     reasonTag: string;
     reasonZh: string;
@@ -64,12 +67,20 @@ function lastSessionOn(data: Data, sourceId: string): number {
     const rows = (data.inputSessions ?? []).filter(s => s.sourceId === sourceId && s.status === 'completed');
     return rows.reduce((m, s) => Math.max(m, s.completedAt ?? 0), 0);
 }
-export function recommendInputs(input: RecommendationInput): { candidates: InputCandidate[]; note: string; sufficient: boolean; target: InputTarget } {
+export function recommendInputs(input: RecommendationInput): {
+    candidates: InputCandidate[];
+    note: string;
+    sufficient: boolean;
+    target: InputTarget;
+} {
     const { data, profile, signals, now } = input;
     const target = targetFor(input.energy, input.unitDay);
     const activeUnit = (data.miniUnits ?? []).find(u => u.status === 'active' && u.stage !== 'completed' && u.stage !== 'abandoned');
     const unitTopic = activeUnit ? `${activeUnit.topic ?? ''} ${activeUnit.theme ?? ''}`.toLowerCase() : '';
-    const scored: { cand: InputCandidate; score: number }[] = [];
+    const scored: {
+        cand: InputCandidate;
+        score: number;
+    }[] = [];
     for (const source of data.inputSources ?? []) {
         const key = `${source.topic} ${source.title}`;
         const interestHit = interestFor(profile, source.topic, source.title);

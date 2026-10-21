@@ -5,7 +5,6 @@
 //  3) 规范化用于去重（去掉追踪参数、统一 host/末尾斜杠）；
 //  4) 平台识别失败不算错误——当普通网页处理（provider='web'）。
 import type { InputContentType, InputProvider } from './types.ts';
-
 export type UrlErrorCode = 'empty' | 'invalid' | 'unsafe-scheme' | 'credentials' | 'host-missing' | 'too-long';
 export interface ParsedInputUrl {
     ok: true;
@@ -26,7 +25,6 @@ export interface UrlError {
 }
 const TRACKING_PARAMS = new Set(['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_id', 'si', 'feature', 'fbclid', 'gclid', 'spm_id_from', 'vd_source', 'share_source', 'share_medium', 'share_platform', 'from', 'ref', 'ref_src']);
 const UNSAFE = new Set(['javascript:', 'data:', 'file:', 'blob:', 'vbscript:', 'about:', 'chrome:', 'edge:']);
-
 export function parseInputUrl(rawInput: string): ParsedInputUrl | UrlError {
     const raw = (rawInput ?? '').trim();
     if (!raw)
@@ -65,7 +63,10 @@ export function parseInputUrl(rawInput: string): ParsedInputUrl | UrlError {
         provider: parsed.provider, videoId: parsed.videoId, host, protocol: u.protocol as 'http:' | 'https:',
     };
 }
-function classifyPlatform(u: URL): { provider: InputProvider; videoId: string } {
+function classifyPlatform(u: URL): {
+    provider: InputProvider;
+    videoId: string;
+} {
     const host = u.hostname.toLowerCase();
     // YouTube
     if (host === 'youtu.be') {
@@ -134,9 +135,23 @@ export function contentTypeOf(provider: InputProvider, hint?: InputContentType |
     return 'other';
 }
 /** 同一材料判定：canonical URL 相同，或同平台同 videoId */
-export function sameInputTarget(a: { normalizedUrl?: string; url: string; provider?: string; videoId?: string }, b: { normalizedUrl?: string; url: string; provider?: string; videoId?: string }): boolean {
-    const an = a.normalizedUrl ?? (parseInputUrl(a.url) as { normalizedUrl?: string }).normalizedUrl ?? a.url;
-    const bn = b.normalizedUrl ?? (parseInputUrl(b.url) as { normalizedUrl?: string }).normalizedUrl ?? b.url;
+export function sameInputTarget(a: {
+    normalizedUrl?: string;
+    url: string;
+    provider?: string;
+    videoId?: string;
+}, b: {
+    normalizedUrl?: string;
+    url: string;
+    provider?: string;
+    videoId?: string;
+}): boolean {
+    const an = a.normalizedUrl ?? (parseInputUrl(a.url) as {
+        normalizedUrl?: string;
+    }).normalizedUrl ?? a.url;
+    const bn = b.normalizedUrl ?? (parseInputUrl(b.url) as {
+        normalizedUrl?: string;
+    }).normalizedUrl ?? b.url;
     if (an && bn && an === bn)
         return true;
     if (a.provider && a.videoId && a.provider === b.provider && a.videoId === b.videoId)

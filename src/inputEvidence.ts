@@ -6,7 +6,6 @@
 //  * 不产生任何“听力分数”，只产生可解释的记录。
 import type { Data, InputEvidenceRecord, InputEvidenceType, InputSession, ReadingSession } from './types.ts';
 import { REFLECTION_SPECS } from './inputReflection.ts';
-
 export function evidenceId(sessionId: string, type: InputEvidenceType): string {
     return `${sessionId}:${type}`;
 }
@@ -45,7 +44,10 @@ export function sessionEvidence(session: InputSession, now = Date.now()): InputE
     }
     return out;
 }
-export function mergeEvidence(existing: InputEvidenceRecord[], incoming: InputEvidenceRecord[]): { items: InputEvidenceRecord[]; added: InputEvidenceRecord[] } {
+export function mergeEvidence(existing: InputEvidenceRecord[], incoming: InputEvidenceRecord[]): {
+    items: InputEvidenceRecord[];
+    added: InputEvidenceRecord[];
+} {
     const seen = new Set(existing.map(e => e.id));
     const added = incoming.filter(e => !seen.has(e.id));
     return { items: [...existing, ...added], added };

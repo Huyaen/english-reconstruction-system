@@ -5,7 +5,6 @@
 //  * 时间戳不可靠时明确报错，不猜；重叠/乱序只警告并保留原始时间；
 //  * TXT 没有时间轴：timed=false，cue 时间全 0，不能当作字幕时间轴使用。
 import type { CaptionCue, InputProvenance, Transcript } from './types.ts';
-
 export type TranscriptFormat = 'srt' | 'vtt' | 'txt';
 export type TranscriptErrorCode = 'empty' | 'too-large' | 'unsupported-format' | 'invalid-timestamp' | 'no-cues';
 export interface TranscriptParseInput {
@@ -17,12 +16,17 @@ export interface TranscriptParseInput {
     sourceId?: string;
     now?: number;
 }
-export type TranscriptParseResult =
-    | { ok: true; transcript: Transcript; warnings: string[] }
-    | { ok: false; code: TranscriptErrorCode; message: string; line?: number };
-
-export const TRANSCRIPT_LIMITS = { maxChars: 2_000_000, maxCues: 20_000, maxCueChars: 2_000 };
-
+export type TranscriptParseResult = {
+    ok: true;
+    transcript: Transcript;
+    warnings: string[];
+} | {
+    ok: false;
+    code: TranscriptErrorCode;
+    message: string;
+    line?: number;
+};
+export const TRANSCRIPT_LIMITS = { maxChars: 2000000, maxCues: 20000, maxCueChars: 2000 };
 export function detectFormat(raw: string, fileName = ''): TranscriptFormat {
     const ext = fileName.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1];
     if (ext === 'srt')
@@ -71,7 +75,11 @@ function hashString(s: string): string {
     }
     return (h >>> 0).toString(16).padStart(8, '0') + '-' + s.length.toString(16);
 }
-function cueLines(block: string): { times: string; text: string; marker: string } | null {
+function cueLines(block: string): {
+    times: string;
+    text: string;
+    marker: string;
+} | null {
     const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
     const idx = lines.findIndex(l => l.includes('-->'));
     if (idx < 0)
@@ -171,17 +179,28 @@ export function parseTranscript(input: TranscriptParseInput): TranscriptParseRes
         },
     };
 }
-export function cuesToText(cues: CaptionCue[], opts: { startMs?: number; endMs?: number } = {}): string {
+export function cuesToText(cues: CaptionCue[], opts: {
+    startMs?: number;
+    endMs?: number;
+} = {}): string {
     const start = opts.startMs ?? -Infinity;
     const end = opts.endMs ?? Infinity;
     return cues.filter(c => c.endMs >= start && c.startMs <= end).map(c => c.text).join(' ').replace(/\s+/g, ' ').trim();
 }
-export function transcriptStats(t: Transcript): { cues: number; characters: number; durationMinutes: number; timed: boolean } {
+export function transcriptStats(t: Transcript): {
+    cues: number;
+    characters: number;
+    durationMinutes: number;
+    timed: boolean;
+} {
     const characters = t.cues.reduce((n, c) => n + c.text.length, 0);
     const durationMs = t.cues.reduce((m, c) => Math.max(m, c.endMs), 0);
     return { cues: t.cues.length, characters, durationMinutes: Math.round(durationMs / 60000), timed: t.timed };
 }
 /** 同一 source 下同一内容视为重复导入（返回已有字幕，避免重复 cue 与重复证据） */
-export function findDuplicateTranscript(existing: Transcript[], next: { sourceId: string; hash: string }): Transcript | null {
+export function findDuplicateTranscript(existing: Transcript[], next: {
+    sourceId: string;
+    hash: string;
+}): Transcript | null {
     return existing.find(t => t.sourceId === next.sourceId && t.hash === next.hash) ?? null;
 }

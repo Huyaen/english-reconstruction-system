@@ -6,7 +6,6 @@ import { providerLabel } from './inputUrl.ts';
 import { REFLECTION_SPECS, DIFFICULTY_REASONS, DIFFICULTY_REASON_LABELS, reflectionLabel, captionCaveat } from './inputReflection.ts';
 import { formatTimestamp, transcriptStats } from './transcript.ts';
 import type { SentenceCandidate } from './inputHandoff.ts';
-
 export interface HubInput {
     data: Data;
     candidates: InputCandidate[];
@@ -16,7 +15,12 @@ export interface HubInput {
     recent: InputSession[];
     library: LibraryItem[];
     analytics: ReturnType<typeof import('./inputEvidence.ts').inputAnalytics>;
-    filter: { search: string; status: string; captions: string; contentType: string };
+    filter: {
+        search: string;
+        status: string;
+        captions: string;
+        contentType: string;
+    };
     interestLabels: string[];
 }
 const FACT_PILL = (text: string, cls = '') => `<span class="pill ${cls}">${esc(text)}</span>`;

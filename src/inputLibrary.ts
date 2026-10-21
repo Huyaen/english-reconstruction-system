@@ -1,7 +1,6 @@
 // —— Phase 8：My English Library（真实材料收藏/状态/筛选）——
 // 纪律：Library 只管理“材料”，不管理兴趣；删除收藏不删兴趣，取消兴趣不删材料。
 import type { InputSource, LibraryItem } from './types.ts';
-
 export type LibraryStatus = LibraryItem['status'];
 export interface LibraryFilter {
     search?: string;
@@ -26,7 +25,11 @@ export function libraryItemFromSource(source: InputSource, now = Date.now(), ext
     };
 }
 /** 保存（幂等）：同一 source 只保留一条；已归档的再次保存会回到 saved */
-export function saveToLibrary(items: LibraryItem[], source: InputSource, now = Date.now()): { items: LibraryItem[]; item: LibraryItem; created: boolean } {
+export function saveToLibrary(items: LibraryItem[], source: InputSource, now = Date.now()): {
+    items: LibraryItem[];
+    item: LibraryItem;
+    created: boolean;
+} {
     const idx = items.findIndex(i => i.sourceId === source.id);
     if (idx >= 0) {
         const existing = items[idx];

@@ -8,13 +8,18 @@ import { createInputSession, submitInputReflection, completeInputSession, startI
 import { INPUT_TARGETS, recommendInputs, targetGap } from '../src/inputRecommendation.ts';
 import { evidenceForSession, inputAnalytics, mergeEvidence, sessionEvidence } from '../src/inputEvidence.ts';
 import { saveToLibrary } from '../src/inputLibrary.ts';
-
 const NOW = new Date(2026, 9, 21, 10, 0, 0).getTime();
 const DAY = 86400000;
-function must<T extends { ok: boolean }>(r: T): Extract<T, { ok: true }> {
+function must<T extends {
+    ok: boolean;
+}>(r: T): Extract<T, {
+    ok: true;
+}> {
     if (!r.ok)
         throw new Error(JSON.stringify(r));
-    return r as Extract<T, { ok: true }>;
+    return r as Extract<T, {
+        ok: true;
+    }>;
 }
 function source(over: Partial<Parameters<typeof createInputSource>[0]> = {}): InputSource {
     return must(createInputSource({ title: 'Roman Engineering', url: 'https://www.youtube.com/watch?v=rome0001', topic: 'roman history', durationMinutes: 35, now: NOW - DAY, ...over })).source;
@@ -39,7 +44,6 @@ function data(over: Partial<Data> = {}): Data {
 function rec(d: Data, profile = emptyProfile(NOW), minutes = 30, energy: 'low' | 'normal' | 'good' = 'normal') {
     return recommendInputs({ data: d, profile, signals: activitySignals(d, NOW), now: NOW, availableMinutes: minutes, energy });
 }
-
 // ————— Recommendation —————
 test('推荐：显式兴趣决定排序并给出 Based on your interests', () => {
     const a = source({ title: 'Roman Engineering', topic: 'roman history', url: 'https://www.youtube.com/watch?v=rome0001' });
@@ -63,10 +67,10 @@ test('推荐：当前 Mini Unit 的主题标记 Related to your Mini Unit', () =
     const d = data({
         inputSources: [a],
         miniUnits: [{
-            id: 'u1', theme: 'Rivers', topic: 'roman history', dayIndex: 1, anchorMaterialId: 'p1', targetWords: [], targetGrammar: [],
-            difficultyTarget: null, status: 'active', stage: 'active', startedAt: NOW - DAY, completedAt: null, dayLog: [], plannedDays: 3,
-            dayHistory: [], createdAt: NOW - DAY, updatedAt: NOW - DAY,
-        }],
+                id: 'u1', theme: 'Rivers', topic: 'roman history', dayIndex: 1, anchorMaterialId: 'p1', targetWords: [], targetGrammar: [],
+                difficultyTarget: null, status: 'active', stage: 'active', startedAt: NOW - DAY, completedAt: null, dayLog: [], plannedDays: 3,
+                dayHistory: [], createdAt: NOW - DAY, updatedAt: NOW - DAY,
+            }],
     });
     const r = rec(d);
     assert.equal(r.candidates[0].reasonKind, 'unit');
@@ -147,7 +151,6 @@ test('推荐：刚完成的材料排在未完成材料之后（防重复硬规�
     if (roman)
         assert.equal(roman.repeat, true);
 });
-
 // ————— Signals —————
 test('行为信号：完成的输入比收藏更有分量，且不写回兴趣画像', () => {
     const a = source();
@@ -172,7 +175,6 @@ test('行为信号：旧规则不变（导入 0.15 / 阅读 0.4 / 单元 0.3 权
     assert.equal(SIGNAL_WEIGHTS.read, 0.4);
     assert.equal(SIGNAL_WEIGHTS.unitCompleted, 0.3);
 });
-
 // ————— Evidence —————
 test('证据：观看曝光只在有自报时长时产生，且置信度很低', () => {
     const a = source();

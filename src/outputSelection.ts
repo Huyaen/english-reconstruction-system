@@ -4,7 +4,6 @@
 import type { Data, OutputTaskSpec, OutputTaskType } from './types.ts';
 import { buildTaskSpec, defaultTaskType } from './outputTask.ts';
 import { normalizeProfile, interestFor } from './interestProfile.ts';
-
 export interface SelectionInput {
     data: Data;
     now?: number;
@@ -14,20 +13,17 @@ export interface SelectionInput {
     /** 用户自选主题（自由表达）；不传则从真实来源挑 */
     topic?: string | null;
 }
-
 export interface SelectionResult {
     candidates: OutputTaskSpec[];
     task: OutputTaskSpec | null;
     note: string;
 }
-
 export function selectOutputTasks(input: SelectionInput): SelectionResult {
     const now = input.now ?? Date.now();
     const minutes = Math.max(3, Math.round(input.availableMinutes));
     const profile = normalizeProfile(input.data.settings.interests, now);
     const out: OutputTaskSpec[] = [];
     const reasons: string[] = [];
-
     // 1) 当前 Mini Unit：优先真实迁移/复述
     const unit = (input.data.miniUnits ?? []).find(u => u.status === 'active');
     if (unit) {
@@ -50,7 +46,6 @@ export function selectOutputTasks(input: SelectionInput): SelectionResult {
         }));
         reasons.push(`当前有主题单元（Day ${day}）`);
     }
-
     // 2) 最近完成的真实输入（有英文总结）
     const inputs = [...(input.data.inputSessions ?? [])]
         .filter(s => s.status === 'completed' && (s.reflection?.summary || s.reflection?.mainIdea))
@@ -76,7 +71,6 @@ export function selectOutputTasks(input: SelectionInput): SelectionResult {
             id: `otask_input_${s.id}`,
         }));
     }
-
     // 3) 最近阅读：总结或观点
     const readings = [...(input.data.readingSessions ?? [])]
         .filter(r => r.stage >= 3 || r.detail?.stage === 'completed')
@@ -102,7 +96,6 @@ export function selectOutputTasks(input: SelectionInput): SelectionResult {
             id: `otask_reading_${r.id}`,
         }));
     }
-
     // 4) 薄弱词：在新语境里用出来
     const weak = (input.data.words ?? [])
         .filter(w => w.state.total > 0 && (w.state.errors > 0 || w.state.level === 'unknown' || w.state.level === 'vague'))
@@ -125,7 +118,6 @@ export function selectOutputTasks(input: SelectionInput): SelectionResult {
             id: `otask_words_${weak.map(w => w.id).join('_')}`,
         }));
     }
-
     // 5) 薄弱语法
     const grammar = (input.data.grammarConcepts ?? [])
         .filter(c => c.attempts >= 2 && c.mastery < 0.6)
@@ -148,7 +140,6 @@ export function selectOutputTasks(input: SelectionInput): SelectionResult {
             id: `otask_grammar_${grammar.map(g => g.id).join('_')}`,
         }));
     }
-
     // 6) 自由表达（永远可用，不依赖材料）
     const freeTopic = (input.topic ?? '').trim();
     out.push(buildTaskSpec({
@@ -166,7 +157,6 @@ export function selectOutputTasks(input: SelectionInput): SelectionResult {
         now,
         id: `otask_free_${freeTopic ? hash(freeTopic) : 'today'}`,
     }));
-
     // 用户指定了任务类型：只保留该类型（自由表达兜底）
     const filtered = input.preferredType ? out.filter(t => t.taskType === input.preferredType) : out;
     const pool = filtered.length ? filtered : out;
@@ -179,7 +169,6 @@ export function selectOutputTasks(input: SelectionInput): SelectionResult {
         note = '还没有阅读/真实输入材料：这里给的是自由表达任务，不会假装有材料。';
     return { candidates: candidates.slice(0, 6), task, note };
 }
-
 function score(t: OutputTaskSpec, minutes: number, energy: 'low' | 'normal' | 'good'): number {
     let s = 0;
     if (t.sourceType === 'mini_unit')
@@ -204,7 +193,6 @@ function score(t: OutputTaskSpec, minutes: number, energy: 'low' | 'normal' | 'g
         s += 4;
     return s;
 }
-
 function dedupe(list: OutputTaskSpec[]): OutputTaskSpec[] {
     const seen = new Set<string>();
     const out: OutputTaskSpec[] = [];
@@ -217,11 +205,9 @@ function dedupe(list: OutputTaskSpec[]): OutputTaskSpec[] {
     }
     return out;
 }
-
 function clamp01(n: number): number {
     return Math.min(1, Math.max(0, Number.isFinite(n) ? n : 0.4));
 }
-
 function hash(s: string): string {
     let h = 0x811c9dc5;
     for (let i = 0; i < s.length; i += 1) {
@@ -230,8 +216,12 @@ function hash(s: string): string {
     }
     return h.toString(36).slice(0, 6);
 }
-
 /** 今天默认的任务类型（时间/状态决定，用户可覆盖） */
-export function suggestedTypeFor(input: { minutes: number; energy: 'low' | 'normal' | 'good'; hasSource: boolean; hasUnit: boolean }): OutputTaskType {
+export function suggestedTypeFor(input: {
+    minutes: number;
+    energy: 'low' | 'normal' | 'good';
+    hasSource: boolean;
+    hasUnit: boolean;
+}): OutputTaskType {
     return defaultTaskType(input);
 }

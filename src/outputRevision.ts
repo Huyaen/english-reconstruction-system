@@ -4,7 +4,6 @@
 import type { OutputAttempt, OutputErrorSpan, OutputFeedback, OutputRevisionKind, OutputRevisionRecord, OutputSupportLevel } from './types.ts';
 import { textSimilarity } from './outputScaffolding.ts';
 import { countWords } from './outputTask.ts';
-
 export interface RevisionOptions {
     now?: number;
     /** AI 给出的建议句（用于判定是否照抄） */
@@ -13,8 +12,10 @@ export interface RevisionOptions {
     /** 显式指定来源（用户主动标记"我照抄了"时优先） */
     kind?: OutputRevisionKind;
 }
-
-export function classifyRevision(text: string, opts: RevisionOptions): { kind: OutputRevisionKind; similarity: number } {
+export function classifyRevision(text: string, opts: RevisionOptions): {
+    kind: OutputRevisionKind;
+    similarity: number;
+} {
     const suggestion = String(opts.suggestion ?? '').trim();
     const similarity = suggestion ? textSimilarity(text, suggestion) : 0;
     if (opts.kind)
@@ -27,7 +28,6 @@ export function classifyRevision(text: string, opts: RevisionOptions): { kind: O
         return { kind: 'after_hint', similarity };
     return { kind: 'self', similarity };
 }
-
 export function recordRevision(attempt: OutputAttempt, text: string, opts: RevisionOptions = {}): OutputAttempt {
     const now = opts.now ?? Date.now();
     const clean = String(text ?? '').trim();
@@ -43,11 +43,9 @@ export function recordRevision(attempt: OutputAttempt, text: string, opts: Revis
         revision: (attempt.revision ?? 0) + 1,
     };
 }
-
 function round2(n: number): number {
     return Math.round(n * 100) / 100;
 }
-
 export interface RevisionComparison {
     beforeWords: number;
     afterWords: number;
@@ -58,7 +56,6 @@ export interface RevisionComparison {
     /** 是否真的改到了点子上（而不是只换同义词/扩写） */
     addressedPriority: boolean;
 }
-
 export function compareRevision(before: string, after: string, feedback: OutputFeedback | null): RevisionComparison {
     const spans = feedback ? [...feedback.priorityIssues, ...feedback.corrections] : [];
     const resolved: OutputErrorSpan[] = [];
@@ -75,25 +72,21 @@ export function compareRevision(before: string, after: string, feedback: OutputF
     const afterWords = countWords(after);
     return { beforeWords, afterWords, wordDelta: afterWords - beforeWords, resolved, remaining, addressedPriority };
 }
-
 /** 修改质量：只给方向性判断，不编造分数 */
 export function revisionVerdict(cmp: RevisionComparison): 'improved' | 'partial' | 'unchanged' | 'copied' {
     if (!cmp.resolved.length)
         return cmp.afterWords === cmp.beforeWords ? 'unchanged' : 'unchanged';
     return cmp.remaining.length === 0 ? 'improved' : 'partial';
 }
-
 /** 复制建议后"语法正确"不等于独立掌握：只有非 copied 的修改才计算成长 */
 export function revisionEvidenceKind(attempt: OutputAttempt): OutputRevisionKind | 'none' {
     const last = attempt.revisions?.[attempt.revisions.length - 1];
     return last ? last.kind : 'none';
 }
-
 export function revisionIsIndependent(attempt: OutputAttempt): boolean {
     const kind = revisionEvidenceKind(attempt);
     return kind === 'self' || kind === 'after_hint';
 }
-
 /** 给用户的下一步：不提"再写一篇 300 词" */
 export function nextRevisionPrompt(cmp: RevisionComparison, taskType: string): string {
     if (cmp.remaining.some(s => s.severity === 'blocking'))

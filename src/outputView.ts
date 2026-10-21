@@ -8,7 +8,6 @@ import { ERROR_LABELS } from './outputFeedback.ts';
 import type { RevisionComparison } from './outputRevision.ts';
 import type { OutputAnalytics } from './outputAnalytics.ts';
 import type { TransferPlan } from './outputTransfer.ts';
-
 export interface HandoffCard {
     kind: 'reading' | 'input' | 'unit';
     id: string;
@@ -16,7 +15,6 @@ export interface HandoffCard {
     preview: string;
     taskType: OutputTaskType;
 }
-
 export interface OutputHubInput {
     data: Data;
     suggestion: OutputTaskSpec | null;
@@ -29,7 +27,6 @@ export interface OutputHubInput {
     minutes: number;
     energy: 'low' | 'normal' | 'good';
 }
-
 export function outputHubPage(input: OutputHubInput): string {
     const s = input.suggestion;
     const cards = input.candidates.slice(0, 5).map(t => `
@@ -53,7 +50,6 @@ export function outputHubPage(input: OutputHubInput): string {
     const stats = input.analytics.attempts ? `<section class="panel"><div class="section-title"><h2>表达概览</h2><span class="subtle">${esc(input.analytics.sampleNote)}</span></div>
       <div class="metrics">${metric('完成', String(input.analytics.completed), `共 ${input.analytics.attempts} 条记录`)}${metric('独立', String(input.analytics.independent), '无提示、非照抄')}${metric('辅助 / 照抄', `${input.analytics.assisted} / ${input.analytics.copied}`, '证据等级不同')}${metric('迁移 / 延迟', `${input.analytics.transfer} / ${input.analytics.delayed}`, '新语境 / D1')}</div>
       <p class="hint">${esc(input.analytics.meaningDeliveredRate === null ? '意思送达率：insufficient evidence' : `意思送达率 ${Math.round(input.analytics.meaningDeliveredRate * 100)}%（样本很少，只看趋势）`)} · 独立产出词 ${input.analytics.productiveWords} 个</p></section>` : '';
-
     return `${titleBlock('OUTPUT LAB', '真实表达', '先把意思送出去，再让它更准确。写一句也算完成。')}
     ${input.note ? `<div class="notice">${esc(input.note)}</div>` : ''}
     <section class="panel output-start">
@@ -73,16 +69,18 @@ export function outputHubPage(input: OutputHubInput): string {
     ${stats}
     ${history}`;
 }
-
 export interface SessionInput {
     attempt: OutputAttempt;
-    hint: { level: OutputSupportLevel; title: string; content: string } | null;
+    hint: {
+        level: OutputSupportLevel;
+        title: string;
+        content: string;
+    } | null;
     message: string;
     compare: RevisionComparison | null;
     transfer: TransferPlan | null;
     saving: boolean;
 }
-
 export function outputSessionPage(input: SessionInput): string {
     const a = input.attempt;
     const task = a.task!;
@@ -124,7 +122,6 @@ export function outputSessionPage(input: SessionInput): string {
       </div>
     </div>`;
 }
-
 function feedbackBlock(fb: OutputFeedback, a: OutputAttempt): string {
     const issue = (s: typeof fb.priorityIssues[number]) => `<li><b>${esc(ERROR_LABELS[s.type])}</b>：${esc(s.explanation)}<br><span class="muted">${esc(s.original)} → ${esc(s.proposed || '（自己重写）')}</span></li>`;
     return `<section class="panel">
@@ -138,7 +135,6 @@ function feedbackBlock(fb: OutputFeedback, a: OutputAttempt): string {
       ${a.feedbackStatus === 'unavailable' || a.feedbackStatus === 'invalid' ? '<p class="warn-line">AI Feedback Unavailable：以上只有本地确定性检查，不是语法诊断。原文已保存。</p>' : ''}
     </section>`;
 }
-
 function revisionBlock(a: OutputAttempt, cmp: RevisionComparison | null): string {
     const revisions = a.revisions ?? [];
     const last = revisions[revisions.length - 1]!;
@@ -149,14 +145,12 @@ function revisionBlock(a: OutputAttempt, cmp: RevisionComparison | null): string
       ${cmp ? `<p class="muted">修改后 ${cmp.afterWords} 词（原 ${cmp.beforeWords} 词）· 已解决 ${cmp.resolved.length} 处 · 仍有 ${cmp.remaining.length} 处</p>` : ''}
     </section>`;
 }
-
 function transferBlock(t: TransferPlan): string {
     return `<section class="panel"><div class="section-title"><h2>迁移练习</h2><span class="subtle">${t.strength === 'strong' ? '新语境 · 强证据' : '语境太近 · 弱证据'}</span></div>
       <p>${esc(t.task.communicationGoal)}</p>
       <p class="muted">${esc(t.notes.join(' · '))}</p>
       <div class="actions"><button class="secondary" data-out-transfer-start="${esc(t.task.id)}">开始迁移</button></div></section>`;
 }
-
 function titleBlock(kicker: string, title: string, sub: string, action = ''): string {
     return `<div class="page-title"><div><div class="eyebrow">${esc(kicker)}</div><h1>${esc(title)}</h1><p>${esc(sub)}</p></div>${action}</div>`;
 }

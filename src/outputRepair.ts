@@ -2,7 +2,6 @@
 // 核心判断：用户没有用"标准词"，是否仍然把主要意思送到了？
 // 纪律：没有可靠的 intendedMeaning / 目标意义依据时，不得判定 meaningPreserved=true。
 import type { OutputMeaningBasis, OutputRepairRecord, OutputSupportLevel } from './types.ts';
-
 export interface RepairInput {
     intendedMeaning: string;
     blockedExpression: string;
@@ -13,7 +12,6 @@ export interface RepairInput {
     now?: number;
     source?: 'user' | 'system' | 'ai';
 }
-
 export interface RepairResult {
     record: OutputRepairRecord;
     strategies: string[];
@@ -21,20 +19,21 @@ export interface RepairResult {
     /** 只有真正能判断时才给出 true/false；否则 null */
     verdict: 'preserved' | 'partial' | 'failed' | 'unknown';
 }
-
-const STRATEGY_RULES: { id: string; zh: string; test: RegExp }[] = [
+const STRATEGY_RULES: {
+    id: string;
+    zh: string;
+    test: RegExp;
+}[] = [
     { id: 'description', zh: '用描述代替名词', test: /\b(someone|somebody|something|a person who|a thing that|the man who|the woman who)\b/i },
     { id: 'cause_effect', zh: '用因果解释', test: /\b(because|so|therefore|which means|that is why|as a result)\b/i },
     { id: 'example', zh: '用例子说明', test: /\b(for example|for instance|such as|like when)\b/i },
     { id: 'simpler_synonym', zh: '换简单同义词', test: /\b(killed|died|leader|important|big|small|good|bad|help|make|go|get)\b/i },
     { id: 'paraphrase', zh: '改写句式', test: /\b(what happened|what I mean|in other words|it means)\b/i },
 ];
-
 export function detectRepairStrategies(text: string): string[] {
     const clean = String(text ?? '');
     return STRATEGY_RULES.filter(r => r.test.test(clean)).map(r => r.zh);
 }
-
 export function evaluateRepair(input: RepairInput): RepairResult {
     const now = input.now ?? Date.now();
     const intended = String(input.intendedMeaning ?? '').trim();
@@ -42,11 +41,9 @@ export function evaluateRepair(input: RepairInput): RepairResult {
     const alternative = String(input.userAlternative ?? '').trim();
     const notes: string[] = [];
     const strategies = detectRepairStrategies(alternative);
-
     let meaningPreserved: boolean | null = null;
     let verdict: RepairResult['verdict'] = 'unknown';
     let confidence = 0.2;
-
     const hasBasis = (input.basis === 'verified' || input.basis === 'supported_by_source' || input.basis === 'self_reported') && !!intended;
     if (!hasBasis) {
         notes.push('没有可靠的目标意义依据：只能记录你尝试绕开的事实，不判定意思是否保留。');
@@ -92,12 +89,10 @@ export function evaluateRepair(input: RepairInput): RepairResult {
             notes.push('没有覆盖目标意义的关键内容。');
         }
     }
-
     if (blocked && alternative && alternative.toLowerCase().includes(blocked.toLowerCase()))
         notes.push('替代表达里仍然使用了那个"不会的词"，这次不算绕开。');
     if (input.targetWord && alternative && !alternative.toLowerCase().includes(input.targetWord.toLowerCase()))
         notes.push('没有使用目标词也可以：这里评的是意思是否传达，不是词表命中。');
-
     const record: OutputRepairRecord = {
         intendedMeaning: intended,
         blockedExpression: blocked,
@@ -111,7 +106,6 @@ export function evaluateRepair(input: RepairInput): RepairResult {
     };
     return { record, strategies, notes, verdict };
 }
-
 /** 目标意义关键词覆盖率：去掉停用词后看替代表达覆盖了多少 */
 export function keywordCoverage(intended: string, alternative: string): number {
     const target = contentWords(intended);
@@ -124,9 +118,7 @@ export function keywordCoverage(intended: string, alternative: string): number {
             hit += 1;
     return hit / target.size;
 }
-
 const STOP = new Set(['the', 'a', 'an', 'to', 'of', 'in', 'on', 'for', 'and', 'or', 'is', 'was', 'were', 'are', 'be', 'been', 'that', 'this', 'it', 'he', 'she', 'they', 'his', 'her', 'their', 'with', 'by', 'as', 'at', 'from', 'not']);
-
 function contentWords(s: string): Set<string> {
     const out = new Set<string>();
     for (const raw of String(s ?? '').toLowerCase().replace(/[^a-z0-9'\s-]/g, ' ').split(/\s+/)) {
@@ -136,11 +128,9 @@ function contentWords(s: string): Set<string> {
     }
     return out;
 }
-
 function stem(w: string): string {
     return w.replace(/(ing|ed|es|s)$/u, '');
 }
-
 /** 由一次 repair 训练生成可展示结论（不夸大） */
 export function repairSummary(result: RepairResult): string {
     if (result.verdict === 'preserved')

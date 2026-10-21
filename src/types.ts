@@ -880,7 +880,6 @@ export interface LibraryItem {
     miniUnitId?: string | null;
     updatedAt?: number;
 }
-
 // —— Phase 8：Real Input Hub 的领域类型 ——
 export type InputProvider = 'youtube' | 'bilibili' | 'vimeo' | 'web' | 'other';
 export type InputMode = 'light' | 'standard' | 'deep';

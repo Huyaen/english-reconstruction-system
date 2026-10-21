@@ -10,14 +10,19 @@ import type { ReflectionInput } from './inputReflection.ts';
 import { parseTranscript, findDuplicateTranscript, cuesToText } from './transcript.ts';
 import { estimateInputDifficulty } from './inputDifficulty.ts';
 import { sessionEvidence } from './inputEvidence.ts';
-import {
-    appendInputEvidence, createSessionRecord, deleteLibraryItemById, saveInputSource, saveLibraryItem,
-    saveTranscript, transitionSession,
-} from './inputStore.ts';
+import { appendInputEvidence, createSessionRecord, deleteLibraryItemById, saveInputSource, saveLibraryItem, saveTranscript, transitionSession, } from './inputStore.ts';
 import { transcriptPassage } from './inputHandoff.ts';
-
-export type ActionResult<T> = { ok: true; value: T } | { ok: false; message: string };
-export async function addSource(data: Data, input: Parameters<typeof createInputSource>[0]): Promise<ActionResult<{ source: InputSource; library: LibraryItem }>> {
+export type ActionResult<T> = {
+    ok: true;
+    value: T;
+} | {
+    ok: false;
+    message: string;
+};
+export async function addSource(data: Data, input: Parameters<typeof createInputSource>[0]): Promise<ActionResult<{
+    source: InputSource;
+    library: LibraryItem;
+}>> {
     const created = createInputSource(input, data.inputSources ?? []);
     if (!created.ok)
         return { ok: false, message: created.message };
@@ -81,7 +86,12 @@ export interface TranscriptImportInput {
     provenance?: Transcript['provenance'];
     now?: number;
 }
-export async function importTranscriptAction(data: Data, input: TranscriptImportInput): Promise<ActionResult<{ transcript: Transcript; duplicate: boolean; warnings: string[]; difficulty: number | null }>> {
+export async function importTranscriptAction(data: Data, input: TranscriptImportInput): Promise<ActionResult<{
+    transcript: Transcript;
+    duplicate: boolean;
+    warnings: string[];
+    difficulty: number | null;
+}>> {
     const source = (data.inputSources ?? []).find(s => s.id === input.sourceId);
     if (!source)
         return { ok: false, message: '找不到这份材料，请先添加链接。' };
@@ -107,7 +117,13 @@ export async function importTranscriptAction(data: Data, input: TranscriptImport
         await saveInputSource(updated.source);
     return { ok: true, value: { transcript: parsed.transcript, duplicate: false, warnings: parsed.warnings, difficulty: estimate?.estimate ?? null } };
 }
-export async function startInputAction(data: Data, input: { sourceId: string; mode: InputSession['mode']; minutes?: number; miniUnitId?: string | null; now?: number }): Promise<ActionResult<InputSession>> {
+export async function startInputAction(data: Data, input: {
+    sourceId: string;
+    mode: InputSession['mode'];
+    minutes?: number;
+    miniUnitId?: string | null;
+    now?: number;
+}): Promise<ActionResult<InputSession>> {
     const source = (data.inputSources ?? []).find(s => s.id === input.sourceId);
     if (!source)
         return { ok: false, message: '找不到这份材料。' };
@@ -145,14 +161,24 @@ export async function baselineAction(id: string, expectedRevision: number | unde
         return { ok: false, message: result.message };
     return { ok: true, value: result.session };
 }
-export async function reflectionAction(id: string, expectedRevision: number | undefined, input: Omit<ReflectionInput, 'mode'> & { mode?: InputSession['mode'] }, now = Date.now()): Promise<ActionResult<InputSession>> {
+export async function reflectionAction(id: string, expectedRevision: number | undefined, input: Omit<ReflectionInput, 'mode'> & {
+    mode?: InputSession['mode'];
+}, now = Date.now()): Promise<ActionResult<InputSession>> {
     const result = await transitionSession(id, expectedRevision, s => submitInputReflection(s, input, { expectedRevision, now }));
     if (!result.ok)
         return { ok: false, message: result.message };
     return { ok: true, value: result.session };
 }
 /** 字幕 → Reading：生成 Passage（保留来源与时间范围），不新建第二套阅读引擎 */
-export async function sendTranscriptToReading(data: Data, input: { sourceId: string; transcriptId: string; title?: string; topic?: string; startMs?: number; endMs?: number; now?: number }): Promise<ActionResult<Passage>> {
+export async function sendTranscriptToReading(data: Data, input: {
+    sourceId: string;
+    transcriptId: string;
+    title?: string;
+    topic?: string;
+    startMs?: number;
+    endMs?: number;
+    now?: number;
+}): Promise<ActionResult<Passage>> {
     const source = (data.inputSources ?? []).find(s => s.id === input.sourceId);
     const transcript = (data.transcripts ?? []).find(t => t.id === input.transcriptId);
     if (!source || !transcript)
