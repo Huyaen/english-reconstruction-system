@@ -3,8 +3,8 @@
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
   "current_phase": "phase_9_output_lab",
-  "last_updated": "2026-10-21T22:20:00+08:00",
-  "last_verified_commit": "64ee19010e6d685b65e0cde34044996f650652e5",
+  "last_updated": "2026-10-21T23:25:00+08:00",
+  "last_verified_commit": "1986b8cfb857f3001852c1b03b405eeb8125e94a",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 6,
   "build_status": "passed",
@@ -558,19 +558,20 @@
     "remote_name": "origin",
     "remote_url": "https://github.com/Huyaen/english-reconstruction-system.git",
     "local_branch": "main",
-    "last_local_commit": "e26c325daa97f26d32a7c560ec09da44857f1a22",
-    "last_known_remote_commit": "e26c325daa97f26d32a7c560ec09da44857f1a22",
+    "last_local_commit": "1986b8cfb857f3001852c1b03b405eeb8125e94a",
+    "last_known_remote_commit": "1986b8cfb857f3001852c1b03b405eeb8125e94a",
     "pending_push": null,
-    "last_verified_at": "2026-10-21T21:05:00+08:00",
+    "last_verified_at": "2026-10-21T23:25:00+08:00",
     "last_error": null,
-    "note": "Phase 5 实测核验：push a4b49b9→7c1bf06（Phase 5 Reading Lab 功能提交），GitHub API git/ref/heads/main 复核 sha=7c1bf06655aed18bdd242574dc8859f52434f6a6 与本地 HEAD 一致；annotated tag phase5-reading-lab → 7c1bf06 已推送。Phase 4 tag 仍固定在 a10efd4-f 功能提交，CI 提交 a4b49b9 仅含 .github/workflows/ci.yml 与测试钩子隔离。",
+    "note": "Phase 9 实测核验：push 604d785→1986b8c（Phase 9 Output Lab 功能提交），GitHub API /commits/main 复核 sha=1986b8c… 与本地一致；CI run 39623912234 success；tag phase9-output-lab 已通过 API 指向 1986b8c。",
     "tags": [
       "v1.0.0-mvp-baseline",
       "phase1-data-foundation",
       "phase2-vocabulary-v2",
       "phase3-daily-planner",
       "phase4-sentence-grammar",
-      "phase5-reading-lab"
+      "phase5-reading-lab",
+      "phase9-output-lab"
     ],
     "ci": "39435327832 success (Node 22 + 24)",
     "last_ci_run": {
@@ -602,6 +603,12 @@
       "commit": "64ee19010e6d685b65e0cde34044996f650652e5",
       "tag": "phase8-real-input-hub",
       "ci": "39603818853 success"
+    },
+    {
+      "phase": "phase9",
+      "commit": "1986b8cfb857f3001852c1b03b405eeb8125e94a",
+      "tag": "phase9-output-lab",
+      "ci": "39623912234 success"
     }
   ]
 }
