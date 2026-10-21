@@ -156,7 +156,7 @@ export interface AIUsageRecord {
 // AI 生成物：永远标 ai_unverified，绝不冒充真实语料或 gold 结构
 export interface AIGeneration {
     id: string;
-    kind: 'sentence' | 'reading';
+    kind: 'sentence' | 'reading' | 'output';
     createdAt: number;
     promptId: string;
     promptVersion: string;
@@ -446,6 +446,112 @@ export interface OutputCorrection {
     to: string;
     note: string;
 }
+// —— Phase 9：Output Lab（真实表达）——
+// 说明：这是"用已知英语传递意思"的训练，不是作文评分器。
+// 所有新增字段都是可选的，旧 OutputAttempt 与旧备份保持可读，DB 不升版本。
+export type OutputTaskType = 'one_sentence' | 'short_summary' | 'paragraph_summary' | 'retelling' | 'opinion' | 'free_expression' | 'transformation' | 'repair';
+export type OutputSourceType = 'free' | 'reading' | 'input' | 'mini_unit' | 'vocabulary' | 'grammar' | 'closing_loop';
+export type OutputStatus = 'draft' | 'submitted' | 'waiting_feedback' | 'feedback' | 'revised' | 'completed' | 'abandoned';
+export type OutputFeedbackStatus = 'none' | 'pending' | 'ai' | 'unavailable' | 'invalid';
+export type OutputFeedbackSource = 'ai' | 'mock' | 'none';
+export type OutputFeedbackScope = 'language_only' | 'content_checked' | 'content_unverified';
+export type OutputMeaningBasis = 'verified' | 'supported_by_source' | 'ai_estimated' | 'self_reported' | 'unknown';
+export type OutputErrorType = 'tense' | 'subject_verb_agreement' | 'article' | 'preposition' | 'word_form' | 'word_order' | 'clause_structure' | 'missing_subject' | 'missing_predicate' | 'vocabulary_choice' | 'collocation' | 'reference' | 'coherence' | 'meaning_ambiguity' | 'other';
+export type OutputSupportLevel = 0 | 1 | 2 | 3 | 4;
+export type OutputRevisionKind = 'self' | 'after_hint' | 'copied' | 'after_model';
+export type ProductiveEvidenceSource = 'output_independent' | 'output_assisted' | 'output_copied' | 'output_transfer' | 'output_delayed';
+/** 一次表达训练的任务契约（Planner / UI / Mini Unit 共用） */
+export interface OutputTaskSpec {
+    id: string;
+    taskType: OutputTaskType;
+    topic: string;
+    /** 这次表达要完成的交际目标（不是作文题目） */
+    communicationGoal: string;
+    sourceType: OutputSourceType;
+    sourceId: string;
+    sourceLabel: string;
+    targetWords: string[];
+    targetGrammar: string[];
+    expectedMinutes: number;
+    difficultyEstimate: number;
+    minWords: number;
+    maxWords: number;
+    /** 为什么现在练这个（真实材料/薄弱点/单元/时间），禁止编造 */
+    reasons: string[];
+    /** 用户可以随时换题；兴趣只影响选材，不影响能力判定 */
+    interestOnly?: boolean;
+    createdAt: number;
+}
+/** 错误定位：span 必须能在原文中真实找到，否则整条丢弃 */
+export interface OutputErrorSpan {
+    type: OutputErrorType;
+    original: string;
+    proposed: string;
+    start: number;
+    end: number;
+    explanation: string;
+    severity: 'blocking' | 'major' | 'minor' | 'style';
+    confidence: number;
+    grammarConceptId?: string | null;
+    targetWordId?: string | null;
+}
+export interface OutputUpgrade {
+    original: string;
+    suggested: string;
+    why: string;
+    changes: string[];
+    newGrammar: string[];
+    newWords: string[];
+    /** 只提升一个主要难度维度：true 才允许作为"升级"展示 */
+    singleDimension: boolean;
+}
+export interface OutputFeedback {
+    communicationGoal: string;
+    meaningAssessment: 'delivered' | 'partly_delivered' | 'not_delivered' | 'unavailable';
+    meaningBasis: OutputMeaningBasis;
+    meaningConfidence: number;
+    strengths: string[];
+    priorityIssues: OutputErrorSpan[];
+    corrections: OutputErrorSpan[];
+    grammarConceptIds: string[];
+    targetWordIds: string[];
+    upgrade: OutputUpgrade | null;
+    nextPractice: string;
+    feedbackScope: OutputFeedbackScope;
+    sourceProvenance: string;
+    uncertainty: string;
+    promptVersion: string;
+    /** 没有任何问题时明确说明，不强行改句子 */
+    noCorrectionNeeded: boolean;
+}
+export interface OutputSupportRecord {
+    highestLevel: OutputSupportLevel;
+    requestedHints: string[];
+    hintTypes: string[];
+    independentText: string;
+    textAfterSupport: string;
+}
+export interface OutputRevisionRecord {
+    text: string;
+    at: number;
+    kind: OutputRevisionKind;
+    /** 与 AI 建议的相似度（0–1）；用于区分"自己改"与"照抄" */
+    similarityToSuggestion: number;
+}
+export interface ProductiveEvidence {
+    id: string;
+    wordId: string;
+    outputAttemptId: string;
+    textSpan: string;
+    context: string;
+    independent: boolean;
+    assisted: boolean;
+    copied: boolean;
+    correctness: 'correct' | 'questionable' | 'wrong';
+    confidence: number;
+    evidenceSource: ProductiveEvidenceSource;
+    at: number;
+}
 export interface OutputAttempt {
     id: string;
     prompt: string;
@@ -462,6 +568,56 @@ export interface OutputAttempt {
     wordCount: number;
     aiEval: unknown;
     createdAt: number;
+    // —— Phase 9 新增（全部可选）——
+    taskType?: OutputTaskType;
+    task?: OutputTaskSpec;
+    inputSessionId?: string | null;
+    readingSessionId?: string | null;
+    miniUnitId?: string | null;
+    dailyPlanTaskId?: string | null;
+    draftText?: string;
+    revisionText?: string;
+    finalText?: string;
+    feedbackStatus?: OutputFeedbackStatus;
+    feedbackSource?: OutputFeedbackSource;
+    meaningBasis?: OutputMeaningBasis;
+    sourceProvenance?: string;
+    supportLevel?: OutputSupportLevel;
+    support?: OutputSupportRecord;
+    hintsUsed?: string[];
+    targetWords?: string[];
+    targetGrammar?: string[];
+    productiveEvidence?: ProductiveEvidence[];
+    transferOf?: string | null;
+    transferAttemptId?: string | null;
+    delayedOf?: string | null;
+    delayedAttemptId?: string | null;
+    confidence?: number;
+    promptVersion?: string;
+    aiGenerationId?: string | null;
+    feedback?: OutputFeedback | null;
+    revisions?: OutputRevisionRecord[];
+    status?: OutputStatus;
+    meaningPreserved?: boolean | null;
+    repair?: OutputRepairRecord | null;
+    updatedAt?: number;
+    revision?: number;
+    /** 完成时刻（Phase 9；旧记录没有） */
+    completedAt?: number | null;
+    /** 来源展示名（Phase 9；只用于 UI，不参与判分） */
+    sourceLabel?: string;
+}
+/** Communication Repair：用已知英语绕开不会的表达 */
+export interface OutputRepairRecord {
+    intendedMeaning: string;
+    blockedExpression: string;
+    userAlternative: string;
+    supportLevel: OutputSupportLevel;
+    meaningPreserved: boolean | null;
+    evidenceBasis: OutputMeaningBasis;
+    evaluatorConfidence: number;
+    source: 'user' | 'system' | 'ai';
+    at: number;
 }
 // Phase 3 起 PlanItem 作为五模块统一 Task Contract 的持久化形状；
 // 新增字段全部可选，因此旧计划/旧备份保持可读（DB 版本无需提升）。
@@ -638,7 +794,7 @@ export interface UnitCompletionEvaluation {
     metrics: UnitCompletionMetrics;
 }
 export interface UnitEvidenceRef {
-    kind: 'word' | 'sentence' | 'reading' | 'grammar' | 'plan' | 'ai' | 'exposure';
+    kind: 'word' | 'sentence' | 'reading' | 'grammar' | 'plan' | 'ai' | 'exposure' | 'output';
     id: string;
     at: number;
     note: string;
@@ -675,6 +831,9 @@ export interface UnitEvidenceSummary {
     /** Phase 8：与单元关联的真实媒体输入（只算曝光，不算迁移/掌握） */
     mediaSessions?: string[];
     mediaMinutes?: number;
+    /** Phase 9：与单元关联的真实表达记录（不自动完成学习日） */
+    outputAttempts?: string[];
+    outputIndependent?: number;
     refs: UnitEvidenceRef[];
 }
 export interface SkillSnapshot {

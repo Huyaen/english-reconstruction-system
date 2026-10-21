@@ -15,6 +15,8 @@ import { buildNewWordQueue, recommendedNewWordCount } from './pools.ts';
 import { isUnseen } from './evidence.ts';
 import type { SentenceRecord } from './types.ts';
 import { SENTENCE_TASK_LABELS, planSentenceTasks, type SentencePlanInput, type SentenceTaskDescriptor, type SentenceTaskKind } from './sentenceSelection.ts';
+import { planOutputTask } from './outputPlanner.ts';
+import type { OutputTaskSpec } from './types.ts';
 import { planReadingTasks, readingUnavailableReason, type ReadingTaskDescriptor } from './readingPlanner.ts';
 export const PLANNER_CONFIG = {
     minutesPerDueWord: 0.35,
@@ -40,6 +42,7 @@ export const TASK_LABELS: Record<string, string> = {
     'new-recall': '新词 Recall',
     'closing-recall': '今日收尾回忆',
     're-entry-check': '重新进入检测',
+    'output-task': '真实表达',
     ...SENTENCE_TASK_LABELS,
 };
 export const MODULES = ['vocabulary', 'sentence', 'reading', 'input', 'output'] as const;
@@ -66,7 +69,7 @@ export function moduleCapabilities(overrides: CapabilityOverrides = {}): Record<
         sentence: { available: true, requires: null, label: '句子与语法' },
         reading: { available: true, requires: null, label: '阅读' },
         input: { available: true, requires: null, label: '真实输入' },
-        output: { available: false, requires: 'phase8', label: '输出' },
+        output: { available: true, requires: null, label: '真实表达' },
     };
     for (const key of MODULES)
         if (overrides[key] === false)
@@ -118,6 +121,8 @@ export interface PlannerInput {
         sources: InputSource[];
         sessions: InputSession[];
     } | null;
+    /** Phase 9：今日表达任务（由 outputSelection 依据真实材料生成；null = 不安排） */
+    outputTask?: OutputTaskSpec | null;
     capabilityOverrides?: CapabilityOverrides;
 }
 export interface BudgetBreakdown {
@@ -130,6 +135,7 @@ export interface BudgetBreakdown {
     sentence: number;
     reading: number;
     input: number;
+    output?: number;
     due: number;
     weak: number;
     planned: number;
@@ -149,6 +155,8 @@ export interface BudgetBreakdown {
         readingMinutes: number;
         inputTasks: number;
         inputMinutes: number;
+        outputTasks?: number;
+        outputMinutes?: number;
     };
     reasons: string[];
 }
@@ -640,6 +648,23 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
             reasons.push(why ? 'input-no-material' : 'input-nothing-scheduled');
         }
     }
+    // —— Phase 9：真实表达任务（有任务且装得下才排；没有就不排，不造假）——
+    const outputCapByBudget = Math.max(0, remaining - (newMinutes + dueMinutes + sentenceMinutesUsed + readingMinutesUsed + inputMinutesUsed));
+    let outputMinutesUsed = 0;
+    const outputTasks: PlanItem[] = [];
+    if (caps.output.available && input.outputTask) {
+        const descriptor = planOutputTask(input.outputTask, { now, availableMinutes: outputCapByBudget, energy });
+        if (descriptor) {
+            outputMinutesUsed = descriptor.minutes;
+            outputTasks.push(makeTask(date, descriptor.kind, descriptor.minutes, [descriptor.sourceId], {
+                priority: 35, critical: false, flexible: true, source: 'output', module: 'output',
+                capabilityRequired: 'output', label: descriptor.label, reason: descriptor.reasons,
+            }));
+        }
+        else {
+            reasons.push('output-deferred-budget');
+        }
+    }
     // 动态顺序：状态差 / 到期负载重 → 记忆优先；否则先建新编码。
     const memoryFirst = energy === 'low' || dueAll.length >= PLANNER_CONFIG.heavyDueLoad;
     reasons.push(memoryFirst ? 'order-memory-first' : 'order-new-first');
@@ -675,7 +700,7 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
     const closingTask = closingMinutes > 0
         ? makeTask(date, 'closing-recall', closingMinutes, closingRefs, { priority: 10, critical: true, flexible: false, source: 'closing', reason: ['closing-loop-3-5min'] })
         : null;
-    const middle: Array<PlanItem | null> = memoryFirst ? [dueTask, previewTask, recallTask, weakTask, ...sentenceTasks, ...readingTasks, ...inputTasks] : [previewTask, recallTask, dueTask, weakTask, ...sentenceTasks, ...readingTasks, ...inputTasks];
+    const middle: Array<PlanItem | null> = memoryFirst ? [dueTask, previewTask, recallTask, weakTask, ...sentenceTasks, ...readingTasks, ...inputTasks, ...outputTasks] : [previewTask, recallTask, dueTask, weakTask, ...sentenceTasks, ...readingTasks, ...inputTasks, ...outputTasks];
     for (const t of middle)
         if (t)
             tasks.push(t);
@@ -686,9 +711,9 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
     const planned = round1(tasks.reduce((n, t) => n + t.minutes, 0));
     const budget: BudgetBreakdown = {
         availableMinutes: available, closing: closingMinutes, yesterdayRecall: recallMinutes, recovery: recoveryMinutes,
-        newPreview: previewTask?.minutes ?? 0, newRecall: recallTask?.minutes ?? 0, due: dueMinutes, weak: weakMinutes, sentence: round1(sentenceMinutesUsed), reading: round1(readingMinutesUsed), input: round1(inputMinutesUsed),
+        newPreview: previewTask?.minutes ?? 0, newRecall: recallTask?.minutes ?? 0, due: dueMinutes, weak: weakMinutes, sentence: round1(sentenceMinutesUsed), reading: round1(readingMinutesUsed), input: round1(inputMinutesUsed), output: round1(outputMinutesUsed),
         planned, unallocated: round1(Math.max(0, available - planned)),
-        load: { dueTotal: dueAll.length, duePlanned: dueWords.length, weakTotal: weakAll.length, weakPlanned: weakWords.length, newRequested: recommendation.recommended, newPlanned: newIds.length, forgottenPlanned: forgottenIds.length, memoryDebt: Math.max(0, dueAll.length - dueWords.length), sentenceTasks: sentenceTasks.length, sentenceSentences: sentenceTasks.reduce((n, t) => n + (t.refs ?? []).length, 0), readingTasks: readingTasks.length, readingMinutes: round1(readingMinutesUsed), inputTasks: inputTasks.length, inputMinutes: round1(inputMinutesUsed) },
+        load: { dueTotal: dueAll.length, duePlanned: dueWords.length, weakTotal: weakAll.length, weakPlanned: weakWords.length, newRequested: recommendation.recommended, newPlanned: newIds.length, forgottenPlanned: forgottenIds.length, memoryDebt: Math.max(0, dueAll.length - dueWords.length), sentenceTasks: sentenceTasks.length, sentenceSentences: sentenceTasks.reduce((n, t) => n + (t.refs ?? []).length, 0), readingTasks: readingTasks.length, readingMinutes: round1(readingMinutesUsed), inputTasks: inputTasks.length, inputMinutes: round1(inputMinutesUsed), outputTasks: outputTasks.length, outputMinutes: round1(outputMinutesUsed) },
         reasons,
     };
     const plan: DailyPlan = {

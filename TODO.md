@@ -36,6 +36,21 @@
 - [x] 275/275 单测 + 34/34 浏览器 + 六阶段回归
 - [x] `docs/PHASE8_REAL_INPUT_HUB.md`（L1–L12 + AC1–AC14）
 
+## P0 — Phase 9 主体 Output Lab（已完成并核验 2026-10-21）
+
+- [x] 任务契约 + 六类真实表达任务（一句话也能完成）
+- [x] 分层辅助 L1–L4（用户主动；L4 后不算独立掌握）
+- [x] Communication Repair（有依据才判定意思保留）
+- [x] 确定性检查 + 反馈契约/质量门（span 必须真实存在）
+- [x] 产出证据（独立性/辅助/照抄；幂等、有界）
+- [x] 修改分类（self / after_hint / after_model / copied）
+- [x] 迁移与延迟任务接口（换语境，不复用原答案）
+- [x] 任务选择（单元/输入/阅读/薄弱词/自由表达；无材料不编来源）
+- [x] Planner 接入（只在有任务契约时排；不超预算）
+- [x] Mini Unit 关联展示（不自动完成学习日）
+- [x] 308/308 单测 + 20/20 浏览器 + 七阶段回归
+- [x] `docs/PHASE9_OUTPUT_LAB.md`（L1–L12 + AC1–AC14）
+
 ## P1 — 后续开发阶段（AGENT_EXECUTION.md Phase 2–13）
 
 - [x] Phase 2 Vocabulary V2：Preview、word lifecycle、三维 mastery、多词池选词、Learning Value Score、forgotten 回流、exposure 证据、动态新词量（已于 2026-10-04 文档验收）

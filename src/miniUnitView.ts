@@ -166,6 +166,7 @@ export function unitPage(input: {
         <ul class="unit-focus">${spec.focus.map(f => `<li><b>${esc(f.title)}</b><span class="muted"> · ${f.minutes} 分钟</span><div class="muted">${esc(f.why)}</div></li>`).join('')}</ul>
         <p><b>今天用这份材料：</b>${spec.material.title ? `${esc(spec.material.title)}（${spec.material.kind === 'anchor' ? 'Anchor' : spec.material.kind === 'transfer' ? '新迁移材料' : '强化材料'}）— ${esc(spec.material.note)}` : '没有可用材料'}</p>
         ${evidence.mediaSessions?.length ? `<p class="muted">媒体输入只作为真实曝光记录（${evidence.mediaSessions.length} 次，${evidence.mediaMinutes ?? 0} 分钟自报），不计入迁移或掌握证据。</p>` : ''}
+        ${evidence.outputAttempts?.length ? `<p class="muted">本单元已有 ${evidence.outputAttempts.length} 次真实表达（其中 ${evidence.outputIndependent ?? 0} 次含独立证据）；表达不会自动算完成学习日。</p>` : ''}
       <p class="muted">完成标准：${spec.evidenceGoal.map(g => esc(g)).join('；')}。只有真实作答才算完成，打开页面不算。</p>
         ${spec.material.passageId ? `<button data-unit-open-reading="${esc(spec.material.passageId)}">打开这份材料</button>` : ''}
         ${spec.aiOptional ? `<button data-unit-ai="${esc(spec.aiOptional.kind)}">${spec.aiOptional.kind === 'sentence' ? 'AI 补充例句（可选）' : 'AI 强化短文（可选）'}</button><span class="muted"> · ${esc(spec.aiOptional.reason)}</span>` : ''}
@@ -228,6 +229,7 @@ export function unitPage(input: {
         ${metric('阅读会话', String(evidence.anchorSessions.length + evidence.transferSessions.length))}
         ${metric('AI 材料', String(evidence.generations.length))}
         ${metric('真实媒体（曝光）', evidence.mediaSessions?.length ? `${evidence.mediaSessions.length} 次 · ${evidence.mediaMinutes ?? 0} 分钟` : '0')}
+        ${metric('真实表达', evidence.outputAttempts?.length ? `${evidence.outputAttempts.length} 次` : '0')}
       </div>
       ${evidence.obstacles.length ? `<p><b>未解决：</b>${evidence.obstacles.map(o => esc(o)).join('；')}</p>` : '<p class="muted">暂无记录的未解决障碍</p>'}
       ${unit.baseline ? `<p class="muted">冷测基线：${new Date(unit.baseline.at).toLocaleString('zh-CN')} · 来源 ${unit.baseline.source === 'cold_test' ? '真实冷测' : '估计'}${unit.baseline.comprehension === null ? '' : ` · 理解 ${Math.round(unit.baseline.comprehension * 100)}%`}</p>` : '<p class="muted">还没有冷测基线：Day 1 的冷测必须在详细预教之前完成。</p>'}

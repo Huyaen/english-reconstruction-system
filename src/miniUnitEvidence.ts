@@ -111,6 +111,13 @@ export function collectUnitEvidence(data: Data, unit: MiniUnit): UnitEvidenceSum
     // Phase 8：真实媒体输入只作为 exposure，绝不进入 transfer / 掌握判定
     const media = (data.inputSessions ?? []).filter(s => s.miniUnitId === unit.id && s.status === 'completed' && after(s.completedAt ?? 0, since));
     const mediaSessions = media.map(s => s.id);
+    // Phase 9：关联到本单元的表达记录。只作为"看过/写过"的证据，不自动推进学习日或完成单元。
+    const unitOutputs = (data.outputAttempts ?? []).filter(a => a.miniUnitId === unit.id && a.status === 'completed' && after(a.completedAt ?? a.createdAt, since));
+    const outputAttempts = unitOutputs.map(a => a.id);
+    const outputIndependent = unitOutputs.filter(a => (a.productiveEvidence ?? []).some(e => e.independent && !e.copied)).length;
+    for (const a of unitOutputs)
+        refs.push({ kind: 'output', id: a.id, at: a.completedAt ?? a.createdAt, note: '真实表达记录（不自动算完成学习日）' });
+
     const mediaMinutes = Math.round(media.reduce((n, s) => n + (s.reportedWatchedMinutes ?? 0), 0));
     const supportReduction = unit.dayHistory?.length
         ? 1 - (['high', 'medium', 'low'].indexOf(unit.dayHistory[unit.dayHistory.length - 1].supportLevel) / 2)
@@ -134,6 +141,8 @@ export function collectUnitEvidence(data: Data, unit: MiniUnit): UnitEvidenceSum
         translationDependence: Math.round(translationDependence * 100) / 100,
         obstacles: [...new Set(obstacles)].slice(0, 6),
         mediaSessions,
+        outputAttempts,
+        outputIndependent,
         mediaMinutes,
         refs,
     };

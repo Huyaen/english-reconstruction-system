@@ -181,3 +181,15 @@ Phase 5 新增用例（28）：
 | 回归 | phase7 / 6 / 5.1 / 5 / 4 / 3 | 33/33、31/31、26/26、44/44、36/36、21/21 |
 
 冒烟分组：A 兴趣命中理由与事实、B 画像外材料 + 探索位、C 冷测→Standard 复盘→完成与证据、D Light/Deep 完成度与产出证据、E SRT 解析/去重/送 Reading/送句法、F Mini Unit 只记媒体曝光不算 verified transfer、G Planner 输入任务、H 无材料不生成任务、I 兴趣重置两端同步、J 无 AI Key 可用、K 并发完成幂等、L 备份恢复（材料 + 兴趣 + 旧学习数据）、Z 0 未捕获异常。
+
+## Phase 9 — Output Lab（2026-10-21T22:20:00+08:00）
+
+| 层 | 命令 | 结果 |
+| --- | --- | --- |
+| 单元/集成 | `npm test` | **308/308 pass**（新增 outputCore 8、outputFeedback 8、outputEvidence 8、outputIntegration 9） |
+| 类型 | `npx tsc --noEmit -p tsconfig.json` | 0 error |
+| 构建 | `npm run build` / `npm run build:test` | 通过；生产包 `__outputTest` / `ERV2_TEST_HOOKS` 命中 0 |
+| 浏览器 | `node scripts/phase9-smoke.mjs` | **20/20 PASS**（真实 Edge + CDP + IndexedDB + mock Provider，A–O + Z） |
+| 回归 | phase8 / interest / phase7 / phase6 / phase5.1 / phase5 / phase4 / phase3 | 34/34、19/19、33/33、31/31、26/26、44/44、36/36、21/21 |
+
+覆盖重点：无 AI 可用时原文保留；范文门控；L4 辅助不算独立；独立证据有界且重复完成幂等；AI span 必须真实存在（编造整条拒绝）；照抄修改不产生掌握；Repair 无依据时为 null；Input → Output 交接；Planner 排入且不超预算；备份恢复；并发完成只生效一次。

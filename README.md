@@ -160,7 +160,7 @@ npm start
 本项目正在从「自适应背单词软件」升级为完整的 **Personal English Learning System**（V2）。产品规格见 `PROJECT_SPEC.md`，工程协议与阶段计划见 `AGENT_EXECUTION.md`。
 
 - **接手入口（换模型/换会话必读）**：依次读 `PROJECT_SPEC.md` → `STATE.json` → `CHECKPOINT.md` → `HANDOFF.md` → `TODO.md` → `DEVELOPMENT_LOG.md`，再核对实际磁盘与 Git。
-- **当前阶段**：见 `HANDOFF.md`（Phase 0 / 0.5 / 1 / 2 / 3 / 4 已完成并通过；当前 Phase 5 Reading）。
+- **当前阶段**：见 `HANDOFF.md`（Phase 0–8 已完成；当前 Phase 9 Output Lab 已交付，等待用户指定下一阶段）。
 - **基线**：V1 MVP 基线 commit `6c1c625`（tag `v1.0.0-mvp-baseline`）；该提交已实测：`npm test` 20/20、`npm run build` 成功、`node server.mjs` 服务实测 200。
 - **硬约束**：旧数据 100% 保留；审计 → 复用 → 扩展 → 迁移 → 验证；禁止无理由重写现有词汇模块。
 - **源码格式**：`src/*.ts`、`tests/*.ts` 由 `docs/format-source.mjs` 整理为紧凑格式，编辑后请保持一致或重跑该脚本。
@@ -228,3 +228,16 @@ npm start
 Based on your interests / Based on your recent activity / Related to your Mini Unit / Explore something new。
 兴趣只影响排序，不改变难度与掌握度；近期行为按时间衰减，不会永久改变偏好。
 详见 `docs/PHASE8_DYNAMIC_INTEREST.md`。
+
+### 真实表达（Phase 9）
+
+导航「真实表达」是 Output Lab：先把意思送出去，再谈准确。
+
+- 六类任务：一句话 / 3–5 句总结 / 短段落 / 复述 / 观点 / 句式迁移 / 绕开不会的词；**一句话也算完成**。
+- 任务来自真实材料（主题单元、真实输入、阅读）或你的薄弱词；没有材料时明确给自由表达，不假装"基于你读过的文章"。
+- 第一次提交前不显示范文；需要帮助时由你主动点 L1 关键词 → L2 句型骨架 → L3 部分示例 → L4 完整示范（会降低证据等级）。
+- 反馈先说意思有没有传到，再给最多 3 个影响理解的问题；没有 AI Key 时只做本地确定性检查并明确标注，不伪造语法诊断。
+- 修改会区分"自己改 / 提示后改 / 照抄建议 / 看示范后改"；照抄不算掌握。
+- 不会的词可以用已知英语绕开（Communication Repair），系统只在有依据时判断意思是否保留。
+- 证据按独立性记录、幂等写入；表达可关联主题单元并在单元页可见，但不会自动完成学习日。
+- 详见 `docs/PHASE9_OUTPUT_LAB.md`。

@@ -189,3 +189,10 @@ Phase 5 开工前先补远程质量门禁。审计结果：仓库此前**没有�
 - UI：新增「真实输入」导航页与会话页；`__inputTest` 仅测试构建存在。
 - 修 3 个真实问题：备份 id 正则（句点/冒号）、难句阈值 12→8、旧断言跟随 v6 与能力门控。
 - 验收：275/275 单测；34/34 浏览器；回归全绿；tsc 0；prod 钩子 0。
+
+## Checkpoint Phase 9 — Output Lab（2026-10-21T22:20:00+08:00）
+完成：任务契约、分层辅助、Repair、确定性检查、反馈质量门、产出证据、修改分类、迁移/延迟、任务选择、存储、Planner、Analytics、视图与 AI 编排；Output Lab 页面接入导航。
+修改：src/output*.ts、src/prompts/output.ts、src/types.ts、src/planner.ts、src/miniUnitEvidence.ts、src/miniUnitView.ts、src/app.ts、src/style.css、tools/mock-ai-provider.mjs、tests/output*.test.ts、scripts/phase9-smoke.mjs、scripts/phase3-smoke.mjs、tests/planner*.test.ts、docs/PHASE9_OUTPUT_LAB.md、状态文档。
+测试：npm test 308/308；phase9 smoke 20/20；回归 phase8 34/34、interest 19/19、phase7 33/33、phase6 31/31、phase5.1 26/26、phase5 44/44、phase4 36/36、phase3 21/21；tsc 0；生产构建无测试钩子。
+修复：aside 命中全局侧栏样式、重复完成推进 revision、照抄被记为 correct、目标词边界/屈折。
+下一步：等待用户指定 Phase 10。

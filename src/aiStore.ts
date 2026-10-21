@@ -28,10 +28,10 @@ export function budgetState(gens: AIGeneration[], limitTokens: number | null, no
         dayStart: startOfDay(now),
     };
 }
-export function makeGenerationId(kind: 'sentence' | 'reading', contentHash: string, now: number): string {
+export function makeGenerationId(kind: 'sentence' | 'reading' | 'output', contentHash: string, now: number): string {
     return `${kind}-${contentHash}-${now.toString(36)}`;
 }
-export function buildGeneration(kind: 'sentence' | 'reading', output: unknown, meta: GenMeta, quality: {
+export function buildGeneration(kind: 'sentence' | 'reading' | 'output', output: unknown, meta: GenMeta, quality: {
     ok: boolean;
     notes: string[];
 }, now: number): AIGeneration {
@@ -58,11 +58,11 @@ export function buildGeneration(kind: 'sentence' | 'reading', output: unknown, m
     };
 }
 // 已生成过的内容（同一指纹）直接复用，避免重复扣费；也用于“刷新后不重复生成”
-export function findReusable(gens: AIGeneration[], kind: 'sentence' | 'reading', requestKey: string): AIGeneration | null {
+export function findReusable(gens: AIGeneration[], kind: 'sentence' | 'reading' | 'output', requestKey: string): AIGeneration | null {
     return [...gens].reverse().find(g => g.kind === kind && (g.output as {
         requestKey?: string;
     } | null)?.requestKey === requestKey) ?? null;
 }
-export function contentHashes(gens: AIGeneration[], kind: 'sentence' | 'reading'): Set<string> {
+export function contentHashes(gens: AIGeneration[], kind: 'sentence' | 'reading' | 'output'): Set<string> {
     return new Set(gens.filter(g => g.kind === kind).map(g => g.contentHash));
 }

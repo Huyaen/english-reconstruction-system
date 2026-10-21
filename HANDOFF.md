@@ -1,7 +1,7 @@
 
-# HANDOFF — Phase 8 → Phase 9（2026-10-21）
+# HANDOFF — Phase 9 → Phase 10（2026-10-21）
 
-**Phase 8（Real Input Hub）已交付并推送。下一阶段由用户指定（`STATE.next_task_id = await_user_phase9_directive`）。**
+**Phase 9（Output Lab）已交付并推送。下一阶段由用户指定（`STATE.next_task_id = await_user_phase10_directive`）。**
 
 ## 1. 当前工程状态
 
@@ -9,11 +9,11 @@
 | --- | --- |
 | 根目录 | `D:\英语重构训练\vocabulary-app` |
 | 分支 | `main` |
-| DB 版本 | **v6**（Phase 8 新增 `inputSources` / `inputSessions` / `libraryItems` / `transcripts` / `inputEvidence`） |
-| 测试 | **275/275**（`npm test`） |
+| DB 版本 | **v6**（Phase 9 未新增 store；`outputAttempts` 只加可选字段） |
+| 测试 | **308/308**（`npm test`） |
 | 类型检查 | `tsc --noEmit` 0 error |
 | 构建 | `npm run build` / `build:test` 通过；生产包测试钩子 0 |
-| 浏览器验收 | Phase 8 **34/34**、兴趣 19/19、Phase 7 33/33、Phase 6 31/31、Phase 5.1 26/26、Phase 5 44/44、Phase 4 36/36、Phase 3 21/21 |
+| 浏览器验收 | Phase 9 **20/20**、Phase 8 34/34、兴趣 19/19、Phase 7 33/33、Phase 6 31/31、Phase 5.1 26/26、Phase 5 44/44、Phase 4 36/36、Phase 3 21/21 |
 | 远程 | `Huyaen/english-reconstruction-system`（Private），HEAD 与 CI 见 §9 |
 
 ## 2. Mini Unit API（Phase 8 直接复用）
@@ -143,12 +143,12 @@ pauseUnit / resumeUnit / extendUnit / abandonUnit / finishUnit / recordBaseline 
 
 ## Current phase
 
-phase_8_real_input_hub（in_progress）—— Phase 8 补充「Dynamic Interest Profile」已完成并验收；
-Phase 8 主体 Real Input Hub 尚未开始。Phase 0 / 0.5 / 1 / 2 / 3 / 4 / 5 / 5.1 / 6 / 7 全部完成并通过。
+phase_9_output_lab（passed）—— Phase 9 Output Lab 已交付：任务契约 / 分层辅助 / Repair / 反馈质量门 / 产出证据 / 修改分类 / 迁移与延迟 / Planner 接入。
+Phase 0 / 0.5 / 1 / 2 / 3 / 4 / 5 / 5.1 / 6 / 7 / 8 / 9 全部完成并通过。
 
 ## Current task_id
 
-`phase8_real_input_hub_013`（下一步）；已完成子任务 `phase8_interest_profile_013a`（spec：`docs/PHASE8_DYNAMIC_INTEREST.md`）。
+`phase9_output_lab_014`（passed，spec：`docs/PHASE9_OUTPUT_LAB.md`）；下一任务 `await_user_phase10_directive`。
 Phase 7（`phase7_mini_unit_012`）已 passed：跨学习日的 Mini Unit 状态机 / 主题选择 / Anchor / 证据 / 完成评估 / Planner 交接，见 `docs/PHASE7_MINI_UNIT.md`。
 
 ## What is done（累计）
@@ -185,12 +185,13 @@ Phase 7（`phase7_mini_unit_012`）已 passed：跨学习日的 Mini Unit 状态
 
 ## What remains
 
-Phase 9–13（尚未定义具体规格，等用户指示）。
-Phase 8 主体（Real Input Hub）与兴趣画像子任务均已完成；后续推荐逻辑不得另起一套兴趣系统。
+Phase 10–13（尚未定义具体规格，等用户指示）。
+Phase 9 已完成；若继续做表达域，必须复用 `outputTask/outputFeedback/outputEvidence`，不得另起一套评分或掌握度体系。
+已知限制：本地检查不是语法引擎；Repair 判定为粗判；AI 反馈质量取决于 Provider。
 
 ## Last verified build
 
-`npm run build` @ Phase 8 兴趣画像工作树 → vite 成功（2.1s）；生产包 `__readTest/__labTest/__ocrTest/__unitTest/ERV2_TEST_HOOKS` 命中 0（bundle >500 kB 警告保留到 Phase 13）。
+`npm run build` @ Phase 9 → vite 成功（2.42s）；生产包 `__outputTest` 与 `ERV2_TEST_HOOKS` 命中 0（bundle >500 kB 警告保留到 Phase 13）。
 
 ## Last verified tests
 

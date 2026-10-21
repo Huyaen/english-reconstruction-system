@@ -137,3 +137,31 @@ S≥90、A≥65、B≥40、C≥15、其余D。到期与弱词队列按分数降�
 - 观看时长上限：`min(自报, duration+5)` 或 600 分钟（无时长时），防止误填把统计拉爆。
 - 难度：仅当存在英文 transcript 时，用词长/句长/生词比例启发式估计；否则 `null`，`difficultyBasis='none'`。
 - 推荐：显式兴趣命中 > Mini Unit 主题 > 近期真实行为 > 探索位；兴趣只影响排序，不进入难度/能力路径；无候选返回解释。
+
+## 表达任务选择与规模（Phase 9）
+
+- 任务来源优先级：当前 Mini Unit → 最近完成真实输入（有英文总结）→ 最近阅读（stage≥3）→ 薄弱词（errors>0 或 level unknown/vague）→ 用户指定类型/自由表达。
+- 规模由 `defaultTaskType` 决定：≤6 分钟或低状态 → 一句话；<20 分钟 → 3–5 句总结；≥20 分钟且状态好 → 短段落/观点。字数只是建议区间，不阻止提交。
+- 兴趣只写入 `reasons` 并参与排序权重，不改变难度、目标词预算、掌握度与计划时长。
+
+## 反馈契约与质量门（Phase 9）
+
+1. 结构校验：必填字段、枚举、数量上限（priorityIssues ≤3、corrections ≤6、strengths 1–5）。
+2. 定位校验：每条 correction 必须满足 `text.slice(start,end) === original`；`upgrade.original` 必须逐字存在。
+3. 范围校验：`feedbackScope` 与调用方一致；`language_only` 下禁止"事实正确"类断言。
+4. 升级校验：`singleDimension=true`，新语法/生词数量受限，`suggested` 相对原文长度不得暴涨。
+5. 一致性：存在 blocking/major 时 `noCorrectionNeeded` 必须为 false；`ai_estimated` 置信度 ≤0.6。
+6. 失败处理：连续契约失败 → 状态 `invalid`，原文与修改保留，允许稍后重试。
+
+## 产出证据与独立性（Phase 9）
+
+- 独立性：`classifyIndependence` 依据最高辅助级别、是否照抄模型答案、文本相似度；L4 或高相似度 → `copied`。
+- 证据键：`attemptId:wordId`；`mergeEvidence` 去重，重复完成返回现状（幂等）。
+- 增量：独立正确 +0.08、辅助 +0.02、迁移 +0.12、延迟 +0.10、错误 −0.06；`productiveScore` 上限 0.95，下限 0。
+- 只有 `independent && !copied` 进入分数路径；assisted 仅记录；copied 不产生证据。
+- 照抄而无反馈时 correctness 记为 `questionable`（无法验证是否真的会）。
+
+## 迁移与延迟（Phase 9）
+
+- 迁移：从语境池按 `hash(seed|topic|id)` 确定选择，要求主题与沟通目标都改变；否则 `strength='weak'`，证据权重降低（0.4/0）。
+- 延迟：D1/D7 生成相关但不同的任务，不展示原答案；与迁移共用证据降级规则。

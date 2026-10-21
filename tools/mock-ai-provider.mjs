@@ -42,6 +42,49 @@ function sentenceFor(userText) {
     };
 }
 
+
+// —— Phase 9：Output 诊断 mock ——
+// 从用户提示词的 ```text 代码块里取出学生原文，给出"语言范围内"的合法反馈。
+function outputFor(userText, mode = 'ok') {
+    const m = userText.match(/<<<TEXT\s*\n([\s\S]*?)\n?TEXT>>>/) || userText.match(/student text:\s*([\s\S]*?)(?:\n\n|$)/i);
+    const text = (m ? m[1] : 'He go to school yesterday.').trim() || 'He go to school yesterday.';
+    const words = [...text.matchAll(/[A-Za-z']+/g)];
+    const target = words.find(w => /go|went|study|work|have|has/i.test(w[0])) ?? words[0];
+    const start = target ? target.index : 0;
+    const original = target ? target[0] : text.slice(0, 4);
+    const proposed = /go/i.test(original) ? 'went' : original + 's';
+    const span = {
+        type: 'tense', original, proposed, start, end: start + original.length,
+        explanation: '这里的动词形式与时间不一致，读者会误判发生在什么时候。',
+        severity: 'major', confidence: 0.82, grammarConceptId: null, targetWordId: null,
+    };
+    if (mode === 'bad-span')
+        span.start = 9999;
+    const noIssues = mode === 'clean';
+    return {
+        communicationGoal: '把发生在过去的一件事说清楚',
+        meaningAssessment: noIssues ? 'delivered' : 'partly_delivered',
+        meaningBasis: 'ai_estimated',
+        meaningConfidence: 0.45,
+        strengths: ['主要信息能读懂：说的是过去发生的一件事。', '句子结构已经成形，不需要重写整段。'],
+        priorityIssues: noIssues ? [] : [span],
+        corrections: noIssues ? [] : [span],
+        grammarConceptIds: [],
+        targetWordIds: [],
+        upgrade: noIssues ? null : {
+            original: text, suggested: text.replace(original, proposed),
+            why: '只改动词形式，让时间和动作对上；其余不动。',
+            changes: [`${original} → ${proposed}`], newGrammar: [], newWords: [], singleDimension: true,
+        },
+        nextPractice: '再写一句昨天发生的事，先用时间词，再选动词形式。',
+        feedbackScope: 'language_only',
+        sourceProvenance: 'user_text',
+        uncertainty: '只检查了语言，没有材料原文可核对，因此不评价内容事实是否准确。',
+        promptVersion: 'output.diagnose@1.0.0',
+        noCorrectionNeeded: noIssues,
+    };
+}
+
 const PASSAGE = 'The town had rebuilt its station twice before anyone understood the river. Every spring the engineers measured the current and wrote the numbers in a grey notebook, and every autumn they read those pages again before the first storm arrived. When the water rose, that notebook was the only record they trusted, because memory had failed them once and the cost had been high. The station stayed open through the worst weeks of the year, and the trains never stopped for longer than a day. People in the town still say that the river decides everything, but the notebook is how they argue with it.';
 
 function readingFor(userText, badEvidence = false) {
@@ -147,6 +190,11 @@ const server = http.createServer(async (req, res) => {
     }
     if (model === 'mock-bad-json') {
         chat('对不起，我无法按格式输出。');
+        return;
+    }
+    const isOutput = /output\.diagnose|meaningAssessment/i.test(userText);
+    if (isOutput) {
+        chat(JSON.stringify(outputFor(userText, model === 'mock-bad-span' ? 'bad-span' : model === 'mock-clean' ? 'clean' : 'ok')));
         return;
     }
     const isReading = /reinforcement passage|Reinforcement|强化文章/i.test(userText) || userText.includes('Write a reinforcement passage');

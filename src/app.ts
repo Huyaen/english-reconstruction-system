@@ -28,6 +28,18 @@ import { filterLibrary, setLibraryStatus } from './inputLibrary.ts';
 import { recommendInputs } from './inputRecommendation.ts';
 import { inputAnalytics } from './inputEvidence.ts';
 import { inputHubPage, inputSessionPage } from './inputView.ts';
+import { selectOutputTasks } from './outputSelection.ts';
+import { countWords as outputWords } from './outputTask.ts';
+import { buildSupportHint, recordSupport, emptySupport } from './outputScaffolding.ts';
+import { outputHubPage, outputSessionPage, type HandoffCard } from './outputView.ts';
+import { createOutputAttempt, saveDraft, submitOutput as submitOutputAttempt, requestOutputFeedback, reviseOutput, finishOutput, attachRepair, handoutFromInput } from './outputActions.ts';
+import { outputAnalytics } from './outputAnalytics.ts';
+import { compareRevision } from './outputRevision.ts';
+import { buildTransferTask as buildOutputTransfer } from './outputTransfer.ts';
+import { evaluateRepair } from './outputRepair.ts';
+import { buildTaskSpec as buildOutputTask, canShowModelAnswer } from './outputTask.ts';
+import { localChecks } from './outputDiagnosis.ts';
+import { transcriptText } from './inputActions.ts';
 import { planInputMinutes, suggestMode } from './inputSession.ts';
 import { captionCaveat } from './inputReflection.ts';
 import { sentenceCandidates, transcriptSentenceRecord } from './inputHandoff.ts';
@@ -147,7 +159,7 @@ let readingTask: {
 let labReturn: (LabReturnTarget & {
     planTaskId?: string;
 }) | null = null;
-const navs = [['home', '◫', '今日学习'], ['books', '▤', '我的词库'], ['weak', '◎', '薄弱词'], ['sentence', '❝', '句子训练'], ['reading', '❖', '阅读'], ['input', '▶', '真实输入'], ['grammar', '◈', '语法图谱'], ['unit', '◐', '主题单元'], ['stats', '▥', '学习统计'], ['ai', '✦', 'AI 学情'], ['settings', '⚙', '设置与备份']];
+const navs = [['home', '◫', '今日学习'], ['books', '▤', '我的词库'], ['weak', '◎', '薄弱词'], ['sentence', '❝', '句子训练'], ['reading', '❖', '阅读'], ['input', '▶', '真实输入'], ['output', '✍', '真实表达'], ['grammar', '◈', '语法图谱'], ['unit', '◐', '主题单元'], ['stats', '▥', '学习统计'], ['ai', '✦', 'AI 学情'], ['settings', '⚙', '设置与备份']];
 function reindex() { wordMap = new Map(data.words.map(w => [w.id, w])); }
 function setPage(p: string) {
     if ((page === 'quiz' && busy) || startingSession) {
@@ -176,7 +188,7 @@ function shell() {
     on('.brand', 'click', e => { e.preventDefault(); setPage('home'); });
     on('#theme', 'click', async () => { const s = { ...data.settings, theme: data.settings.theme === 'light' ? 'dark' : 'light' } as Settings; await saveSettings(s); data.settings = s; document.documentElement.dataset.theme = s.theme; $('#theme').textContent = s.theme === 'light' ? '☾' : '☀'; });
 }
-function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp, input: inputPageApp }[page] || home)(); bindAI(); }
+function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp, input: inputPageApp, output: outputPageApp }[page] || home)(); bindAI(); }
 function title(kicker: string, title: string, sub: string, action = '') { return `<div class="page-title"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p>${sub}</p></div>${action}</div>`; }
 function metric(label: string, value: string, note: string) { return `<div class="metric"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`; }
 function rangeControls() { return `<div class="range-controls"><label>学习范围<select id="range-book"><option value="">全部词书</option>${data.books.map(b => `<option value="${b.id}" ${bookFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label><label>本轮词量<select id="range-count">${[50, 100, 300, 500, 1000].map(n => `<option value="${n}" ${n === 100 ? 'selected' : ''}>${n} 词</option>`).join('')}</select></label><label>测试方向<select id="range-ratio">${![0, 30, 50, 70, 100].includes(data.settings.ratio) ? `<option value="${data.settings.ratio}" selected>英→中 ${data.settings.ratio}%（自定义）</option>` : ''}<option value="50" ${data.settings.ratio === 50 ? 'selected' : ''}>双向各 50%</option><option value="70" ${data.settings.ratio === 70 ? 'selected' : ''}>英→中 70%</option><option value="30" ${data.settings.ratio === 30 ? 'selected' : ''}>中→英 70%</option><option value="100" ${data.settings.ratio === 100 ? 'selected' : ''}>识别 · 英→中</option><option value="0" ${data.settings.ratio === 0 ? 'selected' : ''}>提取 · 中→英</option></select></label></div>`; }
@@ -603,6 +615,231 @@ function deleteBookDialog() {
         render();
     });
 }
+
+// ===== Phase 9：Output Lab（逻辑在 output*.ts，这里只做绑定）=====
+let outputAttemptId: string | null = null;
+let outputSelectedType = null as import('./types.ts').OutputTaskType | null;
+let outputTopicDraft = '';
+let outputHintLevel = null as import('./types.ts').OutputSupportLevel | null;
+let outputHintCache: ReturnType<typeof buildSupportHint> | null = null;
+let outputMessage = '';
+let outputSaveTimer: ReturnType<typeof setTimeout> | undefined;
+let outputCandidates: ReturnType<typeof selectOutputTasks>['candidates'] = [];
+let outputHandoffSeed: { text: string; task: import('./types.ts').OutputTaskSpec; inputSessionId: string | null } | null = null;
+
+function outputMinutesNow(): number {
+    return Math.max(5, Math.min(60, todayPlan?.availableMinutes ?? planBudget ?? 20));
+}
+function outputHandoffs(): HandoffCard[] {
+    const cards: HandoffCard[] = [];
+    const pendingInput = [...data.inputSessions]
+        .filter(s => s.status === 'completed' && (s.reflection?.summary || s.reflection?.retelling || s.reflection?.mainIdea))
+        .sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))[0];
+    if (pendingInput) {
+        const h = handoutFromInput(data, pendingInput.id);
+        if (h.ok)
+            cards.push({ kind: 'input', id: pendingInput.id, label: `真实输入：${h.value.meta.sourceLabel || pendingInput.title}`, preview: h.value.text, taskType: 'short_summary' });
+    }
+    const reading = [...data.readingSessions].sort((a, b) => (b.at ?? 0) - (a.at ?? 0))[0];
+    if (reading) {
+        const p = data.passages.find(x => x.id === reading.passageId);
+        if (p)
+            cards.push({ kind: 'reading', id: reading.id, label: `阅读：${p.title}`, preview: '用一句或三句话概括这篇文章的意思', taskType: 'short_summary' });
+    }
+    const unit = data.miniUnits.find(u => u.status === 'active');
+    if (unit)
+        cards.push({ kind: 'unit', id: unit.id, label: `主题单元 Day ${unit.dayIndex}：${unit.theme}`, preview: '用英语复述新材料，并说出你的理解', taskType: unit.dayIndex >= 3 ? 'retelling' : 'one_sentence' });
+    return cards;
+}
+function outputPageApp(): void {
+    if (outputAttemptId) {
+        const attempt = data.outputAttempts.find(a => a.id === outputAttemptId);
+        if (attempt) {
+            const cmp = attempt.revisions?.length ? compareRevision(attempt.originalText, attempt.finalText || attempt.revisionText || '', attempt.feedback ?? null) : null;
+            const transfer = attempt.status === 'completed' && attempt.task ? buildOutputTransfer(attempt.task, { now: Date.now(), seed: attempt.id }) : null;
+            $('#main').innerHTML = outputSessionPage({
+                attempt,
+                hint: outputHintLevel && outputHintCache ? { level: outputHintLevel, title: outputHintCache.title, content: outputHintCache.content } : null,
+                message: outputMessage,
+                compare: cmp,
+                transfer,
+                saving: false,
+            });
+            bindOutputSession(attempt);
+            return;
+        }
+        outputAttemptId = null;
+    }
+    const sel = selectOutputTasks({ data, now: Date.now(), availableMinutes: outputMinutesNow(), energy: planEnergy, preferredType: outputSelectedType, topic: outputTopicDraft });
+    outputCandidates = sel.candidates;
+    const analytics = outputAnalytics(data);
+    $('#main').innerHTML = outputHubPage({
+        data, suggestion: sel.task, candidates: sel.candidates, note: sel.note,
+        handoffs: outputHandoffs(), analytics,
+        selectedType: outputSelectedType, topicDraft: outputTopicDraft,
+        minutes: outputMinutesNow(), energy: planEnergy,
+    });
+    bindOutputHub();
+}
+function bindOutputHub(): void {
+    document.querySelectorAll<HTMLElement>('[data-out-type]').forEach(b => b.onclick = () => {
+        const t = b.dataset.outType as import('./types.ts').OutputTaskType;
+        outputSelectedType = outputSelectedType === t ? null : t;
+        render();
+    });
+    on('#out-topic', 'change', (e) => { outputTopicDraft = (e.target as HTMLInputElement).value; render(); });
+    on('#out-use-suggestion', 'click', () => { if (outputCandidates[0]) void startOutputTask(outputCandidates[0]); });
+    document.querySelectorAll<HTMLElement>('[data-out-start]').forEach(b => b.onclick = () => {
+        const t = outputCandidates.find(x => x.id === b.dataset.outStart);
+        if (t) void startOutputTask(t);
+    });
+    document.querySelectorAll<HTMLElement>('[data-out-open]').forEach(b => b.onclick = () => {
+        outputAttemptId = b.dataset.outOpen ?? null;
+        outputHintLevel = null;
+        outputMessage = '';
+        render();
+    });
+    document.querySelectorAll<HTMLElement>('[data-out-handoff]').forEach(b => b.onclick = () => {
+        const [kind, id] = (b.dataset.outHandoff ?? '').split(':');
+        if (kind === 'input') {
+            const h = handoutFromInput(data, id!);
+            if (!h.ok) { toast(h.message); return; }
+            outputHandoffSeed = { text: h.value.text, task: h.value.task, inputSessionId: id! };
+            void startOutputTask(h.value.task, h.value.text, id!);
+        }
+        else if (kind === 'reading') {
+            const r = data.readingSessions.find(x => x.id === id);
+            const p = r ? data.passages.find(x => x.id === r.passageId) : null;
+            const task = { id: `otask_reading_${id}`, taskType: 'short_summary' as const, topic: p?.topic || p?.title || 'the article', communicationGoal: '用 3–5 句英语概括这篇文章，并说出一个你的看法', sourceType: 'reading' as const, sourceId: id!, sourceLabel: p?.title ?? '阅读', targetWords: [], targetGrammar: [], expectedMinutes: 12, difficultyEstimate: 0.45, minWords: 25, maxWords: 90, reasons: [`最近读过：${p?.title ?? id}`], interestOnly: true, createdAt: Date.now() };
+            void startOutputTask(task, '', null, id!);
+        }
+        else if (kind === 'unit') {
+            const cand = selectOutputTasks({ data, now: Date.now(), availableMinutes: outputMinutesNow(), energy: planEnergy }).candidates.find(x => x.sourceType === 'mini_unit');
+            if (cand)
+                void startOutputTask(cand, '', null, null, kind === 'unit' ? id! : null);
+        }
+    });
+}
+async function startOutputTask(task: import('./types.ts').OutputTaskSpec, initialDraft = '', inputSessionId: string | null = null, readingSessionId: string | null = null, miniUnitId: string | null = null): Promise<void> {
+    const linkedUnit = miniUnitId ?? (task.sourceType === 'mini_unit' ? task.sourceId : null);
+    const created = await createOutputAttempt({ task, initialDraft, inputSessionId, readingSessionId, miniUnitId: linkedUnit, sourceProvenance: initialDraft ? 'user_text+input_summary' : 'user_text' });
+    if (!created.ok) { toast(created.message); return; }
+    outputAttemptId = created.value.id;
+    outputHintLevel = null;
+    outputHintCache = null;
+    outputMessage = '';
+    await unitRefresh();
+}
+function outputMaterial(attempt: import('./types.ts').OutputAttempt): string {
+    if (attempt.readingSessionId) {
+        const r = data.readingSessions.find(x => x.id === attempt.readingSessionId);
+        return r ? (data.passages.find(p => p.id === r.passageId)?.text.slice(0, 2500) ?? '') : '';
+    }
+    if (attempt.inputSessionId) {
+        const sess = data.inputSessions.find(x => x.id === attempt.inputSessionId);
+        if (!sess)
+            return '';
+        const src = data.inputSources.find(x => x.id === sess.sourceId);
+        const ref = sess.transcriptRef ?? src?.transcriptRef ?? '';
+        return ref ? transcriptText(data, ref).slice(0, 2500) : '';
+    }
+    return '';
+}
+function bindOutputSession(attempt: import('./types.ts').OutputAttempt): void {
+    const editor = document.querySelector<HTMLTextAreaElement>('#out-editor');
+    const rev = document.querySelector<HTMLTextAreaElement>('#out-revision');
+    const flush = async () => {
+        if (!editor || attempt.status === 'completed')
+            return;
+        const text = editor.value;
+        const r = await saveDraft(attempt.id, attempt.revision, text);
+        if (r.ok) { outputMessage = ''; data = await loadData(); }
+        else outputMessage = r.message;
+    };
+    if (editor) {
+        editor.oninput = () => {
+            const c = document.querySelector('#out-count');
+            if (c) c.textContent = `${outputWords(editor.value)} words`;
+            const st = document.querySelector('#out-save-state');
+            if (st) st.textContent = '保存中…';
+            if (outputSaveTimer) clearTimeout(outputSaveTimer);
+            outputSaveTimer = setTimeout(async () => {
+                await flush();
+                const s2 = document.querySelector('#out-save-state');
+                if (s2) s2.textContent = '已保存到本地';
+            }, 600);
+        };
+    }
+    document.querySelectorAll<HTMLElement>('[data-out-support]').forEach(b => b.onclick = () => {
+        const level = Number(b.dataset.outSupport) as import('./types.ts').OutputSupportLevel;
+        outputHintLevel = level;
+        outputHintCache = buildSupportHint(attempt.task!, level);
+        attempt.support = recordSupport(attempt.support ?? emptySupport(editor?.value ?? ''), outputHintCache, editor?.value ?? '');
+        attempt.supportLevel = level;
+        render();
+    });
+    on('#out-submit', 'click', async () => {
+        if (outputSaveTimer) clearTimeout(outputSaveTimer);
+        await flush();
+        const text = editor?.value ?? '';
+        const supportLevel = (outputHintLevel ?? 0) as import('./types.ts').OutputSupportLevel;
+        const r = await submitOutputAttempt(attempt.id, attempt.revision, text, {
+            supportLevel,
+            support: attempt.support ?? emptySupport(text),
+            hintsUsed: attempt.support?.requestedHints ?? [],
+        });
+        if (!r.ok) { toast(r.message); return; }
+        const meaning = document.querySelector<HTMLInputElement>('#out-repair-meaning')?.value ?? '';
+        const blocked = document.querySelector<HTMLInputElement>('#out-repair-blocked')?.value ?? '';
+        if (attempt.task?.taskType === 'repair' && meaning.trim()) {
+            const ev = evaluateRepair({ intendedMeaning: meaning, blockedExpression: blocked, userAlternative: text, basis: 'self_reported', targetWord: attempt.targetWords?.[0] ?? null, supportLevel, now: Date.now(), source: 'user' });
+            await attachRepair(attempt.id, r.value.revision, ev.record);
+        }
+        outputMessage = '已保存初稿。可以先自己检查，或请求语言反馈。';
+        await unitRefresh();
+    });
+    on('#out-feedback', 'click', async () => {
+        const fresh = data.outputAttempts.find(a => a.id === attempt.id);
+        if (!fresh) return;
+        const r = await requestOutputFeedback(attempt.id, fresh.revision, {
+            data,
+            materialText: outputMaterial(fresh),
+            grammarConceptIds: data.grammarConcepts.map(c => c.id),
+            targetWordIds: (fresh.targetWords ?? []).map(en => data.words.find(w => w.en.toLowerCase() === en.toLowerCase())?.id).filter((x): x is string => !!x),
+        });
+        if (!r.ok) { toast(r.message); return; }
+        outputMessage = r.value.message;
+        await unitRefresh();
+    });
+    on('#out-revise', 'click', async () => {
+        const fresh = data.outputAttempts.find(a => a.id === attempt.id);
+        if (!fresh || !rev) return;
+        const r = await reviseOutput(attempt.id, fresh.revision, rev.value, { suggestion: fresh.feedback?.upgrade?.suggested ?? null, supportLevel: (outputHintLevel ?? 0) as import('./types.ts').OutputSupportLevel });
+        if (!r.ok) { toast(r.message); return; }
+        outputMessage = '修改已保存。';
+        await unitRefresh();
+    });
+    on('#out-finish', 'click', async () => {
+        const fresh = data.outputAttempts.find(a => a.id === attempt.id);
+        if (!fresh) return;
+        const r = await finishOutput(attempt.id, fresh.revision, data);
+        if (!r.ok) { toast(r.message); return; }
+        outputMessage = '这次表达已完成。证据按独立性记录；照抄或完整示范不会算作独立掌握。';
+        await unitRefresh();
+    });
+    on('#out-back', 'click', () => { outputAttemptId = null; outputHintLevel = null; outputMessage = ''; render(); });
+    document.querySelectorAll<HTMLElement>('[data-out-transfer-start]').forEach(b => b.onclick = () => {
+        const t = buildOutputTransfer(attempt.task!, { now: Date.now(), seed: attempt.id }).task;
+        void createOutputAttempt({ task: t, transferOf: attempt.id, sourceProvenance: 'user_text' }).then(async r => {
+            if (!r.ok) { toast(r.message); return; }
+            outputAttemptId = r.value.id;
+            outputHintLevel = null;
+            outputMessage = '迁移任务：换一个语境，不看上次答案再表达一次。';
+            await unitRefresh();
+        });
+    });
+}
+
 // ===== Phase 8：Real Input Hub（逻辑在 input*.ts，这里只做绑定）=====
 let inputSessionId: string | null = null;
 let inputModeDraft: InputMode | null = null;
@@ -1197,6 +1434,7 @@ function planInput(minutes: number, energy: EnergyState): PlannerInput {
         } : null,
         readingInput: data.passages.length ? { passages: data.passages, sessions: data.readingSessions } : null,
         inputInput: data.inputSources.length ? { sources: data.inputSources, sessions: data.inputSessions } : null,
+        outputTask: selectOutputTasks({ data, now: Date.now(), availableMinutes: minutes, energy }).task,
     };
 }
 function energyLabel(e: EnergyState) { return e === 'low' ? '状态差' : e === 'good' ? '状态好' : '正常'; }
@@ -2129,6 +2367,119 @@ function installTestHook(): void {
             const r = await inputActions.sessionAction(id, s.revision, 'complete');
             return r.ok ? { ok: true, status: r.value.status } : { ok: false, message: r.message };
         },
+    };
+    // Phase 9 验收钩子：仅测试构建存在（__ERV2_TEST_HOOKS__），生产会被摇树移除
+    (window as unknown as Record<string, unknown>).__outputTest = {
+        async snapshot() {
+            const d = await loadData();
+            return {
+                attempts: d.outputAttempts.map(a => ({
+                    id: a.id, taskType: a.taskType ?? '', source: a.sourceType, sourceId: a.sourceId ?? '',
+                    status: a.status ?? 'draft', revision: a.revision ?? 1, draft: a.draftText ?? '',
+                    final: a.finalText ?? '', original: a.originalText ?? '', words: a.wordCount ?? 0,
+                    feedback: a.feedbackStatus ?? 'none', source2: a.feedbackSource ?? 'none',
+                    supportLevel: a.supportLevel ?? 0, evidence: a.productiveEvidence ?? [],
+                    revisions: (a.revisions ?? []).map(r => ({ kind: r.kind, sim: r.similarityToSuggestion })),
+                    meaning: a.feedback?.meaningAssessment ?? '', basis: a.feedback?.meaningBasis ?? '',
+                    suggestion: a.feedback?.upgrade?.suggested ?? '', scoped: a.feedback?.feedbackScope ?? '',
+                    repair: a.repair ? { preserved: a.repair.meaningPreserved, basis: a.repair.evidenceBasis } : null,
+                    issues: a.feedback?.priorityIssues?.length ?? 0, completed: a.completedAt ?? null,
+                    transferOf: a.transferOf ?? null, readingSessionId: a.readingSessionId ?? null,
+                    inputSessionId: a.inputSessionId ?? null,
+                })),
+                analytics: outputAnalytics(d),
+                wordScores: d.words.map(w => ({ id: w.id, en: w.en, productiveScore: w.productiveScore ?? 0, productionEvidence: w.productionEvidence ?? 0 })),
+                candidates: selectOutputTasks({ data: d, now: Date.now(), availableMinutes: 20, energy: 'normal' }).candidates.map(c => ({ id: c.id, type: c.taskType, source: c.sourceType, sourceId: c.sourceId })),
+                plans: d.dailyPlans.map(p => ({ date: p.date, output: p.initialPlan.filter(t => t.module === 'output').length })),
+                settings: { endpoint: d.settings.ai?.endpoint ?? '', model: d.settings.ai?.model ?? '' },
+            };
+        },
+        async start(type: string, topic: string, initialText = '', level = 0, targetWords: string[] = []) {
+            const task = buildOutputTask({ taskType: type as never, topic, sourceType: 'free', now: Date.now(), targetWords, targetGrammar: [] });
+            const r = await createOutputAttempt({ task, initialDraft: initialText, sourceProvenance: 'user_text' });
+            if (!r.ok)
+                return { ok: false, message: r.message };
+            if (level)
+                await submitOutputAttempt(r.value.id, r.value.revision, initialText, { supportLevel: level as never });
+            return { ok: true, id: r.value.id };
+        },
+        async startFromInput(sessionId: string) {
+            const d = await loadData();
+            const h = handoutFromInput(d, sessionId);
+            if (!h.ok)
+                return { ok: false, message: h.message };
+            const r = await createOutputAttempt({ task: h.value.task, initialDraft: h.value.text, inputSessionId: sessionId, sourceProvenance: 'user_text+input_summary' });
+            return r.ok ? { ok: true, id: r.value.id, text: h.value.text } : { ok: false, message: r.message };
+        },
+        async save(id: string, text: string) {
+            const d = await loadData();
+            const a = d.outputAttempts.find(x => x.id === id);
+            if (!a) return { ok: false, message: 'missing' };
+            const r = await saveDraft(id, a.revision, text);
+            return r.ok ? { ok: true, revision: r.value.revision } : { ok: false, message: r.message };
+        },
+        async submit(id: string, text: string, level = 0, repair?: { meaning: string; blocked: string }) {
+            const d = await loadData();
+            const a = d.outputAttempts.find(x => x.id === id);
+            if (!a) return { ok: false, message: 'missing' };
+            const r = await submitOutputAttempt(id, a.revision, text, { supportLevel: level as never });
+            if (!r.ok)
+                return { ok: false, message: r.message };
+            if (repair && a.task) {
+                const ev = evaluateRepair({ intendedMeaning: repair.meaning, blockedExpression: repair.blocked, userAlternative: text, basis: 'self_reported', supportLevel: level as never, now: Date.now(), source: 'user' });
+                await attachRepair(id, r.value.revision, ev.record);
+            }
+            return { ok: true, revision: r.value.revision, status: r.value.status };
+        },
+        async feedback(id: string) {
+            const d = await loadData();
+            const a = d.outputAttempts.find(x => x.id === id);
+            if (!a) return { ok: false, message: 'missing' };
+            const r = await requestOutputFeedback(id, a.revision, {
+                data: d, materialText: outputMaterial(a),
+                grammarConceptIds: d.grammarConcepts.map(c => c.id),
+                targetWordIds: (a.targetWords ?? []).map(en => d.words.find(w => w.en.toLowerCase() === en.toLowerCase())?.id).filter((x): x is string => !!x),
+            });
+            return r.ok ? { ok: true, message: r.value.message, status: r.value.attempt.feedbackStatus ?? '' } : { ok: false, message: r.message };
+        },
+        async revise(id: string, text: string) {
+            const d = await loadData();
+            const a = d.outputAttempts.find(x => x.id === id);
+            if (!a) return { ok: false, message: 'missing' };
+            const r = await reviseOutput(id, a.revision, text, { suggestion: a.feedback?.upgrade?.suggested ?? null, supportLevel: (a.supportLevel ?? 0) as never });
+            return r.ok ? { ok: true, revision: r.value.revision, kind: (r.value.revisions ?? []).slice(-1)[0]?.kind ?? '' } : { ok: false, message: r.message };
+        },
+        async finish(id: string) {
+            const d = await loadData();
+            const a = d.outputAttempts.find(x => x.id === id);
+            if (!a) return { ok: false, message: 'missing' };
+            const r = await finishOutput(id, a.revision, d);
+            return r.ok ? { ok: true, status: r.value.status, evidence: r.value.productiveEvidence?.length ?? 0, revision: r.value.revision } : { ok: false, message: r.message };
+        },
+        async transfer(id: string) {
+            const d = await loadData();
+            const a = d.outputAttempts.find(x => x.id === id);
+            if (!a || !a.task) return { ok: false, message: 'missing' };
+            const plan = buildOutputTransfer(a.task, { now: Date.now(), seed: a.id });
+            const r = await createOutputAttempt({ task: plan.task, transferOf: a.id, sourceProvenance: 'user_text' });
+            return r.ok ? { ok: true, id: r.value.id, topic: plan.task.topic, strength: plan.strength } : { ok: false, message: r.message };
+        },
+        async setAI(endpoint: string, model: string) {
+            const d = await loadData();
+            d.settings.ai = { ...(d.settings.ai ?? {}), endpoint, model, key: 'test-key', structuredMode: 'auto' } as never;
+            await saveSettings(d.settings);
+            data = await loadData();
+            return { ok: true };
+        },
+        async clearAI() {
+            const d = await loadData();
+            d.settings.ai = { ...(d.settings.ai ?? {}), key: '' } as never;
+            await saveSettings(d.settings);
+            data = await loadData();
+            return { ok: true };
+        },
+        check(text: string) { return localChecks(text); },
+        canShowModelAnswer: (status: string | null, level = 0) => canShowModelAnswer(status ? { status, supportLevel: level } : null),
     };
     // OCR 验收钩子：只暴露“跑一次识别 / 释放”，不改学习证据；用于失败注入与超时验证
     (window as unknown as Record<string, unknown>).__ocrTest = {

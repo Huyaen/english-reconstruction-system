@@ -461,3 +461,28 @@ AI 句生成、外部语料 / 阅读 handoff、Mini Diagnostic 非词汇子测�
 3. DB 升 v6 打穿 `plannerStore`（写死 v4）、`plannerUi`（预算/能力断言）、phase3 能力门控文案 → 全部改为跟随常量与当前能力。
 
 **验收**：单测 **275/275**；Phase 8 浏览器冒烟 **34/34**（A 兴趣接入 / B 画像外材料 / C 冷测+Standard 复盘 / D Light-Deep / E 字幕交接 / F 单元仅曝光 / G Planner 任务 / H 无材料不造假 / I 兴趣同步 / J 无 AI Key 可用 / K 并发幂等 / L 备份恢复）；回归 33/33、31/31、26/26、44/44、36/36、21/21；tsc 0；生产包钩子 0。
+
+
+## 2026-10-21T22:20:00+08:00 — Phase 9 主体：Output Lab（真实表达）
+
+**目标**：让学习者先用英语把意思送出去，再谈准确；一句话也算完成。
+
+**交付**
+- 16 个纯逻辑/编排模块：任务契约、分层辅助、Communication Repair、确定性检查、反馈契约与质量门、产出证据、修改分类、迁移/延迟、任务选择、存储、动作、Planner、Analytics、视图、Prompt、AI 编排。
+- 页面：Output Lab Hub（建议任务/类型切换/真实材料交接/历史/概览）与写作会话（草稿自动保存、L1–L4 主动辅助、提交、反馈、修改、完成、迁移）。
+- 数据：复用 `outputAttempts`，新增可选字段（任务契约、支持记录、反馈、修改史、Repair、证据、关联来源）；DB 仍为 **v6**。
+- 关联：Mini Unit 视图显示真实表达次数与独立证据数，但不自动完成学习日；Planner 仅在存在真实任务契约时排入。
+
+**验收**
+- `npm test` **308/308**；新增 `outputCore` 8 + `outputFeedback` 8 + `outputEvidence` 8 + `outputIntegration` 9。
+- `scripts/phase9-smoke.mjs` **20/20**：确定性检查、无 AI 可用、范文门控、L4 辅助、独立证据与重复完成、AI 契约、编造 span 拒绝、照抄修改、自己修改、Repair、Input 交接、Planner、Analytics、备份恢复、并发完成。
+- 回归全绿：phase8 34/34、interest 19/19、phase7 33/33、phase6 31/31、phase5.1 26/26、phase5 44/44、phase4 36/36、phase3 21/21。
+- `tsc` 0；`npm run build` 通过；生产包无测试钩子。
+
+**本轮修掉的真实缺陷**
+1. `<aside class="output-side">` 命中全局侧栏样式（`position:fixed`），反馈列被压到导航上方 → 改为普通容器并统一主题变量。
+2. 重复点击"完成"会继续推进 revision（证据虽幂等）→ 完成改为幂等，直接返回现状。
+3. 照抄无反馈时被当作 `correct` → 改为 `questionable`，避免误判掌握。
+4. 目标词匹配不识别 `#hashtag`、规则屈折（carried/carries）→ 加词边界与有限词形，仍未覆盖不规则动词（不猜）。
+
+**下一步**：等待用户指定 Phase 10；不自动开始。

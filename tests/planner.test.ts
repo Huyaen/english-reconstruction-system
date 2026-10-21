@@ -97,15 +97,16 @@ test('统一 Task Contract：每个任务都有 module/kind/时间/原因/能力
 });
 test('Capability Gate：未上线模块不可执行，也不生成假任务', () => {
     const words = makeWords(10);
-    // Phase 5/8：reading 与 input 能力已实现（available=true），但**没有真实文章/材料**时不得生成任何任务；
-    // output 仍未上线，既不可执行也不生成任务。
+    // Phase 5/8/9：reading、input、output 能力都已实现（available=true），
+    // 但**没有真实文章/材料/任务**时不得生成任何任务。
     const noSource = createDailyPlan({ now: NOW, availableMinutes: 45, energy: 'normal', words, records: [] }).plan;
     assert.equal(noSource.capabilities!.vocabulary.available, true);
     assert.equal(noSource.capabilities!.sentence.available, true);
     assert.equal(noSource.capabilities!.reading.available, true);
     assert.equal(noSource.capabilities!.input.available, true);
-    assert.equal(noSource.capabilities!.output.available, false);
+    assert.equal(noSource.capabilities!.output.available, true, 'Phase 9 起真实表达已上线');
     assert.equal(noSource.initialPlan.some(t => t.module === 'input'), false, '没有真实材料时不得生成输入任务');
+    assert.equal(noSource.initialPlan.some(t => t.module === 'output'), false, '没有任务契约时不得生成表达任务');
     assert.ok(noSource.initialPlan.every(t => t.module === 'vocabulary'), '没有句源与阅读材料时不得生成句子/阅读任务');
     // Phase 5：reading 已实现，因此有真实文章时**必须**生成真实阅读任务
     const passage = {
