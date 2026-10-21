@@ -3,8 +3,8 @@
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
   "current_phase": "phase_8_real_input_hub",
-  "last_updated": "2026-10-21T20:45:00+08:00",
-  "last_verified_commit": "9f11b8cf88f72dbb7a6d92f3c1daa7361cf893f9",
+  "last_updated": "2026-10-21T21:05:00+08:00",
+  "last_verified_commit": "64ee19010e6d685b65e0cde34044996f650652e5",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 6,
   "build_status": "passed",
@@ -509,7 +509,7 @@
     "last_local_commit": "e26c325daa97f26d32a7c560ec09da44857f1a22",
     "last_known_remote_commit": "e26c325daa97f26d32a7c560ec09da44857f1a22",
     "pending_push": null,
-    "last_verified_at": "2026-10-21T20:45:00+08:00",
+    "last_verified_at": "2026-10-21T21:05:00+08:00",
     "last_error": null,
     "note": "Phase 5 实测核验：push a4b49b9→7c1bf06（Phase 5 Reading Lab 功能提交），GitHub API git/ref/heads/main 复核 sha=7c1bf06655aed18bdd242574dc8859f52434f6a6 与本地 HEAD 一致；annotated tag phase5-reading-lab → 7c1bf06 已推送。Phase 4 tag 仍固定在 a10efd4-f 功能提交，CI 提交 a4b49b9 仅含 .github/workflows/ci.yml 与测试钩子隔离。",
     "tags": [
@@ -534,7 +534,7 @@
     "branch": "main",
     "head": "9f11b8cf88f72dbb7a6d92f3c1daa7361cf893f9",
     "verified_at": "2026-10-21T00:20:00+08:00",
-    "last_pushed_commit": "见交付报告"
+    "last_pushed_commit": "64ee19010e6d685b65e0cde34044996f650652e5"
   },
   "document_review": {
     "date": "2026-10-19",
@@ -543,5 +543,13 @@
     "last_verified_commit_note": "state.last_verified_commit=92fdab0 是 Phase 2 功能提交；HEAD=92f8ec1 为其上的状态 pin 提交",
     "merge": "文档包内容与本地 2026-10-04 快照一致（差异全部为新增/纠错），已整体合并；合并前副本在 scratch 备份目录",
     "phase3_verification": "2026-10-19 完成 Phase 3：69/69 tests、build、HTTP 200、真实浏览器 smoke 20/20（详见 CHECKPOINT.md / docs/PHASE3_DAILY_PLANNER.md）"
-  }
+  },
+  "milestones": [
+    {
+      "phase": "phase8",
+      "commit": "64ee19010e6d685b65e0cde34044996f650652e5",
+      "tag": "phase8-real-input-hub",
+      "ci": "39603818853 success"
+    }
+  ]
 }
