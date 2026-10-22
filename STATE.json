@@ -612,7 +612,7 @@
             "phase": "phase10",
             "commit": "8c7fceef80b09645c0f5d5302a03b9aea7b7bfe5",
             "tag": "phase10-diagnostics",
-            "ci": "PENDING"
+            "ci": "39774289440 success"
         }
     ]
 }
