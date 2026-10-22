@@ -1,614 +1,618 @@
 {
-  "project": "English Reconstruction System V2",
-  "root": "D:\\英语重构训练\\vocabulary-app",
-  "overall_status": "in_progress",
-  "current_phase": "phase_9_output_lab",
-  "last_updated": "2026-10-21T23:45:00+08:00",
-  "last_verified_commit": "63a947288dd57b73f9e3811007bc29ab2fbef18a",
-  "baseline_tag": "v1.0.0-mvp-baseline",
-  "database_version": 6,
-  "build_status": "passed",
-  "test_status": {
-    "unit": "308/308 pass",
-    "browser": "phase9 20/20, phase8 34/34, interest 19/19, phase7 33/33, phase6 31/31, phase5.1 26/26, phase5 44/44, phase4 36/36, phase3 21/21",
-    "tsc": "0 error",
-    "build": "pass, 生产包无测试钩子"
-  },
-  "tasks": {
-    "phase0_audit_001": {
-      "status": "passed",
-      "description": "Phase 0 审计：目录结构/真实技术栈/运行验证/build/test/IndexedDB schema 与版本/AI provider 与 Key 存储/备份恢复 全量核查，结论写入 CHECKPOINT.md",
-      "files": [
-        "CHECKPOINT.md",
-        "STATE.json",
-        "HANDOFF.md"
-      ],
-      "tests": [
-        "npm test 20/20 pass",
-        "npm run build (tsc --noEmit + vite) OK",
-        "node server.mjs 实测 curl: / 200, JS 200, CSS 200, 404 正常"
-      ]
-    },
-    "phase0_git_baseline_002": {
-      "status": "passed",
-      "description": "git init -b main；core.autocrlf=false；baseline commit 6c1c625 + tag v1.0.0-mvp-baseline（38 files, node_modules 已忽略）",
-      "files": [
-        ".gitignore"
-      ],
-      "tests": [
-        "git status clean",
-        "git log --decorate 验证 tag"
-      ]
-    },
-    "phase0_state_files_003": {
-      "status": "passed",
-      "description": "建立/更新状态体系：STATE.json、CHECKPOINT.md（含 Phase 0 结论与 Phase 1 拆分）、HANDOFF.md（新建）、TODO.md、DEVELOPMENT_LOG.md；AGENT_EXECUTION.md 追加 Phase 0.5 深度核查要求",
-      "files": [
-        "STATE.json",
-        "CHECKPOINT.md",
-        "HANDOFF.md",
-        "TODO.md",
-        "DEVELOPMENT_LOG.md",
-        "AGENT_EXECUTION.md",
-        "README.md"
-      ],
-      "tests": [
-        "STATE.json 可 JSON.parse",
-        "git commit 记录"
-      ]
-    },
-    "phase0_5_reference_research_004": {
-      "status": "passed",
-      "description": "GitHub 开源调研：候选 40+（登记）、深挖 12（实际读取源码/数据模型/算法/License/维护状态）→ REFERENCE_RESEARCH.md（490 行；§11 Adopt/Adapt/Reject 总表；§12 边界与失败记录）",
-      "files": [
-        "REFERENCE_RESEARCH.md"
-      ],
-      "artifacts": [
-        "REFERENCE_RESEARCH.md §11 总表",
-        "关键决策：Adopt ts-fsrs/zod/jsonrepair/tesseract.js/vite-plugin-pwa/ECDICT；Adapt HLR/BKT-lite/VocabSieve/Dexie/Lute/displaCy；Reject GPL-AGPL 代码复用/图数据库/CRDT"
-      ],
-      "tests": [
-        "许可证核验（逐仓库 SPDX/pushed_at）",
-        "源码实际查看记录（SHA 已记录于文档）"
-      ]
-    },
-    "phase1_db_migration_001": {
-      "status": "passed",
-      "description": "DB v1→v2 versioned migration 框架：只加不删、逐版本分支、words cursor 回填、meta 迁移记录、旧库升级后 UI 提示导出备份",
-      "files": [
-        "src/db.ts",
-        "src/app.ts"
-      ],
-      "tests": [
-        "tests/migration.test.ts：v1 fixture 升级后数据 100% 保留；重开幂等（无重复迁移记录）"
-      ]
-    },
-    "phase1_learning_model_stores_002": {
-      "status": "passed",
-      "description": "新增 14 个 Learning Model stores + 16 组二级索引（含复合 wordId,at；冗余索引已精简）",
-      "files": [
-        "src/db.ts",
-        "src/types.ts"
-      ],
-      "tests": [
-        "迁移测试断言 store/index 实际存在"
-      ]
-    },
-    "phase1_word_upgrade_003": {
-      "status": "passed",
-      "description": "Word 三维能力（recognition/activeRecall/productive）+ exposure/来源字段 + 旧数据默认值回填（withV2WordDefaults 幂等）",
-      "files": [
-        "src/types.ts",
-        "src/core.ts",
-        "src/db.ts"
-      ],
-      "tests": [
-        "迁移测试断言默认值回填；备份校验器新增字段类型检查"
-      ]
-    },
-    "phase1_backup_v2_004": {
-      "status": "passed",
-      "description": "备份格式 v2（含全部新 stores、始终去 Key）；validateBackup 兼容读入 v1+v2；悬空引用拒绝；normalizeData 规范化",
-      "files": [
-        "src/db.ts"
-      ],
-      "tests": [
-        "v1 备份恢复测试；v2 往返测试；悬空引用拒绝测试"
-      ]
-    },
-    "phase1_model_api_005": {
-      "status": "passed",
-      "description": "src/model.ts 索引化查询层：dueWords/wordsByBook/recordsForWord/exposuresForWord/exposureStats/latestSnapshots/planForDate/activeMiniUnit/unfinishedSessions",
-      "files": [
-        "src/model.ts"
-      ],
-      "tests": [
-        "model 查询测试（复合索引范围查询、到期过滤、快照倒序）"
-      ]
-    },
-    "phase2_vocabulary_v2_006": {
-      "status": "passed",
-      "description": "Vocabulary V2 全量交付：ts-fsrs@5.4.2 调度（shadow→默认权威+回滚开关）、DB v3（fsrs/previewResult 回填 + fsrs.due 索引）、多因素 Rating 映射、Preview→Recall 强制、三维证据、多词池/Learning Value/动态新词量、UI 集成",
-      "files": [
-        "src/fsrs.ts",
-        "src/evidence.ts",
-        "src/pools.ts",
-        "src/db.ts",
-        "src/quiz.ts",
-        "src/model.ts",
-        "src/stats.ts",
-        "src/app.ts",
-        "src/types.ts",
-        "src/core.ts",
-        "src/style.css"
-      ],
-      "tests": [
-        "tests/fsrs.test.ts",
-        "tests/vocab.test.ts",
-        "tests/migration.test.ts(+v2→v3)",
-        "tests/ui.test.ts(Preview 流程)",
-        "浏览器 smoke（CDP 无头 Edge）通过"
-      ]
-    },
-    "phase3_daily_planner_007": {
-      "status": "passed",
-      "description": "Phase 3 Daily Planner：Time Budget First（20/30/45/60/自定义 + 非法值校验）、状态三档 low/normal/good、Yesterday Recall（真实隔夜抽样 + 保留率 + 校准）、确定性计划生成（复用 recommendedNewWordCount/buildNewWordQueue/effectiveDue）、五模块统一 Task Contract + Capability Gate、动态重规划（Start/Skip/Delay/Replace/超时/提前完成，±30% 上限）、Closing Loop（3–5 分钟 + 难度反馈）、中断与重新进入（1 天 / 2–3 天 Re-entry / ≥7 天 Mini Diagnostic 词汇）、持久化与刷新恢复（dailyPlans，revision 并发保护）、不积学习债",
-      "files": [
-        "src/planner.ts",
-        "src/plannerStore.ts",
-        "src/app.ts",
-        "src/types.ts",
-        "src/style.css",
-        "tests/planner.test.ts",
-        "tests/plannerStore.test.ts",
-        "tests/plannerUi.test.ts",
-        "scripts/phase3-smoke.mjs"
-      ],
-      "tests": [
-        "npm test 69/69（原 39 + planner 22 + plannerStore 6 + plannerUi 2）",
-        "npm run build 成功（dist/assets/index-DjucMzEh.js 544.43 kB / gzip 187.93 kB；CSS 17.23 kB）",
-        "HTTP 运行时验证：node server.mjs → / 200（535B）、JS 200（552,819B）、CSS 200（17,234B）、缺失路径 404",
-        "真实浏览器 smoke（无头 Edge 128 + CDP 9224，独立 profile）20/20：导入→生成计划→Capability Gate→替换无候选拒绝→Preview→Recall→Closing+难度反馈→刷新恢复→昨日记录隔夜检测(保留率 100%，触发校准)→断更 5 天 Re-entry→无控制台错误",
-        "IndexedDB 持久化验证：dailyPlans 同日唯一、status=completed、taskActions/adjustments 全带原因、刷新后不重复生成",
-        "回归：Phase 0/1/2 全部既有测试保持通过（迁移 fixture、FSRS、Preview 流程、索引查询）"
-      ],
-      "artifacts": [
-        "scripts/phase3-smoke.mjs（可复跑的浏览器验收脚本）",
-        "docs/PHASE3_DAILY_PLANNER.md（实现与验收记录）",
-        "DB 版本未提升（仍为 v3；dailyPlans 复用现有 store/index）"
-      ]
-    },
-    "infra_github_remote_001": {
-      "status": "passed",
-      "description": "首次核对/必要时创建 GitHub Private 远程仓库；全历史敏感信息扫描、关联 remote、推送本地已有 commits/tags 并核对远端 SHA；建立 task/phase 同步。与 Phase 0.5 GitHub 参考调研无关。",
-      "files": [
-        "AGENT_EXECUTION.md",
-        "PROJECT_SPEC.md",
-        "INITIAL_PROMPT.md",
-        "STATE.json",
-        "CHECKPOINT.md",
-        "HANDOFF.md",
-        "README.md"
-      ],
-      "tests": [
-        "git remote -v 初始为空（无 origin）→ 通过 GitHub API 创建 Private 仓库 Huyaen/english-reconstruction-system",
-        "secrets 扫描：git ls-files 48 个跟踪文件；全历史 51 个文件名无 .env/token/credential/备份/DB；git grep 全历史正则（ghp_/github_pat_/sk-/AIza/xox/AKIA/PRIVATE KEY）0 命中",
-        "first push 成功：main f9ef446；git ls-remote 与 API branches/main SHA 一致；3 个阶段 tag 全部推送且 SHA 一致",
-        "API 复核 private=true, default_branch=main"
-      ],
-      "preconditions": [
-        "确认授权 GitHub owner 和仓库隐私",
-        "检查 git remote 和分支/tag",
-        "首次 push 前扫描本地全部拟上传历史"
-      ],
-      "artifacts": [
-        "remote https://github.com/Huyaen/english-reconstruction-system.git"
-      ]
-    },
-    "phase4_sentence_grammar_008": {
-      "status": "passed",
-      "description": "Phase 4 Sentence & Grammar：显式语法知识图谱（34 概念 + 先修边，禁循环）+ sentinel 结构校验 + 句源契约（12 条 authored 教学句，带 gold 结构/中文预教词）+ 引导式拆句 Lab（L0–L4 分层辅助、即时反馈、JIT 知识卡）+ 证据模型（exposed 不计掌握、幂等=会话+句子）+ 自适应选句 + Planner 真实句任务接入 + Grammar/Sentence UI",
-      "files": [
-        "src/grammar.ts",
-        "src/sentenceStructure.ts",
-        "src/sentenceSources.ts",
-        "src/sentenceLab.ts",
-        "src/sentenceEvidence.ts",
-        "src/sentenceSelection.ts",
-        "src/sentenceGraphMap.ts",
-        "src/sentenceStore.ts",
-        "src/types.ts",
-        "src/db.ts",
-        "src/planner.ts",
-        "src/app.ts",
-        "src/style.css",
-        "tests/grammar.test.ts",
-        "tests/sentenceStructure.test.ts",
-        "tests/sentenceLab.test.ts",
-        "tests/sentenceSources.test.ts",
-        "tests/sentenceSelection.test.ts",
-        "tests/sentenceUi.test.ts",
-        "scripts/phase4-smoke.mjs",
-        "docs/PHASE4_SENTENCE_GRAMMAR.md"
-      ],
-      "tests": [
-        "npx tsc --noEmit -p tsconfig.json → 0 error",
-        "npm test → 106/106 pass（Phase 3 的 69 + Phase 4 的 37）",
-        "npm run build → 成功（dist 与源码同步）",
-        "node scripts/phase4-smoke.mjs → 36/36（真实无头 Edge + CDP，独立 profile）",
-        "node scripts/phase3-smoke.mjs → 21/21（回归）"
-      ],
-      "artifacts": [
-        "DB v4 additive：新增 sentences store + grammarTags multiEntry 索引，旧 v3 数据继续可读",
-        "预教词（glossary）：有释义的生词不阻断选句，训练页先给释义；无释义且生词过多仍拒绝出题",
-        "证据分级：independent/transfer/delayed/error 计入 BKT；exposed/hint-assisted 只计接触",
-        "PlanItem.module='sentence'：sentence-basic-structure / sentence-weak-grammar / sentence-transfer，绑定真实句子 id"
-      ]
-    },
-    "infra_github_actions_ci_002": {
-      "status": "passed",
-      "description": "Phase 5.0 前置工程补强：GitHub Actions CI（Node 22/24 矩阵：tsc --noEmit + 全量测试 + 生产构建 + dist 一致性 + 生产包无测试钩子）+ 测试钩子构建期隔离（__ERV2_TEST_HOOKS__，dist-test）+ server.mjs --dir/--port + STATE 纠错 + 长期 CI Protocol 落盘",
-      "files": [
-        ".github/workflows/ci.yml",
-        "vite.config.ts",
-        "src/testMode.ts",
-        "src/app.ts",
-        "server.mjs",
-        "package.json",
-        "scripts/phase3-smoke.mjs",
-        "scripts/phase4-smoke.mjs",
-        "AGENT_EXECUTION.md",
-        ".gitignore"
-      ],
-      "tests": [
-        "npm test → 106/106 pass",
-        "npm run build → 成功；生产包 grep __labTest = 0（钩子被摇树移除）",
-        "npm run build:test → dist-test，grep __labTest = 1",
-        "node scripts/phase4-smoke.mjs（dist-test）→ 36/36",
-        "node scripts/phase3-smoke.mjs（dist-test）→ 21/21",
-        "GitHub Actions run 39271191340 @ 6f7c889 → success（Node 22 + Node 24 双绿；tsc/tests/build/dist 一致性/无钩子断言全绿）"
-      ],
-      "artifacts": [
-        "生产构建不暴露任何测试钩子；钩子只在 dist-test 且 URL 带 ?test=1 时存在",
-        "CI 权限 contents: read，不部署、不写仓库、不使用任何真实 AI 密钥或用户学习数据",
-        "dist 纳入 Git，由 CI 在 Node 22 上核对 dist 与源码一致（git diff --exit-code -- dist）"
-      ]
-    },
-    "phase5_reading_009": {
-      "status": "passed",
-      "description": "Phase 5 Reading Lab：真实文章导入（粘贴/文件/URL/截图人工转录，来源类型+可靠性+内容指纹可追溯）→ 逐段阅读（首读无辅助、打开文章不显示全文翻译）→ 生词即时标记（known/vague/unknown/guessed 四分类，可撤销留痕）+ 后置筛选入库（核心/识别/低价值/专名；无释义不得入库）→ 难句交接 Phase 4 拆句训练（自动分析结构=只记接触，练完回原段落）→ 重读（真实计时，与首读分开统计）→ 全文理解（可验证题与自评分开）+ 一句话输出 → 收尾镜像字段只统计真实数据；证据幂等键 = sessionId+type+key，自评置信度上限 medium；无阅读材料时绝不生成阅读任务。DB 仍为 v4（复用 passages/readingSessions/wordExposures，无新增 store）",
-      "files": [
-        "src/readingText.ts",
-        "src/readingImport.ts",
-        "src/readingDifficulty.ts",
-        "src/readingEvidence.ts",
-        "src/readingSession.ts",
-        "src/readingVocabulary.ts",
-        "src/readingSentences.ts",
-        "src/readingAnalytics.ts",
-        "src/readingStore.ts",
-        "src/readingPlanner.ts",
-        "src/readingView.ts",
-        "src/types.ts",
-        "src/planner.ts",
-        "src/app.ts",
-        "src/style.css",
-        "tests/readingCore.test.ts",
-        "tests/readingSession.test.ts",
-        "tests/readingUi.test.ts",
-        "scripts/phase5-smoke.mjs",
-        "docs/PHASE5_READING.md"
-      ],
-      "tests": [
-        "npx tsc --noEmit 0 error",
-        "npm test 134/134 pass（Phase 5 新增 28 例：readingCore 14 + readingSession 13 + readingUi 1 端到端）",
-        "npm run build / npm run build:test 成功；生产 dist 无 __readTest/__labTest（构建期摇树移除）",
-        "node scripts/phase5-smoke.mjs 44/44（无头 Edge + CDP，独立 profile，dist-test + ?test=1）",
-        "回归：phase4-smoke 36/36、phase3-smoke 21/21，均无控制台未捕获错误"
-      ]
-    },
-    "phase5_1_local_ocr_011": {
-      "status": "passed",
-      "description": "Phase 5.1 真实截图 OCR：tesseract.js v7 本地 Wasm（懒加载动态 import，首屏不加载）→ 真实截图 OCR → 用户编辑 → 必须勾选确认 → 入库（extractionMethod=local_ocr）；格式/大小门禁（仅 PNG/JPG，8MB）、超时与取消（release worker）、模型加载失败/空结果/解码失败分类与人工录入出口、并发串行化；真实 fixture + 真实浏览器验收 26/26",
-      "files": [
-        "src/ocr.ts",
-        "src/ocrEngine.ts",
-        "src/readingView.ts",
-        "src/app.ts",
-        "tests/ocr.test.ts",
-        "scripts/phase5-1-ocr-smoke.mjs",
-        "scripts/make-ocr-fixtures.mjs",
-        "tests/fixtures/reading-ocr.png",
-        "tests/fixtures/reading-blank.png",
-        "docs/PHASE5_1_OCR.md"
-      ],
-      "verification": {
-        "tests": "145/145 pass（新增 tests/ocr.test.ts 11 例）",
+    "project": "English Reconstruction System V2",
+    "root": "D:\\英语重构训练\\vocabulary-app",
+    "overall_status": "in_progress",
+    "current_phase": "phase_10_diagnostics",
+    "last_updated": "2026-10-22T19:53:05+08:00",
+    "last_verified_commit": "63a947288dd57b73f9e3811007bc29ab2fbef18a",
+    "baseline_tag": "v1.0.0-mvp-baseline",
+    "database_version": 6,
+    "build_status": "pass (tsc 0 error, vite production build, 生产包无测试钩子)",
+    "test_status": {
+        "unit": "325/325 pass",
+        "browser": "phase10 16/16, phase9 20/20, phase8 34/34, interest 19/19, phase7 33/33, phase6 31/31, phase5.1 26/26, phase5 44/44, phase4 36/36, phase3 21/21",
         "tsc": "0 error",
-        "build": "npm run build / build:test 通过；生产包 __readTest/__labTest/__ocrTest 命中 0",
-        "browser_smoke": "Phase 5.1 OCR smoke 26/26（真实截图 784 字符、置信度 95%、6.8s）",
-        "regression": "Phase 5 44/44、Phase 4 36/36、Phase 3 21/21"
-      },
-      "verified_at": "2026-10-20T19:40:00+08:00"
+        "build": "pass, 生产包无测试钩子"
     },
-    "phase6_reinforcement_ai_010": {
-      "status": "passed",
-      "description": "Phase 6 Reinforcement AI：统一 AI Service Layer（Provider 配置/请求适配/能力声明/结构化输出/校验/重试/超时/取消/失败分类/用量元数据/安全日志）+ JSON 修复 + Prompt 版本化注册表（sentence.generate@1.0.0、reading.reinforce@1.0.0）+ 定向句与强化阅读生成 + 八道质量门（Schema/词数/目标词/目标语法/难度/重复/来源归属/安全渲染）+ 证据纪律（AI 只产出材料，不写掌握；结构标 ai_unverified）+ 隐私最小化（只发目标词/语法点/主题）+ 用量与每日 token 预算 + 失败降级（本地 authored 句/真实阅读材料不受影响）+ DB v5（additive：aiGenerations）",
-      "files": [
-        "src/aiProvider.ts",
-        "src/aiJson.ts",
-        "src/aiValidate.ts",
-        "src/aiQuality.ts",
-        "src/aiGenerate.ts",
-        "src/aiStore.ts",
-        "src/prompts/registry.ts",
-        "src/prompts/sentence.ts",
-        "src/prompts/reading.ts",
-        "src/types.ts",
-        "src/db.ts",
-        "src/app.ts",
-        "src/style.css",
-        "tests/aiProvider.test.ts",
-        "tests/aiStructured.test.ts",
-        "tests/aiGenerate.test.ts",
-        "scripts/phase6-smoke.mjs",
-        "tools/mock-ai-provider.mjs",
-        "docs/PHASE6_REINFORCEMENT_AI.md"
-      ],
-      "verification": {
-        "tests": "176/176 pass（新增 aiProvider 13 / aiStructured 8 / aiGenerate 10）",
-        "tsc": "0 error",
-        "build": "npm run build / build:test 通过；生产包 __readTest/__labTest/__ocrTest/ERV2_TEST_HOOKS 命中 0",
-        "browser_smoke": "Phase 6 smoke 31/31（真实 Edge + CDP + 本地 OpenAI-compatible mock Provider）",
-        "regression": "Phase 5.1 OCR 26/26、Phase 5 44/44、Phase 4 36/36、Phase 3 21/21",
-        "real_provider": "未验收（无凭据）：仅完成协议级 mock 端到端；真实供应商需用户自填 Key 后复验"
-      },
-      "verified_at": "2026-10-20T21:05:00+08:00"
+    "tasks": {
+        "phase0_audit_001": {
+            "status": "passed",
+            "description": "Phase 0 审计：目录结构/真实技术栈/运行验证/build/test/IndexedDB schema 与版本/AI provider 与 Key 存储/备份恢复 全量核查，结论写入 CHECKPOINT.md",
+            "files": [
+                "CHECKPOINT.md",
+                "STATE.json",
+                "HANDOFF.md"
+            ],
+            "tests": [
+                "npm test 20/20 pass",
+                "npm run build (tsc --noEmit + vite) OK",
+                "node server.mjs 实测 curl: / 200, JS 200, CSS 200, 404 正常"
+            ]
+        },
+        "phase0_git_baseline_002": {
+            "status": "passed",
+            "description": "git init -b main；core.autocrlf=false；baseline commit 6c1c625 + tag v1.0.0-mvp-baseline（38 files, node_modules 已忽略）",
+            "files": [
+                ".gitignore"
+            ],
+            "tests": [
+                "git status clean",
+                "git log --decorate 验证 tag"
+            ]
+        },
+        "phase0_state_files_003": {
+            "status": "passed",
+            "description": "建立/更新状态体系：STATE.json、CHECKPOINT.md（含 Phase 0 结论与 Phase 1 拆分）、HANDOFF.md（新建）、TODO.md、DEVELOPMENT_LOG.md；AGENT_EXECUTION.md 追加 Phase 0.5 深度核查要求",
+            "files": [
+                "STATE.json",
+                "CHECKPOINT.md",
+                "HANDOFF.md",
+                "TODO.md",
+                "DEVELOPMENT_LOG.md",
+                "AGENT_EXECUTION.md",
+                "README.md"
+            ],
+            "tests": [
+                "STATE.json 可 JSON.parse",
+                "git commit 记录"
+            ]
+        },
+        "phase0_5_reference_research_004": {
+            "status": "passed",
+            "description": "GitHub 开源调研：候选 40+（登记）、深挖 12（实际读取源码/数据模型/算法/License/维护状态）→ REFERENCE_RESEARCH.md（490 行；§11 Adopt/Adapt/Reject 总表；§12 边界与失败记录）",
+            "files": [
+                "REFERENCE_RESEARCH.md"
+            ],
+            "artifacts": [
+                "REFERENCE_RESEARCH.md §11 总表",
+                "关键决策：Adopt ts-fsrs/zod/jsonrepair/tesseract.js/vite-plugin-pwa/ECDICT；Adapt HLR/BKT-lite/VocabSieve/Dexie/Lute/displaCy；Reject GPL-AGPL 代码复用/图数据库/CRDT"
+            ],
+            "tests": [
+                "许可证核验（逐仓库 SPDX/pushed_at）",
+                "源码实际查看记录（SHA 已记录于文档）"
+            ]
+        },
+        "phase1_db_migration_001": {
+            "status": "passed",
+            "description": "DB v1→v2 versioned migration 框架：只加不删、逐版本分支、words cursor 回填、meta 迁移记录、旧库升级后 UI 提示导出备份",
+            "files": [
+                "src/db.ts",
+                "src/app.ts"
+            ],
+            "tests": [
+                "tests/migration.test.ts：v1 fixture 升级后数据 100% 保留；重开幂等（无重复迁移记录）"
+            ]
+        },
+        "phase1_learning_model_stores_002": {
+            "status": "passed",
+            "description": "新增 14 个 Learning Model stores + 16 组二级索引（含复合 wordId,at；冗余索引已精简）",
+            "files": [
+                "src/db.ts",
+                "src/types.ts"
+            ],
+            "tests": [
+                "迁移测试断言 store/index 实际存在"
+            ]
+        },
+        "phase1_word_upgrade_003": {
+            "status": "passed",
+            "description": "Word 三维能力（recognition/activeRecall/productive）+ exposure/来源字段 + 旧数据默认值回填（withV2WordDefaults 幂等）",
+            "files": [
+                "src/types.ts",
+                "src/core.ts",
+                "src/db.ts"
+            ],
+            "tests": [
+                "迁移测试断言默认值回填；备份校验器新增字段类型检查"
+            ]
+        },
+        "phase1_backup_v2_004": {
+            "status": "passed",
+            "description": "备份格式 v2（含全部新 stores、始终去 Key）；validateBackup 兼容读入 v1+v2；悬空引用拒绝；normalizeData 规范化",
+            "files": [
+                "src/db.ts"
+            ],
+            "tests": [
+                "v1 备份恢复测试；v2 往返测试；悬空引用拒绝测试"
+            ]
+        },
+        "phase1_model_api_005": {
+            "status": "passed",
+            "description": "src/model.ts 索引化查询层：dueWords/wordsByBook/recordsForWord/exposuresForWord/exposureStats/latestSnapshots/planForDate/activeMiniUnit/unfinishedSessions",
+            "files": [
+                "src/model.ts"
+            ],
+            "tests": [
+                "model 查询测试（复合索引范围查询、到期过滤、快照倒序）"
+            ]
+        },
+        "phase2_vocabulary_v2_006": {
+            "status": "passed",
+            "description": "Vocabulary V2 全量交付：ts-fsrs@5.4.2 调度（shadow→默认权威+回滚开关）、DB v3（fsrs/previewResult 回填 + fsrs.due 索引）、多因素 Rating 映射、Preview→Recall 强制、三维证据、多词池/Learning Value/动态新词量、UI 集成",
+            "files": [
+                "src/fsrs.ts",
+                "src/evidence.ts",
+                "src/pools.ts",
+                "src/db.ts",
+                "src/quiz.ts",
+                "src/model.ts",
+                "src/stats.ts",
+                "src/app.ts",
+                "src/types.ts",
+                "src/core.ts",
+                "src/style.css"
+            ],
+            "tests": [
+                "tests/fsrs.test.ts",
+                "tests/vocab.test.ts",
+                "tests/migration.test.ts(+v2→v3)",
+                "tests/ui.test.ts(Preview 流程)",
+                "浏览器 smoke（CDP 无头 Edge）通过"
+            ]
+        },
+        "phase3_daily_planner_007": {
+            "status": "passed",
+            "description": "Phase 3 Daily Planner：Time Budget First（20/30/45/60/自定义 + 非法值校验）、状态三档 low/normal/good、Yesterday Recall（真实隔夜抽样 + 保留率 + 校准）、确定性计划生成（复用 recommendedNewWordCount/buildNewWordQueue/effectiveDue）、五模块统一 Task Contract + Capability Gate、动态重规划（Start/Skip/Delay/Replace/超时/提前完成，±30% 上限）、Closing Loop（3–5 分钟 + 难度反馈）、中断与重新进入（1 天 / 2–3 天 Re-entry / ≥7 天 Mini Diagnostic 词汇）、持久化与刷新恢复（dailyPlans，revision 并发保护）、不积学习债",
+            "files": [
+                "src/planner.ts",
+                "src/plannerStore.ts",
+                "src/app.ts",
+                "src/types.ts",
+                "src/style.css",
+                "tests/planner.test.ts",
+                "tests/plannerStore.test.ts",
+                "tests/plannerUi.test.ts",
+                "scripts/phase3-smoke.mjs"
+            ],
+            "tests": [
+                "npm test 69/69（原 39 + planner 22 + plannerStore 6 + plannerUi 2）",
+                "npm run build 成功（dist/assets/index-DjucMzEh.js 544.43 kB / gzip 187.93 kB；CSS 17.23 kB）",
+                "HTTP 运行时验证：node server.mjs → / 200（535B）、JS 200（552,819B）、CSS 200（17,234B）、缺失路径 404",
+                "真实浏览器 smoke（无头 Edge 128 + CDP 9224，独立 profile）20/20：导入→生成计划→Capability Gate→替换无候选拒绝→Preview→Recall→Closing+难度反馈→刷新恢复→昨日记录隔夜检测(保留率 100%，触发校准)→断更 5 天 Re-entry→无控制台错误",
+                "IndexedDB 持久化验证：dailyPlans 同日唯一、status=completed、taskActions/adjustments 全带原因、刷新后不重复生成",
+                "回归：Phase 0/1/2 全部既有测试保持通过（迁移 fixture、FSRS、Preview 流程、索引查询）"
+            ],
+            "artifacts": [
+                "scripts/phase3-smoke.mjs（可复跑的浏览器验收脚本）",
+                "docs/PHASE3_DAILY_PLANNER.md（实现与验收记录）",
+                "DB 版本未提升（仍为 v3；dailyPlans 复用现有 store/index）"
+            ]
+        },
+        "infra_github_remote_001": {
+            "status": "passed",
+            "description": "首次核对/必要时创建 GitHub Private 远程仓库；全历史敏感信息扫描、关联 remote、推送本地已有 commits/tags 并核对远端 SHA；建立 task/phase 同步。与 Phase 0.5 GitHub 参考调研无关。",
+            "files": [
+                "AGENT_EXECUTION.md",
+                "PROJECT_SPEC.md",
+                "INITIAL_PROMPT.md",
+                "STATE.json",
+                "CHECKPOINT.md",
+                "HANDOFF.md",
+                "README.md"
+            ],
+            "tests": [
+                "git remote -v 初始为空（无 origin）→ 通过 GitHub API 创建 Private 仓库 Huyaen/english-reconstruction-system",
+                "secrets 扫描：git ls-files 48 个跟踪文件；全历史 51 个文件名无 .env/token/credential/备份/DB；git grep 全历史正则（ghp_/github_pat_/sk-/AIza/xox/AKIA/PRIVATE KEY）0 命中",
+                "first push 成功：main f9ef446；git ls-remote 与 API branches/main SHA 一致；3 个阶段 tag 全部推送且 SHA 一致",
+                "API 复核 private=true, default_branch=main"
+            ],
+            "preconditions": [
+                "确认授权 GitHub owner 和仓库隐私",
+                "检查 git remote 和分支/tag",
+                "首次 push 前扫描本地全部拟上传历史"
+            ],
+            "artifacts": [
+                "remote https://github.com/Huyaen/english-reconstruction-system.git"
+            ]
+        },
+        "phase4_sentence_grammar_008": {
+            "status": "passed",
+            "description": "Phase 4 Sentence & Grammar：显式语法知识图谱（34 概念 + 先修边，禁循环）+ sentinel 结构校验 + 句源契约（12 条 authored 教学句，带 gold 结构/中文预教词）+ 引导式拆句 Lab（L0–L4 分层辅助、即时反馈、JIT 知识卡）+ 证据模型（exposed 不计掌握、幂等=会话+句子）+ 自适应选句 + Planner 真实句任务接入 + Grammar/Sentence UI",
+            "files": [
+                "src/grammar.ts",
+                "src/sentenceStructure.ts",
+                "src/sentenceSources.ts",
+                "src/sentenceLab.ts",
+                "src/sentenceEvidence.ts",
+                "src/sentenceSelection.ts",
+                "src/sentenceGraphMap.ts",
+                "src/sentenceStore.ts",
+                "src/types.ts",
+                "src/db.ts",
+                "src/planner.ts",
+                "src/app.ts",
+                "src/style.css",
+                "tests/grammar.test.ts",
+                "tests/sentenceStructure.test.ts",
+                "tests/sentenceLab.test.ts",
+                "tests/sentenceSources.test.ts",
+                "tests/sentenceSelection.test.ts",
+                "tests/sentenceUi.test.ts",
+                "scripts/phase4-smoke.mjs",
+                "docs/PHASE4_SENTENCE_GRAMMAR.md"
+            ],
+            "tests": [
+                "npx tsc --noEmit -p tsconfig.json → 0 error",
+                "npm test → 106/106 pass（Phase 3 的 69 + Phase 4 的 37）",
+                "npm run build → 成功（dist 与源码同步）",
+                "node scripts/phase4-smoke.mjs → 36/36（真实无头 Edge + CDP，独立 profile）",
+                "node scripts/phase3-smoke.mjs → 21/21（回归）"
+            ],
+            "artifacts": [
+                "DB v4 additive：新增 sentences store + grammarTags multiEntry 索引，旧 v3 数据继续可读",
+                "预教词（glossary）：有释义的生词不阻断选句，训练页先给释义；无释义且生词过多仍拒绝出题",
+                "证据分级：independent/transfer/delayed/error 计入 BKT；exposed/hint-assisted 只计接触",
+                "PlanItem.module='sentence'：sentence-basic-structure / sentence-weak-grammar / sentence-transfer，绑定真实句子 id"
+            ]
+        },
+        "infra_github_actions_ci_002": {
+            "status": "passed",
+            "description": "Phase 5.0 前置工程补强：GitHub Actions CI（Node 22/24 矩阵：tsc --noEmit + 全量测试 + 生产构建 + dist 一致性 + 生产包无测试钩子）+ 测试钩子构建期隔离（__ERV2_TEST_HOOKS__，dist-test）+ server.mjs --dir/--port + STATE 纠错 + 长期 CI Protocol 落盘",
+            "files": [
+                ".github/workflows/ci.yml",
+                "vite.config.ts",
+                "src/testMode.ts",
+                "src/app.ts",
+                "server.mjs",
+                "package.json",
+                "scripts/phase3-smoke.mjs",
+                "scripts/phase4-smoke.mjs",
+                "AGENT_EXECUTION.md",
+                ".gitignore"
+            ],
+            "tests": [
+                "npm test → 106/106 pass",
+                "npm run build → 成功；生产包 grep __labTest = 0（钩子被摇树移除）",
+                "npm run build:test → dist-test，grep __labTest = 1",
+                "node scripts/phase4-smoke.mjs（dist-test）→ 36/36",
+                "node scripts/phase3-smoke.mjs（dist-test）→ 21/21",
+                "GitHub Actions run 39271191340 @ 6f7c889 → success（Node 22 + Node 24 双绿；tsc/tests/build/dist 一致性/无钩子断言全绿）"
+            ],
+            "artifacts": [
+                "生产构建不暴露任何测试钩子；钩子只在 dist-test 且 URL 带 ?test=1 时存在",
+                "CI 权限 contents: read，不部署、不写仓库、不使用任何真实 AI 密钥或用户学习数据",
+                "dist 纳入 Git，由 CI 在 Node 22 上核对 dist 与源码一致（git diff --exit-code -- dist）"
+            ]
+        },
+        "phase5_reading_009": {
+            "status": "passed",
+            "description": "Phase 5 Reading Lab：真实文章导入（粘贴/文件/URL/截图人工转录，来源类型+可靠性+内容指纹可追溯）→ 逐段阅读（首读无辅助、打开文章不显示全文翻译）→ 生词即时标记（known/vague/unknown/guessed 四分类，可撤销留痕）+ 后置筛选入库（核心/识别/低价值/专名；无释义不得入库）→ 难句交接 Phase 4 拆句训练（自动分析结构=只记接触，练完回原段落）→ 重读（真实计时，与首读分开统计）→ 全文理解（可验证题与自评分开）+ 一句话输出 → 收尾镜像字段只统计真实数据；证据幂等键 = sessionId+type+key，自评置信度上限 medium；无阅读材料时绝不生成阅读任务。DB 仍为 v4（复用 passages/readingSessions/wordExposures，无新增 store）",
+            "files": [
+                "src/readingText.ts",
+                "src/readingImport.ts",
+                "src/readingDifficulty.ts",
+                "src/readingEvidence.ts",
+                "src/readingSession.ts",
+                "src/readingVocabulary.ts",
+                "src/readingSentences.ts",
+                "src/readingAnalytics.ts",
+                "src/readingStore.ts",
+                "src/readingPlanner.ts",
+                "src/readingView.ts",
+                "src/types.ts",
+                "src/planner.ts",
+                "src/app.ts",
+                "src/style.css",
+                "tests/readingCore.test.ts",
+                "tests/readingSession.test.ts",
+                "tests/readingUi.test.ts",
+                "scripts/phase5-smoke.mjs",
+                "docs/PHASE5_READING.md"
+            ],
+            "tests": [
+                "npx tsc --noEmit 0 error",
+                "npm test 134/134 pass（Phase 5 新增 28 例：readingCore 14 + readingSession 13 + readingUi 1 端到端）",
+                "npm run build / npm run build:test 成功；生产 dist 无 __readTest/__labTest（构建期摇树移除）",
+                "node scripts/phase5-smoke.mjs 44/44（无头 Edge + CDP，独立 profile，dist-test + ?test=1）",
+                "回归：phase4-smoke 36/36、phase3-smoke 21/21，均无控制台未捕获错误"
+            ]
+        },
+        "phase5_1_local_ocr_011": {
+            "status": "passed",
+            "description": "Phase 5.1 真实截图 OCR：tesseract.js v7 本地 Wasm（懒加载动态 import，首屏不加载）→ 真实截图 OCR → 用户编辑 → 必须勾选确认 → 入库（extractionMethod=local_ocr）；格式/大小门禁（仅 PNG/JPG，8MB）、超时与取消（release worker）、模型加载失败/空结果/解码失败分类与人工录入出口、并发串行化；真实 fixture + 真实浏览器验收 26/26",
+            "files": [
+                "src/ocr.ts",
+                "src/ocrEngine.ts",
+                "src/readingView.ts",
+                "src/app.ts",
+                "tests/ocr.test.ts",
+                "scripts/phase5-1-ocr-smoke.mjs",
+                "scripts/make-ocr-fixtures.mjs",
+                "tests/fixtures/reading-ocr.png",
+                "tests/fixtures/reading-blank.png",
+                "docs/PHASE5_1_OCR.md"
+            ],
+            "verification": {
+                "tests": "145/145 pass（新增 tests/ocr.test.ts 11 例）",
+                "tsc": "0 error",
+                "build": "npm run build / build:test 通过；生产包 __readTest/__labTest/__ocrTest 命中 0",
+                "browser_smoke": "Phase 5.1 OCR smoke 26/26（真实截图 784 字符、置信度 95%、6.8s）",
+                "regression": "Phase 5 44/44、Phase 4 36/36、Phase 3 21/21"
+            },
+            "verified_at": "2026-10-20T19:40:00+08:00"
+        },
+        "phase6_reinforcement_ai_010": {
+            "status": "passed",
+            "description": "Phase 6 Reinforcement AI：统一 AI Service Layer（Provider 配置/请求适配/能力声明/结构化输出/校验/重试/超时/取消/失败分类/用量元数据/安全日志）+ JSON 修复 + Prompt 版本化注册表（sentence.generate@1.0.0、reading.reinforce@1.0.0）+ 定向句与强化阅读生成 + 八道质量门（Schema/词数/目标词/目标语法/难度/重复/来源归属/安全渲染）+ 证据纪律（AI 只产出材料，不写掌握；结构标 ai_unverified）+ 隐私最小化（只发目标词/语法点/主题）+ 用量与每日 token 预算 + 失败降级（本地 authored 句/真实阅读材料不受影响）+ DB v5（additive：aiGenerations）",
+            "files": [
+                "src/aiProvider.ts",
+                "src/aiJson.ts",
+                "src/aiValidate.ts",
+                "src/aiQuality.ts",
+                "src/aiGenerate.ts",
+                "src/aiStore.ts",
+                "src/prompts/registry.ts",
+                "src/prompts/sentence.ts",
+                "src/prompts/reading.ts",
+                "src/types.ts",
+                "src/db.ts",
+                "src/app.ts",
+                "src/style.css",
+                "tests/aiProvider.test.ts",
+                "tests/aiStructured.test.ts",
+                "tests/aiGenerate.test.ts",
+                "scripts/phase6-smoke.mjs",
+                "tools/mock-ai-provider.mjs",
+                "docs/PHASE6_REINFORCEMENT_AI.md"
+            ],
+            "verification": {
+                "tests": "176/176 pass（新增 aiProvider 13 / aiStructured 8 / aiGenerate 10）",
+                "tsc": "0 error",
+                "build": "npm run build / build:test 通过；生产包 __readTest/__labTest/__ocrTest/ERV2_TEST_HOOKS 命中 0",
+                "browser_smoke": "Phase 6 smoke 31/31（真实 Edge + CDP + 本地 OpenAI-compatible mock Provider）",
+                "regression": "Phase 5.1 OCR 26/26、Phase 5 44/44、Phase 4 36/36、Phase 3 21/21",
+                "real_provider": "未验收（无凭据）：仅完成协议级 mock 端到端；真实供应商需用户自填 Key 后复验"
+            },
+            "verified_at": "2026-10-20T21:05:00+08:00"
+        },
+        "phase7_mini_unit_012": {
+            "status": "passed",
+            "description": "Phase 7 Mini Unit：跨学习日主题学习单元 —— 状态机（draft/ready/active/paused/completed/abandoned + Day 1-4）、主题推荐（基于真实材料/薄弱词/可观察语法，AI 材料排除）、Anchor 绑定与来源（AI 不得为 Anchor）、目标词汇（复用 Learning Value，按时间/难度动态）与目标语法（verified/candidate）、Day 1 冷测在前 / Day 2 强化 / Day 3 真实新材料迁移 / Day 4 依证据延长、完成评价（verified / limited_evidence / user_ended / extended / abandoned，缺真实迁移一律降级）、证据汇总（目标词独立回忆/语法/句子/阅读/计划/AI）、持久化（创建互斥 + revision 乐观并发 + 幂等转换）、Planner 集成（复用 Phase 3，不重写）、UI（创建页/单元页/Anchor 选择器）",
+            "files": [
+                "src/miniUnit.ts",
+                "src/miniUnitSelection.ts",
+                "src/miniUnitEvidence.ts",
+                "src/miniUnitProgression.ts",
+                "src/miniUnitStore.ts",
+                "src/miniUnitActions.ts",
+                "src/miniUnitView.ts",
+                "src/types.ts",
+                "src/app.ts",
+                "src/style.css",
+                "tests/miniUnit.test.ts",
+                "tests/miniUnitStore.test.ts",
+                "scripts/phase7-smoke.mjs",
+                "docs/PHASE7_MINI_UNIT.md"
+            ],
+            "verification": {
+                "tests": "208/208 pass（新增 32：miniUnit 25 + miniUnitStore/Planner 7）",
+                "tsc": "0 error",
+                "build": "npm run build / build:test 通过；生产包 __readTest/__labTest/__ocrTest/__unitTest/ERV2_TEST_HOOKS 命中 0",
+                "browser_smoke": "Phase 7 smoke 33/33（真实 Edge + CDP；A–H 八场景）",
+                "regression": "Phase 6 31/31、Phase 5.1 26/26、Phase 5 44/44、Phase 4 36/36、Phase 3 21/21",
+                "real_provider": "仍未验收（无凭据）；Phase 7 复用 Phase 6 协议级 mock，没有新增真实供应商证据"
+            },
+            "verified_at": "2026-10-20T23:20:00+08:00"
+        },
+        "phase8_interest_profile_013a": {
+            "id": "phase8_interest_profile_013a",
+            "title": "Dynamic Interest Profile（Phase 8 补充：动态兴趣画像）",
+            "status": "passed",
+            "completed_at": "2026-10-21T00:05:00+08:00",
+            "spec": "docs/PHASE8_DYNAMIC_INTEREST.md",
+            "deliverables": [
+                "src/interestProfile.ts",
+                "src/miniUnitSelection.ts（推荐理由/探索位/防重复）",
+                "src/miniUnitView.ts（画像面板）",
+                "src/app.ts（增删改/重置/持久化）",
+                "tests/interestProfile.test.ts",
+                "scripts/phase8-interest-smoke.mjs"
+            ],
+            "acceptance": "AC1–AC12 全部有自动化证据（13 单测 + 19 浏览器断言）"
+        },
+        "phase8_real_input_hub_013": {
+            "id": "phase8_real_input_hub_013",
+            "title": "Real Input Hub（Phase 8：真实输入中心）",
+            "status": "passed",
+            "completed_at": "2026-10-21T20:45:00+08:00",
+            "spec": "docs/PHASE8_REAL_INPUT_HUB.md",
+            "deliverables": [
+                "src/inputUrl.ts",
+                "src/transcript.ts",
+                "src/inputSource.ts",
+                "src/inputLibrary.ts",
+                "src/inputReflection.ts",
+                "src/inputSession.ts",
+                "src/inputEvidence.ts",
+                "src/inputRecommendation.ts",
+                "src/inputHandoff.ts",
+                "src/inputDifficulty.ts",
+                "src/inputStore.ts",
+                "src/inputActions.ts",
+                "src/inputView.ts",
+                "src/inputPlanner.ts",
+                "src/types.ts（Input 域类型）",
+                "src/db.ts（v6 + 5 stores）",
+                "src/planner.ts（输入任务）",
+                "src/app.ts（Input Hub 页面 + __inputTest 钩子）",
+                "tests/inputCore.test.ts",
+                "tests/inputRecommendation.test.ts",
+                "tests/backupV6.test.ts",
+                "scripts/phase8-smoke.mjs",
+                "docs/PHASE8_REAL_INPUT_HUB.md"
+            ],
+            "tests": [
+                "npm test 275/275 pass（新增 54）",
+                "scripts/phase8-smoke.mjs 34/34（真实 Edge + CDP + IndexedDB，A–L + Z）",
+                "回归 phase7 33/33、phase6 31/31、phase5.1 26/26、phase5 44/44、phase4 36/36、phase3 21/21",
+                "tsc --noEmit 0 error；npm run build 通过；生产包测试钩子命中 0"
+            ],
+            "risks": [
+                "不抓取平台内容：标题/时长/字幕全靠用户提供",
+                "不做站内播放与自动转写",
+                "推荐是规则排序，不是语义去重"
+            ]
+        },
+        "phase9_output_lab_014": {
+            "id": "phase9_output_lab_014",
+            "title": "Output Lab（Phase 9：真实表达）",
+            "status": "passed",
+            "completed_at": "2026-10-21T22:20:00+08:00",
+            "spec": "docs/PHASE9_OUTPUT_LAB.md",
+            "deliverables": [
+                "src/outputTask.ts",
+                "src/outputScaffolding.ts",
+                "src/outputRepair.ts",
+                "src/outputDiagnosis.ts",
+                "src/outputFeedback.ts",
+                "src/outputEvidence.ts",
+                "src/outputRevision.ts",
+                "src/outputTransfer.ts",
+                "src/outputSelection.ts",
+                "src/outputStore.ts",
+                "src/outputActions.ts",
+                "src/outputPlanner.ts",
+                "src/outputAnalytics.ts",
+                "src/outputView.ts",
+                "src/prompts/output.ts",
+                "src/outputAi.ts",
+                "src/types.ts（Output 契约）",
+                "src/planner.ts（真实表达任务）",
+                "src/miniUnitEvidence.ts / src/miniUnitView.ts（关联表达可见，不自动完成）",
+                "src/app.ts（Output Lab 页面 + __outputTest 钩子）",
+                "tests/outputCore.test.ts",
+                "tests/outputFeedback.test.ts",
+                "tests/outputEvidence.test.ts",
+                "tests/outputIntegration.test.ts",
+                "scripts/phase9-smoke.mjs",
+                "docs/PHASE9_OUTPUT_LAB.md",
+                "tools/mock-ai-provider.mjs（Output 诊断分支）"
+            ],
+            "tests": [
+                "npm test 308/308 pass（新增 33）",
+                "scripts/phase9-smoke.mjs 20/20（真实 Edge + CDP + IndexedDB + mock Provider，A–O + Z）",
+                "回归 phase8 34/34、interest 19/19、phase7 33/33、phase6 31/31、phase5.1 26/26、phase5 44/44、phase4 36/36、phase3 21/21",
+                "tsc --noEmit 0 error；npm run build 通过；生产包 __outputTest / ERV2_TEST_HOOKS 命中 0"
+            ],
+            "risks": [
+                "本地确定性检查不是语法引擎：只报可确定问题，缺谓语等为低置信启发式",
+                "Repair 的意思保留判定为粗判（≤0.5），不作为能力证明",
+                "AI 反馈质量取决于 Provider；mock 只验证协议、质量门与失败路径",
+                "迁移/延迟仅提供任务与证据降级规则，长期调度效果未做实验",
+                "表达时长与字数不用于打分，只做规模提示"
+            ]
+        },
+        "phase10_diagnostics_010": {
+            "status": "passed",
+            "description": "Phase 10 能力诊断：指标注册/分域采集/证据质量/保持率/可比性/短板/快照/周诊断/看板/Planner 焦点",
+            "files": [
+                "src/diagnosticsModel.ts",
+                "src/diagnosticsCollect.ts",
+                "src/diagnosticsInsight.ts",
+                "src/diagnosticsStore.ts",
+                "src/diagnosticsActions.ts",
+                "src/diagnosticsPlanner.ts",
+                "src/diagnosticsView.ts",
+                "src/types.ts",
+                "src/app.ts",
+                "src/planner.ts",
+                "src/style.css",
+                "tests/diagnostics.test.ts",
+                "tests/diagnosticsIntegration.test.ts",
+                "scripts/phase10-smoke.mjs",
+                "docs/PHASE10_DIAGNOSTICS.md",
+                "docs/PHASE10_RESEARCH.md"
+            ],
+            "tests": [
+                "npm test 325/325",
+                "tsc 0",
+                "phase10 smoke 16/16",
+                "phase3–phase9 回归 exit 0",
+                "生产包钩子 0"
+            ]
+        }
     },
-    "phase7_mini_unit_012": {
-      "status": "passed",
-      "description": "Phase 7 Mini Unit：跨学习日主题学习单元 —— 状态机（draft/ready/active/paused/completed/abandoned + Day 1-4）、主题推荐（基于真实材料/薄弱词/可观察语法，AI 材料排除）、Anchor 绑定与来源（AI 不得为 Anchor）、目标词汇（复用 Learning Value，按时间/难度动态）与目标语法（verified/candidate）、Day 1 冷测在前 / Day 2 强化 / Day 3 真实新材料迁移 / Day 4 依证据延长、完成评价（verified / limited_evidence / user_ended / extended / abandoned，缺真实迁移一律降级）、证据汇总（目标词独立回忆/语法/句子/阅读/计划/AI）、持久化（创建互斥 + revision 乐观并发 + 幂等转换）、Planner 集成（复用 Phase 3，不重写）、UI（创建页/单元页/Anchor 选择器）",
-      "files": [
-        "src/miniUnit.ts",
-        "src/miniUnitSelection.ts",
-        "src/miniUnitEvidence.ts",
-        "src/miniUnitProgression.ts",
-        "src/miniUnitStore.ts",
-        "src/miniUnitActions.ts",
-        "src/miniUnitView.ts",
-        "src/types.ts",
-        "src/app.ts",
-        "src/style.css",
-        "tests/miniUnit.test.ts",
-        "tests/miniUnitStore.test.ts",
-        "scripts/phase7-smoke.mjs",
-        "docs/PHASE7_MINI_UNIT.md"
-      ],
-      "verification": {
-        "tests": "208/208 pass（新增 32：miniUnit 25 + miniUnitStore/Planner 7）",
-        "tsc": "0 error",
-        "build": "npm run build / build:test 通过；生产包 __readTest/__labTest/__ocrTest/__unitTest/ERV2_TEST_HOOKS 命中 0",
-        "browser_smoke": "Phase 7 smoke 33/33（真实 Edge + CDP；A–H 八场景）",
-        "regression": "Phase 6 31/31、Phase 5.1 26/26、Phase 5 44/44、Phase 4 36/36、Phase 3 21/21",
-        "real_provider": "仍未验收（无凭据）；Phase 7 复用 Phase 6 协议级 mock，没有新增真实供应商证据"
-      },
-      "verified_at": "2026-10-20T23:20:00+08:00"
-    },
-    "phase8_interest_profile_013a": {
-      "id": "phase8_interest_profile_013a",
-      "title": "Dynamic Interest Profile（Phase 8 补充：动态兴趣画像）",
-      "status": "passed",
-      "completed_at": "2026-10-21T00:05:00+08:00",
-      "spec": "docs/PHASE8_DYNAMIC_INTEREST.md",
-      "deliverables": [
-        "src/interestProfile.ts",
-        "src/miniUnitSelection.ts（推荐理由/探索位/防重复）",
-        "src/miniUnitView.ts（画像面板）",
-        "src/app.ts（增删改/重置/持久化）",
-        "tests/interestProfile.test.ts",
-        "scripts/phase8-interest-smoke.mjs"
-      ],
-      "acceptance": "AC1–AC12 全部有自动化证据（13 单测 + 19 浏览器断言）"
-    },
-    "phase8_real_input_hub_013": {
-      "id": "phase8_real_input_hub_013",
-      "title": "Real Input Hub（Phase 8：真实输入中心）",
-      "status": "passed",
-      "completed_at": "2026-10-21T20:45:00+08:00",
-      "spec": "docs/PHASE8_REAL_INPUT_HUB.md",
-      "deliverables": [
-        "src/inputUrl.ts",
-        "src/transcript.ts",
-        "src/inputSource.ts",
-        "src/inputLibrary.ts",
-        "src/inputReflection.ts",
-        "src/inputSession.ts",
-        "src/inputEvidence.ts",
-        "src/inputRecommendation.ts",
-        "src/inputHandoff.ts",
-        "src/inputDifficulty.ts",
-        "src/inputStore.ts",
-        "src/inputActions.ts",
-        "src/inputView.ts",
-        "src/inputPlanner.ts",
-        "src/types.ts（Input 域类型）",
-        "src/db.ts（v6 + 5 stores）",
-        "src/planner.ts（输入任务）",
-        "src/app.ts（Input Hub 页面 + __inputTest 钩子）",
-        "tests/inputCore.test.ts",
-        "tests/inputRecommendation.test.ts",
-        "tests/backupV6.test.ts",
-        "scripts/phase8-smoke.mjs",
-        "docs/PHASE8_REAL_INPUT_HUB.md"
-      ],
-      "tests": [
-        "npm test 275/275 pass（新增 54）",
-        "scripts/phase8-smoke.mjs 34/34（真实 Edge + CDP + IndexedDB，A–L + Z）",
-        "回归 phase7 33/33、phase6 31/31、phase5.1 26/26、phase5 44/44、phase4 36/36、phase3 21/21",
-        "tsc --noEmit 0 error；npm run build 通过；生产包测试钩子命中 0"
-      ],
-      "risks": [
-        "不抓取平台内容：标题/时长/字幕全靠用户提供",
-        "不做站内播放与自动转写",
-        "推荐是规则排序，不是语义去重"
-      ]
-    },
-    "phase9_output_lab_014": {
-      "id": "phase9_output_lab_014",
-      "title": "Output Lab（Phase 9：真实表达）",
-      "status": "passed",
-      "completed_at": "2026-10-21T22:20:00+08:00",
-      "spec": "docs/PHASE9_OUTPUT_LAB.md",
-      "deliverables": [
-        "src/outputTask.ts",
-        "src/outputScaffolding.ts",
-        "src/outputRepair.ts",
-        "src/outputDiagnosis.ts",
-        "src/outputFeedback.ts",
-        "src/outputEvidence.ts",
-        "src/outputRevision.ts",
-        "src/outputTransfer.ts",
-        "src/outputSelection.ts",
-        "src/outputStore.ts",
-        "src/outputActions.ts",
-        "src/outputPlanner.ts",
-        "src/outputAnalytics.ts",
-        "src/outputView.ts",
-        "src/prompts/output.ts",
-        "src/outputAi.ts",
-        "src/types.ts（Output 契约）",
-        "src/planner.ts（真实表达任务）",
-        "src/miniUnitEvidence.ts / src/miniUnitView.ts（关联表达可见，不自动完成）",
-        "src/app.ts（Output Lab 页面 + __outputTest 钩子）",
-        "tests/outputCore.test.ts",
-        "tests/outputFeedback.test.ts",
-        "tests/outputEvidence.test.ts",
-        "tests/outputIntegration.test.ts",
-        "scripts/phase9-smoke.mjs",
-        "docs/PHASE9_OUTPUT_LAB.md",
-        "tools/mock-ai-provider.mjs（Output 诊断分支）"
-      ],
-      "tests": [
-        "npm test 308/308 pass（新增 33）",
-        "scripts/phase9-smoke.mjs 20/20（真实 Edge + CDP + IndexedDB + mock Provider，A–O + Z）",
-        "回归 phase8 34/34、interest 19/19、phase7 33/33、phase6 31/31、phase5.1 26/26、phase5 44/44、phase4 36/36、phase3 21/21",
-        "tsc --noEmit 0 error；npm run build 通过；生产包 __outputTest / ERV2_TEST_HOOKS 命中 0"
-      ],
-      "risks": [
-        "本地确定性检查不是语法引擎：只报可确定问题，缺谓语等为低置信启发式",
-        "Repair 的意思保留判定为粗判（≤0.5），不作为能力证明",
-        "AI 反馈质量取决于 Provider；mock 只验证协议、质量门与失败路径",
-        "迁移/延迟仅提供任务与证据降级规则，长期调度效果未做实验",
-        "表达时长与字数不用于打分，只做规模提示"
-      ]
-    }
-  },
-  "known_bugs": [],
-  "known_limitations": [
-    "干扰项同义排除是文本启发式，不理解语义近义词",
-    "性能基准基于 fake-indexeddb，非真实浏览器长期容量/延迟",
-    "FSRS 已成为默认调度权威（旧启发式 legacy 作为可回滚备选）",
-    "Planner 时间估算为集中配置的启发式常量（每词 0.35/0.4/0.6 分钟等），非个性化测量；真机移动端与长期负载未验收",
-    "Closing Loop 的语法/Unit 一句话输出合同留待后续 Phase 扩展",
-    "Phase 4 句源只有 authored 教学句（12 条）；真实 AI 句生成与外部语料（阅读 handoff）未接入，UI 明示不可用、不生成假句",
-    "BKT-lite 参数为启发式起点（prior 0.25/learn 0.15/guess 0.25/slip 0.1），未用真实学习数据拟合；界面一律标注“估算”",
-    "语法图谱为显式 34 概念 + 先修边（无环），未做自动句法分析；非 gold 结构一律标注 provenance/confidence",
-    "GitHub Actions CI 只做静态/单测/构建验证：不含真实浏览器 E2E、不含真实 AI Provider 调用、不备份 IndexedDB 用户学习数据；浏览器验收仍在本地用独立 profile 的无头 Edge + CDP 执行",
-    "Phase 5 阅读：PDF/DOCX/EPUB 不做本地解析（明示不支持并引导复制正文）；URL 导入受浏览器 CORS 限制时如实报错，不绕付费墙/登录墙",
-    "Phase 5 阅读：难度与生词率都是估算——explicit（用户标记）与 estimated（词库四分类）分开统计并携带分母/样本覆盖/置信度/method；“不在词库”单独计 no-evidence，不并入生词率",
-    "Phase 5 阅读：不做词形还原（lemma 不可靠时留空）；阅读只记接触（exposure），绝不因“读过/被推荐过”提升任何词的掌握证据",
-    "Phase 5 阅读：真实 AI 强化文章生成（Phase 6）尚未接入；阅读库没有“按难度推荐”的 AI 排序，只有启发式难度估算",
-    "Phase 5.1 OCR：只承诺英文 PNG/JPG 截图（BMP/WEBP/GIF/PDF 不支持）；识别模型与 Wasm 首次需联网下载（约 3MB 模型 + 4MB core），离线时明确报“模型加载失败”并退回人工转录，不上传任何图片",
-    "Phase 5.1 OCR：识别质量取决于截图清晰度；程序只做排版级清理（空白/行尾断词），绝不自动改拼写，错字必须由用户核对修改后勾选确认",
-    "Phase 6：真实 AI 供应商调用未验收（无凭据）。协议、校验链、质量门与降级路径已用真实浏览器 + 本地 OpenAI-compatible mock 验证；真实供应商需用户配置 Key 后按 docs/PHASE6_REINFORCEMENT_AI.md §11 复验，不得据此宣称真实 E2E 已通过",
-    "Phase 6：AI 句法结构一律 ai_unverified（规则可达的语法点会做正则可观察性检查，语义型概念标 unverifiable），不用于自动语法评分",
-    "Phase 6：难度控制基于本地启发式（词数/从句标记/生词负荷）+ 学习者真实词表；模型自述难度只作参考，不写入掌握",
-    "Phase 6：Planner 未新增 AI 任务类型——AI 句子进入句库、AI 文章进入阅读库，由既有句/阅读任务消费；未配置或生成失败时不出现假任务",
-    "Phase 7：真实迁移必须有另一篇真实材料；只有一篇时只能做 AI-assisted 练习，完成判定会降级为 completed_limited_evidence",
-    "Phase 7：语法可观察性仍是正则启发式，语义型概念只标 candidate；输出侧只有一句话自评（Phase 9 未实现）",
-    "Phase 7：Anchor 难度分析未做持久缓存；每次进入单元会读取既有 store 重新汇总证据（未做全表扫描）",
-    "兴趣画像只做排序与理由，不做语义去重：同一主题下的多篇材料仍会分别推荐（相似内容聚合留给 Input Hub 主题聚合）。",
-    "兴趣匹配基于标签关键词与材料 topic/title 的字符串命中，不做语义相似度；关键词可由用户改写。",
-    "真实输入不抓取平台内容：标题、时长、语言、字幕全部依赖用户提供，链接仅保存与外部打开",
-    "真实输入不做站内播放器与音频自动转写（图片 OCR 属 Phase 5.1）",
-    "输入难度估计基于 transcript 启发式，低置信度，不等于 CEFR 评级",
-    "输入推荐是规则排序（主题关键词 + 行为 + 难度适配），不是 embedding 语义推荐",
-    "真实表达的 AI 反馈只评语言：没有材料原文时不评价内容事实",
-    "照抄建议/看完整示范后的改写一律不计独立掌握（写入证据时标记 copied/after_model）",
-    "Output 关联 Mini Unit 只增加可见记录，不自动完成学习日或单元"
-  ],
-  "blocked": [],
-  "next_task_id": "await_user_phase10_directive",
-  "environment": {
-    "node": "v26.7.0",
-    "npm": "11.19.0",
-    "project_requires": "Node >= 22 (package.json 未显式 engines；README 声明 22+)",
-    "shell": "git-bash (MSYS)；native 工具路径用 C:/ 前台斜杠形式",
-    "browser_verification_path": "Hermes 内置 browser_exec 不可用；如需浏览器实测用 CDP 无头 Edge（见 skill sillytavern-live-ui-verification 的自建方案）"
-  },
-  "source_format_convention": "src/*.ts 与 tests/*.ts 由 docs/format-source.mjs 整理为紧凑格式；编辑后保持一致或重跑该脚本",
-  "notes": "Phase 8 主体 Real Input Hub 已交付：DB v6（5 个新 store）、状态机、三档复盘、证据 ledger（曝光/自评/产出分离）、字幕交接、Planner 时间预算、与兴趣画像共用的推荐理由；同时修复 validateBackup 无法恢复含句点/冒号 id 的备份。",
-  "remote_sync": {
-    "setup_task_id": "infra_github_remote_001",
-    "status": "verified",
-    "provider": "github",
-    "visibility": "private",
-    "owner": "Huyaen",
-    "repository": "english-reconstruction-system",
-    "remote_name": "origin",
-    "remote_url": "https://github.com/Huyaen/english-reconstruction-system.git",
-    "local_branch": "main",
-    "last_local_commit": "63a947288dd57b73f9e3811007bc29ab2fbef18a",
-    "last_known_remote_commit": "63a947288dd57b73f9e3811007bc29ab2fbef18a",
-    "pending_push": null,
-    "last_verified_at": "2026-10-21T23:45:00+08:00",
-    "last_error": null,
-    "note": "Phase 9 实测核验：功能提交 1986b8c（CI 39623912234 success）；源码格式化提交 63a9472 复跑 308/308、phase9 smoke 20/20、回归全绿；tag phase9-output-lab 指向 1986b8c。",
-    "tags": [
-      "v1.0.0-mvp-baseline",
-      "phase1-data-foundation",
-      "phase2-vocabulary-v2",
-      "phase3-daily-planner",
-      "phase4-sentence-grammar",
-      "phase5-reading-lab",
-      "phase9-output-lab"
+    "known_bugs": [],
+    "known_limitations": [
+        "干扰项同义排除是文本启发式，不理解语义近义词",
+        "性能基准基于 fake-indexeddb，非真实浏览器长期容量/延迟",
+        "FSRS 已成为默认调度权威（旧启发式 legacy 作为可回滚备选）",
+        "Planner 时间估算为集中配置的启发式常量（每词 0.35/0.4/0.6 分钟等），非个性化测量；真机移动端与长期负载未验收",
+        "Closing Loop 的语法/Unit 一句话输出合同留待后续 Phase 扩展",
+        "Phase 4 句源只有 authored 教学句（12 条）；真实 AI 句生成与外部语料（阅读 handoff）未接入，UI 明示不可用、不生成假句",
+        "BKT-lite 参数为启发式起点（prior 0.25/learn 0.15/guess 0.25/slip 0.1），未用真实学习数据拟合；界面一律标注“估算”",
+        "语法图谱为显式 34 概念 + 先修边（无环），未做自动句法分析；非 gold 结构一律标注 provenance/confidence",
+        "GitHub Actions CI 只做静态/单测/构建验证：不含真实浏览器 E2E、不含真实 AI Provider 调用、不备份 IndexedDB 用户学习数据；浏览器验收仍在本地用独立 profile 的无头 Edge + CDP 执行",
+        "Phase 5 阅读：PDF/DOCX/EPUB 不做本地解析（明示不支持并引导复制正文）；URL 导入受浏览器 CORS 限制时如实报错，不绕付费墙/登录墙",
+        "Phase 5 阅读：难度与生词率都是估算——explicit（用户标记）与 estimated（词库四分类）分开统计并携带分母/样本覆盖/置信度/method；“不在词库”单独计 no-evidence，不并入生词率",
+        "Phase 5 阅读：不做词形还原（lemma 不可靠时留空）；阅读只记接触（exposure），绝不因“读过/被推荐过”提升任何词的掌握证据",
+        "Phase 5 阅读：真实 AI 强化文章生成（Phase 6）尚未接入；阅读库没有“按难度推荐”的 AI 排序，只有启发式难度估算",
+        "Phase 5.1 OCR：只承诺英文 PNG/JPG 截图（BMP/WEBP/GIF/PDF 不支持）；识别模型与 Wasm 首次需联网下载（约 3MB 模型 + 4MB core），离线时明确报“模型加载失败”并退回人工转录，不上传任何图片",
+        "Phase 5.1 OCR：识别质量取决于截图清晰度；程序只做排版级清理（空白/行尾断词），绝不自动改拼写，错字必须由用户核对修改后勾选确认",
+        "Phase 6：真实 AI 供应商调用未验收（无凭据）。协议、校验链、质量门与降级路径已用真实浏览器 + 本地 OpenAI-compatible mock 验证；真实供应商需用户配置 Key 后按 docs/PHASE6_REINFORCEMENT_AI.md §11 复验，不得据此宣称真实 E2E 已通过",
+        "Phase 6：AI 句法结构一律 ai_unverified（规则可达的语法点会做正则可观察性检查，语义型概念标 unverifiable），不用于自动语法评分",
+        "Phase 6：难度控制基于本地启发式（词数/从句标记/生词负荷）+ 学习者真实词表；模型自述难度只作参考，不写入掌握",
+        "Phase 6：Planner 未新增 AI 任务类型——AI 句子进入句库、AI 文章进入阅读库，由既有句/阅读任务消费；未配置或生成失败时不出现假任务",
+        "Phase 7：真实迁移必须有另一篇真实材料；只有一篇时只能做 AI-assisted 练习，完成判定会降级为 completed_limited_evidence",
+        "Phase 7：语法可观察性仍是正则启发式，语义型概念只标 candidate；输出侧只有一句话自评（Phase 9 未实现）",
+        "Phase 7：Anchor 难度分析未做持久缓存；每次进入单元会读取既有 store 重新汇总证据（未做全表扫描）",
+        "兴趣画像只做排序与理由，不做语义去重：同一主题下的多篇材料仍会分别推荐（相似内容聚合留给 Input Hub 主题聚合）。",
+        "兴趣匹配基于标签关键词与材料 topic/title 的字符串命中，不做语义相似度；关键词可由用户改写。",
+        "真实输入不抓取平台内容：标题、时长、语言、字幕全部依赖用户提供，链接仅保存与外部打开",
+        "真实输入不做站内播放器与音频自动转写（图片 OCR 属 Phase 5.1）",
+        "输入难度估计基于 transcript 启发式，低置信度，不等于 CEFR 评级",
+        "输入推荐是规则排序（主题关键词 + 行为 + 难度适配），不是 embedding 语义推荐",
+        "真实表达的 AI 反馈只评语言：没有材料原文时不评价内容事实",
+        "照抄建议/看完整示范后的改写一律不计独立掌握（写入证据时标记 copied/after_model）",
+        "Output 关联 Mini Unit 只增加可见记录，不自动完成学习日或单元",
+        "诊断指标是观察值，不做保持曲线拟合或因果推断；没有真实复习/表达记录时保持空白。",
+        "阅读速度受材料难度影响，不能跨材料直接比较；翻译依赖是自评。",
+        "周诊断由用户点击生成，应用未打开时不后台写数据。"
     ],
-    "ci": "39435327832 success (Node 22 + 24)",
-    "last_ci_run": {
-      "id": 39426842769,
-      "commit": "e26c325daa97",
-      "status": "completed",
-      "conclusion": "success",
-      "jobs": [
-        "Verify Node 22: success",
-        "Verify Node 24: success"
-      ]
+    "blocked": [],
+    "next_task_id": "await_user_phase11_directive",
+    "environment": {
+        "node": "v26.7.0",
+        "npm": "11.19.0",
+        "project_requires": "Node >= 22 (package.json 未显式 engines；README 声明 22+)",
+        "shell": "git-bash (MSYS)；native 工具路径用 C:/ 前台斜杠形式",
+        "browser_verification_path": "Hermes 内置 browser_exec 不可用；如需浏览器实测用 CDP 无头 Edge（见 skill sillytavern-live-ui-verification 的自建方案）"
     },
-    "branch": "main",
-    "head": "9f11b8cf88f72dbb7a6d92f3c1daa7361cf893f9",
-    "verified_at": "2026-10-21T00:20:00+08:00",
-    "last_pushed_commit": "64ee19010e6d685b65e0cde34044996f650652e5"
-  },
-  "document_review": {
-    "date": "2026-10-19",
-    "basis": "文档包离线快照 + 本机实盘核对（Git/源码/npm test/build/HTTP/真实浏览器 CDP smoke）",
-    "local_verification": "合并前 HEAD=92f8ec1 clean、无 origin remote、Phase 3 未开工；合并后 npm test 39/39 → Phase 3 完成后 69/69、build 通过、浏览器 smoke 20/20",
-    "last_verified_commit_note": "state.last_verified_commit=92fdab0 是 Phase 2 功能提交；HEAD=92f8ec1 为其上的状态 pin 提交",
-    "merge": "文档包内容与本地 2026-10-04 快照一致（差异全部为新增/纠错），已整体合并；合并前副本在 scratch 备份目录",
-    "phase3_verification": "2026-10-19 完成 Phase 3：69/69 tests、build、HTTP 200、真实浏览器 smoke 20/20（详见 CHECKPOINT.md / docs/PHASE3_DAILY_PLANNER.md）"
-  },
-  "milestones": [
-    {
-      "phase": "phase8",
-      "commit": "64ee19010e6d685b65e0cde34044996f650652e5",
-      "tag": "phase8-real-input-hub",
-      "ci": "39603818853 success"
+    "source_format_convention": "src/*.ts 与 tests/*.ts 由 docs/format-source.mjs 整理为紧凑格式；编辑后保持一致或重跑该脚本",
+    "notes": "Phase 8 主体 Real Input Hub 已交付：DB v6（5 个新 store）、状态机、三档复盘、证据 ledger（曝光/自评/产出分离）、字幕交接、Planner 时间预算、与兴趣画像共用的推荐理由；同时修复 validateBackup 无法恢复含句点/冒号 id 的备份。",
+    "remote_sync": {
+        "last_local_commit": "PENDING",
+        "last_known_remote_commit": "PENDING",
+        "verified_at": "2026-10-22T19:53:05+08:00",
+        "method": "GitHub API commits/main（push 后核对完整 SHA）",
+        "notes": "Phase 10 tag: phase10-diagnostics"
     },
-    {
-      "phase": "phase9",
-      "commit": "1986b8cfb857f3001852c1b03b405eeb8125e94a",
-      "tag": "phase9-output-lab",
-      "ci": "39623912234 success"
-    }
-  ]
+    "document_review": {
+        "date": "2026-10-19",
+        "basis": "文档包离线快照 + 本机实盘核对（Git/源码/npm test/build/HTTP/真实浏览器 CDP smoke）",
+        "local_verification": "合并前 HEAD=92f8ec1 clean、无 origin remote、Phase 3 未开工；合并后 npm test 39/39 → Phase 3 完成后 69/69、build 通过、浏览器 smoke 20/20",
+        "last_verified_commit_note": "state.last_verified_commit=92fdab0 是 Phase 2 功能提交；HEAD=92f8ec1 为其上的状态 pin 提交",
+        "merge": "文档包内容与本地 2026-10-04 快照一致（差异全部为新增/纠错），已整体合并；合并前副本在 scratch 备份目录",
+        "phase3_verification": "2026-10-19 完成 Phase 3：69/69 tests、build、HTTP 200、真实浏览器 smoke 20/20（详见 CHECKPOINT.md / docs/PHASE3_DAILY_PLANNER.md）"
+    },
+    "milestones": [
+        {
+            "phase": "phase8",
+            "commit": "64ee19010e6d685b65e0cde34044996f650652e5",
+            "tag": "phase8-real-input-hub",
+            "ci": "39603818853 success"
+        },
+        {
+            "phase": "phase9",
+            "commit": "1986b8cfb857f3001852c1b03b405eeb8125e94a",
+            "tag": "phase9-output-lab",
+            "ci": "39623912234 success"
+        },
+        {
+            "phase": "phase10",
+            "commit": "PENDING",
+            "tag": "phase10-diagnostics",
+            "ci": "PENDING"
+        }
+    ]
 }

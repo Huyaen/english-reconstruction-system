@@ -213,3 +213,75 @@ button.small{padding:5px 10px;font-size:13px;border-radius:7px}
   .output-layout { grid-template-columns: 1fr; }
   .history-row { grid-template-columns: 1fr; }
 }
+
+
+/* ===== Phase 10：学情诊断 ===== */
+.diag-range{display:flex;align-items:end;gap:16px;margin:0 0 20px;flex-wrap:wrap}
+.diag-range label{width:180px}
+.diag-range .muted{font-size:13px}
+.diag-verdict{border-left:3px solid var(--blue)}
+.diag-verdict h2{font-size:25px;margin:6px 0 10px;letter-spacing:-.4px}
+.diag-verdict p{font-size:14px;max-width:900px}
+.diag-evidence-row,.diag-retention-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.diag-evidence-row span{display:flex;align-items:baseline;gap:8px;font-size:13px;color:var(--muted);padding:8px 12px;border:1px solid var(--line);border-radius:9px;background:var(--bg)}
+.diag-evidence-row b{color:var(--ink);font-size:16px;margin-left:5px;font-variant-numeric:tabular-nums}
+.diag-retention-row>div{display:flex;flex-direction:column;gap:2px;min-width:92px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.diag-retention-row>div.is-empty{opacity:.62}
+.diag-retention-row b{font-size:13px;color:var(--muted)}
+.diag-retention-row strong{font-size:23px;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.diag-retention-row small{font-size:12px;color:var(--muted)}
+.diag-domains{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px;margin-bottom:24px;align-items:start}
+.diag-domain{margin:0;display:flex;flex-direction:column;gap:10px}
+.diag-domain .section-title{margin-bottom:2px}
+.diag-metric{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 0;border-top:1px dashed var(--line)}
+.diag-metric:first-of-type{border-top:0}
+.diag-metric-label{font-size:13.5px;color:var(--muted);align-self:center}
+.diag-metric strong{font-size:18px;font-variant-numeric:tabular-nums;letter-spacing:-.2px;text-align:right}
+.diag-metric small{grid-column:2;font-size:11.5px;color:var(--muted);text-align:right}
+.diag-metric .diag-def{grid-column:1/-1;font-size:12px;color:var(--muted);opacity:.86;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.diag-metric.is-empty strong{font-size:13px;color:var(--muted);font-weight:500}
+.diag-compare{display:flex;flex-direction:column}
+.diag-compare-row{display:grid;grid-template-columns:1fr 130px 200px;gap:12px;align-items:center;padding:11px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.diag-compare-row:last-child{border-bottom:0}
+.diag-compare-row b{font-variant-numeric:tabular-nums}
+.diag-compare-row small{color:var(--muted);font-size:12px}
+.diag-compare-row.is-muted b,.diag-compare-row.is-muted span{color:var(--muted);font-weight:400}
+.diag-plan-row{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;padding:14px 0;border-bottom:1px dashed var(--line)}
+.diag-plan-row:last-of-type{border-bottom:0}
+.diag-plan-row p{font-size:13px;margin:4px 0 0;max-width:760px}
+.diag-plan-side{display:flex;align-items:center;gap:12px;white-space:nowrap}
+.diag-plan-side span{font-size:12.5px;color:var(--muted)}
+.diag-history{display:flex;flex-wrap:wrap;gap:8px}
+.diag-history .text-button{border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:13px}
+.diag-disclaimer{border-left:3px solid #c9822f}
+.diag-disclaimer p{font-size:13px;max-width:920px}
+@media(max-width:760px){
+  .diag-compare-row{grid-template-columns:1fr auto;gap:4px 10px}
+  .diag-compare-row small{grid-column:1/-1}
+  .diag-plan-row{flex-direction:column}
+  .diag-plan-side{width:100%;justify-content:space-between}
+}
+
+/* Phase 10 看板二次收敛：比较表四列、证据条、折叠指标 */
+.diag-evidence-bar{display:flex;height:9px;border-radius:99px;overflow:hidden;background:var(--soft);margin:12px 0 4px}
+.diag-evidence-bar i{display:block;height:100%}
+.diag-evidence-bar .verified{background:#2f9e63}
+.diag-evidence-bar .behavior{background:#648bf0}
+.diag-evidence-bar .self{background:#e7b352}
+.diag-evidence-bar .inferred{background:#b9a3d8}
+.diag-compare-head{display:grid;grid-template-columns:1fr 110px 110px 130px;gap:10px;padding:0 0 7px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.diag-compare-row{display:grid;grid-template-columns:1fr 110px 110px 130px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.diag-compare-row span{font-variant-numeric:tabular-nums}
+.diag-compare-row b{font-variant-numeric:tabular-nums;font-weight:600}
+.diag-compare-row b.up{color:#2f9e63}
+.diag-compare-row b.down{color:#c06a4a}
+.diag-more{margin-top:6px}
+.diag-more summary{font-size:12.5px;color:var(--blue);margin:4px 0 0}
+.diag-metric{grid-template-columns:minmax(0,1fr) minmax(76px,auto);column-gap:14px}
+.diag-metric strong{white-space:nowrap}
+.diag-metric small{white-space:nowrap}
+@media(max-width:760px){
+  .diag-compare-head{display:none}
+  .diag-compare-row{grid-template-columns:1fr auto;gap:4px 10px}
+  .diag-compare-row span:nth-child(2),.diag-compare-row span:nth-child(3){font-size:12px;color:var(--muted)}
+}

@@ -16,6 +16,7 @@ import { isUnseen } from './evidence.ts';
 import type { SentenceRecord } from './types.ts';
 import { SENTENCE_TASK_LABELS, planSentenceTasks, type SentencePlanInput, type SentenceTaskDescriptor, type SentenceTaskKind } from './sentenceSelection.ts';
 import { planOutputTask } from './outputPlanner.ts';
+import { applyDiagnosticFocus } from './diagnosticsPlanner.ts';
 import type { OutputTaskSpec } from './types.ts';
 import { planReadingTasks, readingUnavailableReason, type ReadingTaskDescriptor } from './readingPlanner.ts';
 export const PLANNER_CONFIG = {
@@ -123,6 +124,8 @@ export interface PlannerInput {
     } | null;
     /** Phase 9：今日表达任务（由 outputSelection 依据真实材料生成；null = 不安排） */
     outputTask?: OutputTaskSpec | null;
+    /** Phase 10：显式传入的短板诊断；只影响柔性任务排序，不改时长与 capability */
+    diagnosticFocus?: import('./types.ts').DiagnosticBottleneck | null;
     capabilityOverrides?: CapabilityOverrides;
 }
 export interface BudgetBreakdown {
@@ -706,6 +709,13 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
             tasks.push(t);
     if (closingTask)
         tasks.push(closingTask);
+    // —— Phase 10：诊断焦点只重排柔性任务，critical 与 closing 顺序不动 ——
+    if (input.diagnosticFocus) {
+        reasons.push(`diagnostic-focus-${input.diagnosticFocus.domain}`);
+        const ordered = applyDiagnosticFocus(tasks, input.diagnosticFocus);
+        tasks.length = 0;
+        tasks.push(...ordered);
+    }
     // 数值安全：任何取整误差都不得突破总预算；优先收缩柔性任务。
     trimToBudget(tasks, available, reasons);
     const planned = round1(tasks.reduce((n, t) => n + t.minutes, 0));

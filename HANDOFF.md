@@ -1,7 +1,7 @@
 
-# HANDOFF — Phase 9 → Phase 10（2026-10-21）
+# HANDOFF — Phase 10 → Phase 11（2026-10-22）
 
-**Phase 9（Output Lab）已交付并推送。下一阶段由用户指定（`STATE.next_task_id = await_user_phase10_directive`）。**
+**Phase 10（学情诊断）已交付并推送。下一阶段由用户指定（`STATE.next_task_id = await_user_phase11_directive`）。**
 
 ## 1. 当前工程状态
 
@@ -9,11 +9,11 @@
 | --- | --- |
 | 根目录 | `D:\英语重构训练\vocabulary-app` |
 | 分支 | `main` |
-| DB 版本 | **v6**（Phase 9 未新增 store；`outputAttempts` 只加可选字段） |
+| DB 版本 | **v6**（Phase 10 未新增 store；快照只加可选 `diagnostics`） |
 | 测试 | **308/308**（`npm test`） |
 | 类型检查 | `tsc --noEmit` 0 error |
 | 构建 | `npm run build` / `build:test` 通过；生产包测试钩子 0 |
-| 浏览器验收 | Phase 9 **20/20**、Phase 8 34/34、兴趣 19/19、Phase 7 33/33、Phase 6 31/31、Phase 5.1 26/26、Phase 5 44/44、Phase 4 36/36、Phase 3 21/21 |
+| 浏览器验收 | Phase 10 **16/16**、Phase 9 **20/20**、Phase 8 34/34、兴趣 19/19、Phase 7 33/33、Phase 6 31/31、Phase 5.1 26/26、Phase 5 44/44、Phase 4 36/36、Phase 3 21/21 |
 | 远程 | `Huyaen/english-reconstruction-system`（Private），HEAD 与 CI 见 §9 |
 
 ## 2. Mini Unit API（Phase 8 直接复用）
@@ -126,7 +126,7 @@ pauseUnit / resumeUnit / extendUnit / abandonUnit / finishUnit / recordBaseline 
 
 1. 读 `STATE.json`：`current_phase=phase_8_real_input_hub`、`next_task_id=await_user_phase9_directive`；
 2. 核对 `git log -1`、remote SHA 与 CI 结论（本阶段最后一次推送见交付报告）；
-3. **等用户指定 Phase 9**。不要自动开始下一阶段；若要扩展输入域，先读
+3. **等用户指定 Phase 11**。不要自动开始下一阶段；若要扩展诊断/输入域，先读
    `docs/PHASE8_REAL_INPUT_HUB.md` §15「诚实边界」，避免把“不抓取/不转写”当成已实现。
 
 # HANDOFF — 换模型 / 换会话所需最小上下文

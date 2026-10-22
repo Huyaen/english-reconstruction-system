@@ -836,6 +836,85 @@ export interface UnitEvidenceSummary {
     outputIndependent?: number;
     refs: UnitEvidenceRef[];
 }
+// —— Phase 10：能力诊断（只描述证据，不合成单一“英语分数”）——
+export type DiagnosticDomain = 'vocabulary' | 'grammar' | 'reading' | 'input' | 'output' | 'translation';
+export type MetricEvaluability = 'evaluable' | 'insufficient' | 'not-applicable';
+export type DiagnosticQuality = 'verified' | 'task-behavior' | 'mixed' | 'self-report' | 'none';
+export interface MetricValue {
+    id: string;
+    domain: DiagnosticDomain;
+    label: string;
+    kind: 'count' | 'rate' | 'duration' | 'index';
+    /** null 表示不可评估；不要用 0 冒充“差” */
+    value: number | null;
+    numerator: number | null;
+    denominator: number | null;
+    sample: number;
+    minSample: number;
+    evaluability: MetricEvaluability;
+    quality: DiagnosticQuality;
+    /** 指标怎么算、分母是什么（界面上必须可见） */
+    definition: string;
+    reasons: string[];
+}
+export interface RetentionPoint {
+    label: 'D1' | 'D7' | 'D30';
+    total: number;
+    correct: number;
+    rate: number | null;
+    evaluable: boolean;
+    note: string;
+}
+export interface DiagnosticEvidenceMix {
+    verified: number;
+    taskBehavior: number;
+    selfReport: number;
+    inferred: number;
+    distinctSources: number;
+    quality: DiagnosticQuality;
+    note: string;
+}
+export interface DiagnosticBottleneck {
+    domain: DiagnosticDomain;
+    label: string;
+    reason: string;
+    confidence: 'low' | 'medium';
+    metricIds: string[];
+}
+export interface MetricComparison {
+    metricId: string;
+    label: string;
+    current: number | null;
+    previous: number | null;
+    delta: number | null;
+    comparable: boolean;
+    reason: string;
+}
+export interface DiagnosticPlanAction {
+    id: string;
+    title: string;
+    reason: string;
+    domain: DiagnosticDomain;
+    minutes: number;
+    actionKind: 'open-reading' | 'open-sentence' | 'open-output' | 'open-input' | 'open-diagnostics';
+    targetId: string | null;
+}
+export interface DiagnosticPayload {
+    range: {
+        from: number;
+        to: number;
+        days: number;
+    };
+    metrics: MetricValue[];
+    retention: RetentionPoint[];
+    evidence: DiagnosticEvidenceMix;
+    bottleneck: DiagnosticBottleneck | null;
+    comparison: MetricComparison[];
+    plan: DiagnosticPlanAction[];
+    notes: string[];
+    /** 明确声明：这不是英语总分 */
+    disclaimer: string;
+}
 export interface SkillSnapshot {
     id: string;
     date: string;
@@ -852,6 +931,8 @@ export interface SkillSnapshot {
     uncaptionedComprehension: number | null;
     outputSummary: unknown;
     createdAt: number;
+    /** Phase 10：诊断明细（旧快照没有该字段仍然合法） */
+    diagnostics?: DiagnosticPayload;
 }
 export interface WeeklyDiagnostic {
     id: string;
@@ -859,6 +940,8 @@ export interface WeeklyDiagnostic {
     results: unknown;
     summary: string;
     createdAt: number;
+    /** Phase 10：与快照同源的诊断明细 + 下周行动计划 */
+    diagnostics?: DiagnosticPayload;
 }
 export interface LibraryItem {
     id: string;

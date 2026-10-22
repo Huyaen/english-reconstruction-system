@@ -75,6 +75,9 @@ import { SENTENCE_TASK_LABELS, selectSentenceBatch } from './sentenceSelection.t
 import { sentenceConceptIds, sentenceConceptNames, sentencesForConcept } from './sentenceGraphMap.ts';
 import { ensureGraphData, loadSentences, saveSentences, sentenceAttemptsDesc } from './sentenceStore.ts';
 import { saveSentenceEvidence as dbSaveSentenceEvidence } from './db.ts';
+import { diagnosticsPage } from './diagnosticsView.ts';
+import { buildDiagnostics, latestSnapshot } from './diagnosticsInsight.ts';
+import { generateSnapshot, generateWeekly } from './diagnosticsActions.ts';
 let data: Data, page = 'home', bookFilter = '', search = '', levelFilter = '', sort = 'priority', listPage = 0;
 let active: StudySession | null = null, feedback = false, busy = false, started = 0, timer: ReturnType<typeof setTimeout> | null = null, paused = false;
 let startingSession = false;
@@ -159,7 +162,7 @@ let readingTask: {
 let labReturn: (LabReturnTarget & {
     planTaskId?: string;
 }) | null = null;
-const navs = [['home', '◫', '今日学习'], ['books', '▤', '我的词库'], ['weak', '◎', '薄弱词'], ['sentence', '❝', '句子训练'], ['reading', '❖', '阅读'], ['input', '▶', '真实输入'], ['output', '✍', '真实表达'], ['grammar', '◈', '语法图谱'], ['unit', '◐', '主题单元'], ['stats', '▥', '学习统计'], ['ai', '✦', 'AI 学情'], ['settings', '⚙', '设置与备份']];
+const navs = [['home', '◫', '今日学习'], ['books', '▤', '我的词库'], ['weak', '◎', '薄弱词'], ['sentence', '❝', '句子训练'], ['reading', '❖', '阅读'], ['input', '▶', '真实输入'], ['output', '✍', '真实表达'], ['grammar', '◈', '语法图谱'], ['unit', '◐', '主题单元'], ['diagnostics', '◮', '学情诊断'], ['stats', '▥', '学习统计'], ['ai', '✦', 'AI 学情'], ['settings', '⚙', '设置与备份']];
 function reindex() { wordMap = new Map(data.words.map(w => [w.id, w])); }
 function setPage(p: string) {
     if ((page === 'quiz' && busy) || startingSession) {
@@ -188,7 +191,7 @@ function shell() {
     on('.brand', 'click', e => { e.preventDefault(); setPage('home'); });
     on('#theme', 'click', async () => { const s = { ...data.settings, theme: data.settings.theme === 'light' ? 'dark' : 'light' } as Settings; await saveSettings(s); data.settings = s; document.documentElement.dataset.theme = s.theme; $('#theme').textContent = s.theme === 'light' ? '☾' : '☀'; });
 }
-function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp, input: inputPageApp, output: outputPageApp }[page] || home)(); bindAI(); }
+function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp, input: inputPageApp, output: outputPageApp, diagnostics: diagnosticsPageApp }[page] || home)(); bindAI(); }
 function title(kicker: string, title: string, sub: string, action = '') { return `<div class="page-title"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p>${sub}</p></div>${action}</div>`; }
 function metric(label: string, value: string, note: string) { return `<div class="metric"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`; }
 function rangeControls() { return `<div class="range-controls"><label>学习范围<select id="range-book"><option value="">全部词书</option>${data.books.map(b => `<option value="${b.id}" ${bookFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label><label>本轮词量<select id="range-count">${[50, 100, 300, 500, 1000].map(n => `<option value="${n}" ${n === 100 ? 'selected' : ''}>${n} 词</option>`).join('')}</select></label><label>测试方向<select id="range-ratio">${![0, 30, 50, 70, 100].includes(data.settings.ratio) ? `<option value="${data.settings.ratio}" selected>英→中 ${data.settings.ratio}%（自定义）</option>` : ''}<option value="50" ${data.settings.ratio === 50 ? 'selected' : ''}>双向各 50%</option><option value="70" ${data.settings.ratio === 70 ? 'selected' : ''}>英→中 70%</option><option value="30" ${data.settings.ratio === 30 ? 'selected' : ''}>中→英 70%</option><option value="100" ${data.settings.ratio === 100 ? 'selected' : ''}>识别 · 英→中</option><option value="0" ${data.settings.ratio === 0 ? 'selected' : ''}>提取 · 中→英</option></select></label></div>`; }
@@ -621,6 +624,12 @@ let outputSelectedType = null as import('./types.ts').OutputTaskType | null;
 let outputTopicDraft = '';
 let outputHintLevel = null as import('./types.ts').OutputSupportLevel | null;
 let outputHintCache: ReturnType<typeof buildSupportHint> | null = null;
+// ===== Phase 10：学情诊断 =====
+let diagDays = 7;
+let diagSource: 'live' | 'snapshot' | 'weekly' = 'live';
+let diagSnapshotId: string | null = null;
+let diagWeeklyId: string | null = null;
+let diagBusy = false;
 let outputMessage = '';
 let outputSaveTimer: ReturnType<typeof setTimeout> | undefined;
 let outputCandidates: ReturnType<typeof selectOutputTasks>['candidates'] = [];
@@ -690,8 +699,10 @@ function bindOutputHub(): void {
         render();
     });
     on('#out-topic', 'change', (e) => { outputTopicDraft = (e.target as HTMLInputElement).value; render(); });
-    on('#out-use-suggestion', 'click', () => { if (outputCandidates[0])
-        void startOutputTask(outputCandidates[0]); });
+    on('#out-use-suggestion', 'click', () => {
+        if (outputCandidates[0])
+            void startOutputTask(outputCandidates[0]);
+    });
     document.querySelectorAll<HTMLElement>('[data-out-start]').forEach(b => b.onclick = () => {
         const t = outputCandidates.find(x => x.id === b.dataset.outStart);
         if (t)
@@ -901,6 +912,104 @@ function inputRecent() {
     return data.inputSessions
         .filter(s => s.status === 'completed')
         .sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0));
+}
+function diagnosticsPageApp(): void {
+    const now = Date.now();
+    let payload;
+    let source: 'live' | 'snapshot' | 'weekly' = diagSource;
+    let generatedAt: number | null = null;
+    let weekly: import('./types.ts').WeeklyDiagnostic | undefined;
+    if (diagSource === 'snapshot') {
+        const snap = data.skillSnapshots.find(s => s.id === diagSnapshotId);
+        if (snap?.diagnostics) {
+            payload = snap.diagnostics;
+            generatedAt = snap.createdAt;
+        }
+        else {
+            source = 'live';
+            payload = buildDiagnostics(data, { now, days: diagDays, previous: latestSnapshot(data.skillSnapshots) });
+        }
+    }
+    else if (diagSource === 'weekly') {
+        weekly = data.weeklyDiagnostics.find(w => w.id === diagWeeklyId);
+        if (weekly?.diagnostics) {
+            payload = weekly.diagnostics;
+            generatedAt = weekly.createdAt;
+        }
+        else {
+            source = 'live';
+            payload = buildDiagnostics(data, { now, days: diagDays, previous: latestSnapshot(data.skillSnapshots) });
+        }
+    }
+    else {
+        payload = buildDiagnostics(data, { now, days: diagDays, previous: latestSnapshot(data.skillSnapshots) });
+    }
+    $('#main').innerHTML = diagnosticsPage({ data, payload, days: diagDays, generatedAt, source, weekly });
+    bindDiagnostics();
+}
+function bindDiagnostics(): void {
+    on('#diag-days', 'change', (e) => {
+        diagDays = Number((e.target as HTMLSelectElement).value) || 7;
+        diagSource = 'live';
+        render();
+    });
+    on('#diag-snapshot', 'click', async () => {
+        if (diagBusy)
+            return;
+        diagBusy = true;
+        try {
+            const snap = await generateSnapshot(data, Date.now(), diagDays);
+            data = await loadData();
+            reindex();
+            diagSource = 'live';
+            toast(`已保存 ${snap.date} 的诊断快照`);
+            render();
+        }
+        catch (err) {
+            toast(err instanceof Error ? err.message : '快照保存失败');
+        }
+        finally {
+            diagBusy = false;
+        }
+    });
+    on('#diag-week', 'click', async () => {
+        if (diagBusy)
+            return;
+        diagBusy = true;
+        try {
+            const week = await generateWeekly(data, Date.now(), diagDays);
+            data = await loadData();
+            reindex();
+            diagSource = 'weekly';
+            diagWeeklyId = week.id;
+            toast(`已生成本周诊断（${week.weekOf}）`);
+            render();
+        }
+        catch (err) {
+            toast(err instanceof Error ? err.message : '周诊断生成失败');
+        }
+        finally {
+            diagBusy = false;
+        }
+    });
+    document.querySelectorAll<HTMLElement>('[data-diag-snap]').forEach(b => b.onclick = () => {
+        diagSnapshotId = b.dataset.diagSnap!;
+        diagSource = 'snapshot';
+        render();
+    });
+    document.querySelectorAll<HTMLElement>('[data-diag-action]').forEach(b => b.onclick = () => {
+        const kind = b.dataset.diagAction;
+        if (kind === 'open-reading')
+            setPage('reading');
+        else if (kind === 'open-sentence')
+            setPage('sentence');
+        else if (kind === 'open-output')
+            setPage('output');
+        else if (kind === 'open-input')
+            setPage('input');
+        else
+            toast('先积累一些真实记录，再回来看诊断。');
+    });
 }
 function inputPageApp(): void {
     const session = inputSessionById(inputSessionId);
@@ -1470,6 +1579,7 @@ function planInput(minutes: number, energy: EnergyState): PlannerInput {
         readingInput: data.passages.length ? { passages: data.passages, sessions: data.readingSessions } : null,
         inputInput: data.inputSources.length ? { sources: data.inputSources, sessions: data.inputSessions } : null,
         outputTask: selectOutputTasks({ data, now: Date.now(), availableMinutes: minutes, energy }).task,
+        diagnosticFocus: latestSnapshot(data.skillSnapshots)?.diagnostics?.bottleneck ?? null,
     };
 }
 function energyLabel(e: EnergyState) { return e === 'low' ? '状态差' : e === 'good' ? '状态好' : '正常'; }
@@ -2524,6 +2634,43 @@ function installTestHook(): void {
         },
         check(text: string) { return localChecks(text); },
         canShowModelAnswer: (status: string | null, level = 0) => canShowModelAnswer(status ? { status, supportLevel: level } : null),
+    };
+    // Phase 10 验收钩子：仅测试构建存在，生产被摇树移除
+    (window as unknown as Record<string, unknown>).__diagnosticsTest = {
+        async snapshot(days = 7) {
+            const d = await loadData();
+            const payload = buildDiagnostics(d, { now: Date.now(), days, previous: latestSnapshot(d.skillSnapshots) });
+            return {
+                days,
+                metrics: payload.metrics.map(m => ({ id: m.id, domain: m.domain, value: m.value, evaluability: m.evaluability, quality: m.quality, numerator: m.numerator, denominator: m.denominator, sample: m.sample })),
+                retention: payload.retention,
+                evidence: payload.evidence,
+                bottleneck: payload.bottleneck,
+                plan: payload.plan,
+                comparison: payload.comparison,
+                disclaimer: payload.disclaimer,
+                snapshots: d.skillSnapshots.map(s => ({ id: s.id, date: s.date, hasPayload: !!s.diagnostics })),
+                weekly: d.weeklyDiagnostics.map(w => ({ id: w.id, weekOf: w.weekOf, hasPayload: !!w.diagnostics })),
+            };
+        },
+        async generate(days = 7) {
+            const snap = await generateSnapshot(await loadData(), Date.now(), days);
+            const d = await loadData();
+            return { ok: true, id: snap.id, date: snap.date, count: d.skillSnapshots.length, hasPayload: !!snap.diagnostics };
+        },
+        async weekly(days = 7) {
+            const week = await generateWeekly(await loadData(), Date.now(), days);
+            const d = await loadData();
+            return { ok: true, id: week.id, weekOf: week.weekOf, count: d.weeklyDiagnostics.length, hasPayload: !!week.diagnostics };
+        },
+        async plan(days = 7, minutes = 40) {
+            const d = await loadData();
+            const focus = buildDiagnostics(d, { now: Date.now(), days }).bottleneck;
+            const { plan } = createDailyPlan({ ...planInput(minutes, 'normal'), diagnosticFocus: focus });
+            return { focus: focus?.domain ?? null, order: plan.initialPlan.map(t => ({ module: t.module ?? '', priority: t.priority ?? 0, minutes: t.minutes, reason: t.reason ?? [] })), reasons: ((plan.budget as {
+                    reasons?: string[];
+                } | null)?.reasons ?? []) };
+        },
     };
     // OCR 验收钩子：只暴露“跑一次识别 / 释放”，不改学习证据；用于失败注入与超时验证
     (window as unknown as Record<string, unknown>).__ocrTest = {

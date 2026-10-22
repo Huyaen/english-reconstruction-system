@@ -165,3 +165,28 @@ S≥90、A≥65、B≥40、C≥15、其余D。到期与弱词队列按分数降�
 
 - 迁移：从语境池按 `hash(seed|topic|id)` 确定选择，要求主题与沟通目标都改变；否则 `strength='weak'`，证据权重降低（0.4/0）。
 - 延迟：D1/D7 生成相关但不同的任务，不展示原答案；与迁移共用证据降级规则。
+
+## 诊断窗口与可评估性（Phase 10）
+
+- 窗口：`recentRange(now, days)` 以今天 00:00 之后为终点，取最近 days 个完整自然日；对比窗口 `previousRange` 必须等长。
+- 比率：`percent(n,d)` 在 `d<=0` 或非有限值时为 `null`；结果裁剪到 `[0,1]`，保留 3 位。
+- 可评估：`evaluability='insufficient'` 当 `value=null` 或 `sample<minSample`；页面不显示数值，只显示原因。
+- 分位数：排序后线性插值；空数组返回 `null`。仍不把缺失当 0。
+- 质量：`verified` / `task-behavior` / `mixed` / `self-report` / `none`；只有自评时短板置信度降为 low。
+
+## 保持率分桶（Phase 10）
+
+- 首次出现：同一词最早一条 counted 曝光；没有曝光则最早复习记录。
+- 日龄：`floor((review.at - firstSeen)/86400000)`；仅 1/7/30 落入 D1/D7/D30。
+- 每层 `total>=5` 才计算；否则 rate=null；不插值、不外推、不补算错过的日子。
+
+## 短板判定（Phase 10）
+
+- 固定顺序与阈值：D7<0.65、独立语法<0.6、未知词>0.15、可核对理解<0.6、独立产出<0.5、翻译依赖>2.2。
+- 严重度 = 超阈距离 ÷ 阈值跨度，裁剪到 `[0,1]`；取最大者，同分按固定顺序。
+- 没有任何可评估项 → `null`；来源单一或仅自评 → 置信度 low。
+
+## 计划焦点（Phase 10）
+
+- `applyDiagnosticFocus` 将任务分为 critical/非 critical；critical 原序在前，柔性任务按 `priority + (领域匹配 ? 20 : 0)` 稳定排序。
+- 不改 `minutes`、`refs`、依赖关系；不自动写入计划，必须由调用方显式传入 bottleneck。

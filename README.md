@@ -160,7 +160,7 @@ npm start
 本项目正在从「自适应背单词软件」升级为完整的 **Personal English Learning System**（V2）。产品规格见 `PROJECT_SPEC.md`，工程协议与阶段计划见 `AGENT_EXECUTION.md`。
 
 - **接手入口（换模型/换会话必读）**：依次读 `PROJECT_SPEC.md` → `STATE.json` → `CHECKPOINT.md` → `HANDOFF.md` → `TODO.md` → `DEVELOPMENT_LOG.md`，再核对实际磁盘与 Git。
-- **当前阶段**：见 `HANDOFF.md`（Phase 0–8 已完成；当前 Phase 9 Output Lab 已交付，等待用户指定下一阶段）。
+- **当前阶段**：见 `HANDOFF.md`（Phase 0–10 已完成；当前 Phase 10 学情诊断已交付，等待用户指定下一阶段）。
 - **基线**：V1 MVP 基线 commit `6c1c625`（tag `v1.0.0-mvp-baseline`）；该提交已实测：`npm test` 20/20、`npm run build` 成功、`node server.mjs` 服务实测 200。
 - **硬约束**：旧数据 100% 保留；审计 → 复用 → 扩展 → 迁移 → 验证；禁止无理由重写现有词汇模块。
 - **源码格式**：`src/*.ts`、`tests/*.ts` 由 `docs/format-source.mjs` 整理为紧凑格式，编辑后请保持一致或重跑该脚本。
@@ -241,3 +241,16 @@ Based on your interests / Based on your recent activity / Related to your Mini U
 - 不会的词可以用已知英语绕开（Communication Repair），系统只在有依据时判断意思是否保留。
 - 证据按独立性记录、幂等写入；表达可关联主题单元并在单元页可见，但不会自动完成学习日。
 - 详见 `docs/PHASE9_OUTPUT_LAB.md`。
+
+### 学情诊断（Phase 10）
+
+导航「学情诊断」把真实记录汇总成分域指标，**不给英语总分**。
+
+- 六个域分开看：词汇 / 语法 / 阅读 / 真实输入 / 真实表达 / 翻译依赖；每个指标带定义、分子分母、样本与证据质量。
+- D1/D7/D30 只统计“首次出现后第 1/7/30 个 24h 窗口”的复习；错过不补算、不插值、样本不足留空。
+- 稳定词汇沿用既有生命周期（active + productive），不另造阈值；阅读未知词率只认显式标记。
+- 证据分可核对 / 行为 / 自评；只有自评时结论自动降置信。没有证据就显示“不可评估”，不写 0。
+- 短板规则固定：先处理一件最值得处理的事；没有达标指标时明确“暂不下结论”。
+- 对比只在同长度窗口、两侧都达到最少样本时显示；零变化不堆页面。
+- 今日快照 / 本周诊断可重复生成且幂等；诊断焦点只重排柔性任务，不改学习时长或关键任务。
+- 全程本地计算，无 AI Key 也能用；详见 `docs/PHASE10_DIAGNOSTICS.md` 与 `docs/PHASE10_RESEARCH.md`。

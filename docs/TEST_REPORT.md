@@ -193,3 +193,16 @@ Phase 5 新增用例（28）：
 | 回归 | phase8 / interest / phase7 / phase6 / phase5.1 / phase5 / phase4 / phase3 | 34/34、19/19、33/33、31/31、26/26、44/44、36/36、21/21 |
 
 覆盖重点：无 AI 可用时原文保留；范文门控；L4 辅助不算独立；独立证据有界且重复完成幂等；AI span 必须真实存在（编造整条拒绝）；照抄修改不产生掌握；Repair 无依据时为 null；Input → Output 交接；Planner 排入且不超预算；备份恢复；并发完成只生效一次。
+
+
+## Phase 10 — 学情诊断（2026-10-22T19:53:05+08:00）
+
+| 层 | 命令 | 结果 |
+| --- | --- | --- |
+| 单元/性质 | `npm test` | **325/325 pass**（新增 diagnostics 11、diagnosticsIntegration 6） |
+| 类型 | `npx tsc --noEmit -p tsconfig.json` | 0 error |
+| 构建 | `npm run build` / `npm run build:test` | 通过；生产包 `__diagnosticsTest` / `ERV2_TEST_HOOKS` 命中 0 |
+| 浏览器 | `node scripts/phase10-smoke.mjs` | **16/16 PASS**（真实 Edge + CDP + IndexedDB，A–P） |
+| 回归 | phase9 / phase8 / interest / phase7 / phase6 / phase5.1 / phase5 / phase4 / phase3 | 20/20、34/34、19/19、33/33、31/31、26/26、44/44、36/36、21/21 |
+
+覆盖重点：指标分母与样本门槛；D1/D7/D30 精确分桶；显式未知词率；独立产出排除照抄；证据来源与质量；短板规则；同日/同周幂等；页面无总分；计划焦点进入 reasons；无未捕获异常。性质测试验证比率上界与样本不足不产出数值。
