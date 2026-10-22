@@ -4,7 +4,7 @@
     "overall_status": "in_progress",
     "current_phase": "phase_10_diagnostics",
     "last_updated": "2026-10-22T19:53:05+08:00",
-    "last_verified_commit": "63a947288dd57b73f9e3811007bc29ab2fbef18a",
+    "last_verified_commit": "8c7fceef80b09645c0f5d5302a03b9aea7b7bfe5",
     "baseline_tag": "v1.0.0-mvp-baseline",
     "database_version": 6,
     "build_status": "pass (tsc 0 error, vite production build, 生产包无测试钩子)",
@@ -581,8 +581,8 @@
     "source_format_convention": "src/*.ts 与 tests/*.ts 由 docs/format-source.mjs 整理为紧凑格式；编辑后保持一致或重跑该脚本",
     "notes": "Phase 8 主体 Real Input Hub 已交付：DB v6（5 个新 store）、状态机、三档复盘、证据 ledger（曝光/自评/产出分离）、字幕交接、Planner 时间预算、与兴趣画像共用的推荐理由；同时修复 validateBackup 无法恢复含句点/冒号 id 的备份。",
     "remote_sync": {
-        "last_local_commit": "PENDING",
-        "last_known_remote_commit": "PENDING",
+        "last_local_commit": "8c7fceef80b09645c0f5d5302a03b9aea7b7bfe5",
+        "last_known_remote_commit": "8c7fceef80b09645c0f5d5302a03b9aea7b7bfe5",
         "verified_at": "2026-10-22T19:53:05+08:00",
         "method": "GitHub API commits/main（push 后核对完整 SHA）",
         "notes": "Phase 10 tag: phase10-diagnostics"
@@ -610,7 +610,7 @@
         },
         {
             "phase": "phase10",
-            "commit": "PENDING",
+            "commit": "8c7fceef80b09645c0f5d5302a03b9aea7b7bfe5",
             "tag": "phase10-diagnostics",
             "ci": "PENDING"
         }
