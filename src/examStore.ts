@@ -95,7 +95,7 @@ export async function saveExamLog(log: ExamLog): Promise<void> {
     if (!Number.isFinite(log.reportedScore) || log.reportedScore < 0 || log.reportedScore > log.fullScore)
         throw new Error('得分必须满足 0 ≤ 得分 ≤ 满分');
     const tx = getDB().transaction('examLogs', 'readwrite');
-    tx.objectStore('examLogs').put({ ...log, source: 'self_report', scoreSource: 'self_reported', clueOnly: true, errorTypes: [] });
+    tx.objectStore('examLogs').put({ ...log, source: 'self_reported', scoreSource: 'self_reported', clueOnly: true, errorTypes: [] });
     await done(tx);
 }
 export async function deleteExamLog(id: string): Promise<void> {

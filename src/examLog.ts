@@ -147,7 +147,7 @@ export function sanitizeExamLog(raw: unknown, specs: ExamSpecification[]): {
             applicableYear: year,
             fullScore: r.fullScore as number,
             reportedScore: r.reportedScore as number,
-            source: 'self_report',
+            source: 'self_reported',
             scoreSource: 'self_reported',
             scoreBasis,
             clueOnly: true,

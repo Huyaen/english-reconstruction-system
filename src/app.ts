@@ -2720,8 +2720,13 @@ function installTestHook(): void {
         async resetSessions() { await clearExamSessions(); data = await loadData(); examSessionId = ''; return { ok: true }; },
         async resetLogs() { await clearExamLogs(); data = await loadData(); examLogEditingId = ''; return { ok: true }; },
         async exportLogs() { return exportExamLogs(await loadData().then(d => d.examLogs ?? [])); },
-        async importLogs(text: string) { const parsed = parseExamLogsExport(text, examSpecList()); for (const log of parsed.logs)
-            await saveExamLog(log); data = await loadData(); return { ok: parsed.ok, imported: parsed.logs.length, errors: parsed.errors }; },
+        async importLogs(text: string) {
+            const parsed = parseExamLogsExport(text, examSpecList());
+            for (const log of parsed.logs)
+                await saveExamLog(log);
+            data = await loadData();
+            return { ok: parsed.ok, imported: parsed.logs.length, errors: parsed.errors };
+        },
         async weeklyPreview() { const d = await loadData(); const b = buildWeeklyAssessment(d, d.examItems ?? [], d.examSessions ?? [], Date.now()); return { items: b.items.map(i => ({ id: i.id, type: i.questionType, stem: i.stem.slice(0, 40) })), minutes: b.minutes, unavailable: b.unavailable }; },
         async startWeekly() { await startWeeklyExam(); return { ok: !!examSessionId, id: examSessionId }; },
         async startMixed() {
@@ -3925,7 +3930,7 @@ function examPageApp(): void {
                 sectionResults: prev?.sectionResults ?? [],
                 errorTypes: [],
                 selfAssessment: draft.selfAssessment,
-                source: 'self_report',
+                source: 'self_reported',
                 scoreSource: 'self_reported',
                 scoreBasis: v.scoreBasis,
                 conflictAcknowledged: v.blockedConflict ? draft.conflictAcknowledged : false,

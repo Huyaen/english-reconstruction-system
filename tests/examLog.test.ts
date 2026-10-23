@@ -72,7 +72,7 @@ test('写入/导入闸门强制 self_reported 来源与线索标记，拒绝越�
     assert.equal(r.ok, true);
     if (!r.ok)
         return;
-    assert.equal(r.log.source, 'self_report');
+    assert.equal(r.log.source, 'self_reported');
     assert.equal(r.log.scoreSource, 'self_reported');
     assert.equal(r.log.clueOnly, true);
     assert.deepEqual(r.log.errorTypes, []);
