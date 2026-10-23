@@ -521,3 +521,12 @@ AI 句生成、外部语料 / 阅读 handoff、Mini Diagnostic 非词汇子测�
 - 周测 15–25 分钟五部分，缺材料明确 unavailable；考试计划默认关闭、最多 1 题低优先级。
 - 诊断新增 exam 域指标；无官方总分预测。
 - 验收：344/344 单测、phase11 16/16、phase3–phase10 回归全绿、tsc 0、生产包无钩子。
+
+
+## Phase 12 — 考试记录与分值一致性（2026-10-23T21:55:13+08:00）
+
+- 新增 `src/examLog.ts`：类型/规格/年份一致性、官方分值冲突闸门、暂定规格不预填、0≤得分≤满分、self_reported 强制、selfAssessment 只作线索、导出/导入校验。
+- `ExamLog` 增加可选 `examType/examName/specId/applicableYear/scoreBasis/conflictAcknowledged/clueOnly/scoreSource/updatedAt`；DB 仍 v7，旧记录不做推断式迁移。
+- UI：绑定规格联动并锁定类别/年份，统一满分预填；冲突必须显式确认；记录改为卡片布局，显示来源、满分依据、冲突与“仅线索”。
+- 诊断新增 `exam.selfReportedLogs` 计数；自评不进入 `examErrorCategoryCounts`，官方分预测保持 null。
+- 验收：351/351、phase12 17/17、phase11 16/16、phase3–phase10 回归全绿、tsc 0、生产包无钩子。

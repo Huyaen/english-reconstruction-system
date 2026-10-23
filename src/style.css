@@ -338,6 +338,38 @@ button.small{padding:5px 10px;font-size:13px;border-radius:7px}
 .exam-weekly-list { padding-left:18px; font-size:13px; line-height:1.9; }
 .exam-weekly-list small { color:var(--muted); margin-left:6px; }
 .exam-weekly-list .missing { color:#a44; }
-.exam-log-form { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin:12px 0; }
-.exam-log-form label { display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted); }
-.exam-log-form input, .exam-log-form select { padding:7px 8px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); font:inherit; }
+.exam-log-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 16px; align-items:end; margin:14px 0; }
+.exam-log-form label { display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted); min-width:0; }
+.exam-log-form .field-label { line-height:1.4; }
+.exam-log-form .exam-log-basis { grid-column:1 / -1; margin:0; }
+.exam-log-form label.log-name, .exam-log-form label.log-spec, .exam-log-form label.log-note { grid-column:1 / -1; }
+.exam-log-form .req { color:#a33; }
+.exam-log-form input, .exam-log-form select { width:100%; box-sizing:border-box; padding:8px 9px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); font:inherit; font-size:13px; }
+.exam-log-basis { font-size:11px; color:var(--muted); line-height:1.5; }
+.exam-log-basis.custom { color:var(--muted); }
+
+/* Phase 12 — 考试记录（类型/规格/满分一致性） */
+.exam-log-form label.exam-log-ack { grid-column:1 / -1; flex-direction:row; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); }
+.exam-log-form label.exam-log-ack[hidden] { display:none; }
+.exam-log-form input[type="checkbox"] { width:auto; }
+.exam-log-form .exam-log-actions { grid-column:1 / -1; display:flex; gap:8px; align-items:center; }
+.exam-log-warning { margin:4px 0 14px; padding:10px 12px; border-left:3px solid var(--line); background:var(--bg); color:var(--muted); font-size:12px; line-height:1.6; }
+.exam-log-warning.blocked { border-left-color:#b7791f; background:#fff8e8; color:#6b4508; }
+.exam-log-warning p { margin:3px 0; }
+.exam-log-warning .exam-log-error { color:#a33; }
+.exam-log-conflict { margin-top:3px; font-size:11px; color:#8a5a00; }
+.exam-log-actions { white-space:nowrap; }
+.exam-log-actions .text-button + .text-button { margin-left:8px; }
+.exam-log-list { display:flex; flex-direction:column; gap:10px; margin-top:8px; }
+.exam-log-item { border:1px solid var(--line); border-radius:8px; padding:11px 12px; background:var(--paper); }
+.exam-log-head { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.exam-log-head strong { font-size:14px; }
+.exam-log-head time { margin-left:auto; color:var(--muted); font-size:12px; white-space:nowrap; }
+.exam-log-meta { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:baseline; margin-top:7px; color:var(--muted); font-size:12px; }
+.exam-log-score { color:var(--ink); font-size:15px; font-weight:600; }
+.exam-log-source { margin-top:6px; color:var(--muted); font-size:12px; }
+.exam-log-source strong { color:var(--ink); font-weight:500; }
+.exam-log-source .exam-log-conflict { margin-left:8px; }
+.exam-log-clue { margin:7px 0 0; font-size:12px; color:var(--ink); line-height:1.5; }
+.exam-log-clue span { color:var(--muted); }
+.exam-log-item .exam-log-actions { margin-top:8px; display:flex; gap:10px; }

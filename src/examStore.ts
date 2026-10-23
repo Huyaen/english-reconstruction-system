@@ -90,14 +90,24 @@ export async function getExamSession(id: string): Promise<ExamSession | undefine
 }
 export async function saveExamLog(log: ExamLog): Promise<void> {
     await openDB();
+    if (!Number.isFinite(log.fullScore) || log.fullScore <= 0)
+        throw new Error('满分必须大于 0');
+    if (!Number.isFinite(log.reportedScore) || log.reportedScore < 0 || log.reportedScore > log.fullScore)
+        throw new Error('得分必须满足 0 ≤ 得分 ≤ 满分');
     const tx = getDB().transaction('examLogs', 'readwrite');
-    tx.objectStore('examLogs').put(log);
+    tx.objectStore('examLogs').put({ ...log, source: 'self_report', scoreSource: 'self_reported', clueOnly: true, errorTypes: [] });
     await done(tx);
 }
 export async function deleteExamLog(id: string): Promise<void> {
     await openDB();
     const tx = getDB().transaction('examLogs', 'readwrite');
     tx.objectStore('examLogs').delete(id);
+    await done(tx);
+}
+export async function clearExamLogs(): Promise<void> {
+    await openDB();
+    const tx = getDB().transaction('examLogs', 'readwrite');
+    tx.objectStore('examLogs').clear();
     await done(tx);
 }
 export async function saveExamSpecification(spec: ExamSpecification): Promise<void> {

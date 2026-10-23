@@ -149,7 +149,7 @@ npm start
 
 ## 恢复开发协议
 
-新会话先读取 `INITIAL_PROMPT.md`、`PROJECT_SPEC.md`、`AGENT_EXECUTION.md`、`STATE.json`、`CHECKPOINT.md`、`HANDOFF.md`、`TODO.md`、`DEVELOPMENT_LOG.md`；检查 `git status/log/tags/remote`、本地与远端 SHA（`git ls-remote origin`）、真实 DB 版本，并运行必要的 `npm test` / `npm run build`，从真实 `STATE.next_task_id` 与 HANDOFF Next Action 继续（当前为 Phase 6 Reinforcement AI）。浏览器验收脚本必须跑在**测试构建**上：`npm run build:test` → `node server.mjs --dir=dist-test --port=4173` → `node scripts/phase5-smoke.mjs` / `node scripts/phase4-smoke.mjs` / `node scripts/phase3-smoke.mjs`（独立 profile 无头 Edge/CDP，端口 9224）。详细 Github Sync / CI 协议见 `AGENT_EXECUTION.md`，最新 Phase 5 工作规格见 `docs/PHASE5_READING.md`（Phase 4 见 `docs/PHASE4_SENTENCE_GRAMMAR.md`，Phase 3 见 `docs/PHASE3_DAILY_PLANNER.md`）。
+新会话先读取 `INITIAL_PROMPT.md`、`PROJECT_SPEC.md`、`AGENT_EXECUTION.md`、`STATE.json`、`CHECKPOINT.md`、`HANDOFF.md`、`TODO.md`、`DEVELOPMENT_LOG.md`；检查 `git status/log/tags/remote`、本地与远端 SHA（`git ls-remote origin`）、真实 DB 版本，并运行必要的 `npm test` / `npm run build`，从真实 `STATE.next_task_id` 与 HANDOFF Next Action 继续（当前为 Phase 12 考试记录与分值一致性）。浏览器验收脚本必须跑在**测试构建**上：`npm run build:test` → `node server.mjs --dir=dist-test --port=4173` → `node scripts/phase5-smoke.mjs` / `node scripts/phase4-smoke.mjs` / `node scripts/phase3-smoke.mjs`（独立 profile 无头 Edge/CDP，端口 9224）。详细 Github Sync / CI 协议见 `AGENT_EXECUTION.md`，最新 Phase 5 工作规格见 `docs/PHASE5_READING.md`（Phase 4 见 `docs/PHASE4_SENTENCE_GRAMMAR.md`，Phase 3 见 `docs/PHASE3_DAILY_PLANNER.md`）。
 
 旧版 MVP 的遗留验收包括真实手机和真实 AI 服务；当前主要开发阶段依据 `STATE.json` 推进。Phase 2 已完成独立 Edge/CDP smoke，但不等于所有浏览器/手机已验收。详细历史见 `docs/TEST_REPORT.md` 与 `CHECKPOINT.md`。
 
@@ -160,7 +160,7 @@ npm start
 本项目正在从「自适应背单词软件」升级为完整的 **Personal English Learning System**（V2）。产品规格见 `PROJECT_SPEC.md`，工程协议与阶段计划见 `AGENT_EXECUTION.md`。
 
 - **接手入口（换模型/换会话必读）**：依次读 `PROJECT_SPEC.md` → `STATE.json` → `CHECKPOINT.md` → `HANDOFF.md` → `TODO.md` → `DEVELOPMENT_LOG.md`，再核对实际磁盘与 Git。
-- **当前阶段**：见 `HANDOFF.md`（Phase 0–11 已完成；当前 Phase 11 考试迁移已交付，等待用户指定下一阶段）。
+- **当前阶段**：见 `HANDOFF.md`（Phase 0–12 已完成；当前 Phase 12 考试记录已完成，等待用户指定下一阶段）。
 - **基线**：V1 MVP 基线 commit `6c1c625`（tag `v1.0.0-mvp-baseline`）；该提交已实测：`npm test` 20/20、`npm run build` 成功、`node server.mjs` 服务实测 200。
 - **硬约束**：旧数据 100% 保留；审计 → 复用 → 扩展 → 迁移 → 验证；禁止无理由重写现有词汇模块。
 - **源码格式**：`src/*.ts`、`tests/*.ts` 由 `docs/format-source.mjs` 整理为紧凑格式，编辑后请保持一致或重跑该脚本。
@@ -254,3 +254,30 @@ Based on your interests / Based on your recent activity / Related to your Mini U
 - 对比只在同长度窗口、两侧都达到最少样本时显示；零变化不堆页面。
 - 今日快照 / 本周诊断可重复生成且幂等；诊断焦点只重排柔性任务，不改学习时长或关键任务。
 - 全程本地计算，无 AI Key 也能用；详见 `docs/PHASE10_DIAGNOSTICS.md` 与 `docs/PHASE10_RESEARCH.md`。
+
+
+### 考试迁移（Phase 11）
+
+导航「考试迁移」把**新题作答、错因复盘、迁移复测**串成一条链，不预测高考分数。
+
+- 规格按年份/考试类别版本化：2026 春考外语已确认 150 分（笔试 115 + 听说 35）；2028 官方规则未发布，所有未知字段保持空/暂定。
+- 题目必须标来源、答案依据、审核状态；AI 生成题不得冒充真题；听力无音频不生成任务。
+- 统一测评：自动保存、刷新恢复、revision 冲突显式提示；未答完不算总分；含开放题只报客观分。
+- 错因六类（词汇/结构/逻辑/证据/过度推断/时间压力）+ 二级 + 置信度 + 其他可能；证据不足标“不确定”，用户可修正。
+- 迁移只用未做过的新题；没有新题就拒绝，不拿重复题冒充进步；复测不直接改词汇掌握度。
+- 周测 15–25 分钟，五部分（延迟词汇/未见句子/真实未读文章/独立表达/翻译依赖自评）；缺材料明确不可用。
+- 考试练习默认不进每日计划；开启后最多 1 题、5–10 分钟、低优先级，不挤占关键记忆任务。
+- 诊断新增「考试迁移」域：客观题正确率、独立完成占比、迁移复测次数、时间压力、错因不确定占比；不提供官方分数预测。
+- DB v7 additive（5 个新 store）；旧备份可读；详见 `docs/PHASE11_EXAM_TRANSFER.md` 与 `docs/PHASE11_RESEARCH.md`。
+
+### 考试记录与分值一致性（Phase 12）
+
+「考试迁移 → 学校记录」记录真实参加过的**校内考试、月考、模拟考试和自定义考试**，不要求套用高考分值。
+
+- 类别、适用年份和满分保持一致：绑定规格时由规格决定并锁定；自定义考试显式填写实际年份与满分。
+- 官方已确认规格的总分与本次满分不同时，保存前必须确认“这是自定义/校内计分”，记录卡保留冲突标记。
+- 暂定/未知规格（如 2028）不预填任何“官方满分”，也不把参考分写成官方分。
+- 得分必须满足 `0 ≤ 得分 ≤ 满分`；写入层与 UI 双重校验。
+- 每条记录固定 `self_reported` 来源，可刷新、编辑、删除、导出、导入或随完整备份恢复；类别/年份/满分/来源不丢。
+- 自评（如“阅读时间不够”）只作为线索保存，`errorTypes` 为空，不升级成已验证错因；诊断只有 `exam.selfReportedLogs` 计数。
+- 详见 `docs/PHASE12_EXAM_LOG.md`。

@@ -189,6 +189,8 @@ export interface ExamSession {
     }[];
     createdAt: number;
 }
+export type ExamLogType = 'school_exam' | 'monthly_exam' | 'mock_exam' | 'custom';
+export type ExamLogScoreBasis = 'official_total' | 'custom_total';
 export interface ExamLog {
     id: string;
     date: string;
@@ -205,6 +207,23 @@ export interface ExamLog {
     selfAssessment: string;
     source: string;
     createdAt: number;
+    /** Phase 12：用户实际参加的考试类型；旧记录缺省按校内考试显示。 */
+    examType?: ExamLogType;
+    /** Phase 12：自定义名称可为空，保存时必填；不与官方规格混淆。 */
+    examName?: string;
+    /** Phase 12：绑定的规格；为空表示自定义/不绑定。 */
+    specId?: string | null;
+    /** Phase 12：可从规格推导的适用年份；自定义考试必须显式填写。 */
+    applicableYear?: number | null;
+    /** Phase 12：满分依据；official_total 仅表示与官方总分相同，不代表官方成绩。 */
+    scoreBasis?: ExamLogScoreBasis;
+    /** Phase 12：官方总分与本次满分不一致时，用户显式确认自定义计分。 */
+    conflictAcknowledged?: boolean;
+    /** Phase 12：自报记录固定为线索，不进入已验证错因/能力。 */
+    clueOnly?: boolean;
+    /** Phase 12：自报来源标记，导出/恢复必须保留。 */
+    scoreSource?: 'self_reported';
+    updatedAt?: number;
 }
 export interface ExamData {
     examSpecifications: ExamSpecification[];

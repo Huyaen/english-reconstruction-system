@@ -36,6 +36,7 @@ export function examMetrics(data: Data, range: Range): MetricValue[] {
     const pressured = timed.filter(s => s.timeUsedMs >= s.timeLimitMinutes * 60000 * 0.9);
     const errors = sessions.flatMap(s => s.errors);
     const uncertain = errors.filter(e => e.category === 'uncertain');
+    const logs = (data.examLogs ?? []).filter(l => inRange(l.createdAt, range));
     const out: MetricValue[] = [
         rateMetric({
             id: 'exam.objectiveAccuracy', domain: 'exam', label: '考试客观题正确率', numerator: objective.correct, denominator: objective.total,
@@ -65,6 +66,11 @@ export function examMetrics(data: Data, range: Range): MetricValue[] {
             quality: 'task-behavior', reasons: errors.length ? [] : ['本窗口没有错因记录。'],
         }),
     ];
+    out.push(metric({
+        id: 'exam.selfReportedLogs', domain: 'exam', label: '自报考试记录', kind: 'count', value: logs.length || null,
+        sample: logs.length, definition: '窗口内用户自报的校内/月考/模拟/自定义考试条数；只作事实线索，不参与错因或能力计算。',
+        quality: 'task-behavior', reasons: logs.length ? ['来源固定为 self_reported；自评文字不升级为已验证错因。'] : ['本窗口没有自报考试记录。'],
+    }));
     // 明确不使用“考试总分/预测分”：仅有题目的来源与分值，不足以推断官方分数。
     out.push(metric({
         id: 'exam.officialScoreEstimate', domain: 'exam', label: '官方分数预测', kind: 'index', value: null, sample: 0,
@@ -73,6 +79,7 @@ export function examMetrics(data: Data, range: Range): MetricValue[] {
     }));
     return out;
 }
+// 自报记录（含“阅读时间不够”等自评）不在此函数内：它们没有已验证的 item 级错误证据。
 export function examErrorCategoryCounts(data: Data, range: Range): {
     category: string;
     count: number;

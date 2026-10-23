@@ -201,3 +201,14 @@ S≥90、A≥65、B≥40、C≥15、其余D。到期与弱词队列按分数降�
 - **周测**：词库按不同释义去重；未读 Passage 才可用；题目快照存会话；总时长超过 25 分钟优先移除开放阅读/表达并记录 unavailable。
 - **考试计划**：`planEnabled=false` 默认；开启且有新题且剩余 ≥6 分钟时加 1 题（5–10 分钟，priority 32，flexible）；critical/closing 顺序不变。
 - **诊断**：客观正确率分母 = 已提交客观题；独立完成分母 = 完成会话；官方分预测固定 `not-applicable`，绝不合成 150 分制。
+
+
+## 考试记录一致性（Phase 12）
+
+- **满分预填**：仅 `spec.status='official_confirmed' && totalScore !== null` 时使用官方总分；`provisional/unknown/historical_reference` 与 2028 一律不预填。
+- **冲突闸门**：绑定官方规格且 `fullScore !== totalScore` → `blockedConflict=true`，必须 `conflictAcknowledged=true`；写入 `scoreBasis='custom_total'`，记录卡保留“满分与官方规格不一致”。
+- **一致性**：绑定 `specId` 时 `examCategory`、`applicableYear` 必须来自规格；未绑定则用户填写年份，类别只是标签，不映射官方分值。
+- **边界**：`fullScore>0` 且 `0 ≤ reportedScore ≤ fullScore`；`saveExamLog()` 再校验一次，UI 不能绕过。
+- **来源**：写入强制 `source='self_report'`、`scoreSource='self_reported'`、`clueOnly=true`、`errorTypes=[]`；导出/导入/备份保留。
+- **自评**：`selfAssessment` 仅自由文本线索；不映射 `ExamErrorCategory`，不进入 `examErrorCategoryCounts`；诊断只有 `exam.selfReportedLogs` 计数。
+- **恢复**：完整备份按 store 往返；专用导出 schema `erv2-exam-logs`，导入逐条经 `sanitizeExamLog` 校验，越界记录拒绝。

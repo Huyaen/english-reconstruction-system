@@ -40,13 +40,14 @@ import { evaluateRepair } from './outputRepair.ts';
 import { buildTaskSpec as buildOutputTask, canShowModelAnswer } from './outputTask.ts';
 import { localChecks } from './outputDiagnosis.ts';
 // —— Phase 11：考试迁移与统一测评（消费层）——
-import type { AssessmentItem, ExamErrorCategory, ExamSession, ExamSpecification, WeeklyAssessmentReport } from './examTypes.ts';
-import { ensureExamContent, saveExamSession, saveExamLog, deleteExamLog, getExamBank, clearExamSessions } from './examStore.ts';
+import type { AssessmentItem, ExamErrorCategory, ExamLog, ExamLogType, ExamSession, ExamSpecification, WeeklyAssessmentReport } from './examTypes.ts';
+import { ensureExamContent, saveExamSession, saveExamLog, deleteExamLog, clearExamLogs, getExamBank, clearExamSessions } from './examStore.ts';
 import { createExamSession, startSession as startExamSession, saveAnswer as saveExamAnswer, submitSession, reviewSession, completeSession, pauseSession, scoreStatusLabel, gradeSession } from './examSession.ts';
 import { collectErrors, correctError, errorCategoryLabel } from './examErrors.ts';
 import { freshExamItems, buildWeeklyAssessment, weeklySession, weeklyReportFrom, buildTransferRetest, type WeeklyBuild } from './weeklyAssessment.ts';
 import { planExamTask } from './examPlanner.ts';
 import { examOverviewHtml, examPracticeListHtml, examSessionHtml, examResultHtml, weeklyPanelHtml, examLogsHtml, specsAuditHtml } from './examView.ts';
+import { EXAM_LOG_TYPES, examLogSpecLabel, examLogTypeLabel, examLogTypeOf, officialTotalForSpec, validateExamLogDraft, sanitizeExamLog, exportExamLogs, parseExamLogsExport } from './examLog.ts';
 import { transcriptText } from './inputActions.ts';
 import { planInputMinutes, suggestMode } from './inputSession.ts';
 import { captionCaveat } from './inputReflection.ts';
@@ -2689,7 +2690,7 @@ function installTestHook(): void {
                 specs: (d.examSpecifications ?? []).map(s => ({ id: s.id, year: s.applicableYear, category: s.examCategory, status: s.status, total: s.totalScore, written: s.writtenScore, oral: s.listeningSpeakingScore, sources: s.sourceRefs.length })),
                 items: (d.examItems ?? []).map(i => ({ id: i.id, type: i.questionType, provenance: i.provenance, verified: i.verifiedStatus, options: i.options.length, key: i.answerKey })),
                 sessions: (d.examSessions ?? []).map(x => ({ id: x.id, mode: x.mode, status: x.status, items: x.itemIds, itemsDetail: x.items.map(i => ({ id: i.id, type: i.questionType, options: i.options.length, key: i.answerKey })), answers: Object.keys(x.answers).length, score: x.score, scoreStatus: x.scoreStatus, errors: x.errors.map(e => ({ item: e.itemId, category: e.category, confidence: e.confidence })), unavailable: x.unavailableSections ?? [], weeklyReportId: x.weeklyReportId ?? null })),
-                logs: (d.examLogs ?? []).map(l => ({ id: l.id, date: l.date, score: l.reportedScore, full: l.fullScore, source: l.source })),
+                logs: (d.examLogs ?? []).map(l => ({ id: l.id, date: l.date, name: l.examName ?? l.name, type: l.examType ?? 'school_exam', category: l.examCategory, year: l.applicableYear ?? null, specId: l.specId ?? null, score: l.reportedScore, full: l.fullScore, source: l.scoreSource ?? l.source, scoreBasis: l.scoreBasis ?? 'custom_total', clueOnly: l.clueOnly ?? true, conflictAcknowledged: l.conflictAcknowledged ?? false, note: l.selfAssessment })),
                 planEnabled: d.settings.exam?.planEnabled ?? false,
                 current: examSessionId,
                 words: d.words.length,
@@ -2717,6 +2718,10 @@ function installTestHook(): void {
             return { words: data.words.length, passages: data.passages.length };
         },
         async resetSessions() { await clearExamSessions(); data = await loadData(); examSessionId = ''; return { ok: true }; },
+        async resetLogs() { await clearExamLogs(); data = await loadData(); examLogEditingId = ''; return { ok: true }; },
+        async exportLogs() { return exportExamLogs(await loadData().then(d => d.examLogs ?? [])); },
+        async importLogs(text: string) { const parsed = parseExamLogsExport(text, examSpecList()); for (const log of parsed.logs)
+            await saveExamLog(log); data = await loadData(); return { ok: parsed.ok, imported: parsed.logs.length, errors: parsed.errors }; },
         async weeklyPreview() { const d = await loadData(); const b = buildWeeklyAssessment(d, d.examItems ?? [], d.examSessions ?? [], Date.now()); return { items: b.items.map(i => ({ id: i.id, type: i.questionType, stem: i.stem.slice(0, 40) })), minutes: b.minutes, unavailable: b.unavailable }; },
         async startWeekly() { await startWeeklyExam(); return { ok: !!examSessionId, id: examSessionId }; },
         async startMixed() {
@@ -3530,6 +3535,7 @@ function readingWords(): void {
 // 纪律：这里不计算掌握、不预测分数；只把考试规格、题库、会话与复盘串起来。
 let examTab: 'overview' | 'practice' | 'weekly' | 'logs' | 'specs' = 'overview';
 let examSessionId = '';
+let examLogEditingId = '';
 let examIndex = 0;
 let examDraft = '';
 let examBusy = false;
@@ -3710,7 +3716,7 @@ function examPageApp(): void {
         body = weeklyPanelHtml(build, existing ?? null, report ? weeklyReportFrom(report, { items: report.items, minutes: report.timeLimitMinutes, unavailable: report.unavailableSections ?? [] }) : null);
     }
     else if (examTab === 'logs')
-        body = examLogsHtml(logs, specs);
+        body = examLogsHtml(logs, specs, examLogEditingId);
     else if (examTab === 'specs')
         body = specsAuditHtml(specs, items);
     else if (examTab === 'practice')
@@ -3824,26 +3830,154 @@ function examPageApp(): void {
         await persistExam(next, cur.revision);
         render();
     });
-    on('#log-add', 'click', async () => {
-        const date = document.querySelector<HTMLInputElement>('#log-date')!.value;
-        const category = document.querySelector<HTMLSelectElement>('#log-category')!.value as ExamSpecification['examCategory'];
-        const score = Number(document.querySelector<HTMLInputElement>('#log-score')!.value);
-        const full = Number(document.querySelector<HTMLInputElement>('#log-full')!.value);
-        const note = document.querySelector<HTMLInputElement>('#log-note')!.value.trim();
-        if (!date || !Number.isFinite(score) || !Number.isFinite(full) || full <= 0 || score < 0 || score > full) {
-            toast('请填写有效分数（0 ≤ 得分 ≤ 满分）');
-            return;
-        }
-        await saveExamLog({ id: `log-${Date.now()}`, date, examCategory: category, name: category, fullScore: full, reportedScore: score, sectionResults: [], errorTypes: [], selfAssessment: note, source: 'self_report', createdAt: Date.now() });
-        await reloadExam();
-        render();
-        toast('已保存：这是自报记录，不是系统验证成绩');
-    });
-    document.querySelectorAll<HTMLElement>('.exam-log-del').forEach(b => b.onclick = async () => {
-        await deleteExamLog(b.dataset.log!);
-        await reloadExam();
-        render();
-    });
+    if (examTab === 'logs' && !examSessionId) {
+        const readLogDraft = (): import('./examLog.ts').ExamLogDraft => ({
+            date: document.querySelector<HTMLInputElement>('#log-date')!.value,
+            examType: document.querySelector<HTMLSelectElement>('#log-type')!.value as ExamLogType,
+            name: document.querySelector<HTMLInputElement>('#log-name')!.value.trim(),
+            specId: document.querySelector<HTMLSelectElement>('#log-spec')!.value,
+            examCategory: document.querySelector<HTMLSelectElement>('#log-category')!.value as ExamSpecification['examCategory'],
+            applicableYear: Number(document.querySelector<HTMLInputElement>('#log-year')!.value) || null,
+            fullScore: Number(document.querySelector<HTMLInputElement>('#log-full')!.value),
+            reportedScore: Number(document.querySelector<HTMLInputElement>('#log-score')!.value),
+            selfAssessment: document.querySelector<HTMLInputElement>('#log-note')!.value.trim(),
+            conflictAcknowledged: document.querySelector<HTMLInputElement>('#log-ack')!.checked,
+            editingId: examLogEditingId || undefined,
+        });
+        let logTouched = false;
+        const paintLogCheck = (): void => {
+            const draft = readLogDraft();
+            const v = validateExamLogDraft(draft, specs);
+            const spec = v.spec;
+            const basis = document.querySelector<HTMLElement>('#log-basis');
+            if (basis) {
+                basis.textContent = spec
+                    ? spec.status === 'official_confirmed' && spec.totalScore !== null
+                        ? `官方已确认总分 ${spec.totalScore}；可以改成实际满分，但必须确认是自定义计分。`
+                        : spec.totalScore === null
+                            ? '该规格总分未知/待确认，不预填官方满分；请填本次实际满分。'
+                            : `规格参考总分 ${spec.totalScore} 未获官方确认；按本次实际满分保存。`
+                    : '按本次实际试卷填写，不用高考分值代替。';
+                basis.classList.toggle('custom', v.scoreBasis === 'custom_total');
+            }
+            const box = document.querySelector<HTMLElement>('#log-conflict');
+            if (box) {
+                const show = logTouched || !!examLogEditingId;
+                const messages = show ? [...v.errors.map(e => `<p class="exam-log-error">${esc(e)}</p>`), ...v.warnings.map(w => `<p>${esc(w)}</p>`)] : [];
+                box.className = `exam-log-warning${v.blockedConflict ? ' blocked' : ''}`;
+                box.dataset.basis = v.scoreBasis;
+                box.hidden = messages.length === 0;
+                box.innerHTML = messages.join('');
+            }
+            const ack = document.querySelector<HTMLElement>('#log-ack-wrap');
+            if (ack)
+                ack.hidden = !v.blockedConflict;
+        };
+        const syncLogSpec = (prefill: boolean): void => {
+            const spec = specs.find(s => s.id === document.querySelector<HTMLSelectElement>('#log-spec')!.value) ?? null;
+            const category = document.querySelector<HTMLSelectElement>('#log-category')!;
+            const year = document.querySelector<HTMLInputElement>('#log-year')!;
+            const full = document.querySelector<HTMLInputElement>('#log-full')!;
+            if (spec) {
+                category.value = spec.examCategory;
+                category.disabled = true;
+                year.value = String(spec.applicableYear);
+                year.readOnly = true;
+                if (prefill) {
+                    const official = officialTotalForSpec(spec);
+                    full.value = official === null ? '' : String(official);
+                }
+            }
+            else {
+                category.disabled = false;
+                year.readOnly = false;
+            }
+            paintLogCheck();
+        };
+        on('#log-spec', 'change', () => syncLogSpec(true));
+        ['#log-category', '#log-year', '#log-score', '#log-full', '#log-note', '#log-ack'].forEach(sel => {
+            document.querySelector(sel)?.addEventListener('input', () => { logTouched = true; paintLogCheck(); });
+            document.querySelector(sel)?.addEventListener('change', () => { logTouched = true; paintLogCheck(); });
+        });
+        paintLogCheck();
+        on('#log-add', 'click', async () => {
+            logTouched = true;
+            const draft = readLogDraft();
+            const v = validateExamLogDraft(draft, specs);
+            paintLogCheck();
+            if (!v.ok) {
+                toast(v.errors[0]);
+                return;
+            }
+            const prev = examLogEditingId ? logs.find(l => l.id === examLogEditingId) : null;
+            const now = Date.now();
+            const log: ExamLog = {
+                id: prev?.id ?? `log-${now}`,
+                date: draft.date,
+                name: draft.name,
+                examName: draft.name,
+                examType: draft.examType,
+                examCategory: v.spec?.examCategory ?? draft.examCategory,
+                specId: v.spec?.id ?? null,
+                applicableYear: v.spec?.applicableYear ?? draft.applicableYear,
+                fullScore: draft.fullScore,
+                reportedScore: draft.reportedScore,
+                sectionResults: prev?.sectionResults ?? [],
+                errorTypes: [],
+                selfAssessment: draft.selfAssessment,
+                source: 'self_report',
+                scoreSource: 'self_reported',
+                scoreBasis: v.scoreBasis,
+                conflictAcknowledged: v.blockedConflict ? draft.conflictAcknowledged : false,
+                clueOnly: true,
+                createdAt: prev?.createdAt ?? now,
+                updatedAt: now,
+            };
+            try {
+                await saveExamLog(log);
+            }
+            catch (e) {
+                toast(e instanceof Error ? e.message : '保存失败');
+                return;
+            }
+            examLogEditingId = '';
+            await reloadExam();
+            render();
+            toast(draft.conflictAcknowledged && v.blockedConflict ? '已保存为自定义计分；来源仍是 self_reported' : '已保存：自报记录，不是系统验证成绩');
+        });
+        on('#log-cancel', 'click', () => { examLogEditingId = ''; render(); });
+        document.querySelectorAll<HTMLElement>('.exam-log-edit').forEach(b => b.onclick = () => {
+            examLogEditingId = b.dataset.log!;
+            render();
+        });
+        document.querySelectorAll<HTMLElement>('.exam-log-del').forEach(b => b.onclick = async () => {
+            await deleteExamLog(b.dataset.log!);
+            if (examLogEditingId === b.dataset.log)
+                examLogEditingId = '';
+            await reloadExam();
+            render();
+        });
+        on('#exam-logs-export', 'click', () => {
+            const payload = exportExamLogs(examLogList());
+            download(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), `考试记录-${new Date().toISOString().slice(0, 10)}.json`);
+            toast('已导出考试记录（含类别、年份、满分与 self_reported 来源）');
+        });
+        document.querySelector<HTMLInputElement>('#exam-logs-import')?.addEventListener('change', async (ev) => {
+            const file = (ev.target as HTMLInputElement).files?.[0];
+            if (!file)
+                return;
+            const parsed = parseExamLogsExport(await file.text(), specs);
+            if (!parsed.ok) {
+                toast(parsed.errors[0] ?? '导入失败');
+                return;
+            }
+            for (const log of parsed.logs)
+                await saveExamLog(log);
+            await reloadExam();
+            render();
+            toast(`已导入 ${parsed.logs.length} 条；${parsed.errors.length} 条被拒绝`);
+        });
+    }
 }
 async function boot() {
     installTestHook();

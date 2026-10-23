@@ -94,10 +94,11 @@ try {
     // 学校考试记录
     await cdp.click('[data-exam-tab="logs"]');
     await cdp.waitFor('document.querySelector("#log-score")', 8000, 'logs');
-    await cdp.eval(`(()=>{document.querySelector('#log-score').value='102';document.querySelector('#log-full').value='150';document.querySelector('#log-note').value='阅读时间不够';document.querySelector('#log-add').click();return 'ok';})()`);
-    await sleep(400);
+    await cdp.eval(`(()=>{const set=(s,v)=>{const e=document.querySelector(s);e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))};set('#log-name','分类隔离记录');set('#log-category','shanghai-academic-foreign-language');set('#log-year','2026');set('#log-score','102');set('#log-full','150');set('#log-note','阅读时间不够');document.querySelector('#log-add').click();return 'ok';})()`);
+    await sleep(500);
     snap = await cdp.eval('__examTest.snapshot()');
-    check('O. 学校分数作为自报记录保存，分类隔离', snap.logs.length >= 1 && snap.logs[0].score === 102 && snap.logs[0].full === 150, JSON.stringify(snap.logs[0]));
+    const school = snap.logs.find(l => l.name === '分类隔离记录');
+    check('O. 学校分数作为自报记录保存，分类隔离', !!school && school.score === 102 && school.full === 150 && school.category === 'shanghai-academic-foreign-language' && school.source === 'self_reported', JSON.stringify(school));
     check('P. 页面无未捕获 JavaScript 错误', cdp.errors.length === 0, cdp.errors.slice(0, 2).join(' | '));
 } catch (e) {
     check('Z. 冒烟执行完成', false, e.message);

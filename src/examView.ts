@@ -1,6 +1,7 @@
 // —— Phase 11：考试迁移 UI（纯 HTML，所有用户文本 esc）——
 // 设计底线：不制造“官方分数”；来源/评分状态/不确定性始终显示。
 import type { AssessmentItem, ExamLog, ExamSession, ExamSpecification, WeeklyAssessmentReport } from './examTypes.ts';
+import { EXAM_LOG_TYPES, examLogCategoryLabel, examLogSpecLabel, examLogTypeLabel, examLogTypeOf } from './examLog.ts';
 import type { Data } from './types.ts';
 import { esc, date } from './ui.ts';
 import { examCategoryLabel, statusLabel } from './examSpecification.ts';
@@ -86,12 +87,54 @@ export function weeklyPanelHtml(build: {
         <p class="hint">预定 ${build.minutes} 分钟。启动时生成固定题目快照；刷新不会换题。</p>
         ${session ? `<button class="primary" id="exam-resume-weekly">继续周测</button>` : `<button class="primary" id="exam-start-weekly-now" ${build.items.length < 3 ? 'disabled' : ''}>开始周测</button>`}</section>`;
 }
-export function examLogsHtml(logs: ExamLog[], specs: ExamSpecification[]): string {
-    const rows = logs.slice().sort((a, b) => b.date.localeCompare(a.date)).map(l => `<tr><td>${esc(l.date)}</td><td>${esc(examCategoryLabel(l.examCategory))}</td><td>${l.reportedScore}/${l.fullScore}</td><td>${esc(l.selfAssessment)}</td><td><button class="text-button exam-log-del" data-log="${esc(l.id)}">删除</button></td></tr>`).join('');
-    return `<section class="panel"><div class="section-title"><h2>学校考试记录</h2><span class="subtle">自报 · 非系统验证</span></div>
-        <div class="exam-log-form"><label>日期<input type="date" id="log-date" value="${new Date().toISOString().slice(0, 10)}"></label><label>考试<select id="log-category">${specs.map(s => `<option value="${esc(s.examCategory)}">${esc(examCategoryLabel(s.examCategory))} ${s.applicableYear}</option>`).join('')}<option value="other">其他</option></select></label><label>得分<input type="number" id="log-score" min="0" step="0.5" placeholder="如 102"></label><label>满分<input type="number" id="log-full" min="1" step="0.5" value="150"></label><label>自评<input type="text" id="log-note" maxlength="200" placeholder="如：阅读时间不够"></label><button class="primary" id="log-add">保存记录</button></div>
-        <p class="hint">学校分数是你提供的事实记录，不是系统测出来的；系统不会用它反推掌握度或预测下次分数。</p>
-        ${rows ? `<table class="exam-table"><thead><tr><th>日期</th><th>考试</th><th>分数</th><th>自评</th><th></th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="empty-note">还没有学校考试记录。</p>'}</section>`;
+export function examLogsHtml(logs: ExamLog[], specs: ExamSpecification[], editingId = ''): string {
+    const today = new Date().toISOString().slice(0, 10);
+    const editing = editingId ? logs.find(l => l.id === editingId) ?? null : null;
+    const specFor = (l: ExamLog) => l.specId ? specs.find(s => s.id === l.specId) ?? null : null;
+    const specNote = (s: ExamSpecification) => s.status === 'official_confirmed' && s.totalScore !== null
+        ? `官方已确认总分 ${s.totalScore}；满分可改，但改后必须确认这是自定义计分。`
+        : s.totalScore === null
+            ? '该规格总分未知/待确认，不预填任何“官方满分”；请填写本次实际满分。'
+            : `该规格总分 ${s.totalScore} 只是${s.status === 'provisional' ? '暂定/参考' : '历史参考'}，不是官方确认；按本次实际满分保存。`;
+    const selectedSpec = editing?.specId ? specs.find(s => s.id === editing.specId) ?? null : null;
+    const category = editing?.examCategory ?? selectedSpec?.examCategory ?? 'other';
+    const year = editing?.applicableYear ?? selectedSpec?.applicableYear ?? new Date().getFullYear();
+    const scoreBasis = editing?.scoreBasis ?? 'custom_total';
+    const rows = logs.slice().sort((a, b) => b.date.localeCompare(a.date)).map(l => {
+        const s = specFor(l);
+        const conflict = s && s.status === 'official_confirmed' && s.totalScore !== null && l.fullScore !== s.totalScore;
+        const basis = l.scoreBasis === 'official_total'
+            ? '满分依据：与官方确认总分一致'
+            : conflict ? `满分依据：自定义（官方规格总分 ${s.totalScore}）` : '满分依据：自定义 / 本次实际试卷';
+        return `<article class="exam-log-item">
+            <div class="exam-log-head"><strong>${esc(l.examName || l.name)}</strong><span class="badge">${esc(examLogTypeLabel(examLogTypeOf(l)))}</span><time datetime="${esc(l.date)}">${esc(l.date)}</time></div>
+            <div class="exam-log-meta"><span>${esc(examLogCategoryLabel(l.examCategory))} · ${l.applicableYear ?? '年份未记'}</span><span class="exam-log-score">${l.reportedScore} / ${l.fullScore}</span><span>${esc(basis)}</span></div>
+            <div class="exam-log-source">来源：<strong>${esc(l.scoreSource ?? 'self_reported')}</strong>（学生自报，未经系统核验）${conflict ? '<span class="exam-log-conflict">满分与官方规格不一致</span>' : ''}</div>
+            ${l.selfAssessment ? `<p class="exam-log-clue">自评线索：${esc(l.selfAssessment)} <span>仅线索，不作已验证错因</span></p>` : ''}
+            <div class="exam-log-actions"><button class="text-button exam-log-edit" data-log="${esc(l.id)}">编辑</button><button class="text-button exam-log-del" data-log="${esc(l.id)}">删除</button></div>
+        </article>`;
+    }).join('');
+    return `<section class="panel"><div class="section-title"><h2>学校考试记录</h2><span class="subtle">学生自报（self_reported）· 未经系统核验</span></div>
+        <p class="hint">记录你真实参加过的考试，不要求使用高考分值。校内考试、月考、模拟考试和自定义考试都可以保存；分数只作为事实记录，不反推掌握度、不预测下次分数。</p>
+        <div class="exam-log-form">
+            <label class="log-date">日期<input type="date" id="log-date" value="${esc(editing?.date ?? today)}"></label>
+            <label class="log-type">考试类型<select id="log-type">${EXAM_LOG_TYPES.map(t => `<option value="${t.id}" ${examLogTypeOf(editing ?? { examType: 'school_exam' } as ExamLog) === t.id ? 'selected' : ''}>${t.label}</option>`).join('')}</select></label>
+            <label class="log-name"><span class="field-label">考试名称 <span class="req">*</span></span><input type="text" id="log-name" maxlength="80" value="${esc(editing?.examName ?? editing?.name ?? '')}" placeholder="如：高三第一次月考"></label>
+            <label class="log-spec">绑定规格（可选）<select id="log-spec"><option value="">自定义 / 不绑定官方规格</option>${specs.map(s => `<option value="${esc(s.id)}" ${editing?.specId === s.id ? 'selected' : ''}>${esc(examLogSpecLabel(s))}</option>`).join('')}</select></label>
+            <label class="log-category">考试类别<select id="log-category" ${selectedSpec || editing?.specId ? 'disabled' : ''}>${([
+        'shanghai-gaokao-foreign-language-first', 'shanghai-gaokao-foreign-language-second', 'shanghai-spring-exam-foreign-language', 'shanghai-academic-foreign-language', 'other',
+    ] as const).map(c => `<option value="${c}" ${category === c ? 'selected' : ''}>${esc(examLogCategoryLabel(c))}</option>`).join('')}</select></label>
+            <label class="log-year">适用年份<input type="number" id="log-year" min="2000" max="2100" step="1" value="${year}" ${selectedSpec || editing?.specId ? 'readonly' : ''}></label>
+            <label class="log-score">得分<input type="number" id="log-score" min="0" step="0.5" value="${editing?.reportedScore ?? ''}" placeholder="如 102"></label>
+            <label class="log-full"><span class="field-label">本次满分 <span class="req">*</span></span><input type="number" id="log-full" min="0.5" step="0.5" value="${editing?.fullScore ?? ''}" placeholder="按实际试卷填写"></label>
+            <label class="log-note">自评 / 线索（可选）<input type="text" id="log-note" maxlength="200" value="${esc(editing?.selfAssessment ?? '')}" placeholder="如：阅读时间不够（只作线索）"></label>
+            <p id="log-basis" class="exam-log-basis">按本次实际试卷填写满分，不用高考分值代替。</p>
+            <label class="exam-log-ack" id="log-ack-wrap"><input type="checkbox" id="log-ack" ${editing?.conflictAcknowledged ? 'checked' : ''}> 我确认：本次满分与官方总分不同，这是自定义/校内计分</label>
+            <div class="exam-log-actions"><button class="primary" id="log-add">${editing ? '保存修改' : '保存记录'}</button>${editing ? '<button class="secondary" id="log-cancel">取消编辑</button>' : ''}</div>
+        </div>
+        <div id="log-conflict" class="exam-log-warning" data-basis="${scoreBasis}" hidden></div>
+        <div class="section-title"><h3>全部记录</h3><div class="actions"><button class="secondary" id="exam-logs-export">导出考试记录</button><label class="button secondary">导入考试记录<input id="exam-logs-import" type="file" accept=".json,application/json" hidden></label></div></div>
+        ${rows ? `<div class="exam-log-list">${rows}</div>` : '<p class="empty-note">还没有考试记录。保存后可刷新、编辑、删除、导出或随完整备份恢复。</p>'}</section>`;
 }
 export function specsAuditHtml(specs: ExamSpecification[], items: AssessmentItem[]): string {
     return `<section class="panel"><div class="section-title"><h2>规格审计</h2><span class="subtle">来源优先于记忆</span></div>
