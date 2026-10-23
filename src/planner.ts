@@ -46,7 +46,7 @@ export const TASK_LABELS: Record<string, string> = {
     'output-task': '真实表达',
     ...SENTENCE_TASK_LABELS,
 };
-export const MODULES = ['vocabulary', 'sentence', 'reading', 'input', 'output'] as const;
+export const MODULES = ['vocabulary', 'sentence', 'reading', 'input', 'output', 'exam'] as const;
 export type PlanModule = (typeof MODULES)[number];
 export interface Capability {
     available: boolean;
@@ -63,6 +63,7 @@ export interface CapabilityOverrides {
     reading?: boolean;
     input?: boolean;
     output?: boolean;
+    exam?: boolean;
 }
 export function moduleCapabilities(overrides: CapabilityOverrides = {}): Record<PlanModule, Capability> {
     const base: Record<PlanModule, Capability> = {
@@ -71,6 +72,7 @@ export function moduleCapabilities(overrides: CapabilityOverrides = {}): Record<
         reading: { available: true, requires: null, label: '阅读' },
         input: { available: true, requires: null, label: '真实输入' },
         output: { available: true, requires: null, label: '真实表达' },
+        exam: { available: true, requires: null, label: '考试迁移' },
     };
     for (const key of MODULES)
         if (overrides[key] === false)
@@ -124,6 +126,8 @@ export interface PlannerInput {
     } | null;
     /** Phase 9：今日表达任务（由 outputSelection 依据真实材料生成；null = 不安排） */
     outputTask?: OutputTaskSpec | null;
+    /** Phase 11：考试迁移任务（默认关闭；仅由调用方在用户开启且有新题时传入） */
+    examTask?: import('./examPlanner.ts').ExamPlanTask | null;
     /** Phase 10：显式传入的短板诊断；只影响柔性任务排序，不改时长与 capability */
     diagnosticFocus?: import('./types.ts').DiagnosticBottleneck | null;
     capabilityOverrides?: CapabilityOverrides;
@@ -139,6 +143,7 @@ export interface BudgetBreakdown {
     reading: number;
     input: number;
     output?: number;
+    exam?: number;
     due: number;
     weak: number;
     planned: number;
@@ -160,6 +165,8 @@ export interface BudgetBreakdown {
         inputMinutes: number;
         outputTasks?: number;
         outputMinutes?: number;
+        examTasks?: number;
+        examMinutes?: number;
     };
     reasons: string[];
 }
@@ -703,7 +710,20 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
     const closingTask = closingMinutes > 0
         ? makeTask(date, 'closing-recall', closingMinutes, closingRefs, { priority: 10, critical: true, flexible: false, source: 'closing', reason: ['closing-loop-3-5min'] })
         : null;
-    const middle: Array<PlanItem | null> = memoryFirst ? [dueTask, previewTask, recallTask, weakTask, ...sentenceTasks, ...readingTasks, ...inputTasks, ...outputTasks] : [previewTask, recallTask, dueTask, weakTask, ...sentenceTasks, ...readingTasks, ...inputTasks, ...outputTasks];
+    // —— Phase 11：考试迁移（可选、短时、低优先级；不挤占关键记忆任务）——
+    const examTasks: PlanItem[] = [];
+    if (caps.exam?.available && input.examTask) {
+        const cap = Math.max(0, remaining - (newMinutes + dueMinutes + sentenceMinutesUsed + readingMinutesUsed + inputMinutesUsed + outputMinutesUsed));
+        if (input.examTask.minutes <= cap) {
+            examTasks.push(makeTask(date, 'exam-practice', input.examTask.minutes, [input.examTask.itemId], {
+                priority: 32, critical: false, flexible: true, source: 'exam', module: 'exam', capabilityRequired: 'exam',
+                label: input.examTask.label, reason: input.examTask.reasons,
+            }));
+        }
+        else
+            reasons.push('exam-deferred-budget');
+    }
+    const middle: Array<PlanItem | null> = memoryFirst ? [dueTask, previewTask, recallTask, weakTask, ...sentenceTasks, ...readingTasks, ...inputTasks, ...outputTasks, ...examTasks] : [previewTask, recallTask, dueTask, weakTask, ...sentenceTasks, ...readingTasks, ...inputTasks, ...outputTasks, ...examTasks];
     for (const t of middle)
         if (t)
             tasks.push(t);
@@ -721,9 +741,9 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
     const planned = round1(tasks.reduce((n, t) => n + t.minutes, 0));
     const budget: BudgetBreakdown = {
         availableMinutes: available, closing: closingMinutes, yesterdayRecall: recallMinutes, recovery: recoveryMinutes,
-        newPreview: previewTask?.minutes ?? 0, newRecall: recallTask?.minutes ?? 0, due: dueMinutes, weak: weakMinutes, sentence: round1(sentenceMinutesUsed), reading: round1(readingMinutesUsed), input: round1(inputMinutesUsed), output: round1(outputMinutesUsed),
+        newPreview: previewTask?.minutes ?? 0, newRecall: recallTask?.minutes ?? 0, due: dueMinutes, weak: weakMinutes, sentence: round1(sentenceMinutesUsed), reading: round1(readingMinutesUsed), input: round1(inputMinutesUsed), output: round1(outputMinutesUsed), exam: round1(examTasks.reduce((n, t) => n + t.minutes, 0)),
         planned, unallocated: round1(Math.max(0, available - planned)),
-        load: { dueTotal: dueAll.length, duePlanned: dueWords.length, weakTotal: weakAll.length, weakPlanned: weakWords.length, newRequested: recommendation.recommended, newPlanned: newIds.length, forgottenPlanned: forgottenIds.length, memoryDebt: Math.max(0, dueAll.length - dueWords.length), sentenceTasks: sentenceTasks.length, sentenceSentences: sentenceTasks.reduce((n, t) => n + (t.refs ?? []).length, 0), readingTasks: readingTasks.length, readingMinutes: round1(readingMinutesUsed), inputTasks: inputTasks.length, inputMinutes: round1(inputMinutesUsed), outputTasks: outputTasks.length, outputMinutes: round1(outputMinutesUsed) },
+        load: { dueTotal: dueAll.length, duePlanned: dueWords.length, weakTotal: weakAll.length, weakPlanned: weakWords.length, newRequested: recommendation.recommended, newPlanned: newIds.length, forgottenPlanned: forgottenIds.length, memoryDebt: Math.max(0, dueAll.length - dueWords.length), sentenceTasks: sentenceTasks.length, sentenceSentences: sentenceTasks.reduce((n, t) => n + (t.refs ?? []).length, 0), readingTasks: readingTasks.length, readingMinutes: round1(readingMinutesUsed), inputTasks: inputTasks.length, inputMinutes: round1(inputMinutesUsed), outputTasks: outputTasks.length, outputMinutes: round1(outputMinutesUsed), examTasks: examTasks.length, examMinutes: round1(examTasks.reduce((n, t) => n + t.minutes, 0)) },
         reasons,
     };
     const plan: DailyPlan = {

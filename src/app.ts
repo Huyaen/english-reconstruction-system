@@ -39,6 +39,14 @@ import { buildTransferTask as buildOutputTransfer } from './outputTransfer.ts';
 import { evaluateRepair } from './outputRepair.ts';
 import { buildTaskSpec as buildOutputTask, canShowModelAnswer } from './outputTask.ts';
 import { localChecks } from './outputDiagnosis.ts';
+// —— Phase 11：考试迁移与统一测评（消费层）——
+import type { AssessmentItem, ExamErrorCategory, ExamSession, ExamSpecification, WeeklyAssessmentReport } from './examTypes.ts';
+import { ensureExamContent, saveExamSession, saveExamLog, deleteExamLog, getExamBank, clearExamSessions } from './examStore.ts';
+import { createExamSession, startSession as startExamSession, saveAnswer as saveExamAnswer, submitSession, reviewSession, completeSession, pauseSession, scoreStatusLabel, gradeSession } from './examSession.ts';
+import { collectErrors, correctError, errorCategoryLabel } from './examErrors.ts';
+import { freshExamItems, buildWeeklyAssessment, weeklySession, weeklyReportFrom, buildTransferRetest, type WeeklyBuild } from './weeklyAssessment.ts';
+import { planExamTask } from './examPlanner.ts';
+import { examOverviewHtml, examPracticeListHtml, examSessionHtml, examResultHtml, weeklyPanelHtml, examLogsHtml, specsAuditHtml } from './examView.ts';
 import { transcriptText } from './inputActions.ts';
 import { planInputMinutes, suggestMode } from './inputSession.ts';
 import { captionCaveat } from './inputReflection.ts';
@@ -162,7 +170,7 @@ let readingTask: {
 let labReturn: (LabReturnTarget & {
     planTaskId?: string;
 }) | null = null;
-const navs = [['home', '◫', '今日学习'], ['books', '▤', '我的词库'], ['weak', '◎', '薄弱词'], ['sentence', '❝', '句子训练'], ['reading', '❖', '阅读'], ['input', '▶', '真实输入'], ['output', '✍', '真实表达'], ['grammar', '◈', '语法图谱'], ['unit', '◐', '主题单元'], ['diagnostics', '◮', '学情诊断'], ['stats', '▥', '学习统计'], ['ai', '✦', 'AI 学情'], ['settings', '⚙', '设置与备份']];
+const navs = [['home', '◫', '今日学习'], ['books', '▤', '我的词库'], ['weak', '◎', '薄弱词'], ['sentence', '❝', '句子训练'], ['reading', '❖', '阅读'], ['input', '▶', '真实输入'], ['output', '✍', '真实表达'], ['grammar', '◈', '语法图谱'], ['unit', '◐', '主题单元'], ['diagnostics', '◮', '学情诊断'], ['exam', '⌘', '考试迁移'], ['stats', '▥', '学习统计'], ['ai', '✦', 'AI 学情'], ['settings', '⚙', '设置与备份']];
 function reindex() { wordMap = new Map(data.words.map(w => [w.id, w])); }
 function setPage(p: string) {
     if ((page === 'quiz' && busy) || startingSession) {
@@ -191,7 +199,7 @@ function shell() {
     on('.brand', 'click', e => { e.preventDefault(); setPage('home'); });
     on('#theme', 'click', async () => { const s = { ...data.settings, theme: data.settings.theme === 'light' ? 'dark' : 'light' } as Settings; await saveSettings(s); data.settings = s; document.documentElement.dataset.theme = s.theme; $('#theme').textContent = s.theme === 'light' ? '☾' : '☀'; });
 }
-function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp, input: inputPageApp, output: outputPageApp, diagnostics: diagnosticsPageApp }[page] || home)(); bindAI(); }
+function render() { shell(); ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp, input: inputPageApp, output: outputPageApp, diagnostics: diagnosticsPageApp, exam: examPageApp }[page] || home)(); bindAI(); }
 function title(kicker: string, title: string, sub: string, action = '') { return `<div class="page-title"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p>${sub}</p></div>${action}</div>`; }
 function metric(label: string, value: string, note: string) { return `<div class="metric"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`; }
 function rangeControls() { return `<div class="range-controls"><label>学习范围<select id="range-book"><option value="">全部词书</option>${data.books.map(b => `<option value="${b.id}" ${bookFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label><label>本轮词量<select id="range-count">${[50, 100, 300, 500, 1000].map(n => `<option value="${n}" ${n === 100 ? 'selected' : ''}>${n} 词</option>`).join('')}</select></label><label>测试方向<select id="range-ratio">${![0, 30, 50, 70, 100].includes(data.settings.ratio) ? `<option value="${data.settings.ratio}" selected>英→中 ${data.settings.ratio}%（自定义）</option>` : ''}<option value="50" ${data.settings.ratio === 50 ? 'selected' : ''}>双向各 50%</option><option value="70" ${data.settings.ratio === 70 ? 'selected' : ''}>英→中 70%</option><option value="30" ${data.settings.ratio === 30 ? 'selected' : ''}>中→英 70%</option><option value="100" ${data.settings.ratio === 100 ? 'selected' : ''}>识别 · 英→中</option><option value="0" ${data.settings.ratio === 0 ? 'selected' : ''}>提取 · 中→英</option></select></label></div>`; }
@@ -1579,6 +1587,7 @@ function planInput(minutes: number, energy: EnergyState): PlannerInput {
         readingInput: data.passages.length ? { passages: data.passages, sessions: data.readingSessions } : null,
         inputInput: data.inputSources.length ? { sources: data.inputSources, sessions: data.inputSessions } : null,
         outputTask: selectOutputTasks({ data, now: Date.now(), availableMinutes: minutes, energy }).task,
+        examTask: planExamTask({ enabled: data.settings.exam?.planEnabled ?? false, items: data.examItems, sessions: data.examSessions, availableMinutes: minutes, now: Date.now() }),
         diagnosticFocus: latestSnapshot(data.skillSnapshots)?.diagnostics?.bottleneck ?? null,
     };
 }
@@ -2672,6 +2681,55 @@ function installTestHook(): void {
                 } | null)?.reasons ?? []) };
         },
     };
+    // Phase 11 验收钩子：仅测试构建存在；生产被摇树移除
+    (window as unknown as Record<string, unknown>).__examTest = {
+        async snapshot() {
+            const d = await loadData();
+            return {
+                specs: (d.examSpecifications ?? []).map(s => ({ id: s.id, year: s.applicableYear, category: s.examCategory, status: s.status, total: s.totalScore, written: s.writtenScore, oral: s.listeningSpeakingScore, sources: s.sourceRefs.length })),
+                items: (d.examItems ?? []).map(i => ({ id: i.id, type: i.questionType, provenance: i.provenance, verified: i.verifiedStatus, options: i.options.length, key: i.answerKey })),
+                sessions: (d.examSessions ?? []).map(x => ({ id: x.id, mode: x.mode, status: x.status, items: x.itemIds, itemsDetail: x.items.map(i => ({ id: i.id, type: i.questionType, options: i.options.length, key: i.answerKey })), answers: Object.keys(x.answers).length, score: x.score, scoreStatus: x.scoreStatus, errors: x.errors.map(e => ({ item: e.itemId, category: e.category, confidence: e.confidence })), unavailable: x.unavailableSections ?? [], weeklyReportId: x.weeklyReportId ?? null })),
+                logs: (d.examLogs ?? []).map(l => ({ id: l.id, date: l.date, score: l.reportedScore, full: l.fullScore, source: l.source })),
+                planEnabled: d.settings.exam?.planEnabled ?? false,
+                current: examSessionId,
+                words: d.words.length,
+                reviewedWords: d.words.filter(w => w.state.total > 0).length,
+                wordSample: d.words.slice(0, 20).map(w => ({ en: w.en, zh: w.zh, total: w.state.total })),
+            };
+        },
+        async seedWeekly() {
+            const d = await loadData();
+            const now = Date.now();
+            if (new Set(d.words.filter(w => w.state.total > 0).map(w => w.zh.trim())).size < 4) {
+                const words = Array.from({ length: 8 }, (_, i) => ({
+                    id: `seed-w${i}-${now}`, bookId: 'seed-book', en: `seedword${i}`, zh: `种子释义${i}`, pos: 'n.', phonetic: '', example: '', collocation: '', difficulty: '', tags: '', order: i,
+                    schedule: { due: 0, last: now, interval: 1, step: 1, spacedPasses: 1 },
+                    state: { total: 3, correct: 2, streak: 1, errors: 1, lapses: 0, meanMs: 1200, lastMs: 1100, level: 'normal', lastCorrect: true, directions: { 'en-zh': { total: 2, correct: 1, meanMs: 1200 }, 'zh-en': { total: 1, correct: 1, meanMs: 1200 } } },
+                    confusions: {}, fsrs: null,
+                }));
+                await putItems('books', [{ id: 'seed-book', name: '周测种子词书', created: now }]);
+                await putItems('words', words);
+            }
+            if (!(d.passages ?? []).length) {
+                await putItems('passages', [{ id: 'seed-passage', title: 'Seed Article', text: 'A short article about attention and learning. '.repeat(10), sourceType: 'import', sourceUrl: 'https://example.com/seed', topic: 'learning', wordCount: 70, difficulty: 'normal', createdAt: now }]);
+            }
+            data = await loadData();
+            return { words: data.words.length, passages: data.passages.length };
+        },
+        async resetSessions() { await clearExamSessions(); data = await loadData(); examSessionId = ''; return { ok: true }; },
+        async weeklyPreview() { const d = await loadData(); const b = buildWeeklyAssessment(d, d.examItems ?? [], d.examSessions ?? [], Date.now()); return { items: b.items.map(i => ({ id: i.id, type: i.questionType, stem: i.stem.slice(0, 40) })), minutes: b.minutes, unavailable: b.unavailable }; },
+        async startWeekly() { await startWeeklyExam(); return { ok: !!examSessionId, id: examSessionId }; },
+        async startMixed() { const fresh = freshExamItems(data.examItems ?? [], data.examSessions ?? []); if (!fresh.length)
+            return { ok: false }; await startExamItems(fresh.slice(0, 6).map(i => i.id)); return { ok: !!examSessionId, id: examSessionId }; },
+        async answer(itemId: string, value: string) { const cur = currentExam(); if (!cur)
+            return { ok: false }; const r = saveExamAnswer(cur, { itemId, value, timeMs: 1000, now: Date.now() }); if (!r.session)
+            return { ok: false }; await persistExam(r.session, cur.revision); return { ok: true }; },
+        async submit() { const cur = currentExam(); if (!cur)
+            return { ok: false }; await submitExamFlow(cur); return { ok: true, status: currentExam()?.status }; },
+        async complete() { const cur = currentExam(); if (!cur)
+            return { ok: false }; await completeExamFlow(cur); return { ok: true, status: currentExam()?.status }; },
+        async setPlan(on: boolean) { const d = await loadData(); d.settings.exam = { planEnabled: on }; await saveSettings(d.settings); data = await loadData(); return { ok: true, on: data.settings.exam?.planEnabled ?? false }; },
+    };
     // OCR 验收钩子：只暴露“跑一次识别 / 释放”，不改学习证据；用于失败注入与超时验证
     (window as unknown as Record<string, unknown>).__ocrTest = {
         async recognize(file: Blob, opts: {
@@ -3446,10 +3504,307 @@ function readingWords(): void {
     });
 }
 // —— Phase 5 UI 结束 ——
+// ———————————————————— Phase 11：考试迁移 UI（消费层） ————————————————————
+// 纪律：这里不计算掌握、不预测分数；只把考试规格、题库、会话与复盘串起来。
+let examTab: 'overview' | 'practice' | 'weekly' | 'logs' | 'specs' = 'overview';
+let examSessionId = '';
+let examIndex = 0;
+let examDraft = '';
+let examBusy = false;
+function examSpecList(): ExamSpecification[] { return data.examSpecifications ?? []; }
+function examItemList(): AssessmentItem[] { return data.examItems ?? []; }
+function examSessionList(): ExamSession[] { return data.examSessions ?? []; }
+function examLogList() { return data.examLogs ?? []; }
+async function reloadExam(): Promise<void> { data = await loadData(); }
+function examSpecFor(item: AssessmentItem | undefined): ExamSpecification | null {
+    if (!item)
+        return null;
+    return examSpecList().find(s => s.examCategory === item.examCategory) ?? examSpecList().find(s => s.applicableYear === 2026) ?? null;
+}
+async function persistExam(next: ExamSession, prevRevision: number): Promise<ExamSession> {
+    const r = await saveExamSession(next, prevRevision);
+    await reloadExam();
+    if (!r.ok) {
+        toast('这次测评已在另一个窗口更新，已刷新最新状态');
+        return r.session ?? next;
+    }
+    return next;
+}
+async function startExamItems(ids: string[]): Promise<void> {
+    const d = await loadData();
+    const items = (d.examItems ?? []).filter(i => ids.includes(i.id));
+    if (!items.length) {
+        toast('没有可用的新题');
+        return;
+    }
+    const now = Date.now();
+    let s = createExamSession({ id: `exam-${now}-${Math.random().toString(36).slice(2, 7)}`, mode: items.length > 1 ? 'mixed_practice' : 'skill_practice', spec: examSpecFor(items[0]), items, now });
+    const created = await saveExamSession(s);
+    if (!created.ok) {
+        toast('无法创建测评');
+        return;
+    }
+    const started = startExamSession(s, now);
+    if (!started.session) {
+        toast(started.message ?? '无法开始');
+        return;
+    }
+    s = started.session;
+    await saveExamSession(s, created.session?.revision);
+    await reloadExam();
+    examSessionId = s.id;
+    examIndex = 0;
+    examDraft = '';
+    examTab = 'practice';
+    render();
+}
+async function startWeeklyExam(): Promise<void> {
+    const d = await loadData();
+    const build = buildWeeklyAssessment(d, d.examItems ?? [], d.examSessions ?? [], Date.now());
+    const r = weeklySession({ d, items: d.examItems ?? [], sessions: d.examSessions ?? [], now: Date.now(), spec: examSpecList().find(s => s.applicableYear === 2026) ?? null, id: `weekly-${Date.now()}` });
+    if (!r.session) {
+        toast(r.reason || '本周无法生成周测');
+        return;
+    }
+    const created = await saveExamSession(r.session);
+    if (!created.ok) {
+        toast('无法创建周测');
+        return;
+    }
+    const started = startExamSession(r.session, Date.now());
+    if (!started.session) {
+        toast(started.message ?? '无法开始');
+        return;
+    }
+    await saveExamSession(started.session, created.session?.revision);
+    await reloadExam();
+    examSessionId = r.session.id;
+    examIndex = 0;
+    examDraft = '';
+    examTab = 'weekly';
+    render();
+}
+function currentExam(): ExamSession | undefined { return examSessionList().find(s => s.id === examSessionId); }
+function readExamDraft(s: ExamSession): string {
+    const item = s.items[examIndex];
+    if (!item)
+        return '';
+    if (item.options.length)
+        return document.querySelector<HTMLInputElement>('input[name="exam-answer"]:checked')?.value ?? s.answers[item.id]?.value ?? '';
+    return document.querySelector<HTMLTextAreaElement>('#exam-answer-text')?.value ?? s.answers[item.id]?.value ?? '';
+}
+async function saveExamDraft(s: ExamSession): Promise<ExamSession> {
+    const item = s.items[examIndex];
+    if (!item)
+        return s;
+    const value = readExamDraft(s);
+    const r = saveExamAnswer(s, { itemId: item.id, value, timeMs: Date.now() - s.startedAt, now: Date.now() });
+    if (!r.session)
+        return s;
+    return persistExam(r.session, s.revision);
+}
+async function submitExamFlow(s: ExamSession): Promise<void> {
+    if (examBusy)
+        return;
+    examBusy = true;
+    try {
+        const saved = await saveExamDraft(s);
+        const savedRevision = saved.revision;
+        const sub = submitSession(saved, Date.now());
+        if (!sub.ok || !sub.session) {
+            toast(sub.message ?? '提交失败');
+            return;
+        }
+        let next = sub.session;
+        const errors = collectErrors(next, { now: Date.now() });
+        const rev = reviewSession(next, errors, sub.outcome?.reason ?? '', Date.now());
+        if (rev.session)
+            next = rev.session;
+        await persistExam(next, savedRevision);
+        examDraft = '';
+        render();
+    }
+    finally {
+        examBusy = false;
+    }
+}
+async function completeExamFlow(s: ExamSession): Promise<void> {
+    const r = completeSession(s, Date.now());
+    if (!r.session) {
+        toast(r.message ?? '无法完成');
+        return;
+    }
+    let saved = await saveExamSession(r.session, s.revision);
+    // 双击/慢渲染可能让第一次写入落后一个 revision；用最新记录重试一次，仍失败才提示。
+    if (!saved.ok && saved.stale && saved.session) {
+        const retry = completeSession(saved.session, Date.now());
+        if (retry.session)
+            saved = await saveExamSession(retry.session, saved.session.revision);
+    }
+    await reloadExam();
+    if (!saved.ok)
+        toast('完成状态未保存；已刷新，请重试');
+    render();
+}
+async function retestExam(s: ExamSession): Promise<void> {
+    const d = await loadData();
+    const r = buildTransferRetest({ items: d.examItems ?? [], sessions: d.examSessions ?? [], errorCategories: s.errors.map(e => e.category), now: Date.now(), spec: examSpecFor(s.items[0]), id: `retest-${Date.now()}` });
+    if (!r.session) {
+        toast(r.reason);
+        return;
+    }
+    await startExamItems(r.session.items.map(i => i.id));
+    toast('已用一道未做过的新题做迁移复测');
+}
+function examTabsHtml(): string {
+    return `<div class="exam-tabs">${([['overview', '考试概览'], ['practice', '练习'], ['weekly', '周测'], ['logs', '学校记录'], ['specs', '规格审计']] as const).map(([id, label]) => `<button data-exam-tab="${id}" class="${examTab === id ? 'active' : ''}">${label}</button>`).join('')}</div>`;
+}
+function examPageApp(): void {
+    const specs = examSpecList();
+    const items = examItemList();
+    const sessions = examSessionList();
+    const logs = examLogList();
+    const s = currentExam();
+    let body = '';
+    if (s) {
+        if (['submitted', 'reviewed', 'completed'].includes(s.status)) {
+            let report: WeeklyAssessmentReport | null = null;
+            if (s.mode === 'weekly_assessment' && s.status === 'completed') {
+                const build = { items: s.items, minutes: s.timeLimitMinutes, unavailable: s.unavailableSections ?? [] };
+                report = weeklyReportFrom(s, build);
+            }
+            body = (s.mode === 'weekly_assessment' && report ? weeklyPanelHtml({ items: s.items, minutes: s.timeLimitMinutes, unavailable: s.unavailableSections ?? [] }, s, report) : examResultHtml(s));
+            // 周测完成也给出完整结果入口
+            if (s.mode === 'weekly_assessment' && report)
+                body += examResultHtml(s);
+        }
+        else
+            body = examSessionHtml(s, Math.min(examIndex, s.items.length - 1), s.answers[s.items[examIndex]?.id ?? '']?.value ?? examDraft);
+    }
+    else if (examTab === 'weekly') {
+        const build = buildWeeklyAssessment(data, items, sessions, Date.now());
+        const existing = sessions.find(x => x.mode === 'weekly_assessment' && ['active', 'created', 'paused', 'submitted', 'reviewed'].includes(x.status));
+        const report = sessions.find(x => x.mode === 'weekly_assessment' && x.status === 'completed');
+        body = weeklyPanelHtml(build, existing ?? null, report ? weeklyReportFrom(report, { items: report.items, minutes: report.timeLimitMinutes, unavailable: report.unavailableSections ?? [] }) : null);
+    }
+    else if (examTab === 'logs')
+        body = examLogsHtml(logs, specs);
+    else if (examTab === 'specs')
+        body = specsAuditHtml(specs, items);
+    else if (examTab === 'practice')
+        body = examPracticeListHtml(items, sessions);
+    else
+        body = examOverviewHtml(data, specs, items, sessions, logs, data.settings.exam?.planEnabled ?? false);
+    $('#main').innerHTML = title('EXAM TRANSFER', '把练习迁移到考试', '换题、换语境、看错因。这里不产生官方分数，也不预测高考成绩。', s ? '<button id="exam-exit" class="secondary">退出当前测评</button>' : '') + examTabsHtml() + body;
+    document.querySelectorAll<HTMLElement>('[data-exam-tab]').forEach(b => b.onclick = () => {
+        if (currentExam() && !['submitted', 'reviewed', 'completed'].includes(currentExam()!.status)) {
+            toast('先提交或退出当前测评');
+            return;
+        }
+        examSessionId = '';
+        examTab = b.dataset.examTab as typeof examTab;
+        render();
+    });
+    on('#exam-exit', 'click', async () => {
+        const cur = currentExam();
+        if (!cur) {
+            examSessionId = '';
+            render();
+            return;
+        }
+        if (['submitted', 'reviewed', 'completed'].includes(cur.status)) {
+            examSessionId = '';
+            render();
+            return;
+        }
+        const r = await pauseSession(cur, Date.now());
+        if (r.session)
+            await persistExam(r.session, cur.revision);
+        examSessionId = '';
+        render();
+        toast('已暂停，可稍后从概览继续');
+    });
+    on('#exam-start-mixed', 'click', async () => {
+        const fresh = freshExamItems(items, sessions).filter(i => i.options.length || i.questionType === 'translation' || i.questionType === 'summary_writing' || i.questionType === 'situational_writing');
+        if (!fresh.length) {
+            toast('没有未做过的题');
+            return;
+        }
+        await startExamItems(fresh.slice(0, 6).map(i => i.id));
+    });
+    on('#exam-start-weekly', 'click', () => { examTab = 'weekly'; render(); });
+    on('#exam-start-weekly-now', 'click', startWeeklyExam);
+    on('#exam-resume-weekly', 'click', () => { const w = sessions.find(x => x.mode === 'weekly_assessment' && ['active', 'paused', 'created'].includes(x.status)); if (w) {
+        examSessionId = w.id;
+        examIndex = 0;
+        render();
+    } });
+    on('#exam-plan-toggle', 'change', async () => {
+        const el = document.querySelector<HTMLInputElement>('#exam-plan-toggle')!;
+        data.settings.exam = { planEnabled: el.checked };
+        await saveSettings(data.settings);
+        await reloadExam();
+        toast(el.checked ? '已允许每日计划安排 1 道考试题' : '已关闭考试练习题');
+        render();
+    });
+    document.querySelectorAll<HTMLElement>('.exam-pick').forEach(b => b.onclick = () => startExamItems([b.dataset.item!]));
+    on('#exam-prev', 'click', async () => { const cur = currentExam(); if (!cur)
+        return; await saveExamDraft(cur); examIndex = Math.max(0, examIndex - 1); render(); });
+    on('#exam-next', 'click', async () => { const cur = currentExam(); if (!cur)
+        return; await saveExamDraft(cur); examIndex = Math.min(cur.items.length - 1, examIndex + 1); render(); });
+    on('#exam-save', 'click', async () => { const cur = currentExam(); if (!cur)
+        return; await saveExamDraft(cur); toast('已保存到本机'); });
+    on('#exam-submit', 'click', async () => { const cur = currentExam(); if (cur)
+        await submitExamFlow(cur); });
+    on('#exam-complete', 'click', async () => { const cur = currentExam(); if (cur)
+        await completeExamFlow(cur); });
+    on('#exam-retest', 'click', async () => { const cur = currentExam(); if (cur)
+        await retestExam(cur); });
+    on('#exam-back', 'click', () => { examSessionId = ''; examTab = 'overview'; render(); });
+    document.querySelectorAll<HTMLSelectElement>('.exam-correct').forEach(sel => sel.onchange = async () => {
+        const cur = currentExam();
+        if (!cur)
+            return;
+        const record = cur.errors.find(e => e.itemId === sel.dataset.item);
+        if (!record)
+            return;
+        const updated = correctError(record, sel.value as ExamErrorCategory, record.subcategory, Date.now());
+        const next = { ...cur, errors: cur.errors.map(e => e.itemId === record.itemId ? updated : e), revision: cur.revision + 1, updatedAt: Date.now() };
+        await persistExam(next, cur.revision);
+        render();
+    });
+    on('#log-add', 'click', async () => {
+        const date = document.querySelector<HTMLInputElement>('#log-date')!.value;
+        const category = document.querySelector<HTMLSelectElement>('#log-category')!.value as ExamSpecification['examCategory'];
+        const score = Number(document.querySelector<HTMLInputElement>('#log-score')!.value);
+        const full = Number(document.querySelector<HTMLInputElement>('#log-full')!.value);
+        const note = document.querySelector<HTMLInputElement>('#log-note')!.value.trim();
+        if (!date || !Number.isFinite(score) || !Number.isFinite(full) || full <= 0 || score < 0 || score > full) {
+            toast('请填写有效分数（0 ≤ 得分 ≤ 满分）');
+            return;
+        }
+        await saveExamLog({ id: `log-${Date.now()}`, date, examCategory: category, name: category, fullScore: full, reportedScore: score, sectionResults: [], errorTypes: [], selfAssessment: note, source: 'self_report', createdAt: Date.now() });
+        await reloadExam();
+        render();
+        toast('已保存：这是自报记录，不是系统验证成绩');
+    });
+    document.querySelectorAll<HTMLElement>('.exam-log-del').forEach(b => b.onclick = async () => {
+        await deleteExamLog(b.dataset.log!);
+        await reloadExam();
+        render();
+    });
+}
 async function boot() {
     installTestHook();
     await openDB();
     data = await loadData();
+    try {
+        await ensureExamContent();
+        data = await loadData();
+    }
+    catch (e) {
+        console.error('考试题库初始化失败', e);
+    }
     reindex();
     try {
         const graph = await ensureGraphData({ grammarConcepts: data.grammarConcepts, sentences: data.sentences });

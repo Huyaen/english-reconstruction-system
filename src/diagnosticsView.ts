@@ -13,6 +13,7 @@ const DOMAIN_LABEL: Record<MetricValue['domain'], string> = {
     input: '真实输入',
     output: '真实表达',
     translation: '翻译依赖',
+    exam: '考试迁移',
 };
 const QUALITY_LABEL: Record<MetricValue['quality'], string> = {
     verified: '可核对',
@@ -156,7 +157,7 @@ export interface DiagnosticsPageInput {
 }
 export function diagnosticsPage(input: DiagnosticsPageInput): string {
     const { payload } = input;
-    const domains = (['vocabulary', 'grammar', 'reading', 'input', 'output', 'translation'] as const);
+    const domains = (['vocabulary', 'grammar', 'reading', 'input', 'output', 'translation', 'exam'] as const);
     return `${`<div class="page-title"><div><div class="eyebrow">LEARNING DIAGNOSTICS</div><h1>学情诊断</h1><p>${input.days} 天窗口 · 只描述证据，不给英语总分</p></div><div class="actions"><button id="diag-snapshot" class="secondary">生成今日快照</button><button id="diag-week" class="primary">生成本周诊断</button></div></div>`}
       <div class="diag-range"><label>观察窗口<select id="diag-days">${[7, 14, 30].map(d => `<option value="${d}" ${d === input.days ? 'selected' : ''}>最近 ${d} 天</option>`).join('')}</select></label>
         <span class="muted">${input.source === 'snapshot' ? '正在查看历史快照' : input.source === 'weekly' ? `本周诊断（${esc(input.weekly?.weekOf ?? '')}）` : '实时计算，未保存'}${input.generatedAt ? ` · 生成于 ${date(input.generatedAt)}` : ''}</span></div>

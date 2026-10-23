@@ -9,6 +9,7 @@ const DOMAIN_MODULE: Record<DiagnosticBottleneck['domain'], string> = {
     translation: 'reading',
     input: 'input',
     output: 'output',
+    exam: 'exam',
 };
 export function boostFor(focus: DiagnosticBottleneck, module: string | undefined): number {
     return module === DOMAIN_MODULE[focus.domain] ? 20 : 0;

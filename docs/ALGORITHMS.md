@@ -190,3 +190,14 @@ S≥90、A≥65、B≥40、C≥15、其余D。到期与弱词队列按分数降�
 
 - `applyDiagnosticFocus` 将任务分为 critical/非 critical；critical 原序在前，柔性任务按 `priority + (领域匹配 ? 20 : 0)` 稳定排序。
 - 不改 `minutes`、`refs`、依赖关系；不自动写入计划，必须由调用方显式传入 bottleneck。
+
+
+## 考试评分与错因（Phase 11）
+
+- **客观分**：仅选择/填空且答案在选项内。未答完 → `score=null`、`partial`；含开放题 → 只报客观分并标 `partial`；全部可靠客观且答完 → `verified_objective`。
+- **revision**：每次答案/状态变化 +1；写入前比较现有 revision，不一致返回 `stale`，不覆盖；重复提交/完成返回 `noop`。
+- **错因优先级**：用户自报（medium）> 选项级 distractor（medium）> 目标能力弱推断（low）> uncertain；慢答只作为 time_pressure 备选，不单独定罪。
+- **迁移新题**：排除所有历史会话用过的 itemId；按错因映射能力前缀（vocabulary / grammar / reading. / reading.evidence）；无新题 → 拒绝。
+- **周测**：词库按不同释义去重；未读 Passage 才可用；题目快照存会话；总时长超过 25 分钟优先移除开放阅读/表达并记录 unavailable。
+- **考试计划**：`planEnabled=false` 默认；开启且有新题且剩余 ≥6 分钟时加 1 题（5–10 分钟，priority 32，flexible）；critical/closing 顺序不变。
+- **诊断**：客观正确率分母 = 已提交客观题；独立完成分母 = 完成会话；官方分预测固定 `not-applicable`，绝不合成 150 分制。

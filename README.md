@@ -160,7 +160,7 @@ npm start
 本项目正在从「自适应背单词软件」升级为完整的 **Personal English Learning System**（V2）。产品规格见 `PROJECT_SPEC.md`，工程协议与阶段计划见 `AGENT_EXECUTION.md`。
 
 - **接手入口（换模型/换会话必读）**：依次读 `PROJECT_SPEC.md` → `STATE.json` → `CHECKPOINT.md` → `HANDOFF.md` → `TODO.md` → `DEVELOPMENT_LOG.md`，再核对实际磁盘与 Git。
-- **当前阶段**：见 `HANDOFF.md`（Phase 0–10 已完成；当前 Phase 10 学情诊断已交付，等待用户指定下一阶段）。
+- **当前阶段**：见 `HANDOFF.md`（Phase 0–11 已完成；当前 Phase 11 考试迁移已交付，等待用户指定下一阶段）。
 - **基线**：V1 MVP 基线 commit `6c1c625`（tag `v1.0.0-mvp-baseline`）；该提交已实测：`npm test` 20/20、`npm run build` 成功、`node server.mjs` 服务实测 200。
 - **硬约束**：旧数据 100% 保留；审计 → 复用 → 扩展 → 迁移 → 验证；禁止无理由重写现有词汇模块。
 - **源码格式**：`src/*.ts`、`tests/*.ts` 由 `docs/format-source.mjs` 整理为紧凑格式，编辑后请保持一致或重跑该脚本。

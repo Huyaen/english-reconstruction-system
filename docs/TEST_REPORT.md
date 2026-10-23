@@ -206,3 +206,16 @@ Phase 5 新增用例（28）：
 | 回归 | phase9 / phase8 / interest / phase7 / phase6 / phase5.1 / phase5 / phase4 / phase3 | 20/20、34/34、19/19、33/33、31/31、26/26、44/44、36/36、21/21 |
 
 覆盖重点：指标分母与样本门槛；D1/D7/D30 精确分桶；显式未知词率；独立产出排除照抄；证据来源与质量；短板规则；同日/同周幂等；页面无总分；计划焦点进入 reasons；无未捕获异常。性质测试验证比率上界与样本不足不产出数值。
+
+
+## Phase 11 — 考试迁移（2026-10-23T20:04:05+08:00）
+
+| 层 | 命令 | 结果 |
+| --- | --- | --- |
+| 单元/性质 | `npm test` | **344/344 pass**（新增 examCore 14、examIntegration 5） |
+| 类型 | `npx tsc --noEmit -p tsconfig.json` | 0 error |
+| 构建 | `npm run build` / `npm run build:test` | 通过；生产包 `__examTest` / `ERV2_TEST_HOOKS` 命中 0 |
+| 浏览器 | `node scripts/phase11-smoke.mjs` | **16/16 PASS**（真实 Edge + CDP + IndexedDB，A–P） |
+| 回归 | phase10 / phase9 / phase8 / interest / phase7 / phase6 / phase5.1 / phase5 / phase4 / phase3 | 16/16、20/20、34/34、19/19、33/33、31/31、26/26、44/44、36/36、21/21 |
+
+覆盖重点：2026 规格分值自洽与 2028 全未知；官方来源与 provisional 文案；题目答案/来源/重复 ID；答题保存、暂停恢复、未答完不评分、含开放题 partial、重复提交幂等；错因干扰项证据/弱推断/不确定/用户修正；迁移排除已用题与无新题拒绝；周测真实词去重、未读文章、五部分与时长；计划默认关闭/新题限制/不挤占关键任务；DB v7 备份往返；考试指标分母与无官方分预测；页面 2028 不显示 115/35，激活标签可读。

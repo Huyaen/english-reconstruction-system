@@ -3,6 +3,7 @@
 import type { Data, MetricValue, ReadingEvidence, RetentionPoint, SentenceAttempt } from './types.ts';
 import { DAY_MS, RATE_MIN_SAMPLE, average, inRange, median, metric, percent, rateMetric, type Range, } from './diagnosticsModel.ts';
 import { EVIDENCE_CONFIG, lifecycleOf } from './evidence.ts';
+import { examMetrics } from './examDiagnostics.ts';
 const lower = (s: string) => s.toLowerCase();
 export interface RetentionResult {
     points: RetentionPoint[];
@@ -310,6 +311,7 @@ export function collectDiagnostics(data: Data, range: Range): CollectedDiagnosti
         ...inputMetrics(data, range),
         ...outputMetrics(data, range),
         ...translationMetrics(data, range),
+        ...examMetrics(data, range),
     ];
     return { metrics, retention };
 }

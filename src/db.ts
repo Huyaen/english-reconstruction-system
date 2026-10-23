@@ -5,7 +5,7 @@ import { validSettings } from './core.ts';
 // 设计依据：REFERENCE_RESEARCH.md §6.1（Dexie 版本化 schema 思想）与 §2.1（Lute migration 模式）。
 // 原则：只加不删（additive only）；逐版本迁移；升级事务原子性（失败自动回滚，旧数据安全）。
 export const DB_NAME = 'vocabulary-memory-v1';
-export const DB_VERSION = 6;
+export const DB_VERSION = 7;
 const legacyStores = ['books', 'words', 'records', 'sessions', 'analyses', 'meta'] as const;
 const legacyDataStores = ['books', 'words', 'records', 'sessions', 'analyses'] as const;
 const v2Stores = ['wordExposures', 'grammarConcepts', 'grammarAttempts', 'sentenceAttempts', 'passages', 'readingSessions', 'inputSources', 'inputSessions', 'outputAttempts', 'dailyPlans', 'miniUnits', 'skillSnapshots', 'weeklyDiagnostics', 'libraryItems'] as const;
@@ -15,8 +15,10 @@ const v4Stores = ['sentences'] as const;
 const v5Stores = ['aiGenerations'] as const;
 // v6（Phase 8）：真实输入域 —— 字幕（含时间轴）与输入证据账本（additive only）
 const v6Stores = ['transcripts', 'inputEvidence'] as const;
+// v7（Phase 11）：考试规格 / 材料 / 题目 / 会话 / 学校考试记录（additive only）
+const v7Stores = ['examSpecifications', 'examMaterials', 'examItems', 'examSessions', 'examLogs'] as const;
 // 所有 Learning Model store（v2 + v4）：ID 安全性与唯一性校验共用
-const modelStores = [...v2Stores, ...v4Stores, ...v5Stores, ...v6Stores] as const;
+const modelStores = [...v2Stores, ...v4Stores, ...v5Stores, ...v6Stores, ...v7Stores] as const;
 export const dataStores = [...legacyDataStores, ...modelStores] as const;
 export const stores = [...dataStores, 'meta'] as const;
 type StoreName = (typeof stores)[number];
@@ -51,6 +53,12 @@ const indexSpecs: Partial<Record<StoreName, readonly IndexSpec[]>> = {
     // v6：字幕与输入证据
     transcripts: [['sourceId', 'sourceId'], ['hash', 'hash'], ['createdAt', 'createdAt']],
     inputEvidence: [['sessionId', 'sessionId'], ['sourceId', 'sourceId'], ['at', 'at'], ['evidenceType', 'evidenceType']],
+    // v7：考试域索引
+    examSpecifications: [['applicableYear', 'applicableYear'], ['examCategory', 'examCategory']],
+    examMaterials: [['createdAt', 'createdAt']],
+    examItems: [['examCategory', 'examCategory'], ['questionType', 'questionType'], ['materialId', 'materialId'], ['purpose', 'purpose']],
+    examSessions: [['mode', 'mode'], ['status', 'status'], ['createdAt', 'createdAt']],
+    examLogs: [['date', 'date'], ['examCategory', 'examCategory']],
 };
 // 旧词条缺少 v2 字段时回填默认值；已具备字段的词原样返回（幂等，可反复调用）
 export function withV2WordDefaults(w: Word): Word {
@@ -135,6 +143,12 @@ function runMigration(database: IDBDatabase, tx: IDBTransaction, oldVersion: num
             if (!database.objectStoreNames.contains(name))
                 database.createObjectStore(name, { keyPath: 'id' });
     }
+    // v7（Phase 11）：additive — 考试域；不迁移、不改写任何旧记录
+    if (oldVersion < 7) {
+        for (const name of v7Stores as readonly string[])
+            if (!database.objectStoreNames.contains(name))
+                database.createObjectStore(name, { keyPath: 'id' });
+    }
     // 数据回填：逐版本顺序执行（串行游标，避免并行游标互相覆盖；幂等）
     const backfills: Array<(w: Word) => Word> = [];
     if (oldVersion < 2)
@@ -173,7 +187,7 @@ export function getDB(): IDBDatabase { return db; }
 export function closeDB() { db?.close(); db = undefined as unknown as IDBDatabase; }
 function done(tx: IDBTransaction) { return new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onabort = () => reject(tx.error || Error('保存事务中止')); tx.onerror = () => reject(tx.error || Error('数据保存失败')); }); }
 function req<T>(r: IDBRequest<T>) { return new Promise<T>((resolve, reject) => { r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); }); }
-export function emptyData(): Data { return { books: [], words: [], records: [], sessions: [], analyses: [], settings: { ...defaults }, wordExposures: [], grammarConcepts: [], grammarAttempts: [], sentenceAttempts: [], sentences: [], passages: [], readingSessions: [], inputSources: [], inputSessions: [], outputAttempts: [], dailyPlans: [], miniUnits: [], skillSnapshots: [], weeklyDiagnostics: [], libraryItems: [], aiGenerations: [], transcripts: [], inputEvidence: [], migration: null }; }
+export function emptyData(): Data { return { books: [], words: [], records: [], sessions: [], analyses: [], settings: { ...defaults }, wordExposures: [], grammarConcepts: [], grammarAttempts: [], sentenceAttempts: [], sentences: [], passages: [], readingSessions: [], inputSources: [], inputSessions: [], outputAttempts: [], dailyPlans: [], miniUnits: [], skillSnapshots: [], weeklyDiagnostics: [], libraryItems: [], aiGenerations: [], transcripts: [], inputEvidence: [], examSpecifications: [], examMaterials: [], examItems: [], examSessions: [], examLogs: [], migration: null }; }
 export async function loadData(): Promise<Data> {
     await openDB();
     const tx = db.transaction([...stores], 'readonly');

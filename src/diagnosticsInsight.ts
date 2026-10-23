@@ -166,6 +166,8 @@ export function planFromBottleneck(bottleneck: DiagnosticBottleneck | null): Dia
             ];
         case 'input':
             return [base('plan-input', '完成一次有字幕的真实输入', bottleneck.reason, 'input', 20, 'open-input')];
+        case 'exam':
+            return [base('plan-exam', '做一道未做过的考试迁移题', bottleneck.reason, 'vocabulary', 10, 'open-diagnostics')];
         case 'translation':
             return [
                 base('plan-translation-read', '读一段并尝试用英文复述', bottleneck.reason, 'reading', 20, 'open-reading'),

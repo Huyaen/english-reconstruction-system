@@ -1,3 +1,4 @@
+import type { ExamSpecification, ExamMaterial, AssessmentItem, ExamSession, ExamLog } from './examTypes.ts';
 export type Direction = 'en-zh' | 'zh-en';
 export type Mastery = 'new' | 'unknown' | 'vague' | 'normal' | 'fluent';
 export interface DirectionStats {
@@ -106,6 +107,10 @@ export interface Settings {
     ai?: AISettings;
     /** Phase 8：动态兴趣画像（可选，旧数据/旧备份自动视为空画像） */
     interests?: InterestProfile;
+    /** Phase 11：考试练习是否进入每日计划（默认关闭） */
+    exam?: {
+        planEnabled: boolean;
+    };
 }
 // —— Phase 8：Dynamic Interest Profile ——
 // 兴趣 ≠ 能力：这里只表示“想读什么”，不参与任何掌握度/难度判定。
@@ -205,6 +210,12 @@ export interface Data {
     transcripts: Transcript[];
     inputEvidence: InputEvidenceRecord[];
     aiGenerations: AIGeneration[];
+    // —— Phase 11：考试迁移与统一测评（DB v7，additive）——
+    examSpecifications: ExamSpecification[];
+    examMaterials: ExamMaterial[];
+    examItems: AssessmentItem[];
+    examSessions: ExamSession[];
+    examLogs: ExamLog[];
     migration?: MigrationRecord | null;
 }
 export const defaults: Settings = { fast: 1500, normal: 3000, timeout: 6000, ratio: 50, difficulty: 'normal', feedback: 500, theme: 'light', endpoint: '', model: '', key: '', rememberKey: false, schedulingAuthority: 'fsrs', requestRetention: 0.9 };
@@ -837,7 +848,7 @@ export interface UnitEvidenceSummary {
     refs: UnitEvidenceRef[];
 }
 // —— Phase 10：能力诊断（只描述证据，不合成单一“英语分数”）——
-export type DiagnosticDomain = 'vocabulary' | 'grammar' | 'reading' | 'input' | 'output' | 'translation';
+export type DiagnosticDomain = 'vocabulary' | 'grammar' | 'reading' | 'input' | 'output' | 'translation' | 'exam';
 export type MetricEvaluability = 'evaluable' | 'insufficient' | 'not-applicable';
 export type DiagnosticQuality = 'verified' | 'task-behavior' | 'mixed' | 'self-report' | 'none';
 export interface MetricValue {

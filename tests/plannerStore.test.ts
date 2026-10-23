@@ -105,14 +105,18 @@ test('备份兼容：Phase 3 计划字段可往返导出/校验，旧计划形�
     await replaceData(restored);
     assert.equal((await listPlans()).length, 2);
 });
-test('IndexedDB 版本 additive 提升到 DB_VERSION（v4 sentences / v5 ai / v6 字幕与输入证据；旧 store 不变）', async () => {
+test('IndexedDB 版本 additive 提升到 DB_VERSION（v4 sentences / v5 ai / v6 字幕与输入证据 / v7 考试域；旧 store 不变）', async () => {
     await freshDB();
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
         const r = indexedDB.open(DB_NAME);
         r.onsuccess = () => resolve(r.result);
         r.onerror = () => reject(r.error);
     });
-    assert.equal(db.version, 6);
+    assert.equal(db.version, 7);
+    for (const name of ['examSpecifications', 'examMaterials', 'examItems', 'examSessions', 'examLogs']) {
+        const t = db.transaction(name);
+        assert.equal(t.objectStore(name).keyPath, 'id');
+    }
     const tx4 = db.transaction('sentences');
     assert.equal(tx4.objectStore('sentences').keyPath, 'id');
     assert.ok(tx4.objectStore('sentences').indexNames.contains('grammarTags'));
