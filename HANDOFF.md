@@ -54,7 +54,7 @@ SMOKE_PORT=9230 node scripts/phase11-smoke.mjs
 
 ## 6. 交付记录（提交后回填）
 
-- 功能 commit：见 `git log` 最新 `feat(exam)` 提交。
+- 功能 commit：`77e5396`（feat(exam): Phase 11…）。
 - tag：`phase11-exam-transfer`。
-- CI：推送后核对 `gh` / GitHub Actions。
-- 远端 `main` HEAD 必须与本地一致后才算交付完成。
+- CI：`39950992136` success（feature commit）。
+- tag：`phase11-exam-transfer` → `77e5396`；远端 `main` 已核对一致。

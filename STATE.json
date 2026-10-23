@@ -4,7 +4,7 @@
   "overall_status": "in_progress",
   "current_phase": "phase_11_exam_transfer",
   "last_updated": "2026-10-23T20:04:05+08:00",
-  "last_verified_commit": "PENDING_COMMIT",
+  "last_verified_commit": "77e5396",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 7,
   "build_status": "pass (tsc 0 error, vite production build, 生产包无测试钩子)",
@@ -588,11 +588,11 @@
   "source_format_convention": "src/*.ts 与 tests/*.ts 由 docs/format-source.mjs 整理为紧凑格式；编辑后保持一致或重跑该脚本",
   "notes": "Phase 8 主体 Real Input Hub 已交付：DB v6（5 个新 store）、状态机、三档复盘、证据 ledger（曝光/自评/产出分离）、字幕交接、Planner 时间预算、与兴趣画像共用的推荐理由；同时修复 validateBackup 无法恢复含句点/冒号 id 的备份。",
   "remote_sync": {
-    "last_local_commit": "8c7fceef80b09645c0f5d5302a03b9aea7b7bfe5",
-    "last_known_remote_commit": "8c7fceef80b09645c0f5d5302a03b9aea7b7bfe5",
-    "verified_at": "2026-10-22T19:53:05+08:00",
-    "method": "GitHub API commits/main（push 后核对完整 SHA）",
-    "notes": "Phase 10 tag: phase10-diagnostics"
+    "last_local_commit": "77e5396",
+    "last_known_remote_commit": "77e5396",
+    "verified_at": "2026-10-23T20:10:00+08:00",
+    "method": "GitHub API commits/main 与 Actions（push 后核对）",
+    "notes": "Phase 11 tag: phase11-exam-transfer；CI 39950992136 success"
   },
   "document_review": {
     "date": "2026-10-19",
@@ -623,9 +623,9 @@
     },
     {
       "phase": "phase11",
-      "commit": "PENDING_COMMIT",
+      "commit": "77e5396",
       "tag": "phase11-exam-transfer",
-      "ci": "PENDING"
+      "ci": "39950992136 success"
     }
   ]
 }
