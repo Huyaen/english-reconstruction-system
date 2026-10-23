@@ -49,7 +49,7 @@ SMOKE_PORT=9230 node scripts/phase11-smoke.mjs
 
 ## 6. 交付记录
 
-- 功能 commit：`569a174`（feat(exam): Phase 12…）。
-- tag：`phase12-exam-log` → `569a174`。
-- CI：`39966385490` success（feature commit）。
+- 功能 commit：`a4e7dcb`（feat(exam): Phase 12…）。
+- tag：`phase12-exam-log` → `a4e7dcb`。
+- CI：`39967369661` success（feature commit）。
 - 远端 `main` HEAD 必须与本地一致后才算交付完成。
