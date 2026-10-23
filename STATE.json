@@ -3,8 +3,8 @@
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
   "current_phase": "phase_12_full_integration",
-  "last_updated": "2026-10-23T23:39:33+08:00",
-  "last_verified_commit": "a4e7dcb",
+  "last_updated": "2026-10-24T00:07:09+08:00",
+  "last_verified_commit": "e0c5cd1",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 7,
   "build_status": "pass (tsc 0 error, vite production build, 生产包无测试钩子)",
@@ -650,13 +650,13 @@
     "browser_verification_path": "Hermes 内置 browser_exec 不可用；如需浏览器实测用 CDP 无头 Edge（见 skill sillytavern-live-ui-verification 的自建方案）"
   },
   "source_format_convention": "src/*.ts 与 tests/*.ts 由 docs/format-source.mjs 整理为紧凑格式；编辑后保持一致或重跑该脚本",
-  "notes": "Phase 12 Full Integration 已交付：Today 计划任务统一执行层；模块路由、真实证据写回、Regenerate 保留、刷新恢复、不可用原因显式化；DB 仍 v7。下一步等待用户指定 Phase 13。",
+  "notes": "Phase 12 Full Integration 已交付并远端核验：Today 计划任务统一执行层；模块路由、真实证据写回、Regenerate 保留、刷新恢复、不可用原因显式化；DB 仍 v7。HEAD e0c5cd1；tag phase12-full-integration；CI 39983209902 success。下一步等待用户指定 Phase 13。",
   "remote_sync": {
-    "last_local_commit": "pending-full-integration-commit",
-    "last_known_remote_commit": "pending",
-    "verified_at": null,
-    "method": "commit + push + GitHub API / CI 后更新",
-    "notes": "Phase 12 Full Integration；完成后更新 pin 与 tag"
+    "last_local_commit": "e0c5cd1",
+    "last_known_remote_commit": "e0c5cd1",
+    "verified_at": "2026-10-24T00:07:09+08:00",
+    "method": "GitHub API refs/heads/main + refs/tags/phase12-full-integration + Actions（commit e0c5cd1）",
+    "notes": "Phase 12 Full Integration；tag phase12-full-integration → e0c5cd1；CI 39983209902 success"
   },
   "document_review": {
     "date": "2026-10-19",
@@ -699,9 +699,9 @@
     },
     {
       "phase": "phase12-full-integration",
-      "commit": "pending",
+      "commit": "e0c5cd1",
       "tag": "phase12-full-integration",
-      "ci": "pending"
+      "ci": "39983209902 success"
     }
   ]
 }

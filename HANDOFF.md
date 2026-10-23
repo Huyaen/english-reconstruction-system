@@ -94,3 +94,10 @@ SMOKE_PORT=9230 node scripts/phase11-smoke.mjs
 ## 4. 诚实边界
 
 完成输入/阅读/表达只代表接触或产出记录，不等于词汇掌握；考试完成只是迁移证据，不是英语总分；AI 生成材料不作为 Anchor 或完成证据；考试任务默认关闭。
+
+## 7. 交付记录
+
+- 功能 commit：`e0c5cd1`（feat(integration): unify Today plan execution on evidence）。
+- tag：`phase12-full-integration` → `e0c5cd1`（已推送）。
+- CI：`39983209902` success。
+- 远端 `main` HEAD 与 tag SHA 均为 `e0c5cd137814d3543bacb18d9288ee9848b1e6dd`。

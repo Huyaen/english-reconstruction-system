@@ -554,3 +554,5 @@ AI 句生成、外部语料 / 阅读 handoff、Mini Diagnostic 非词汇子测�
 - `npm test` **360/360 pass**；`tsc` 0；`npm run build` 通过；生产包测试钩子 **0**。
 - `phase12-full-smoke.mjs` **18/18**（A–R）；`phase12-smoke.mjs` **17/17**；`phase11-smoke.mjs` **16/16**；phase3–phase10 回归全绿。
 - DB 仍 v7；只新增可选绑定字段。
+
+**交付记录**：功能 commit `e0c5cd1`；tag `phase12-full-integration`；CI `39983209902` success；远端 main 与 tag SHA 已核对为 `e0c5cd1`。
