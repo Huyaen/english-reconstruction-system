@@ -116,3 +116,7 @@
 ## P0 — Phase 12 考试记录与分值一致性（passed 2026-10-23T21:55:13+08:00）
 
 - [x] `phase12_exam_log_012`：校内/月考/模拟/自定义四类 · 类别/年份/满分与规格一致 · 官方分值冲突显式确认 · 2028 暂定不预填 · 得分边界 · self_reported 强制 · 自评仅线索 · 刷新/编辑/删除/导出/恢复 · phase12 smoke 17/17
+
+## P0 — Phase 12 Full Integration（passed 2026-10-23T23:39:33+08:00）
+
+- [x] `phase12_full_integration_013`：`taskExecutor` 统一模块/可用性/证据契约 · 六类任务真实路由并绑定 planTaskId · 无证据不得 done · 未知模块拒绝且不回退词汇 · Regenerate 保留 done/started · 刷新恢复 · 不可用原因显式化 · 真实浏览器 18/18

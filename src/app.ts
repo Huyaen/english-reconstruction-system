@@ -74,6 +74,8 @@ import { $, esc, pct, seconds, date, toast, download, modal, closeModal, on } fr
 import { applyPlanAction, buildReplacement, calibrateAfterRecall, createDailyPlan, evaluateRecallSession, latestLearningAt, moduleCapabilities, MODULES, planProgress, regenerateRemaining, PLANNER_CONFIG, TASK_LABELS, type PlannerInput, type RecallCandidate } from './planner.ts';
 import type { StepEvaluation } from './sentenceLab.ts';
 import { loadPlan, savePlan, StalePlanError } from './plannerStore.ts';
+// —— Phase 12 Full Integration：Today 计划唯一执行契约 ——
+import { taskModule, taskTargetLabel, taskUnavailableReason, taskEvidence, nextOpenTask } from './taskExecutor.ts';
 // —— Phase 4：Sentence Lab 与 Grammar Knowledge Graph ——
 import { GRAMMAR_BAND_LABELS, GRAMMAR_CATEGORY_LABELS, type GrammarConceptDef, GRAMMAR_CONFIG, GRAMMAR_TAXONOMY, ancestorConcepts, conceptById, conceptStates, grammarState, prerequisitesSatisfied, validateTaxonomy, weakConcepts, type GrammarConceptState } from './grammar.ts';
 import { CLAUSE_LABELS, ROLE_LABELS, clauseForToken, heuristicStructure, readStructure, structureRows, structureSummary, validateStructure, type SentenceStructure } from './sentenceStructure.ts';
@@ -98,6 +100,13 @@ let analysisBusy = false;
 let todayPlan: DailyPlan | null = null;
 let planBudget: number = PLANNER_CONFIG.budget.default;
 let planEnergy: EnergyState = 'normal';
+// 跨模块任务绑定：领域会话完成时据此回写计划；离开页面后仍保留，直到任务完成/重新开始。
+let inputPlanTaskId: string | null = null;
+let outputPlanTaskId: string | null = null;
+let examPlanTaskId: string | null = null;
+let taskStarting = false;
+// 用户从「开始今天的训练」进入后，领域会话完成自动回到 Today，继续下一项。
+let trainingFlow = false;
 let planBusy = false;
 let taskExecution: {
     planTaskId: string;
@@ -337,8 +346,11 @@ async function startModeOnce(mode: string, explicit?: Word[]) {
     const s = newSession(words, mode);
     await putItems('sessions', [s]);
     data.sessions.push(s);
-    if (taskExecution)
+    if (taskExecution) {
         taskExecution.sessionId = s.id;
+        s.planTaskId = taskExecution.planTaskId;
+        await putItems('sessions', [s]);
+    }
     await startSession(s);
 }
 async function startSession(s: StudySession) { active = s; page = 'quiz'; shell(); await showQuestion(); }
@@ -493,6 +505,12 @@ function showResults(s: StudySession) {
         const exec = taskExecution;
         taskExecution = null;
         void completePlanTask(exec, Math.max(0.5, Math.round((Date.now() - exec.startedAt) / 30000) / 2));
+    }
+    else if (s.planTaskId) {
+        // 刷新后恢复的会话：仍然把同一领域证据回写到原计划任务。
+        const planTask = todayPlan?.initialPlan.find(t => t.id === s.planTaskId);
+        if (planTask)
+            void completePlanTask({ planTaskId: planTask.id, kind: planTask.kind ?? s.mode, startedAt: planTask.startedAt ?? s.started, sessionId: s.id }, Math.max(0.5, Math.round((Date.now() - s.started) / 30000) / 2));
     }
     const rs = data.records.filter(r => r.sessionId === s.id);
     const st = recordStats(rs);
@@ -747,9 +765,11 @@ function bindOutputHub(): void {
         }
     });
 }
-async function startOutputTask(task: import('./types.ts').OutputTaskSpec, initialDraft = '', inputSessionId: string | null = null, readingSessionId: string | null = null, miniUnitId: string | null = null): Promise<void> {
+async function startOutputTask(task: import('./types.ts').OutputTaskSpec, initialDraft = '', inputSessionId: string | null = null, readingSessionId: string | null = null, miniUnitId: string | null = null, planTaskId: string | null = null): Promise<void> {
     const linkedUnit = miniUnitId ?? (task.sourceType === 'mini_unit' ? task.sourceId : null);
-    const created = await createOutputAttempt({ task, initialDraft, inputSessionId, readingSessionId, miniUnitId: linkedUnit, sourceProvenance: initialDraft ? 'user_text+input_summary' : 'user_text' });
+    if (planTaskId)
+        outputPlanTaskId = planTaskId;
+    const created = await createOutputAttempt({ task, initialDraft, inputSessionId, readingSessionId, miniUnitId: linkedUnit, dailyPlanTaskId: planTaskId, sourceProvenance: initialDraft ? 'user_text+input_summary' : 'user_text' });
     if (!created.ok) {
         toast(created.message);
         return;
@@ -822,7 +842,13 @@ function bindOutputSession(attempt: import('./types.ts').OutputAttempt): void {
         await flush();
         const text = editor?.value ?? '';
         const supportLevel = (outputHintLevel ?? 0) as import('./types.ts').OutputSupportLevel;
-        const r = await submitOutputAttempt(attempt.id, attempt.revision, text, {
+        // 自动保存会推进 revision；提交必须使用最新记录，否则会把用户自己的保存误判成并发冲突。
+        const latest = (await loadData()).outputAttempts.find(a => a.id === attempt.id);
+        if (!latest) {
+            toast('找不到这条表达记录');
+            return;
+        }
+        const r = await submitOutputAttempt(attempt.id, latest.revision, text, {
             supportLevel,
             support: attempt.support ?? emptySupport(text),
             hintsUsed: attempt.support?.requestedHints ?? [],
@@ -873,12 +899,23 @@ function bindOutputSession(attempt: import('./types.ts').OutputAttempt): void {
         const fresh = data.outputAttempts.find(a => a.id === attempt.id);
         if (!fresh)
             return;
+        const planTaskId = fresh.dailyPlanTaskId ?? outputPlanTaskId;
         const r = await finishOutput(attempt.id, fresh.revision, data);
         if (!r.ok) {
             toast(r.message);
             return;
         }
         outputMessage = '这次表达已完成。证据按独立性记录；照抄或完整示范不会算作独立掌握。';
+        if (planTaskId) {
+            const planTask = todayPlan?.initialPlan.find(t => t.id === planTaskId);
+            outputPlanTaskId = null;
+            await completePlanTask({
+                planTaskId,
+                kind: planTask?.kind ?? 'output-task',
+                startedAt: planTask?.startedAt ?? fresh.createdAt,
+                sessionId: attempt.id,
+            }, Math.max(0.5, planTask?.minutes ?? Math.round((Date.now() - fresh.createdAt) / 60000)));
+        }
         await unitRefresh();
     });
     on('#out-back', 'click', () => { outputAttemptId = null; outputHintLevel = null; outputMessage = ''; render(); });
@@ -1209,8 +1246,23 @@ function bindInputSession(session: NonNullable<ReturnType<typeof inputSessionByI
         await refresh();
     });
     on('[data-session-complete]', 'click', async () => {
+        const planTaskId = session.dailyPlanTaskId ?? inputPlanTaskId;
         const r = await inputActions.sessionAction(session.id, rev(), 'complete');
-        toast(r.ok ? '这次输入已完成：只记录曝光与自评，不会自动提高能力' : r.message);
+        if (!r.ok) {
+            toast(r.message);
+            return;
+        }
+        toast('这次输入已完成：只记录曝光与自评，不会自动提高能力');
+        if (planTaskId) {
+            const planTask = todayPlan?.initialPlan.find(t => t.id === planTaskId);
+            inputPlanTaskId = null;
+            await completePlanTask({
+                planTaskId,
+                kind: planTask?.kind ?? 'input-session',
+                startedAt: planTask?.startedAt ?? session.startedAt ?? Date.now(),
+                sessionId: r.value.id,
+            }, Math.max(0.5, Math.round(((r.value.reportedWatchedMinutes ?? 0) || session.plannedMinutes || 0))));
+        }
         await refresh();
     });
     on('[data-transcript-import]', 'click', async () => {
@@ -1597,7 +1649,35 @@ function unavailableModulesText(): string { const caps = moduleCapabilities(); r
 function planSetup(): string {
     const presets: number[] = [...PLANNER_CONFIG.budget.presets];
     const custom = !presets.includes(planBudget);
-    return `<section class="panel plan-panel" id="plan-setup"><div class="section-title"><h2>今日计划</h2><span class="subtle">时间预算优先</span></div><p class="hint">先选真实可用时间与今天的状态。计划会在同一份预算内安排隔夜检测、到期复习、新词与收尾回忆；不会安排尚未上线的模块。</p><div class="plan-setup"><label>可用时间<select id="plan-budget">${presets.map(n => `<option value="${n}" ${n === planBudget ? 'selected' : ''}>${n} 分钟</option>`).join('')}<option value="custom" ${custom ? 'selected' : ''}>自定义</option></select></label><label>自定义分钟<input id="plan-custom" type="number" min="${PLANNER_CONFIG.budget.min}" max="${PLANNER_CONFIG.budget.max}" step="1" value="${planBudget}" ${custom ? '' : 'disabled'}></label><label>今日状态<select id="plan-energy">${([['low', '状态差'], ['normal', '正常'], ['good', '状态好']] as const).map(([v, t]) => `<option value="${v}" ${planEnergy === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><button id="plan-create" class="primary" ${planBusy ? 'disabled' : ''}>生成今日计划</button></div><p class="hint">未上线模块不生成假任务：${esc(unavailableModulesText())}</p></section>`;
+    return `<section class="panel plan-panel" id="plan-setup"><div class="section-title"><h2>今日计划</h2><span class="subtle">时间预算优先</span></div><p class="hint">先选真实可用时间与今天的状态。计划会在同一份预算内安排隔夜检测、到期复习、新词与收尾回忆；不会安排尚未上线的模块。</p><div class="plan-setup"><label>可用时间<select id="plan-budget">${presets.map(n => `<option value="${n}" ${n === planBudget ? 'selected' : ''}>${n} 分钟</option>`).join('')}<option value="custom" ${custom ? 'selected' : ''}>自定义</option></select></label><label>自定义分钟<input id="plan-custom" type="number" min="${PLANNER_CONFIG.budget.min}" max="${PLANNER_CONFIG.budget.max}" step="1" value="${planBudget}" ${custom ? '' : 'disabled'}></label><label>今日状态<select id="plan-energy">${([['low', '状态差'], ['normal', '正常'], ['good', '状态好']] as const).map(([v, t]) => `<option value="${v}" ${planEnergy === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><button id="plan-create" class="primary" ${planBusy ? 'disabled' : ''}>生成今日计划</button></div><p class="hint">${esc(unavailableTasksText())}；没有真实目标时不会生成假任务。</p></section>`;
+}
+function moduleName(m: ReturnType<typeof taskModule>): string {
+    return ({ vocabulary: '词汇', sentence: '句子', reading: '阅读', input: '输入', output: '表达', exam: '考试', closing: '收尾', unsupported: '未知' } as const)[m];
+}
+function unavailableTasksText(): string {
+    const missing: string[] = [];
+    if (!data.words.length)
+        missing.push('词汇（词库为空）');
+    if (!sentenceRecords.length)
+        missing.push('句子（没有真实句子）');
+    if (!data.passages.length)
+        missing.push('阅读（没有文章）');
+    if (!data.inputSources.length)
+        missing.push('输入（没有真实材料）');
+    if (!selectOutputTasks({ data, now: Date.now(), availableMinutes: 20, energy: planEnergy }).candidates.length)
+        missing.push('表达（没有真实来源）');
+    if (!(data.settings.exam?.planEnabled ?? false))
+        missing.push('考试（未开启每日考试练习）');
+    else if (!(data.examItems ?? []).length)
+        missing.push('考试（题库为空）');
+    return missing.length ? `当前不生成：${missing.join('、')}` : '六类模块均有可执行目标';
+}
+function todayTrainingBlock(plan: DailyPlan): string {
+    const next = nextOpenTask(plan);
+    if (!next)
+        return '<div class="today-flow done"><b>今天的计划已全部完成</b><p class="hint">已完成的任务与证据都保留；跳过/替换不会冒充学习证据。</p></div>';
+    const label = next.label ?? TASK_LABELS[next.kind ?? ''] ?? next.kind ?? '下一项';
+    return `<div class="today-flow"><div><b>${trainingFlow ? '继续今天的训练' : '按计划开始今天的训练'}</b><p class="hint">下一项：${esc(label)} · ${esc(moduleName(taskModule(next)))} · ${next.minutes} 分钟。完成后自动回到 Today。</p></div><button id="start-today" class="primary">${next.status === 'started' ? '继续这一项' : '开始今天的训练'}</button></div>`;
 }
 function planOverview(plan: DailyPlan): string {
     const progress = planProgress(plan);
@@ -1614,14 +1694,15 @@ function planOverview(plan: DailyPlan): string {
     const recallLine = recall?.status === 'done'
         ? `<p class="hint">隔夜检测：保留率 ${recall.evaluation?.retention == null ? '样本不足' : pct(recall.evaluation.retention)}（${recall.evaluation?.confidence === 'ok' ? '可信' : '低置信'}）· 结果已用于校准今日剩余任务</p>`
         : recall?.status === 'pending' ? '<p class="hint">隔夜检测：待完成（结果会校准今日新词量）</p>' : recall?.status === 'recovery' ? '<p class="hint">已按中断天数安排重新进入检测，不积学习债</p>' : '';
-    return `<section class="panel plan-panel" id="plan-panel"><div class="section-title"><h2>今日计划</h2><span class="subtle">剩余 ${progress.remainingMinutes} 分钟 · 完成 ${progress.done}/${progress.total}${progress.skipped ? ` · 跳过 ${progress.skipped}` : ''}</span></div><div class="plan-progress" role="progressbar" aria-valuenow="${Math.round(progress.ratio * 100)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.round(progress.ratio * 100)}%"></i></div><p class="hint">预算 ${plan.availableMinutes} 分钟 · 状态 ${energyLabel(plan.energyState)} · ${esc(budgetReasons.slice(0, 3).join(' · ') || '按真实到期与保留率安排')}</p>${recallLine}<div class="plan-tasks">${plan.initialPlan.map(t => taskCard(t)).join('') || '<p class="subtle">今天没有需要安排的任务。</p>'}</div><div class="actions"><button id="plan-regenerate" class="secondary">重新生成未完成部分</button><button id="plan-adjust" class="text-button">调整预算 / 状态</button></div><p class="hint">已完成任务与已提交的学习证据不会被重建；延后只发生在今天，不成为明天的作业债。</p><p class="hint">未上线模块不生成任务：${esc(unavailableModulesText())}</p></section>`;
+    return `<section class="panel plan-panel" id="plan-panel"><div class="section-title"><h2>今日计划</h2><span class="subtle">剩余 ${progress.remainingMinutes} 分钟 · 完成 ${progress.done}/${progress.total}${progress.skipped ? ` · 跳过 ${progress.skipped}` : ''}</span></div><div class="plan-progress" role="progressbar" aria-valuenow="${Math.round(progress.ratio * 100)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.round(progress.ratio * 100)}%"></i></div><p class="hint">预算 ${plan.availableMinutes} 分钟 · 状态 ${energyLabel(plan.energyState)} · ${esc(budgetReasons.slice(0, 3).join(' · ') || '按真实到期与保留率安排')}</p>${recallLine}<div class="plan-tasks">${plan.initialPlan.map(t => taskCard(t)).join('') || '<p class="subtle">今天没有需要安排的任务。</p>'}</div>${todayTrainingBlock(plan)}<div class="actions"><button id="plan-regenerate" class="secondary">重新生成未完成部分</button><button id="plan-adjust" class="text-button">调整预算 / 状态</button></div><p class="hint">已完成任务与已提交的学习证据不会被重建；延后只发生在今天，不成为明天的作业债。</p><p class="hint">${esc(unavailableTasksText())}；任务只使用真实材料，不生成假任务。</p></section>`;
 }
 function taskCard(t: PlanItem): string {
     const statusText: Record<string, string> = { done: '已完成', started: '进行中', skipped: '已跳过', delayed: '已延后', replaced: '已替换' };
     const badge = t.status === 'done' ? 'fluent' : t.status === 'skipped' || t.status === 'replaced' ? 'unknown' : 'vague';
     const startLabel = t.status === 'started' ? '继续' : '开始';
     const actions = t.status === 'done' || t.status === 'replaced' || t.status === 'skipped' ? '' : `<div class="task-buttons"><button class="primary" data-task-start="${esc(t.id)}">${startLabel}</button>${t.flexible ? `<button class="secondary" data-task-replace="${esc(t.id)}">替换</button>` : ''}<button class="text-button" data-task-delay="${esc(t.id)}">延后</button><button class="text-button" data-task-skip="${esc(t.id)}">跳过</button></div>`;
-    return `<div class="plan-task ${esc(t.status)}" data-task="${esc(t.id)}"><div class="task-main"><div><b>${esc(t.label ?? TASK_LABELS[t.kind ?? ''] ?? t.kind ?? '任务')}</b><span class="task-minutes">${t.minutes} 分钟</span>${t.critical ? '<span class="badge vague">关键记忆</span>' : ''}${t.flexible ? '<span class="badge normal">可调整</span>' : ''}${statusText[t.status] ? `<span class="badge ${badge}">${statusText[t.status]}</span>` : ''}</div><small>${esc((t.reason ?? []).slice(0, 3).join(' · '))}</small><small>${(t.refs ?? []).length} 个词</small></div>${actions}</div>`;
+    const moduleTag = `<span class="badge normal">${esc(moduleName(taskModule(t)))}</span>`;
+    return `<div class="plan-task ${esc(t.status)}" data-task="${esc(t.id)}"><div class="task-main"><div><b>${esc(t.label ?? TASK_LABELS[t.kind ?? ''] ?? t.kind ?? '任务')}</b><span class="task-minutes">${t.minutes} 分钟</span>${moduleTag}${t.critical ? '<span class="badge vague">关键记忆</span>' : ''}${t.flexible ? '<span class="badge normal">可调整</span>' : ''}${statusText[t.status] ? `<span class="badge ${badge}">${statusText[t.status]}</span>` : ''}</div><small>${esc((t.reason ?? []).slice(0, 3).join(' · '))}</small><small>${esc(taskTargetLabel(t))}</small></div>${actions}</div>`;
 }
 function bindPlan() {
     on('#plan-budget', 'change', e => {
@@ -1638,6 +1719,7 @@ function bindPlan() {
     on('#plan-energy', 'change', e => { planEnergy = (e.target as HTMLSelectElement).value as EnergyState; });
     on('#plan-create', 'click', createPlanFromUI);
     on('#plan-regenerate', 'click', () => void regeneratePlan(todayPlan?.availableMinutes ?? planBudget, todayPlan?.energyState ?? planEnergy));
+    on('#start-today', 'click', () => void startTodayTraining());
     on('#plan-adjust', 'click', planAdjustDialog);
     document.querySelectorAll<HTMLElement>('[data-task-start]').forEach(b => b.onclick = () => void startPlanTask(b.dataset.taskStart!));
     document.querySelectorAll<HTMLElement>('[data-task-skip]').forEach(b => b.onclick = () => void planAction(b.dataset.taskSkip!, 'skip'));
@@ -1697,77 +1779,182 @@ async function createPlanFromUI() {
         planBusy = false;
     }
 }
-async function startPlanTask(taskId: string) {
+async function startPlanTask(taskId: string, fromFlow = false): Promise<void> {
+    if (taskStarting) {
+        toast('任务正在打开，请稍候');
+        return;
+    }
+    taskStarting = true;
+    try {
+        await startPlanTaskOnce(taskId, fromFlow);
+    }
+    finally {
+        taskStarting = false;
+    }
+}
+async function startPlanTaskOnce(taskId: string, fromFlow = false): Promise<void> {
     if (!todayPlan || planBusy)
         return;
     const task = todayPlan.initialPlan.find(t => t.id === taskId);
     if (!task)
         return;
+    const module = taskModule(task);
+    if (module === 'unsupported') {
+        toast('这个任务来自未知模块，应用不会把它当成词汇任务执行；请重新生成今日计划');
+        return;
+    }
+    const unavailable = taskUnavailableReason(task, data);
+    if (unavailable) {
+        toast(unavailable);
+        return;
+    }
     const waiting = (task.dependencies ?? []).filter(d => todayPlan!.initialPlan.find(t => t.id === d)?.status !== 'done');
     if (waiting.length) {
         toast('请先完成前置任务（新词需要先预览，再 Recall）');
         return;
     }
-    if (task.kind !== 'new-preview' && data.sessions.some(s => !s.ended)) {
-        toast('请先继续或结束未完成的训练');
+    // 同一个领域只能有一个活动会话；输入/阅读/表达/考试各自有独立状态机与恢复入口。
+    if ((module === 'vocabulary' || module === 'closing') && data.sessions.some(s => !s.ended)) {
+        toast('请先继续或结束未完成的词汇训练');
         return;
     }
-    if (task.module === 'reading' || task.kind?.startsWith('reading-')) {
+    if (fromFlow)
+        trainingFlow = true;
+    const markStarted = async (): Promise<boolean> => {
+        const startedPlan = applyPlanAction(todayPlan!, taskId, 'start', { now: Date.now() });
+        if (!startedPlan.ok) {
+            toast(startedPlan.reasons.join('；'));
+            return false;
+        }
+        const saved = await persistPlan(startedPlan.plan);
+        return !!saved;
+    };
+    // 重复点击/刷新后继续：同一计划任务已有进行中的领域会话时，恢复而不是新建。
+    if (module === 'sentence' && labSession?.planTaskId === taskId) {
+        page = 'lab';
+        render();
+        return;
+    }
+    if (module === 'output') {
+        const activeOut = data.outputAttempts.find(a => a.status !== 'completed' && a.dailyPlanTaskId === taskId);
+        if (activeOut) {
+            outputAttemptId = activeOut.id;
+            page = 'output';
+            render();
+            return;
+        }
+    }
+    if (module === 'exam') {
+        const activeExam = data.examSessions.find(x => ['created', 'active', 'paused'].includes(x.status) && x.dailyPlanTaskId === taskId);
+        if (activeExam) {
+            examSessionId = activeExam.id;
+            page = 'exam';
+            render();
+            return;
+        }
+    }
+    if (module === 'reading') {
         const passageId = (task.refs ?? [])[0] ?? '';
         const passage = data.passages.find(p => p.id === passageId);
         if (!passage) {
             toast('这篇文章已不在阅读库（可能被删除）');
             return;
         }
-        if (data.sessions.some(s => !s.ended)) {
-            toast('请先继续或结束未完成的训练');
-            return;
-        }
-        const started = applyPlanAction(todayPlan, taskId, 'start', { now: Date.now() });
-        if (!started.ok) {
-            toast(started.reasons.join('；'));
-            return;
-        }
-        const savedPlan = await persistPlan(started.plan);
-        if (!savedPlan)
+        if (!(await markStarted()))
             return;
         readingTask = { planTaskId: taskId, startedAt: Date.now() };
         openReadingMaterial(passage, task.targetSessionId ?? null);
         return;
     }
-    if (task.module === 'sentence' || task.kind?.startsWith('sentence-')) {
+    if (module === 'sentence') {
         const ids = (task.refs ?? []).filter(id => sentenceRecords.some(s => s.id === id));
         if (!ids.length) {
             toast('这个句任务没有可用的真实句子（句库可能已变更）');
             return;
         }
-        if (data.sessions.some(s => !s.ended)) {
-            toast('请先继续或结束未完成的训练');
-            return;
-        }
-        const started = applyPlanAction(todayPlan, taskId, 'start', { now: Date.now() });
-        if (!started.ok) {
-            toast(started.reasons.join('；'));
-            return;
-        }
-        const savedPlan = await persistPlan(started.plan);
-        if (!savedPlan)
+        if (!(await markStarted()))
             return;
         startLab(ids, taskId, task.kind ?? 'sentence-basic-structure');
         return;
     }
+    if (module === 'input') {
+        const sourceId = (task.refs ?? [])[0] ?? '';
+        const source = data.inputSources.find(s => s.id === sourceId);
+        if (!source) {
+            toast('这份输入材料已不在 Input Hub');
+            return;
+        }
+        const existing = data.inputSessions
+            .filter(s => s.sourceId === sourceId && s.status !== 'completed' && s.status !== 'abandoned')
+            .find(s => s.id === task.targetSessionId) ?? data.inputSessions
+            .filter(s => s.sourceId === sourceId && s.status !== 'completed' && s.status !== 'abandoned')
+            .sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0))[0] ?? null;
+        if (!(await markStarted()))
+            return;
+        inputPlanTaskId = taskId;
+        if (existing) {
+            if (existing.dailyPlanTaskId !== taskId) {
+                const linked = { ...existing, dailyPlanTaskId: taskId, updatedAt: Date.now() };
+                await putItems('inputSessions', [linked as never]);
+                data = await loadData();
+                reindex();
+            }
+            inputSessionId = existing.id;
+            inputModeDraft = existing.mode;
+            page = 'input';
+            render();
+            return;
+        }
+        const mode = suggestMode({ energy: inputEnergy(), unitDay: activeUnitInData()?.dayIndex ?? null });
+        const minutes = Math.max(1, Math.round(task.minutes));
+        const startedInput = await inputActions.startInputAction(data, {
+            sourceId, mode, minutes, miniUnitId: activeUnitInData()?.id ?? null, dailyPlanTaskId: taskId,
+        });
+        if (!startedInput.ok) {
+            inputPlanTaskId = null;
+            toast(startedInput.message);
+            return;
+        }
+        data = await loadData();
+        reindex();
+        inputSessionId = startedInput.value.id;
+        inputModeDraft = startedInput.value.mode;
+        page = 'input';
+        render();
+        return;
+    }
+    if (module === 'output') {
+        const wantedId = (task.refs ?? [])[0] ?? '';
+        const sel = selectOutputTasks({ data, now: Date.now(), availableMinutes: task.minutes, energy: planEnergy });
+        const candidate = sel.candidates.find(c => c.id === wantedId) ?? (sel.task?.id === wantedId ? sel.task : null);
+        if (!candidate) {
+            toast('这个表达任务在当前材料下已不可用；请重新生成今日计划');
+            return;
+        }
+        if (!(await markStarted()))
+            return;
+        outputPlanTaskId = taskId;
+        page = 'output';
+        outputAttemptId = null;
+        await startOutputTask(candidate, '', null, null, null, taskId);
+        return;
+    }
+    if (module === 'exam') {
+        const itemId = (task.refs ?? [])[0] ?? '';
+        if (!(await markStarted()))
+            return;
+        examPlanTaskId = taskId;
+        page = 'exam';
+        await startExamItems([itemId], taskId);
+        return;
+    }
+    // 词汇/收尾：refs 必须真实存在，否则明确失败。
     const refs = (task.refs ?? []).map(id => wordMap.get(id)).filter((w): w is Word => !!w);
     if (!refs.length) {
         toast('这个任务暂时没有可执行的词（词库可能已变更）');
         return;
     }
-    const result = applyPlanAction(todayPlan, taskId, 'start', { now: Date.now() });
-    if (!result.ok) {
-        toast(result.reasons.join('；'));
-        return;
-    }
-    const saved = await persistPlan(result.plan);
-    if (!saved)
+    if (!(await markStarted()))
         return;
     const exec = { planTaskId: taskId, kind: task.kind ?? '', startedAt: Date.now(), sessionId: '' };
     if (task.kind === 'new-preview') {
@@ -1784,18 +1971,48 @@ async function startPlanTask(taskId: string) {
     if (!active)
         taskExecution = null;
 }
+async function startTodayTraining(): Promise<void> {
+    if (!todayPlan) {
+        toast('先生成今日计划');
+        return;
+    }
+    trainingFlow = true;
+    const next = nextOpenTask(todayPlan);
+    if (!next) {
+        toast('今天的计划已经全部完成');
+        page = 'home';
+        render();
+        return;
+    }
+    await startPlanTask(next.id, true);
+}
 async function completePlanTask(exec: {
     planTaskId: string;
     kind: string;
     startedAt: number;
     sessionId: string;
-}, actualMinutes: number) {
+}, actualMinutes: number): Promise<boolean> {
     if (!todayPlan)
-        return;
-    const result = applyPlanAction(todayPlan, exec.planTaskId, 'complete', { now: Date.now(), actualMinutes, reason: 'task-completed' });
+        return false;
+    const task = todayPlan.initialPlan.find(t => t.id === exec.planTaskId);
+    if (!task) {
+        toast('找不到这个计划任务，可能已重新生成');
+        return false;
+    }
+    if (task.status === 'done')
+        return true;
+    // 领域写入可能发生在另一个事务里；完成前读一次最新数据，避免用旧快照判断证据。
+    data = await loadData();
+    reindex();
+    const evidence = taskEvidence(task, data, { planTaskId: exec.planTaskId, startedAt: exec.startedAt, sessionId: exec.sessionId });
+    if (!evidence.ok) {
+        toast(`未标记完成：${evidence.reason}`);
+        return false;
+    }
+    const result = applyPlanAction(todayPlan, exec.planTaskId, 'complete', { now: Date.now(), actualMinutes, reason: `task-completed:${evidence.module}` });
     if (!result.ok) {
         toast(result.reasons.join('；'));
-        return;
+        return false;
     }
     let plan = result.plan;
     if (exec.kind === 'yesterday-recall') {
@@ -1810,11 +2027,44 @@ async function completePlanTask(exec: {
     }
     if (exec.kind === 'closing-recall')
         plan.closingLoop = { ...((plan.closingLoop as Record<string, unknown>) ?? {}), status: 'awaiting-feedback', feedback: null };
-    if (exec.kind?.startsWith('sentence-'))
-        plan.completedModules = [...new Set([...(plan.completedModules ?? []), 'sentence'])];
+    plan.completedModules = [...new Set([...(plan.completedModules ?? []), taskModule(task)])];
     const savedPlan = await persistPlan(plan);
     if (savedPlan && exec.kind === 'closing-recall')
         closingFeedback();
+    if (savedPlan && trainingFlow) {
+        page = 'home';
+        render();
+    }
+    return !!savedPlan;
+}
+// 启动恢复对账：领域会话已完成、但计划仍停在 started 时，用真实证据补写 done。
+// 没有证据的 started 不自动完成，也不清空——重新进入任务会恢复原会话。
+async function reconcilePlanEvidence(): Promise<void> {
+    if (!todayPlan)
+        return;
+    let plan = todayPlan;
+    let changed = false;
+    for (const task of todayPlan.initialPlan.filter(t => t.status === 'started')) {
+        const evidence = taskEvidence(task, data, { planTaskId: task.id, startedAt: task.startedAt ?? 0, sessionId: '' });
+        if (!evidence.ok)
+            continue;
+        const r = applyPlanAction(plan, task.id, 'complete', { now: Date.now(), actualMinutes: task.minutes, reason: `reconciled:${evidence.module}` });
+        if (r.ok) {
+            plan = r.plan;
+            plan.completedModules = [...new Set([...(plan.completedModules ?? []), taskModule(task)])];
+            changed = true;
+        }
+    }
+    if (!changed)
+        return;
+    try {
+        const saved = await savePlan(plan, todayPlan.revision ?? 0);
+        todayPlan = saved;
+        data.dailyPlans = upsertPlan(data.dailyPlans, saved);
+    }
+    catch {
+        // 对账失败不阻塞启动；原计划保留，用户仍可继续任务。
+    }
 }
 async function planAction(taskId: string, action: 'skip' | 'delay') {
     if (!todayPlan)
@@ -3187,6 +3437,8 @@ function readingPreview(): void {
             return;
         const ability = (readDifficulty?.classification === 'too-hard' ? 'weak' : readDifficulty?.classification === 'comfort' ? 'strong' : 'normal') as 'weak' | 'normal' | 'strong';
         const session = createReadingSession({ passage: readPassage, now: Date.now(), ability });
+        if (readingTask)
+            session.dailyPlanTaskId = readingTask.planTaskId;
         const guess = document.querySelector<HTMLInputElement>('#read-guess')?.value?.trim() ?? '';
         upsertReadSession(session);
         if (guess)
@@ -3453,9 +3705,11 @@ function readingWhole(): void {
         const done = completeReadingSession(readSession, { summary, now: Date.now() });
         upsertReadSession(done);
         await persistReading();
-        if (readingTask) {
-            const minutes = Math.max(1, Math.round((Date.now() - readingTask.startedAt) / 60000));
-            await completePlanTask({ planTaskId: readingTask.planTaskId, kind: 'reading', startedAt: readingTask.startedAt, sessionId: done.id }, minutes);
+        const planTaskId = readingTask?.planTaskId ?? done.dailyPlanTaskId ?? '';
+        if (planTaskId) {
+            const planTask = todayPlan?.initialPlan.find(t => t.id === planTaskId);
+            const minutes = Math.max(1, Math.round((Date.now() - (readingTask?.startedAt ?? planTask?.startedAt ?? done.at)) / 60000));
+            await completePlanTask({ planTaskId, kind: 'reading', startedAt: readingTask?.startedAt ?? planTask?.startedAt ?? done.at, sessionId: done.id }, minutes);
             readingTask = null;
         }
         readView = 'result';
@@ -3563,7 +3817,7 @@ async function persistExam(next: ExamSession, prevRevision: number): Promise<Exa
     }
     return next;
 }
-async function startExamItems(ids: string[]): Promise<void> {
+async function startExamItems(ids: string[], planTaskId: string | null = null): Promise<void> {
     const d = await loadData();
     const items = (d.examItems ?? []).filter(i => ids.includes(i.id));
     if (!items.length) {
@@ -3571,7 +3825,7 @@ async function startExamItems(ids: string[]): Promise<void> {
         return;
     }
     const now = Date.now();
-    let s = createExamSession({ id: `exam-${now}-${Math.random().toString(36).slice(2, 7)}`, mode: items.length > 1 ? 'mixed_practice' : 'skill_practice', spec: examSpecFor(items[0]), items, now });
+    let s = createExamSession({ id: `exam-${now}-${Math.random().toString(36).slice(2, 7)}`, mode: items.length > 1 ? 'mixed_practice' : 'skill_practice', spec: examSpecFor(items[0]), items, now, dailyPlanTaskId: planTaskId });
     const created = await saveExamSession(s);
     if (!created.ok) {
         toast('无法创建测评');
@@ -3675,8 +3929,21 @@ async function completeExamFlow(s: ExamSession): Promise<void> {
             saved = await saveExamSession(retry.session, saved.session.revision);
     }
     await reloadExam();
-    if (!saved.ok)
+    if (!saved.ok) {
         toast('完成状态未保存；已刷新，请重试');
+        render();
+        return;
+    }
+    if (s.dailyPlanTaskId) {
+        const planTask = todayPlan?.initialPlan.find(t => t.id === s.dailyPlanTaskId);
+        examPlanTaskId = null;
+        await completePlanTask({
+            planTaskId: s.dailyPlanTaskId,
+            kind: planTask?.kind ?? 'exam-practice',
+            startedAt: planTask?.startedAt ?? s.createdAt,
+            sessionId: s.id,
+        }, Math.max(0.5, planTask?.minutes ?? s.timeLimitMinutes));
+    }
     render();
 }
 async function retestExam(s: ExamSession): Promise<void> {
@@ -4008,13 +4275,147 @@ async function boot() {
     }
     try {
         todayPlan = (await loadPlan(dayKey(Date.now()))) ?? null;
+        await reconcilePlanEvidence();
     }
     catch {
         todayPlan = null;
     }
+    installPlanTestHook();
     render();
     if (data.migration && Date.now() - data.migration.at < 10 * 60 * 1000)
         setTimeout(() => toast(`本地数据库已从 v${data.migration!.from} 升级到 v${data.migration!.to}；建议立即导出一次完整备份`), 600);
+}
+// Phase 12 Full Integration 验收钩子：仅测试构建（?test=1）存在。
+// 它只播种真实结构的数据（词/文章/输入/考试），不写任何“已完成”标记；
+// 计划完成仍必须走真实领域会话与 taskEvidence。
+function installPlanTestHook(): void {
+    if (!testHooksEnabled() || !new URLSearchParams(location.search).has('test'))
+        return;
+    const api = {
+        async seedUnified() {
+            const now = Date.now();
+            const words = Array.from({ length: 24 }, (_, i) => {
+                const w = makeWord({ en: i < 12 ? `unifiednew${i}` : `unifiedweak${i}`, zh: `统一验收释义${i}` }, 'seed-unified-book', i);
+                if (i >= 12) {
+                    return {
+                        ...w, previewedAt: now - 3600000, previewResult: 'familiar' as const, exposureCount: 1,
+                        state: { ...w.state, total: 4, correct: 1, errors: 3, level: 'vague' as const, streak: 0, directions: { 'en-zh': { total: 2, correct: 1, meanMs: 1200 }, 'zh-en': { total: 2, correct: 0, meanMs: 1300 } } },
+                    };
+                }
+                return w;
+            });
+            await putItems('books', [{ id: 'seed-unified-book', name: '统一验收词书', created: now }]);
+            await putItems('words', words);
+            const text = 'Attention is not a single ability. It changes with sleep, interest and the difficulty of the material. ' +
+                'A short walk can restore focus, and a clear question can make a long article easier to remember. ' +
+                'The useful test is whether you can explain the main idea in your own words after a day.';
+            const passage = {
+                id: 'seed-unified-passage', title: 'Attention and Learning', text, sourceType: 'import' as const,
+                sourceUrl: 'https://example.com/attention', topic: 'learning', wordCount: text.split(/\s+/).length,
+                difficulty: 'normal' as const, createdAt: now, sourceName: '统一验收', language: 'en' as const,
+                paragraphs: [{ index: 0, text, start: 0, end: text.length, wordCount: text.split(/\s+/).length }],
+                sentences: [{ index: 0, paragraphIndex: 0, text, start: 0, end: text.length, wordCount: text.split(/\s+/).length }],
+                sourceReliability: 'user_supplied' as const, extractionMethod: 'paste' as const, contentHash: 'seed-unified-passage', userEdited: false, importedAt: now,
+            };
+            await putItems('passages', [passage]);
+            await putItems('readingSessions', [{ id: 'seed-unified-reading', passageId: passage.id, at: now - 7200000, stage: 4, wordCount: passage.wordCount, unknownWords: [], vagueWords: [], unknownRate: 0, durationMs: 600000, readingSpeed: 100, structureErrors: 0, summary: 'Attention changes with context.', detail: { state: 'completed', stage: 'completed', passageTitle: passage.title } } as never]);
+            const d0 = await loadData();
+            if (!(d0.inputSources ?? []).some(s => s.id === 'seed-unified-input')) {
+                const src = await inputActions.addSource(d0, { title: 'A real talk about attention', url: 'https://example.com/talk', topic: 'attention', durationMinutes: 18, language: 'en', contentType: 'online_video' });
+                if (src.ok) {
+                    const d1 = await loadData();
+                    const saved = (d1.inputSources ?? []).find(s => s.title === 'A real talk about attention');
+                    if (saved && saved.id !== 'seed-unified-input') {
+                        await putItems('inputSources', [{ ...saved, id: 'seed-unified-input' }]);
+                    }
+                }
+            }
+            data = await loadData();
+            data.settings.exam = { planEnabled: true };
+            await saveSettings(data.settings);
+            await ensureExamContent();
+            data = await loadData();
+            reindex();
+            return { words: data.words.length, passages: data.passages.length, inputSources: data.inputSources.length, sentences: sentenceRecords.length, examItems: data.examItems?.length ?? 0 };
+        },
+        async resetDomain() {
+            const names = ['sessions', 'inputSessions', 'outputAttempts', 'examSessions', 'readingSessions'];
+            await new Promise<void>((resolve, reject) => {
+                const tx = getDB().transaction(names, 'readwrite');
+                for (const n of names)
+                    tx.objectStore(n).clear();
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+            inputSessionId = null;
+            outputAttemptId = null;
+            examSessionId = '';
+            readSession = null;
+            readPassage = null;
+            data = await loadData();
+            reindex();
+            render();
+            return { ok: true };
+        },
+        async resetPlan() {
+            if (todayPlan) {
+                await new Promise<void>((resolve, reject) => {
+                    const tx = getDB().transaction('dailyPlans', 'readwrite');
+                    tx.objectStore('dailyPlans').delete(todayPlan!.id);
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                });
+            }
+            todayPlan = null;
+            trainingFlow = false;
+            inputPlanTaskId = null;
+            outputPlanTaskId = null;
+            examPlanTaskId = null;
+            page = 'home';
+            render();
+            return { ok: true };
+        },
+        async createPlan(minutes = 240) {
+            if (todayPlan)
+                return { ok: true, existing: true, id: todayPlan.id, tasks: todayPlan.initialPlan.length };
+            const { plan } = createDailyPlan(planInput(minutes, 'normal'));
+            const saved = await savePlan(plan, 0);
+            todayPlan = saved;
+            data.dailyPlans = upsertPlan(data.dailyPlans, saved);
+            page = 'home';
+            render();
+            return { ok: true, existing: false, id: saved.id, tasks: saved.initialPlan.length, modules: [...new Set(saved.initialPlan.map(t => t.module))] };
+        },
+        async snapshot() {
+            const d = await loadData();
+            return {
+                page,
+                plan: todayPlan ? {
+                    id: todayPlan.id, status: todayPlan.status, revision: todayPlan.revision,
+                    tasks: todayPlan.initialPlan.map(t => ({ id: t.id, module: t.module, kind: t.kind, status: t.status, minutes: t.minutes, refs: t.refs ?? [], startedAt: t.startedAt ?? null, completedAt: t.completedAt ?? null, targetSessionId: t.targetSessionId ?? null })),
+                } : null,
+                inputSessionId, outputAttemptId, examSessionId: examSessionId,
+                inputPlanTaskId, outputPlanTaskId, examPlanTaskId,
+                sessions: { now: Date.now(), input: (d.inputSessions ?? []).map(x => ({ id: x.id, source: x.sourceId, status: x.status, plan: x.dailyPlanTaskId ?? null, started: x.startedAt ?? null, completed: x.completedAt ?? null, reflection: !!x.reflection })), output: (d.outputAttempts ?? []).map(x => ({ id: x.id, status: x.status, plan: x.dailyPlanTaskId ?? null, created: x.createdAt })), exam: (d.examSessions ?? []).map(x => ({ id: x.id, status: x.status, plan: x.dailyPlanTaskId ?? null, created: x.createdAt, items: x.itemIds })) },
+            };
+        },
+        async resetFlow() { trainingFlow = false; inputPlanTaskId = null; outputPlanTaskId = null; examPlanTaskId = null; page = 'home'; render(); return { ok: true }; },
+        async evidenceFor(taskId: string) {
+            const task = todayPlan?.initialPlan.find(t => t.id === taskId);
+            if (!task)
+                return { ok: false, reason: 'missing-task' };
+            const d = await loadData();
+            const sessionId = task.module === 'input'
+                ? (d.inputSessions ?? []).filter(x => x.dailyPlanTaskId === task.id).sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))[0]?.id ?? ''
+                : task.module === 'output'
+                    ? (d.outputAttempts ?? []).find(x => x.dailyPlanTaskId === task.id)?.id ?? ''
+                    : task.module === 'exam'
+                        ? (d.examSessions ?? []).find(x => x.dailyPlanTaskId === task.id)?.id ?? ''
+                        : '';
+            return taskEvidence(task, d, { planTaskId: task.id, startedAt: task.startedAt ?? 0, sessionId });
+        },
+    };
+    (window as unknown as Record<string, unknown>).__planTest = api;
 }
 if (navigator.locks) {
     void navigator.locks.request('vocabulary-memory-writer', { ifAvailable: true }, async (lock) => {

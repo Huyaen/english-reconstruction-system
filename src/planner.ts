@@ -648,10 +648,13 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
         const descriptor = planInputTask({ sources: input.inputInput.sources, sessions: input.inputInput.sessions, now, availableMinutes: inputCapByBudget, energy });
         if (descriptor) {
             inputMinutesUsed = descriptor.minutes;
-            inputTasks.push(makeTask(date, descriptor.kind, descriptor.minutes, [descriptor.sourceId], {
+            const inputTask = makeTask(date, descriptor.kind, descriptor.minutes, [descriptor.sourceId], {
                 priority: 40, critical: false, flexible: true, source: 'input', module: 'input',
                 capabilityRequired: 'input', label: descriptor.label, reason: descriptor.reasons,
-            }));
+            });
+            if (descriptor.sessionId)
+                inputTask.targetSessionId = descriptor.sessionId;
+            inputTasks.push(inputTask);
         }
         else {
             const why = inputUnavailableReason(input.inputInput.sources);
@@ -804,6 +807,9 @@ function trimToBudget(tasks: PlanItem[], available: number, reasons: string[]): 
     reasons.push('budget-trim-applied');
     for (let i = tasks.length - 1; i >= 0 && total() > available; i--) {
         const t = tasks[i];
+        // 已完成/已开始的真实会话不能被预算裁剪改写；Only 未开始部分可缩。
+        if (t.status === 'done' || t.status === 'started')
+            continue;
         if (!t.flexible || t.minutes <= 1)
             continue;
         const original = t.minutes;
@@ -1062,12 +1068,15 @@ export function calibrateAfterRecall(plan: DailyPlan, evaluation: RecallEvaluati
 // Regenerate Today：只重建未完成任务；已完成任务与已提交证据保留。
 export function regenerateRemaining(plan: DailyPlan, input: PlannerInput): PlanActionResult {
     const now = input.now;
+    // 已完成 + 已开始的任务都保留：开始过的领域会话不能被“重新生成”抹掉。
     const done = plan.initialPlan.filter(t => t.status === 'done');
-    const spent = round1(done.reduce((n, t) => n + (t.actualMinutes ?? t.minutes), 0));
+    const started = plan.initialPlan.filter(t => t.status === 'started');
+    const preserved = [...done, ...started];
+    const spent = round1(preserved.reduce((n, t) => n + (t.actualMinutes ?? t.minutes), 0));
     const totalBudget = Math.max(input.availableMinutes, spent + PLANNER_CONFIG.budget.min);
     const remainingBudget = Math.max(PLANNER_CONFIG.budget.min, round1(totalBudget - spent));
     const rebuilt = createDailyPlan({ ...input, now, availableMinutes: remainingBudget, energy: input.energy ?? plan.energyState });
-    const doneKinds = new Set(done.map(t => t.kind));
+    const preservedKinds = new Set(preserved.map(t => t.kind));
     const recallDone = (plan.yesterdayRecallResult as {
         status?: string;
     } | null)?.status === 'done';
@@ -1075,7 +1084,7 @@ export function regenerateRemaining(plan: DailyPlan, input: PlannerInput): PlanA
         status?: string;
     } | null)?.status === 'completed';
     const fresh = rebuilt.plan.initialPlan.filter(t => {
-        if (doneKinds.has(t.kind))
+        if (preservedKinds.has(t.kind))
             return false;
         if (t.kind === 'yesterday-recall' && recallDone)
             return false;
@@ -1083,7 +1092,7 @@ export function regenerateRemaining(plan: DailyPlan, input: PlannerInput): PlanA
             return false;
         return true;
     });
-    const tasks = [...done, ...fresh];
+    const tasks = [...preserved, ...fresh];
     trimToBudget(tasks, totalBudget, []);
     const next: DailyPlan = {
         ...plan,

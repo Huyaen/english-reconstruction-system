@@ -280,6 +280,21 @@ test('Regenerate Today：只重排未完成任务，保留已完成任务与学�
     assert.ok(planMinutes(regenerated.plan) <= regenerated.plan.availableMinutes);
     assert.ok(regenerated.plan.adjustments.some(a => a.reason === 'regenerate-remaining'));
 });
+test('Regenerate Today：已开始但未完成的任务保留（不抹掉进行中的领域会话）', () => {
+    const words = [...makeWords(20).map(w => due(w)), ...makeWords(20, 'n')];
+    const { plan } = createDailyPlan({ now: NOW, availableMinutes: 45, energy: 'normal', words, records: [] });
+    const first = plan.initialPlan[0];
+    const startedPlan = {
+        ...plan,
+        initialPlan: plan.initialPlan.map(t => t.id === first.id ? { ...t, status: 'started' as const, startedAt: NOW - 120000 } : t),
+    };
+    const regenerated = regenerateRemaining(startedPlan, { now: NOW + 60000, availableMinutes: 45, energy: 'good', words, records: [] });
+    const kept = regenerated.plan.initialPlan.find(t => t.id === first.id)!;
+    assert.equal(kept.status, 'started');
+    assert.equal(kept.startedAt, NOW - 120000);
+    assert.equal(regenerated.plan.initialPlan.filter(t => t.kind === first.kind).length, 1, '不能为同一目标再生成一个重复任务');
+    assert.ok(planMinutes(regenerated.plan) <= regenerated.plan.availableMinutes);
+});
 // —— 中断 / 重新进入 ——
 test('中断恢复：断 1 天正常、2–3 天 Re-entry、≥7 天 Mini Diagnostic，且都在预算内', () => {
     assert.equal(decideRecovery(null, NOW).kind, 'none');

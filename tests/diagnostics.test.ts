@@ -86,6 +86,12 @@ test('阅读未知词率只认显式标记；没有标记时不可评估', () =>
     assert.equal(m.evaluability, 'evaluable');
     assert.equal(m.value, 0.3);
 });
+test('旧版/不完整阅读会话缺少 marks/comprehension 时诊断不崩溃', () => {
+    const range = recentRange(NOW, 7);
+    const d = emptyData();
+    d.readingSessions.push({ ...session('s1', NOW - DAY_MS, 0, 0), detail: { stage: 'reading', state: 'completed', at: NOW - DAY_MS } } as unknown as ReadingSession);
+    assert.doesNotThrow(() => collectDiagnostics(d, range));
+});
 test('没有标记的阅读会话不会产生 0% 未知词率的假结论', () => {
     const range = recentRange(NOW, 7);
     const d = emptyData();

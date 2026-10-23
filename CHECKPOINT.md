@@ -530,3 +530,27 @@ AI 句生成、外部语料 / 阅读 handoff、Mini Diagnostic 非词汇子测�
 - UI：绑定规格联动并锁定类别/年份，统一满分预填；冲突必须显式确认；记录改为卡片布局，显示来源、满分依据、冲突与“仅线索”。
 - 诊断新增 `exam.selfReportedLogs` 计数；自评不进入 `examErrorCategoryCounts`，官方分预测保持 null。
 - 验收：351/351、phase12 17/17、phase11 16/16、phase3–phase10 回归全绿、tsc 0、生产包无钩子。
+
+
+## Phase 12 Full Integration — Today 计划任务统一执行（2026-10-23T23:39:33+08:00）
+
+**目标**：每个计划任务只能由一个统一契约判定属于哪个模块、能否执行、是否已有真实证据；完成必须由领域证据驱动。
+
+**交付**
+- 新增 `src/taskExecutor.ts`：模块归一化、可用性检查、真实证据校验、下一项选择、完成计数。
+- 六类任务（词汇/句子/阅读/输入/表达/考试）真实路由；启动时绑定 planTaskId；未知模块明确拒绝，不回退词汇默认页。
+- `completePlanTask` 只有 `taskEvidence.ok` 才写 done；无证据保留 started 并提示原因。
+- Regenerate 保留 done 与 started，不复制同类任务；刷新后状态完整；中断会话可 resume。
+- Today 页统一「继续今天的训练」入口；无材料/考试未开启时显示不可用原因。
+
+**修复的真实问题**
+1. Output 自动保存推进 revision 后，提交使用旧 revision → 重读最新 attempt。
+2. 连续点击开始没有互斥 → 增加 `taskStarting` 闸门。
+3. 同一任务多次历史 attempt/session 时取第一条旧证据 → 取本次开始后的最新 completed。
+4. 冷测跳过后仍显示冷测表单 → skipped 与 recorded 都进入结果态。
+5. 诊断对缺少 marks/comprehension 的阅读会话崩溃 → 空数组保护。
+
+**验收**
+- `npm test` **360/360 pass**；`tsc` 0；`npm run build` 通过；生产包测试钩子 **0**。
+- `phase12-full-smoke.mjs` **18/18**（A–R）；`phase12-smoke.mjs` **17/17**；`phase11-smoke.mjs` **16/16**；phase3–phase10 回归全绿。
+- DB 仍 v7；只新增可选绑定字段。

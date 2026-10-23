@@ -215,3 +215,12 @@ Phase 5 开工前先补远程质量门禁。审计结果：仓库此前**没有�
 - 修 4 个真实问题：旧记录来源显示 `self_report`、空表单提前报错、必填星号换行/得分与满分基线不齐、表格在窄屏严重换行。
 - 验收：351/351、phase12 17/17、phase11 16/16、phase3–phase10 全绿、tsc 0、生产包无钩子。
 - 下一步：等待用户指定 Phase 13；不自动开始。
+
+
+## 2026-10-23T23:39:33+08:00 — Phase 12 Full Integration：Today 统一执行
+
+- 新增 `src/taskExecutor.ts` 作为计划任务唯一执行契约：模块归一化、可用性原因、领域证据校验、下一项/完成计数。
+- 六类任务真实路由并绑定 `dailyPlanTaskId` / `planTaskId`；无证据不得 done，未知模块不回退词汇。
+- Regenerate 保留 done/started；刷新与中断恢复；Today 统一入口与 unavailable 文案。
+- 真实浏览器 smoke 18/18 抓出并修复：Output 提交 revision 竞争、开始按钮并发重复会话、历史证据取旧、冷测跳过视图残留、诊断遇到不完整阅读会话崩溃。
+- 验收：360/360 单测、tsc 0、生产构建无钩子、phase12-full 18/18、phase12 17/17、phase11 16/16、phase3–phase10 回归全绿；DB 仍 v7。

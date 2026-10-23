@@ -53,3 +53,44 @@ SMOKE_PORT=9230 node scripts/phase11-smoke.mjs
 - tag：`phase12-exam-log` → `a4e7dcb`。
 - CI：`39967369661` success（feature commit）。
 - 远端 `main` HEAD 必须与本地一致后才算交付完成。
+
+---
+
+# Phase 12 Full Integration 交接（2026-10-23）
+
+## 1. 当前状态
+
+- 分支 `main`；DB **v7**；Phase 0–12 全部交付。
+- 本轮新增 `src/taskExecutor.ts`：Today 计划任务 → 模块/可执行性/证据的唯一判定层。
+- 六类任务：vocabulary / sentence / reading / input / output / exam；未知模块返回 `unsupported`，不回退词汇。
+- 计划任务启动时写 `started` 并绑定领域会话（`dailyPlanTaskId` / `planTaskId`）；完成必须由领域证据写回，按钮不能直接 done。
+- Regenerate 保留 done 与 started；刷新恢复；无材料/考试未开启显示 unavailable。
+- 验收：360/360 单测、tsc 0、生产包钩子 0、phase12-full smoke 18/18、phase12 17/17、phase11 16/16、phase3–10 回归全绿。
+
+## 2. 关键文件
+
+- `src/taskExecutor.ts`：`taskModule` / `taskUnavailableReason` / `taskEvidence` / `nextOpenTask` / `completedTaskCount`。
+- `src/app.ts`：`startPlanTask`、`completePlanTask`、Today UI、`__planTest`、各模块完成回调与 resume guard。
+- `src/planner.ts`：input task 绑定 `targetSessionId`；`regenerateRemaining` 合并 done/started。
+- `src/inputSession.ts` / `src/examSession.ts` / `src/types.ts`：绑定字段。
+- `src/inputView.ts`：冷测 skipped 后显示结果态。
+- `src/diagnosticsCollect.ts` / `src/diagnosticsInsight.ts`：不完整阅读会话的空数组保护。
+- `tests/taskExecutor.test.ts`、`tests/planner.test.ts`。
+- `scripts/phase12-full-smoke.mjs`、`docs/PHASE12_FULL_INTEGRATION.md`。
+
+## 3. 验收命令
+
+```bash
+npm test
+npx tsc --noEmit -p tsconfig.json
+npm run build
+npm run build:test
+node server.mjs --dir=dist-test --port=4173
+SMOKE_PORT=9230 node scripts/phase12-full-smoke.mjs
+SMOKE_PORT=9230 node scripts/phase12-smoke.mjs
+SMOKE_PORT=9230 node scripts/phase11-smoke.mjs
+```
+
+## 4. 诚实边界
+
+完成输入/阅读/表达只代表接触或产出记录，不等于词汇掌握；考试完成只是迁移证据，不是英语总分；AI 生成材料不作为 Anchor 或完成证据；考试任务默认关闭。

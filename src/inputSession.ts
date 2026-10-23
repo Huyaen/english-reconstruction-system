@@ -41,6 +41,7 @@ export interface CreateSessionInput {
     mode: InputMode;
     plannedMinutes?: number;
     miniUnitId?: string | null;
+    dailyPlanTaskId?: string | null;
     now?: number;
 }
 export function createInputSession(input: CreateSessionInput): SessionResult {
@@ -54,7 +55,8 @@ export function createInputSession(input: CreateSessionInput): SessionResult {
         durationMinutes: input.source.durationMinutes || 0, watchedMinutes: 0,
         captionMode: 'none', comprehension: null, difficultyReasons: [], outputAttemptId: '', notes: '',
         mode: input.mode, createdAt: now, status: 'created', revision: 1, startedAt: now, pausedAt: null,
-        completedAt: null, abandonedAt: null, miniUnitId: input.miniUnitId ?? null, plannedMinutes: planned,
+        completedAt: null, abandonedAt: null, miniUnitId: input.miniUnitId ?? null,
+        dailyPlanTaskId: input.dailyPlanTaskId ?? null, plannedMinutes: planned,
         reportedWatchedMinutes: null, coldComprehension: null, afterComprehension: null,
         translationDependence: null, transcriptRef: input.source.transcriptRef ?? null,
         evidenceBasis: input.source.transcriptRef ? 'transcript' : 'none',

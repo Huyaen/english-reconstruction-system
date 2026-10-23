@@ -125,7 +125,7 @@ export function inputSessionPage(input: SessionPageInput): string {
       </div>
       <p class="muted">播放由平台负责；应用只记录你回来填写的内容。观看时长只有“用户自报”，不会伪装成平台进度。</p>
     </section>
-    ${!baseline || baseline.status !== 'recorded' ? `
+    ${!baseline || (baseline.status !== 'recorded' && baseline.status !== 'skipped') ? `
     <section class="panel">
       <div class="section-title">冷测（第一次观看前，1–2 分钟）</div>
       <p class="muted">先看 1–2 分钟真实视频，再填写。允许跳过；跳过会记 no_baseline，不会用正式观看后的自评反填。</p>

@@ -28,7 +28,7 @@ export function evidenceMix(data: Data, range: Range): DiagnosticEvidenceMix {
             if (c.scoredBy === 'self')
                 sources.add('self-report');
         }
-        const marks = s.detail?.marks.filter(m => !m.revokedAt) ?? [];
+        const marks = (s.detail?.marks ?? []).filter(m => !m.revokedAt);
         if (marks.length) {
             selfReport += marks.length;
             sources.add('reading-marks');

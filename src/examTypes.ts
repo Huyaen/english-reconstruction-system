@@ -182,6 +182,8 @@ export interface ExamSession {
     review: string;
     sourceProvenance: string;
     weeklyReportId?: string | null;
+    /** Phase 12 Full Integration：从 Today 计划启动时绑定计划任务；直接练习为 null。 */
+    dailyPlanTaskId?: string | null;
     /** 每个 section 是否因缺少可靠材料而降级 */
     unavailableSections?: {
         section: string;

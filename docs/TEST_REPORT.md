@@ -232,3 +232,16 @@ Phase 5 新增用例（28）：
 | 回归 | phase11 / phase10 / phase9 / phase8 / interest / phase7 / phase6 / phase5.1 / phase5 / phase4 / phase3 | 16/16、16/16、20/20、34/34、19/19、33/33、31/31、26/26、44/44、36/36、21/21 |
 
 覆盖重点：空表单不误报；官方规格联动类别/年份/满分；150 vs 120 冲突阻止保存、勾选后自定义满分；2028 不预填；自定义考试实际满分；得分越界拒绝；编辑保持类别/年份/满分；删除；刷新；专用导出/导入；完整备份字段往返；自评仅线索；诊断只计自报条数、官方分预测为 null；无未捕获异常。
+
+
+## Phase 12 Full Integration — Today 统一执行（2026-10-23T23:39:33+08:00）
+
+| 层 | 命令 | 结果 |
+| --- | --- | --- |
+| 单元/集成 | `npm test` | **360/360 pass**（新增 taskExecutor 7 例、diagnostics 兼容 1 例、planner Regenerate 保留例） |
+| 类型 | `npx tsc --noEmit -p tsconfig.json` | 0 error |
+| 构建 | `npm run build` / `npm run build:test` | 通过；生产包 `__planTest` / `__examTest` / `__inputTest` / `__outputTest` / `ERV2_TEST_HOOKS` 命中 0 |
+| 浏览器 | `node scripts/phase12-full-smoke.mjs` | **18/18 PASS**（A–R，真实 Edge + CDP + IndexedDB） |
+| 回归 | phase12 / phase11 / phase10 / phase9 / phase8 / interest / phase7 / phase6 / phase5.1 / phase5 / phase4 / phase3 | 17/17、16/16、16/16、20/20、34/34、19/19、33/33、31/31、26/26、44/44、36/36、21/21 |
+
+覆盖重点：六类模块生成与标签；输入/表达/考试绑定 planTaskId 并写回 done；统一入口不落词汇页；阅读/句子路由；Regenerate 保留 done/started 且不复制；预算不超限；刷新后状态完整；无重复活动输入会话；无未捕获异常。另验证历史多 attempt 取本次最新证据、无证据拒绝、未知模块拒绝。

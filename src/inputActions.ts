@@ -122,6 +122,7 @@ export async function startInputAction(data: Data, input: {
     mode: InputSession['mode'];
     minutes?: number;
     miniUnitId?: string | null;
+    dailyPlanTaskId?: string | null;
     now?: number;
 }): Promise<ActionResult<InputSession>> {
     const source = (data.inputSources ?? []).find(s => s.id === input.sourceId);
@@ -129,7 +130,7 @@ export async function startInputAction(data: Data, input: {
         return { ok: false, message: '找不到这份材料。' };
     if (!parseInputUrl(source.url).ok)
         return { ok: false, message: '这份材料的链接不可用，请先修复链接。' };
-    const created = createInputSession({ source, mode: input.mode, plannedMinutes: input.minutes, miniUnitId: input.miniUnitId, now: input.now });
+    const created = createInputSession({ source, mode: input.mode, plannedMinutes: input.minutes, miniUnitId: input.miniUnitId, dailyPlanTaskId: input.dailyPlanTaskId ?? null, now: input.now });
     if (!created.ok)
         return { ok: false, message: created.message };
     const started = startInputSession(created.session, { now: input.now });

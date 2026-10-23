@@ -19,6 +19,7 @@ export function createExamSession(args: {
     timeLimitMinutes?: number;
     weeklyReportId?: string | null;
     sourceProvenance?: string;
+    dailyPlanTaskId?: string | null;
 }): ExamSession {
     const ids = [...new Set(args.items.map(i => i.id))];
     const items = ids.map(id => args.items.find(i => i.id === id)!).filter(Boolean);
@@ -30,7 +31,8 @@ export function createExamSession(args: {
         startedAt: args.now, updatedAt: args.now, completedAt: null, pausedAt: null,
         timeLimitMinutes: minutes, timeUsedMs: 0, helpUsed: 0, status: 'created', revision: 1,
         score: null, maxScore: items.reduce((n, i) => n + i.pointValue, 0), scoreStatus: 'unavailable',
-        errors: [], review: '', sourceProvenance: args.sourceProvenance ?? 'project-authored', weeklyReportId: args.weeklyReportId ?? null,
+        errors: [], review: '', sourceProvenance: args.sourceProvenance ?? 'project-authored',
+        weeklyReportId: args.weeklyReportId ?? null, dailyPlanTaskId: args.dailyPlanTaskId ?? null,
         unavailableSections: [], createdAt: args.now,
     };
 }

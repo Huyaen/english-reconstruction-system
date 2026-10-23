@@ -88,6 +88,8 @@ export interface StudySession {
     correct: number;
     retries: Record<string, number>;
     question: Question | null;
+    /** Phase 12 Full Integration：从 Today 计划启动的词汇会话；刷新后仍能回写计划。 */
+    planTaskId?: string | null;
 }
 export interface Settings {
     fast: number;
@@ -386,6 +388,8 @@ export interface ReadingSession {
     summary: string;
     stage: number;
     at: number;
+    /** Phase 12 Full Integration：从 Today 计划启动的阅读会话；刷新后仍能回写计划。 */
+    dailyPlanTaskId?: string | null;
     // —— Phase 5 增补：完整阅读会话状态（旧字段继续作为“平表镜像”供统计使用）——
     detail?: ReadingSessionDetail;
 }
@@ -441,6 +445,8 @@ export interface InputSession {
     completedAt?: number | null;
     abandonedAt?: number | null;
     miniUnitId?: string | null;
+    /** Phase 12 Full Integration：从 Today 计划启动时绑定计划任务；普通输入为 null。 */
+    dailyPlanTaskId?: string | null;
     plannedMinutes?: number;
     /** 用户自报的观看时长（我们没有也不应假装知道第三方播放器的真实进度） */
     reportedWatchedMinutes?: number | null;

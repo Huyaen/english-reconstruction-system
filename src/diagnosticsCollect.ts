@@ -198,18 +198,19 @@ function grammarMetrics(data: Data, range: Range): MetricValue[] {
 function readingMetrics(data: Data, range: Range): MetricValue[] {
     const sessions = data.readingSessions.filter(s => inRange(s.at, range));
     const details = sessions.map(s => s.detail).filter((d): d is NonNullable<typeof d> => !!d);
-    const marks = details.flatMap(d => d.marks.filter(m => !m.revokedAt));
+    const marks = details.flatMap(d => d.marks ?? []).filter(m => !m.revokedAt);
     const judged = marks.length;
     const unknown = marks.filter(m => m.judgment === 'unknown' || m.judgment === 'guessed').length;
     const vague = marks.filter(m => m.judgment === 'vague').length;
-    const verified = details.flatMap(d => d.comprehension).filter(c => c.scoredBy === 'verified-key' && typeof c.score === 'number');
-    const self = details.flatMap(d => d.comprehension).filter(c => c.scoredBy === 'self' && typeof c.score === 'number');
+    const verified = details.flatMap(d => d.comprehension ?? []).filter(c => c.scoredBy === 'verified-key' && typeof c.score === 'number');
+    const self = details.flatMap(d => d.comprehension ?? []).filter(c => c.scoredBy === 'self' && typeof c.score === 'number');
     const durations = sessions.filter(s => s.durationMs >= 60000);
     const speeds = durations.map(s => s.wordCount / (s.durationMs / 60000)).filter(v => Number.isFinite(v) && v > 0);
     const reread = details
         .map(d => {
-        const cold = d.comprehension.find(c => c.stage === 'cold-test' && c.scoredBy === 'self');
-        const again = d.comprehension.find(c => c.stage === 'reread' && c.scoredBy === 'self');
+        const comprehension = d.comprehension ?? [];
+        const cold = comprehension.find(c => c.stage === 'cold-test' && c.scoredBy === 'self');
+        const again = comprehension.find(c => c.stage === 'reread' && c.scoredBy === 'self');
         return cold?.score !== null && again?.score !== null && cold && again ? again.score! - cold.score! : null;
     })
         .filter((v): v is number => v !== null);
