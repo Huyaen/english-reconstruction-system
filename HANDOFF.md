@@ -148,4 +148,7 @@ node scripts/offline-smoke.mjs
 
 ## 5. 交付记录
 
-- 功能 commit / tag / CI：见本次 Phase 13 提交与远端 `main`；STATE pin 在后续提交。
+- 功能 commit：`553a595` `feat(hardening): add integrity audit, offline shell and release gates`。
+- tag：`phase13-hardening` → `553a595`。
+- CI：`40003518308` success（feature commit）。
+- 远端 `main` HEAD 必须与本地一致后才算交付完成；STATE pin 在后续提交。
