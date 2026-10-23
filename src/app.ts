@@ -2719,15 +2719,37 @@ function installTestHook(): void {
         async resetSessions() { await clearExamSessions(); data = await loadData(); examSessionId = ''; return { ok: true }; },
         async weeklyPreview() { const d = await loadData(); const b = buildWeeklyAssessment(d, d.examItems ?? [], d.examSessions ?? [], Date.now()); return { items: b.items.map(i => ({ id: i.id, type: i.questionType, stem: i.stem.slice(0, 40) })), minutes: b.minutes, unavailable: b.unavailable }; },
         async startWeekly() { await startWeeklyExam(); return { ok: !!examSessionId, id: examSessionId }; },
-        async startMixed() { const fresh = freshExamItems(data.examItems ?? [], data.examSessions ?? []); if (!fresh.length)
-            return { ok: false }; await startExamItems(fresh.slice(0, 6).map(i => i.id)); return { ok: !!examSessionId, id: examSessionId }; },
-        async answer(itemId: string, value: string) { const cur = currentExam(); if (!cur)
-            return { ok: false }; const r = saveExamAnswer(cur, { itemId, value, timeMs: 1000, now: Date.now() }); if (!r.session)
-            return { ok: false }; await persistExam(r.session, cur.revision); return { ok: true }; },
-        async submit() { const cur = currentExam(); if (!cur)
-            return { ok: false }; await submitExamFlow(cur); return { ok: true, status: currentExam()?.status }; },
-        async complete() { const cur = currentExam(); if (!cur)
-            return { ok: false }; await completeExamFlow(cur); return { ok: true, status: currentExam()?.status }; },
+        async startMixed() {
+            const fresh = freshExamItems(data.examItems ?? [], data.examSessions ?? []);
+            if (!fresh.length)
+                return { ok: false };
+            await startExamItems(fresh.slice(0, 6).map(i => i.id));
+            return { ok: !!examSessionId, id: examSessionId };
+        },
+        async answer(itemId: string, value: string) {
+            const cur = currentExam();
+            if (!cur)
+                return { ok: false };
+            const r = saveExamAnswer(cur, { itemId, value, timeMs: 1000, now: Date.now() });
+            if (!r.session)
+                return { ok: false };
+            await persistExam(r.session, cur.revision);
+            return { ok: true };
+        },
+        async submit() {
+            const cur = currentExam();
+            if (!cur)
+                return { ok: false };
+            await submitExamFlow(cur);
+            return { ok: true, status: currentExam()?.status };
+        },
+        async complete() {
+            const cur = currentExam();
+            if (!cur)
+                return { ok: false };
+            await completeExamFlow(cur);
+            return { ok: true, status: currentExam()?.status };
+        },
         async setPlan(on: boolean) { const d = await loadData(); d.settings.exam = { planEnabled: on }; await saveSettings(d.settings); data = await loadData(); return { ok: true, on: data.settings.exam?.planEnabled ?? false }; },
     };
     // OCR 验收钩子：只暴露“跑一次识别 / 释放”，不改学习证据；用于失败注入与超时验证
@@ -3734,11 +3756,14 @@ function examPageApp(): void {
     });
     on('#exam-start-weekly', 'click', () => { examTab = 'weekly'; render(); });
     on('#exam-start-weekly-now', 'click', startWeeklyExam);
-    on('#exam-resume-weekly', 'click', () => { const w = sessions.find(x => x.mode === 'weekly_assessment' && ['active', 'paused', 'created'].includes(x.status)); if (w) {
-        examSessionId = w.id;
-        examIndex = 0;
-        render();
-    } });
+    on('#exam-resume-weekly', 'click', () => {
+        const w = sessions.find(x => x.mode === 'weekly_assessment' && ['active', 'paused', 'created'].includes(x.status));
+        if (w) {
+            examSessionId = w.id;
+            examIndex = 0;
+            render();
+        }
+    });
     on('#exam-plan-toggle', 'change', async () => {
         const el = document.querySelector<HTMLInputElement>('#exam-plan-toggle')!;
         data.settings.exam = { planEnabled: el.checked };
@@ -3748,18 +3773,44 @@ function examPageApp(): void {
         render();
     });
     document.querySelectorAll<HTMLElement>('.exam-pick').forEach(b => b.onclick = () => startExamItems([b.dataset.item!]));
-    on('#exam-prev', 'click', async () => { const cur = currentExam(); if (!cur)
-        return; await saveExamDraft(cur); examIndex = Math.max(0, examIndex - 1); render(); });
-    on('#exam-next', 'click', async () => { const cur = currentExam(); if (!cur)
-        return; await saveExamDraft(cur); examIndex = Math.min(cur.items.length - 1, examIndex + 1); render(); });
-    on('#exam-save', 'click', async () => { const cur = currentExam(); if (!cur)
-        return; await saveExamDraft(cur); toast('已保存到本机'); });
-    on('#exam-submit', 'click', async () => { const cur = currentExam(); if (cur)
-        await submitExamFlow(cur); });
-    on('#exam-complete', 'click', async () => { const cur = currentExam(); if (cur)
-        await completeExamFlow(cur); });
-    on('#exam-retest', 'click', async () => { const cur = currentExam(); if (cur)
-        await retestExam(cur); });
+    on('#exam-prev', 'click', async () => {
+        const cur = currentExam();
+        if (!cur)
+            return;
+        await saveExamDraft(cur);
+        examIndex = Math.max(0, examIndex - 1);
+        render();
+    });
+    on('#exam-next', 'click', async () => {
+        const cur = currentExam();
+        if (!cur)
+            return;
+        await saveExamDraft(cur);
+        examIndex = Math.min(cur.items.length - 1, examIndex + 1);
+        render();
+    });
+    on('#exam-save', 'click', async () => {
+        const cur = currentExam();
+        if (!cur)
+            return;
+        await saveExamDraft(cur);
+        toast('已保存到本机');
+    });
+    on('#exam-submit', 'click', async () => {
+        const cur = currentExam();
+        if (cur)
+            await submitExamFlow(cur);
+    });
+    on('#exam-complete', 'click', async () => {
+        const cur = currentExam();
+        if (cur)
+            await completeExamFlow(cur);
+    });
+    on('#exam-retest', 'click', async () => {
+        const cur = currentExam();
+        if (cur)
+            await retestExam(cur);
+    });
     on('#exam-back', 'click', () => { examSessionId = ''; examTab = 'overview'; render(); });
     document.querySelectorAll<HTMLSelectElement>('.exam-correct').forEach(sel => sel.onchange = async () => {
         const cur = currentExam();
