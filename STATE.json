@@ -2,17 +2,18 @@
   "project": "English Reconstruction System V2",
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
-  "current_phase": "phase_12_full_integration",
-  "last_updated": "2026-10-24T00:07:09+08:00",
+  "current_phase": "phase_13_hardening",
+  "last_updated": "2026-10-24T02:05:40+08:00",
   "last_verified_commit": "e0c5cd1",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 7,
-  "build_status": "pass (tsc 0 error, vite production build, 生产包无测试钩子)",
+  "build_status": "pass (tsc 0 error, vite production build, PWA manifest/SW, 生产包无测试钩子)",
   "test_status": {
-    "unit": "360/360 pass",
-    "browser": "phase12-full 18/18, phase12 17/17, phase11 16/16, phase10 16/16, phase9 20/20, phase8 34/34, interest 19/19, phase7 33/33, phase6 31/31, phase5.1 26/26, phase5 44/44, phase4 36/36, phase3 21/21",
+    "unit": "368/368 pass",
+    "browser": "phase13 20/20, offline 7/7, phase12-full 18/18, phase12 17/17, phase11 16/16, phase10 16/16, phase9 20/20, phase8 34/34, interest 19/19, phase7 33/33, phase6 31/31, phase5.1 26/26, phase5 44/44, phase4 36/36, phase3 21/21",
     "tsc": "0 error",
-    "build": "pass, 生产包无测试钩子"
+    "build": "pass, 生产包无测试钩子",
+    "performance": "synthetic benchmark: A 123ms, C 248ms, D 1180ms ready median; see docs/PHASE13_HARDENING.md"
   },
   "tasks": {
     "phase0_audit_001": {
@@ -625,6 +626,33 @@
         "DB 仍 v7；只新增可选 dailyPlanTaskId/planTaskId/plannedMinutes 绑定字段",
         "screenshots/phase12-full-smoke.png（local，不提交）"
       ]
+    },
+    "phase13_hardening_001": {
+      "status": "passed",
+      "description": "Phase 13：只读数据完整性审计、未捕获错误可见化、静态服务器加固、PWA 离线外壳、真实学习旅程 E2E、性能基准、移动/主题/键盘回归；不重写业务模块，DB 仍 v7",
+      "files": [
+        "src/integrity.ts",
+        "tests/integrity.test.ts",
+        "tests/server.test.mjs",
+        "scripts/phase13-smoke.mjs",
+        "scripts/phase13-hardening-smoke.mjs",
+        "scripts/offline-smoke.mjs",
+        "scripts/phase13-benchmark.mjs",
+        "public/manifest.webmanifest",
+        "public/icon.svg",
+        "public/sw.js",
+        "server.mjs",
+        "index.html",
+        "docs/PHASE13_HARDENING.md"
+      ],
+      "tests": [
+        "npm test 368/368",
+        "tsc 0",
+        "phase13 20/20",
+        "offline 7/7",
+        "phase3-12 回归全绿",
+        "生产包 hooks grep 0"
+      ]
     }
   },
   "known_bugs": [],
@@ -641,7 +669,7 @@
     "专用考试记录导入只接受本应用导出的 erv2-exam-logs；完整学习数据仍走全局备份。"
   ],
   "blocked": [],
-  "next_task_id": "await_user_phase13_directive",
+  "next_task_id": "await_user_phase14_directive",
   "environment": {
     "node": "v26.7.0",
     "npm": "11.19.0",

@@ -361,6 +361,8 @@ test('隔夜结果校准：低保留减少未完成新词并补弱词；不溢�
     }).status, 'done');
     const highRes = calibrateAfterRecall(createDailyPlan({ now: NOW, availableMinutes: 60, energy: 'good', words, records: [] }).plan, { ...lowEval, retention: 0.9 }, { now: NOW, words });
     assert.ok(planMinutes(highRes.plan) <= highRes.plan.availableMinutes);
+    const nullRes = calibrateAfterRecall(plan, { ...lowEval, retention: null }, { now: NOW, words });
+    assert.equal(nullRes.plan.taskActions?.filter(a => a.action === 'calibrate').length, (plan.taskActions ?? []).filter(a => a.action === 'calibrate').length + 1, '保留率不可得也要记录校准事件');
 });
 // —— 确定性 ——
 test('确定性：同一输入两次生成完全一致', () => {

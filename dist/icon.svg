@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="词间">
+  <rect width="512" height="512" rx="112" fill="#17243b"/>
+  <path d="M136 150h104c26 0 46 9 60 27v199c-16-16-36-24-60-24H136V150z" fill="#f5f1e8"/>
+  <path d="M376 150H272c-26 0-46 9-60 27v199c16-16 36-24 60-24h104V150z" fill="#d9c9a8"/>
+  <path d="M256 177v199" stroke="#17243b" stroke-width="14" stroke-linecap="round"/>
+  <path d="M178 214h48M178 252h48M286 214h48M286 252h48" stroke="#17243b" stroke-width="14" stroke-linecap="round" opacity=".72"/>
+  <circle cx="374" cy="142" r="42" fill="#c4553b"/>
+</svg>

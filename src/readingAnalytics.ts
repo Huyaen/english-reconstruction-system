@@ -68,9 +68,9 @@ export function computeReadingMetrics(session: ReadingSession, opts: {
     const rereadMs = detail.rereadStartedAt && detail.rereadEndedAt ? detail.rereadEndedAt - detail.rereadStartedAt : null;
     const firstMin = firstMs ? Math.round((firstMs / 60000) * 10) / 10 : null;
     const rereadMin = minutesBetween(detail.rereadStartedAt, detail.rereadEndedAt);
-    const marks = detail.marks.filter(m => !m.revokedAt);
+    const marks = (detail.marks ?? []).filter(m => !m.revokedAt);
     const explicit = explicitUnknownRate(marks, session.wordCount, marks.length);
-    const evidence: ReadingEvidence[] = detail.evidence;
+    const evidence: ReadingEvidence[] = detail.evidence ?? [];
     const translationFirst = evidence.find(e => e.type === 'translation-dependence' && e.key.endsWith(':first'));
     const translationSecond = evidence.find(e => e.type === 'translation-dependence' && e.key.endsWith(':second'));
     const firstSelf = evidence.find(e => e.type === 'cold-baseline');
@@ -81,11 +81,11 @@ export function computeReadingMetrics(session: ReadingSession, opts: {
         caveats.push('没有冷读自评：理解度无法比较');
     if (!firstMs)
         caveats.push('首读时长缺失：本次速度无法计算');
-    const assistedAnswers = detail.comprehension.filter(c => c.assisted).length;
-    const maxLevel = detail.helps.reduce((a, h) => Math.max(a, h.level), 0);
+    const assistedAnswers = (detail.comprehension ?? []).filter(c => c.assisted).length;
+    const maxLevel = (detail.helps ?? []).reduce((a, h) => Math.max(a, h.level), 0);
     if (maxLevel >= 3)
         caveats.push('用过完整讲解/结构解释：本次不构成独立理解证据');
-    const grammarProblems = [...new Set(detail.difficultSentences.flatMap(d => d.problemTypes))];
+    const grammarProblems = [...new Set((detail.difficultSentences ?? []).flatMap(d => d.problemTypes))];
     let estimated = na<number>('没有提供词表，无法估算');
     if (opts.tokens && opts.lookup) {
         const e = estimatedUnknownRate(marks, opts.tokens, opts.lookup);
@@ -104,11 +104,11 @@ export function computeReadingMetrics(session: ReadingSession, opts: {
         estimatedUnknownRate: estimated,
         markedWords: marks.filter(m => m.judgment === 'unknown').length,
         vagueWords: marks.filter(m => m.judgment === 'vague').length,
-        difficultSentences: detail.difficultSentences.length,
+        difficultSentences: (detail.difficultSentences ?? []).length,
         grammarProblems,
         translationDependenceFirst: translationFirst ? { value: String(translationFirst.metadata.grade ?? ''), available: true, note: '自评（首读）' } : na('未记录'),
         translationDependenceSecond: translationSecond ? { value: String(translationSecond.metadata.grade ?? ''), available: true, note: '自评（重读）' } : na('未记录'),
-        supportUsage: { helps: detail.helps.length, maxLevel, assistedAnswers },
+        supportUsage: { helps: (detail.helps ?? []).length, maxLevel, assistedAnswers },
         rereadImproved: first === null || second === null ? na('需要两次自评') : { value: second > first, available: true, note: '仅代表本篇重读的自评变化，不代表阅读能力普遍提高' },
         caveats,
     };

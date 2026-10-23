@@ -1,0 +1,21 @@
+{
+    "name": "词间 · 自适应词汇记忆",
+    "short_name": "词间",
+    "description": "本地优先的英语重构训练：词汇、句子、阅读、真实输入、表达与考试迁移。数据保存在当前浏览器。",
+    "lang": "zh-CN",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#f5f1e8",
+    "theme_color": "#17243b",
+    "categories": ["education", "productivity"],
+    "icons": [
+        {
+            "src": "/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}

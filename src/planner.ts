@@ -998,8 +998,10 @@ export function calibrateAfterRecall(plan: DailyPlan, evaluation: RecallEvaluati
     const retention = evaluation.retention;
     if (retention === null) {
         next.calibration = { retention: null, factor: 1, reasons: ['retention-unavailable'] };
+        const ev = event(next, '', 'calibrate', 0, 'retention-unavailable', opts.now);
+        next.taskActions = [...(next.taskActions ?? []), ev];
         touch(next);
-        return { ok: true, plan: next, event: event(next, '', 'calibrate', 0, 'retention-unavailable', opts.now), reasons: ['retention-unavailable'] };
+        return { ok: true, plan: next, event: ev, reasons: ['retention-unavailable'] };
     }
     const factor = retention < 0.6 ? 0.7 : retention >= 0.8 ? 1.15 : 1;
     const preview = next.initialPlan.find(t => t.kind === 'new-preview');

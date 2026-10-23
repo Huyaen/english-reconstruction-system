@@ -4,6 +4,11 @@
 // - 测试构建（npm run build:test，mode=testhooks）：替换为 true。
 // 未定义（例如 node --test 直接跑源码）时按“关闭”处理，因此任何单测都拿不到钩子能力。
 declare const __ERV2_TEST_HOOKS__: boolean | undefined;
+declare const __ERV2_PWA__: boolean | undefined;
 export function testHooksEnabled(): boolean {
     return typeof __ERV2_TEST_HOOKS__ !== 'undefined' && __ERV2_TEST_HOOKS__ === true;
+}
+/** 生产构建才注册 service worker；测试构建（testhooks）不注册，避免缓存干扰 smoke。 */
+export function pwaEnabled(): boolean {
+    return typeof __ERV2_PWA__ !== 'undefined' && __ERV2_PWA__ === true;
 }

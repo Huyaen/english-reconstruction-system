@@ -266,6 +266,14 @@ test('首读与重读的速度/理解度分开统计，绝不混算', () => {
     const legacy = computeReadingMetrics({ ...t, detail: undefined });
     assert.equal(legacy.firstPassWpm.available, false);
     assert.ok(legacy.caveats.some(c => /旧会话/.test(c)));
+    const partial = {
+        ...t,
+        detail: { state: 'completed', stage: 'completed', passageTitle: '旧版本会话' },
+    } as unknown as typeof t;
+    const partialMetrics = computeReadingMetrics(partial);
+    assert.equal(partialMetrics.markedWords, 0, '缺失 marks 的旧会话不能崩溃');
+    assert.equal(partialMetrics.difficultSentences, 0);
+    assert.equal(computeReadingTrend([partial]).completed, 1);
     const trend = computeReadingTrend([t]);
     assert.equal(trend.completed, 0, '未收尾的会话不算完成样本');
     assert.match(trend.sampleNote, /样本不可靠|还不可靠|只有 0 篇/);

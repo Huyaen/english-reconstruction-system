@@ -120,3 +120,8 @@
 ## P0 — Phase 12 Full Integration（passed 2026-10-23T23:39:33+08:00）
 
 - [x] `phase12_full_integration_013`：`taskExecutor` 统一模块/可用性/证据契约 · 六类任务真实路由并绑定 planTaskId · 无证据不得 done · 未知模块拒绝且不回退词汇 · Regenerate 保留 done/started · 刷新恢复 · 不可用原因显式化 · 真实浏览器 18/18
+
+
+## P0 — Phase 13 稳定性、安全、性能、离线与发布准备（passed 2026-10-24）
+
+- [x] `phase13_hardening_001`：只读完整性审计（error/warning 分离，不修复不改数据）· 未捕获错误可见化 + 启动失败出口 · 静态服务器加固（GET/HEAD、400/405/403、安全头、防穿越）· PWA 离线外壳（只缓存同源静态资源，生产才注册）· 真实六域学习旅程 E2E 20/20 · 生产离线 7/7 · A/C/D 合成性能基准 · 368/368 单测 + Phase 3–12 回归 + tsc 0 + 生产包钩子 0 ✔ 详见 `docs/PHASE13_HARDENING.md`

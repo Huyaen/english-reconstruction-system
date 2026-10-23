@@ -556,3 +556,16 @@ AI 句生成、外部语料 / 阅读 handoff、Mini Diagnostic 非词汇子测�
 - DB 仍 v7；只新增可选绑定字段。
 
 **交付记录**：功能 commit `e0c5cd1`；tag `phase12-full-integration`；CI `39983209902` success；远端 main 与 tag SHA 已核对为 `e0c5cd1`。
+
+
+## Phase 13 — 稳定性、安全、性能与离线（2026-10-24T02:05:40+08:00）
+
+- 新增只读完整性审计 `src/integrity.ts`：重复 id、坏时间戳、完成态缺证据为 error；跨表孤儿引用为 warning；不修复、不迁移。
+- 未捕获错误全局出口 + 启动失败页；多窗口锁明确提示。
+- `server.mjs` 只读静态服务加固：GET/HEAD、400/405/403、安全头、路径穿越防护。
+- PWA：manifest/icon/SW；只缓存同源静态外壳，不缓存 AI/用户材料；生产构建才注册；`erv2-shell-v2` 升级清理旧外壳。
+- 旧阅读会话缺 marks/evidence 的空数组保护；retention 不可得也记录 calibrate 事件。
+- `scripts/phase13-smoke.mjs` 20/20、`scripts/offline-smoke.mjs` 7/7、`scripts/phase13-benchmark.mjs` A/C/D。
+- 单测 368/368、tsc 0、生产包钩子 0；Phase 3–12 回归全绿。
+- 已知边界：合成性能、模拟移动视口、Mock AI、离线仅静态外壳。
+- 详见 `docs/PHASE13_HARDENING.md`。

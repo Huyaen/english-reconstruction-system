@@ -1,6 +1,6 @@
 import './style.css';
 import type { Data, Word, StudySession, Settings, ReviewRecord, Mastery, DailyPlan, PlanItem, EnergyState, GrammarConcept, SentenceRecord, SentenceStepRecord, SentenceAttempt, SentenceEvidenceClass, GrammarCategory } from './types.ts';
-import { testHooksEnabled } from './testMode.ts';
+import { testHooksEnabled, pwaEnabled } from './testMode.ts';
 // —— Phase 5：Reading Lab ——
 import type { Passage, ReadingSession, ReadingToken, ReadingMark, ReadingDifficultyReport, WordExposure, DifficultSentence, ReadingProblemType } from './types.ts';
 import { parsePassageText, sentenceAtSpan, tokenizeSentence, countWords } from './readingText.ts';
@@ -62,6 +62,7 @@ import { computeReadingMetrics, computeReadingTrend, targetDifficultyBand } from
 import { queryLibrary, savePassage, saveReadingProgress, latestOpenSession, passageOf, type LibraryQuery } from './readingStore.ts';
 import { importPanelHTML, previewHTML, coldTestHTML, readerHTML, rereadHTML, wholeTextHTML, resultHTML, studyWordsHTML, esc as resc, sourceLabel } from './readingView.ts';
 import { openDB, getDB, loadData, replaceData, saveSettings, putItems, saveAnswer, savePreview, backup, validateBackup, emptyData } from './db.ts';
+import { checkDataIntegrity, integritySummary } from './integrity.ts';
 import { makeWord, uid, labels, priority, priorityGrade, shuffle, question, validSettings } from './core.ts';
 import { parseFile, parseText, exportWords, type Parsed } from './import.ts';
 import { newSession, answer } from './quiz.ts';
@@ -1578,7 +1579,7 @@ function settingsPage() {
     $('#main').innerHTML = title('PREFERENCES', '按你的速度来', '时间阈值、测试难度和数据备份，都由你控制。') + `<form id="settings-form"><div class="two-col"><section class="panel"><h2>测试与节奏</h2><div class="form-grid"><label>秒答上限（秒）<input name="fast" type="number" min="0.1" step="0.1" value="${s.fast / 1000}" required></label><label>正常上限（秒）<input name="normal" type="number" min="0.2" step="0.1" value="${s.normal / 1000}" required></label><label>超时（秒）<input name="timeout" type="number" min="0.3" max="120" step="0.1" value="${s.timeout / 1000}" required></label><label>英→中比例（%）<input name="ratio" type="number" min="0" max="100" value="${s.ratio}" required></label><label>难度<select name="difficulty">${[['easy', '简单 · 4项'], ['normal', '普通 · 4项'], ['hard', '困难 · 6项']].map(([v, t]) => `<option value="${v}" ${s.difficulty === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>答错反馈<select name="feedback">${[[0, '立即下一题'], [500, '停留 0.5 秒'], [1000, '停留 1 秒'], [-1, '手动继续']].map(([v, t]) => `<option value="${v}" ${s.feedback === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>调度引擎<select name="schedulingAuthority"><option value="fsrs" ${s.schedulingAuthority === 'fsrs' ? 'selected' : ''}>FSRS（默认）</option><option value="legacy" ${s.schedulingAuthority === 'legacy' ? 'selected' : ''}>旧调度器（兼容回滚）</option></select></label><label>目标保留率<input name="requestRetention" type="number" min="0.5" max="0.99" step="0.01" value="${s.requestRetention}" required></label></div><p class="hint">答对立即下一题。正常上限至超时之间为模糊。切换标签页会自动暂停计时。</p></section><section class="panel"><h2>AI API 配置</h2><label>Endpoint<input name="endpoint" type="url" placeholder="https://你的服务地址/v1" value="${esc(s.endpoint)}" autocomplete="off"></label><label>Model Name<input name="model" value="${esc(s.model)}" placeholder="填写供应商提供的模型名称"></label><label>API Key<input name="key" type="password" value="${esc(s.key)}" autocomplete="off" placeholder="仅用于你配置的地址"></label><label class="check"><input name="rememberKey" type="checkbox" ${s.rememberKey ? 'checked' : ''}> 在这台设备记住 Key</label>
 <label>结构化输出<select name="structuredMode">${[['auto', '自动（JSON Mode → Schema → 文本）'], ['json_object', '仅 JSON Mode'], ['json_schema', '仅 JSON Schema'], ['text', '仅纯文本抽取']].map(([v, t]) => `<option value="${v}" ${(s.ai?.structuredMode ?? 'auto') === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
 <div class="form-grid"><label>超时（秒）<input name="aiTimeout" type="number" min="3" max="180" value="${Math.round((s.ai?.timeoutMs ?? 45000) / 1000)}"></label><label>重试上限<input name="aiRetries" type="number" min="0" max="3" value="${s.ai?.maxRetries ?? 2}"></label><label>最大输出 tokens<input name="aiMaxTokens" type="number" min="64" max="8000" value="${s.ai?.maxOutputTokens ?? 1200}"></label><label>每日 token 上限<input name="aiBudget" type="number" min="0" placeholder="留空 = 不限" value="${s.ai?.dailyTokenBudget ?? ''}"></label></div>
-<p class="hint">不勾选记住 Key 则只保留到页面关闭。勾选后明文保存在本地浏览器数据库，完整备份仍会剔除 Key。浏览器直连需要供应商支持 CORS。预算按 token 计，不折算货币金额（没有可信价格信息）。</p></section></div><button class="primary" type="submit">保存设置</button></form><section class="panel backup-panel"><h2>备份与迁移</h2><p>导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。</p><div class="actions"><button id="backup" class="primary">导出全部学习数据</button><label class="button secondary">导入备份<input id="restore" type="file" accept=".json" hidden></label><button id="persist" class="secondary">申请持久存储</button><button id="clear" class="danger-text">清空本地数据</button></div><p id="storage-info" class="hint">学习数据按浏览器和站点地址保存。请一直使用相同的 localhost:4173 地址。</p></section>`;
+<p class="hint">不勾选记住 Key 则只保留到页面关闭。勾选后明文保存在本地浏览器数据库，完整备份仍会剔除 Key。浏览器直连需要供应商支持 CORS。预算按 token 计，不折算货币金额（没有可信价格信息）。</p></section></div><button class="primary" type="submit">保存设置</button></form><section class="panel backup-panel"><h2>备份与迁移</h2><p>导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。</p><div class="actions"><button id="backup" class="primary">导出全部学习数据</button><label class="button secondary">导入备份<input id="restore" type="file" accept=".json" hidden></label><button id="persist" class="secondary">申请持久存储</button><button id="check-integrity" class="secondary">检查数据完整性</button><button id="clear" class="danger-text">清空本地数据</button></div><p id="storage-info" class="hint">学习数据按浏览器和站点地址保存。请一直使用相同的 localhost:4173 地址。</p></section>`;
     on('#settings-form', 'submit', async (e) => {
         e.preventDefault();
         const f = new FormData(e.target as HTMLFormElement);
@@ -1592,16 +1593,49 @@ function settingsPage() {
         toast('设置已保存');
     });
     on('#backup', 'click', exportBackup);
+    const integrityIssueHTML = (report: ReturnType<typeof checkDataIntegrity>) => report.issues.slice(0, 12).map(i => `<li><b>${i.severity === 'error' ? '错误' : '警告'}</b> · ${esc(i.store)}${i.recordId ? ` / ${esc(i.recordId)}` : ''} · ${esc(i.message)}</li>`).join('') + (report.issues.length > 12 ? `<li>另有 ${report.issues.length - 12} 条问题未展开。</li>` : '');
+    on('#check-integrity', 'click', () => {
+        const report = checkDataIntegrity(data);
+        modal(`<h2>数据完整性检查</h2><p>${esc(integritySummary(report))}</p>${report.issues.length ? `<ul class="integrity-issues">${integrityIssueHTML(report)}</ul>` : '<p class="hint">只读检查，不会修改任何学习记录。</p>'}<div class="actions"><button class="primary" onclick="document.querySelector('#modal').close()">关闭</button></div>`);
+    });
     on('#restore', 'change', async () => {
-        const f = $<HTMLInputElement>('#restore').files?.[0];
+        const input = $<HTMLInputElement>('#restore');
+        const f = input.files?.[0];
         if (!f)
             return;
-        if (f.size > 250 * 1024 * 1024)
-            throw Error('备份超过250 MB，请联系开发者分批迁移');
-        const restored = validateBackup(JSON.parse(await f.text()));
-        modal(`<h2>恢复这份备份？</h2><p>包含 ${restored.books.length} 本词书、${restored.words.length} 个词、${restored.records.length} 条学习记录。恢复将替换当前设备的数据。</p><div class="actions"><button id="restore-before" class="secondary">先导出当前数据</button><button id="restore-confirm" class="primary">确认替换并恢复</button></div>`);
-        on('#restore-before', 'click', exportBackup);
-        on('#restore-confirm', 'click', async () => { await replaceData(restored); data = restored; reindex(); bookFilter = ''; closeModal(); render(); toast('备份已恢复，请重新填写 API Key'); });
+        try {
+            if (f.size > 250 * 1024 * 1024)
+                throw Error('备份超过 250 MB，请联系开发者分批迁移。');
+            const restored = validateBackup(JSON.parse(await f.text()));
+            const report = checkDataIntegrity(restored);
+            const integrityNote = report.errors > 0
+                ? `<p class="error">完整性检查发现 ${report.errors} 个结构错误：${esc(integritySummary(report))}。恢复是可撤销替换操作，请你确认后才会写入；当前数据在你确认前不会被改动。</p>`
+                : report.warnings
+                    ? `<p class="hint">${esc(integritySummary(report))} 警告不会阻止恢复，但可能表示旧数据缺少引用。</p>`
+                    : '';
+            modal(`<h2>恢复这份备份？</h2><p>包含 ${restored.books.length} 本词书、${restored.words.length} 个词、${restored.records.length} 条学习记录。恢复将替换当前设备的数据。</p>${integrityNote}<div class="actions"><button id="restore-before" class="secondary">先导出当前数据</button><button id="restore-confirm" class="primary">确认替换并恢复</button></div>`);
+            on('#restore-before', 'click', exportBackup);
+            on('#restore-confirm', 'click', async () => {
+                try {
+                    await replaceData(restored);
+                    data = restored;
+                    reindex();
+                    bookFilter = '';
+                    closeModal();
+                    render();
+                    toast('备份已恢复，请重新填写 API Key');
+                }
+                catch (e) {
+                    toast(e instanceof Error ? `恢复失败：${e.message}` : '恢复失败，现有数据未被替换');
+                }
+            });
+        }
+        catch (e) {
+            toast(e instanceof Error ? `无法读取备份：${e.message}` : '无法读取备份，现有数据未改动');
+        }
+        finally {
+            input.value = '';
+        }
     });
     on('#persist', 'click', async () => { const ok = await navigator.storage?.persist?.(); toast(ok ? '浏览器已允许持久存储；仍建议定期备份' : '浏览器暂未批准；数据仍会保存，请保持备份'); });
     on('#clear', 'click', () => {
@@ -4318,7 +4352,7 @@ function installPlanTestHook(): void {
                 sourceReliability: 'user_supplied' as const, extractionMethod: 'paste' as const, contentHash: 'seed-unified-passage', userEdited: false, importedAt: now,
             };
             await putItems('passages', [passage]);
-            await putItems('readingSessions', [{ id: 'seed-unified-reading', passageId: passage.id, at: now - 7200000, stage: 4, wordCount: passage.wordCount, unknownWords: [], vagueWords: [], unknownRate: 0, durationMs: 600000, readingSpeed: 100, structureErrors: 0, summary: 'Attention changes with context.', detail: { state: 'completed', stage: 'completed', passageTitle: passage.title } } as never]);
+            await putItems('readingSessions', [{ id: 'seed-unified-reading', passageId: passage.id, at: now - 7200000, stage: 4, wordCount: passage.wordCount, unknownWords: [], vagueWords: [], unknownRate: 0, durationMs: 600000, readingSpeed: 100, structureErrors: 0, summary: 'Attention changes with context.', detail: { state: 'completed', stage: 'completed', passageTitle: passage.title, firstPassStartedAt: now - 7800000, firstPassEndedAt: now - 7200000, rereadStartedAt: now - 7000000, rereadEndedAt: now - 6600000, marks: [], difficultSentences: [], comprehension: [], helps: [], evidence: [], output: [], chunks: [], chunkIndex: 0, paragraphIndex: 0, coldTestDone: true, notes: '' } } as never]);
             const d0 = await loadData();
             if (!(d0.inputSources ?? []).some(s => s.id === 'seed-unified-input')) {
                 const src = await inputActions.addSource(d0, { title: 'A real talk about attention', url: 'https://example.com/talk', topic: 'attention', durationMinutes: 18, language: 'en', contentType: 'online_video' });
@@ -4400,6 +4434,7 @@ function installPlanTestHook(): void {
             };
         },
         async resetFlow() { trainingFlow = false; inputPlanTaskId = null; outputPlanTaskId = null; examPlanTaskId = null; page = 'home'; render(); return { ok: true }; },
+        integrity() { return checkDataIntegrity(data); },
         async evidenceFor(taskId: string) {
             const task = todayPlan?.initialPlan.find(t => t.id === taskId);
             if (!task)
@@ -4417,6 +4452,27 @@ function installPlanTestHook(): void {
     };
     (window as unknown as Record<string, unknown>).__planTest = api;
 }
+// —— Phase 13：未捕获错误不能静默消失；保留控制台细节，给用户可理解的出口 ——
+let lastRuntimeNoticeAt = 0;
+function reportRuntimeError(error: unknown): void {
+    const message = error instanceof Error ? error.message : String(error ?? '未知错误');
+    console.error('运行时错误', error);
+    const now = Date.now();
+    if (now - lastRuntimeNoticeAt < 3000)
+        return;
+    lastRuntimeNoticeAt = now;
+    toast(`运行出错：${message.slice(0, 120)}。数据仍保存在本机，可刷新页面重试。`);
+}
+window.addEventListener('unhandledrejection', event => reportRuntimeError(event.reason));
+window.addEventListener('error', event => reportRuntimeError(event.error ?? event.message));
+function fatalStartup(message: string): void {
+    $('#app').innerHTML = `<div class="startup-error"><h1>无法打开本地数据</h1><p>${esc(message)}</p><p class="hint">学习数据仍保存在此浏览器；可先关闭其他窗口，再刷新重试。</p><button id="startup-retry" class="primary">刷新重试</button></div>`;
+    $('#startup-retry').addEventListener('click', () => location.reload());
+}
+// 生产构建注册离线外壳；测试构建不注册，避免 service worker 缓存干扰验收。
+if (pwaEnabled() && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(error => console.error('离线外壳注册失败', error));
+}
 if (navigator.locks) {
     void navigator.locks.request('vocabulary-memory-writer', { ifAvailable: true }, async (lock) => {
         if (!lock) {
@@ -4428,7 +4484,7 @@ if (navigator.locks) {
             await new Promise(() => { });
         }
         catch (e) {
-            $('#app').textContent = '无法打开本地数据库：' + (e as Error).message;
+            fatalStartup(e instanceof Error ? e.message : String(e));
         }
     });
 }

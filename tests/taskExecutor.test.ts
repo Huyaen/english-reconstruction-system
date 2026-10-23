@@ -26,6 +26,15 @@ test('任务目标描述按模块区分，不把阅读/输入/考试说成“N �
     assert.equal(taskTargetLabel(task({ module: 'exam', kind: 'exam-practice', refs: ['e1'] })), '1 道题');
     assert.equal(taskTargetLabel(task({ module: 'sentence', kind: 'sentence-basic-structure', refs: ['s1', 's2'] })), '2 句');
 });
+test('目标被删除或考试已关闭时明确拒绝，不拿空引用执行', () => {
+    assert.match(taskUnavailableReason(task({}), data({ words: [] })) ?? '', /目标词已不存在/);
+    assert.equal(taskUnavailableReason(task({}), data({ words: [{ id: 'w1' }] })), null);
+    const sentence = task({ module: 'sentence', kind: 'sentence-basic-structure', refs: ['s1'] });
+    assert.match(taskUnavailableReason(sentence, data({ sentences: [] })) ?? '', /目标句子已不存在/);
+    const exam = task({ module: 'exam', kind: 'exam-practice', refs: ['e1'] });
+    assert.match(taskUnavailableReason(exam, data({ settings: { exam: { planEnabled: false } }, examItems: [{ id: 'e1' }] })) ?? '', /考试练习当前已关闭/);
+    assert.equal(taskUnavailableReason(exam, data({ settings: { exam: { planEnabled: true } }, examItems: [{ id: 'e1' }] })), null);
+});
 test('完成必须有本次真实证据；无证据、旧证据、未完成会话都拒绝', () => {
     const base = data({
         records: [],

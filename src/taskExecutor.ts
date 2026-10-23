@@ -81,6 +81,8 @@ export function taskUnavailableReason(task: PlanItem, data: Data): string | null
         return null;
     }
     if (m === 'exam') {
+        if (data.settings?.exam?.planEnabled !== true)
+            return '考试练习当前已关闭；开启后才能执行这项任务。';
         if (!refs[0] || !(data.examItems ?? []).some(i => i.id === refs[0]))
             return '这道考试题已不在题库。';
         return null;
@@ -88,6 +90,9 @@ export function taskUnavailableReason(task: PlanItem, data: Data): string | null
     if (m === 'sentence') {
         if (!refs.length)
             return '这个句任务没有目标句子。';
+        const missing = refs.filter(id => !(data.sentences ?? []).some(s => s.id === id));
+        if (missing.length)
+            return `目标句子已不存在（${missing.length} 句），请重新生成今日计划。`;
         return null;
     }
     if (m === 'output') {
@@ -97,6 +102,10 @@ export function taskUnavailableReason(task: PlanItem, data: Data): string | null
     }
     if (!refs.length)
         return '这个任务没有可执行的目标，请重新生成今日计划。';
+    // 词汇/收尾任务的目标是真实词条；词被删除后不能继续用空引用执行。
+    const missingWords = refs.filter(id => !(data.words ?? []).some(w => w.id === id));
+    if (missingWords.length)
+        return `目标词已不存在（${missingWords.length} 个），请重新生成今日计划。`;
     return null;
 }
 export interface TaskEvidenceInput {

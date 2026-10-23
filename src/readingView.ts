@@ -123,10 +123,10 @@ export function readerHTML(input: {
     const chunk: ReadingChunk | undefined = d.chunks[d.chunkIndex];
     const progress = sessionProgress(input.session);
     const sentences = (input.passage.sentences ?? []).filter(s => s.start >= (chunk?.start ?? 0) && s.end <= (chunk?.end ?? 0));
-    const marks = d.marks.filter(m => !m.revokedAt);
+    const marks = (d.marks ?? []).filter(m => !m.revokedAt);
     const body = sentences.map(s => sentenceHTML(s, input.tokens, marks)).join(' ');
     const marksOfChunk = marks.filter(m => sentences.some(s => s.index === m.sentenceIndex));
-    const difficult = d.difficultSentences.filter(x => sentences.some(s => s.index === x.sentenceIndex));
+    const difficult = (d.difficultSentences ?? []).filter(x => sentences.some(s => s.index === x.sentenceIndex));
     return `<div class="reading-layout">
   <section class="panel reader-main" id="read-chunk">
     <div class="reader-head">
@@ -244,7 +244,7 @@ export function resultHTML(input: {
         value: unknown;
         note: string;
     }) => v.available ? String(v.value) : '—';
-    const marks = d.marks.filter(x => !x.revokedAt);
+    const marks = (d.marks ?? []).filter(x => !x.revokedAt);
     return `<section class="panel" id="read-result">
   <div class="section-title">阅读结果 · ${esc(input.passage.title)}</div>
   <div class="metrics">

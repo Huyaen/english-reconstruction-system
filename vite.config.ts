@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
     return {
         define: {
             __ERV2_TEST_HOOKS__: JSON.stringify(testHooks),
+            __ERV2_PWA__: JSON.stringify(!testHooks),
         },
         build: {
             outDir: testHooks ? 'dist-test' : 'dist',
