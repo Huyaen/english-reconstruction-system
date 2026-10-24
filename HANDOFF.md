@@ -17,7 +17,7 @@
 | 离线真实动作 | **4/4** |
 | Phase 13 离线 | **8/8**（新增构建指纹缓存检查） |
 | 回归 | Phase 3–13 全部通过（21/36/44/26/31/33/34/19/20/16/16/17/18/20） |
-| 远程 | `Huyaen/english-reconstruction-system`（Private）；远端 main `514110a`，tag `phase14-long-term-safety` |
+| 远程 | `Huyaen/english-reconstruction-system`（Private）；功能点/tag `514110a` / `phase14-long-term-safety`；main 上另有 docs-only pin 提交，以 `git ls-remote` 为准 |
 
 ## 2. Phase 14 做了什么
 
