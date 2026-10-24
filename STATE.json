@@ -3,7 +3,7 @@
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
   "current_phase": "phase_14_long_term_safety",
-  "last_updated": "2026-10-24T11:29:01+08:00",
+  "last_updated": "2026-10-24T11:32:10+08:00",
   "last_verified_commit": "514110a",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 7,
@@ -713,11 +713,11 @@
   "source_format_convention": "src/*.ts 与 tests/*.ts 由 docs/format-source.mjs 整理为紧凑格式；编辑后保持一致或重跑该脚本",
   "notes": "Phase 14 已实现并本地验收：origin 数据地址隔离与迁移提示、replaceData 事务回滚、28 域备份压力、D1/D7/D30 与 FSRS、PWA 构建指纹与 A→B、离线真实动作；DB 仍 v7。未完成项（4h 真实使用、真实配额、断电、真实手机/读屏、离线输出草稿）已在 docs/PHASE14_LONG_TERM_SAFETY.md 明确标注。下一步等待用户指定 Phase 15。",
   "remote_sync": {
-    "last_local_commit": "514110a",
-    "last_known_remote_commit": "514110a",
-    "verified_at": "2026-10-24T11:29:01+08:00",
-    "method": "GitHub API refs/heads/main + refs/tags/phase14-long-term-safety + Actions（commit 514110a）",
-    "notes": "Phase 14；tag phase14-long-term-safety → 514110a；远端 main 514110a；CI 40058298365 success（feature commit）"
+    "last_local_commit": "51175a1",
+    "last_known_remote_commit": "51175a1",
+    "verified_at": "2026-10-24T11:32:10+08:00",
+    "method": "git ls-remote + GitHub API Actions（feature 514110a / pin 51175a1）",
+    "notes": "Phase 14；tag phase14-long-term-safety → 514110a；feature CI 40058298365 success；pin 51175a1 CI 40058572861 success；远端 main 51175a1"
   },
   "document_review": {
     "date": "2026-10-19",
