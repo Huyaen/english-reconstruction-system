@@ -1,0 +1,368 @@
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Phase 15c · 精修 pass（在首版之后生效，覆盖材质层次与信息密度问题）
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── A：对比度（刻线与序列文字属于仪表读数，不能虚）────────────── */
+html[data-proto="a"] { --a-ink-dim: #B3BDC9; --a-ink-faint: #8B96A3; }
+html[data-proto="a"][data-theme="light"] { --a-ink-dim: #3E464F; --a-ink-faint: #5A626C; }
+
+/* ── A：刻度尺做成嵌进面板的金属游标尺 ───────────────────────────── */
+html[data-proto="a"] .proto-ruler {
+  height: 34px; margin-top: 16px; padding: 0 2px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.30) 0 1px, transparent 1px 2.5%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.14) 0 1px, transparent 1px 0.625%);
+  background-size: 100% 9px, 100% 5px;
+  background-position: left bottom, left bottom;
+  background-repeat: no-repeat;
+  box-shadow: inset 0 -14px 18px -18px rgba(0,0,0,.9), inset 0 -1px 0 rgba(255,255,255,.14);
+  mask-image: none;
+}
+html[data-proto="a"][data-theme="light"] .proto-ruler {
+  background:
+    repeating-linear-gradient(90deg, rgba(16,20,26,.34) 0 1px, transparent 1px 2.5%),
+    repeating-linear-gradient(90deg, rgba(16,20,26,.16) 0 1px, transparent 1px 0.625%);
+  background-size: 100% 9px, 100% 5px;
+  background-position: left bottom, left bottom;
+  background-repeat: no-repeat;
+}
+html[data-proto="a"] .proto-ruler b {
+  bottom: 12px; font-size: 10px; color: var(--a-ink-faint); letter-spacing: .12em;
+}
+html[data-proto="a"] .proto-ruler i {
+  height: 12px; bottom: 0; border-radius: 1px;
+  background: linear-gradient(90deg, rgba(143,166,190,.25), rgba(230,236,243,.95));
+  box-shadow: 0 0 12px rgba(206,226,248,.55), inset 0 1px 0 #FFF;
+}
+html[data-proto="a"] .proto-ruler i::after {
+  content: ""; position: absolute; right: -1px; top: -9px; width: 2px; height: 22px;
+  background: linear-gradient(180deg, #FFF, rgba(255,255,255,.15));
+  box-shadow: 0 0 10px rgba(214,232,255,.9);
+}
+
+/* ── A：仪表底部读数条，给数字与序列一个共同落点 ─────────────────── */
+html[data-proto="a"] .proto-instrument { display: flex; flex-direction: column; }
+html[data-proto="a"] .proto-strip {
+  display: grid; grid-template-columns: repeat(3, minmax(0,1fr)) 1.2fr;
+  align-items: center; gap: 12px; margin-top: auto; padding-top: 18px;
+  border-top: 1px solid var(--a-hair);
+}
+html[data-proto="a"] .proto-strip > div { display: grid; gap: 3px; }
+html[data-proto="a"] .proto-strip span {
+  font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--a-ink-faint); font-weight: 600;
+}
+html[data-proto="a"] .proto-strip b { font-size: 17px; font-weight: 600; color: var(--a-ink); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+html[data-proto="a"] .proto-strip-bar {
+  position: relative; height: 4px; border-radius: 2px; background: rgba(255,255,255,.08);
+  overflow: hidden; align-self: end; margin-bottom: 4px;
+}
+html[data-proto="a"][data-theme="light"] .proto-strip-bar { background: rgba(16,20,26,.08); }
+html[data-proto="a"] .proto-strip-bar i {
+  position: absolute; inset: 0 auto 0 0;
+  background: linear-gradient(90deg, #9FB4C9, #E6ECF3);
+  box-shadow: 0 0 10px rgba(206,226,248,.6);
+}
+
+/* ── A：序列行——正文一行截断，动作只给当前行 ─────────────────────── */
+html[data-proto="a"] .proto-rail-note {
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+  font-size: 11px; line-height: 1.45; color: var(--a-ink-faint);
+}
+html[data-proto="a"] .proto-rail-item.is-now .proto-rail-note { -webkit-line-clamp: 2; color: var(--a-ink-dim); }
+html[data-proto="a"] .proto-rail-title b { font-size: 13px; }
+html[data-proto="a"] .proto-rail-item { padding: 9px 4px 9px 0; }
+html[data-proto="a"] .proto-rail-actions { opacity: 0; transition: opacity 140ms linear; }
+html[data-proto="a"] .proto-rail-item.is-now .proto-rail-actions,
+html[data-proto="a"] .proto-rail-item:hover .proto-rail-actions,
+html[data-proto="a"] .proto-rail-item:focus-within .proto-rail-actions { opacity: 1; }
+html[data-proto="a"] .proto-rail-actions button {
+  padding: 4px 8px; font-size: 10.5px;
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 1px 1px rgba(0,0,0,.5);
+}
+html[data-proto="a"] .proto-rail-actions button:active { transform: translateY(1px); box-shadow: inset 0 2px 5px rgba(0,0,0,.6); }
+html[data-proto="a"][data-theme="light"] .proto-rail-actions button {
+  background: linear-gradient(180deg, #FFF, #EFF1F4);
+  box-shadow: inset 0 1px 0 #FFF, 0 1px 2px rgba(20,28,40,.12);
+}
+html[data-proto="a"] .proto-rail-item::before { background: linear-gradient(180deg, var(--a-hair-strong), var(--a-hair) 45%, transparent 92%); }
+html[data-proto="a"] .proto-rail-item.is-now::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; bottom: 0; pointer-events: none;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--a-amber) 10%, transparent), transparent 62%);
+  box-shadow: inset 2px 0 0 var(--a-amber);
+}
+
+/* ── A：浅色 = 博物馆展台，靠硬边与细线，而不是弥散阴影 ───────────── */
+html[data-proto="a"][data-theme="light"] .proto-instrument {
+  background: linear-gradient(180deg, #FFFFFF 0%, #FBFBFC 46%, #F2F4F7 100%);
+  border: 1px solid rgba(16,20,26,.16);
+  box-shadow:
+    inset 0 1px 0 #FFF, inset 0 0 0 1px rgba(255,255,255,.7),
+    inset 0 -22px 30px -30px rgba(16,20,26,.28),
+    0 1px 1px rgba(16,20,26,.12), 0 18px 40px -34px rgba(16,20,26,.42);
+}
+html[data-proto="a"][data-theme="light"] .proto-instrument::after {
+  background:
+    repeating-linear-gradient(90deg, rgba(16,20,26,.045) 0 1px, transparent 1px 64px),
+    linear-gradient(180deg, transparent 60%, rgba(16,20,26,.05));
+  mix-blend-mode: multiply;
+}
+html[data-proto="a"][data-theme="light"] .proto-clock b { text-shadow: 0 1px 0 #FFF, 0 -1px 0 rgba(16,20,26,.18); }
+html[data-proto="a"][data-theme="light"] .proto-track,
+html[data-proto="a"][data-theme="light"] .proto-readout {
+  background: linear-gradient(180deg, #FFFFFF, #F6F7F9);
+  border: 1px solid rgba(16,20,26,.14);
+  box-shadow: inset 0 1px 0 #FFF, 0 1px 2px rgba(16,20,26,.06), 0 14px 26px -24px rgba(16,20,26,.35);
+}
+html[data-proto="a"][data-theme="light"] .proto-gauge {
+  background:
+    radial-gradient(closest-side, #FFF 76%, transparent 77% 100%),
+    conic-gradient(from -90deg, #1B2027 calc(var(--p) * 1%), rgba(16,20,26,.10) 0);
+  box-shadow: inset 0 0 0 1px rgba(16,20,26,.14), 0 2px 6px -4px rgba(16,20,26,.5);
+}
+html[data-proto="a"][data-theme="light"] .proto-cta {
+  color: #F7FAFD; background-color: #1A1F26;
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,.22) 0 1px, rgba(255,255,255,0) 40%),
+    linear-gradient(178deg, #3A424C 0%, #232A32 46%, #10141A 100%);
+  border-color: rgba(16,20,26,.9);
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.28),
+              0 1px 1px rgba(16,20,26,.4), 0 14px 24px -16px rgba(16,20,26,.8);
+}
+
+/* ══════════════════════ B：把氛围做成真正的舞台 ══════════════════════ */
+html[data-proto="b"] { --b-ink-dim: #B6C2D1; --b-ink-faint: #8A95A4; }
+html[data-proto="b"][data-theme="light"] { --b-ink-dim: #434B55; --b-ink-faint: #5E666F; }
+
+html[data-proto="b"] .proto-air {
+  margin-bottom: 6px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -1px 0 rgba(255,255,255,.06),
+    0 2px 4px rgba(0,0,0,.5),
+    0 26px 60px -28px rgba(0,0,0,.95),
+    0 70px 120px -70px rgba(120,170,230,.22);
+}
+html[data-proto="b"] .proto-air::before {
+  left: 50%; top: -52%; width: 30%; height: 104%;
+  background: linear-gradient(180deg, rgba(226,240,255,.34) 0%, rgba(214,232,255,.16) 38%, rgba(214,232,255,.03) 66%, transparent 84%);
+  filter: blur(26px) saturate(115%);
+  clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%);
+}
+html[data-proto="b"] .proto-air::after {
+  left: 50%; bottom: -22%; width: 92%; height: 42%;
+  background:
+    radial-gradient(closest-side, rgba(240,185,138,.22), transparent 74%),
+    radial-gradient(closest-side, rgba(214,232,255,.16), transparent 78%);
+  filter: blur(30px);
+}
+html[data-proto="b"] .proto-stage-floor {
+  position: relative; width: 86%; height: 1px; margin: -14px auto 0;
+  background: linear-gradient(90deg, transparent, rgba(214,232,255,.35), transparent);
+  box-shadow: 0 0 22px 6px rgba(150,190,235,.10);
+}
+
+html[data-proto="b"] .proto-slab[role="status"] {
+  transform: translateY(-14px); z-index: 3;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 30px 60px -34px rgba(0,0,0,.95);
+}
+html[data-proto="b"] .proto-ribbon-wrap { transform: translateY(-4px); z-index: 2; }
+html[data-proto="b"][data-theme="light"] .proto-slab[role="status"] {
+  box-shadow: inset 0 1px 0 #FFF, 0 22px 44px -30px rgba(20,28,40,.55);
+}
+
+html[data-proto="b"] .proto-ribbon {
+  height: 74px; gap: 3px; align-items: flex-end; padding: 0;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255,255,255,.04), transparent);
+  box-shadow: inset 0 1px 0 var(--b-hair);
+}
+html[data-proto="b"] .proto-ribbon-seg {
+  border-radius: 4px 4px 2px 2px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--b-ink) 13%, transparent), color-mix(in srgb, var(--b-ink) 6%, transparent));
+}
+html[data-proto="b"] .proto-ribbon-seg.is-done {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--b-cool) 55%, transparent), color-mix(in srgb, var(--b-cool) 26%, transparent));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
+}
+html[data-proto="b"] .proto-ribbon-seg.is-now {
+  height: 60px; border-radius: 5px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #E8F1FB 62%, #D3E2F2 100%);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.55), 0 14px 34px -12px rgba(180,212,248,.75), inset 0 1px 0 #FFF;
+}
+html[data-proto="b"] .proto-ribbon-seg.is-now::after { top: -20px; font-size: 10.5px; letter-spacing: .04em; color: var(--b-ink); font-weight: 600; }
+html[data-proto="b"] .proto-ribbon-seg.is-skipped { opacity: .38; }
+html[data-proto="b"] .proto-ribbon-head span { letter-spacing: 0; }
+
+html[data-proto="b"] .proto-upnext-item.is-now {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--b-warm) 9%, transparent), transparent 72%);
+  box-shadow: inset 2px 0 0 var(--b-warm);
+}
+html[data-proto="b"] .proto-upnext-actions { opacity: 0; }
+html[data-proto="b"] .proto-upnext-item:hover .proto-upnext-actions,
+html[data-proto="b"] .proto-upnext-item:focus-within .proto-upnext-actions { opacity: 1; }
+html[data-proto="b"] .proto-upnext-item { padding: 10px 8px; }
+html[data-proto="b"] .proto-upnext-main b { font-size: 13.5px; }
+html[data-proto="b"] .proto-upnext-meta { font-size: 11.5px; }
+
+html[data-proto="b"] .proto-clock b { font-size: clamp(54px, 7.4vw, 96px); }
+html[data-proto="b"] .proto-next-title { font-size: clamp(24px, 2.8vw, 34px); font-weight: 600; letter-spacing: -.032em; }
+html[data-proto="b"] .proto-cta { min-height: 54px; padding: 0 34px; font-size: 15px; }
+html[data-proto="b"] .proto-cta::after { content: "→"; margin-left: 4px; opacity: .55; }
+
+/* ── A：两栏等高，读数条贴底，消除"中栏空心 / 右栏过长"的失衡 ─────── */
+html[data-proto="a"] .proto-page { align-items: stretch; }
+html[data-proto="a"] .proto-side { align-content: start; }
+html[data-proto="a"] .proto-track { display: flex; flex-direction: column; }
+html[data-proto="a"] .proto-rail { flex: 1 1 auto; }
+html[data-proto="a"] .proto-strip { padding-bottom: 2px; }
+/* 深色下主按钮稍微收一点亮度，避免跳出画面 */
+html[data-proto="a"]:not([data-theme="light"]) .proto-cta {
+  color: #0B0F14;
+  background-color: #BECDDB;
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,.7) 0 1px, rgba(255,255,255,0) 46%),
+    linear-gradient(178deg, #E4ECF4 0%, #C2D0DE 48%, #9FB1C4 100%);
+}
+
+/* ── A：分钟分配读数（填住中栏，并且真的在说"今天的时间花在哪"）───── */
+html[data-proto="a"] .proto-brief {
+  display: grid; gap: 7px; margin: 26px 0 0; padding: 16px 0 0;
+  border-top: 1px solid var(--a-hair);
+}
+html[data-proto="a"] .proto-brief-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--a-ink-faint); font-weight: 600;
+}
+html[data-proto="a"] .proto-brief-head b { font-size: 11px; letter-spacing: .04em; color: var(--a-ink-dim); }
+html[data-proto="a"] .proto-brief-row {
+  display: grid; grid-template-columns: 84px minmax(0,1fr) 38px; align-items: center; gap: 10px;
+}
+html[data-proto="a"] .proto-brief-row span { font-size: 11.5px; color: var(--a-ink-dim); }
+html[data-proto="a"] .proto-brief-row b { font-size: 11.5px; color: var(--a-ink); text-align: right; font-variant-numeric: tabular-nums; }
+html[data-proto="a"] .proto-brief-bar {
+  height: 5px; border-radius: 1px; background: rgba(255,255,255,.07); overflow: hidden;
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.5);
+}
+html[data-proto="a"][data-theme="light"] .proto-brief-bar { background: rgba(16,20,26,.07); box-shadow: inset 0 1px 1px rgba(16,20,26,.10); }
+html[data-proto="a"] .proto-brief-bar i {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, rgba(159,180,201,.5), rgba(230,236,243,.9));
+  box-shadow: 0 0 8px rgba(206,226,248,.35);
+}
+/* 读数条：留出安全边距，文字提到可读级别 */
+html[data-proto="a"] .proto-strip { padding: 16px 0 4px; gap: 14px; }
+html[data-proto="a"] .proto-strip b { font-size: 18px; }
+
+/* ── A：右栏轨道跟随高度，9 段在轨道内均匀分布（不留空尾）───────── */
+html[data-proto="a"] .proto-side { align-content: stretch; }
+html[data-proto="a"] .proto-track { height: 100%; }
+html[data-proto="a"] .proto-rail { justify-content: space-between; gap: 2px; }
+html[data-proto="a"] .proto-rail-item { flex: 0 1 auto; }
+
+/* ── A：中栏主仪表——分钟构图盘（刻度环 + 内芯读数 + 图例）────────── */
+html[data-proto="a"] .proto-dial-wrap {
+  display: flex; align-items: center; justify-content: center; gap: clamp(18px, 3vw, 44px);
+  margin: 22px 0 0; padding: 4px 0;
+}
+html[data-proto="a"] .proto-dial {
+  --p: 0;
+  position: relative; width: clamp(150px, 13vw, 186px); aspect-ratio: 1; border-radius: 50%;
+  background:
+    repeating-conic-gradient(from -90deg, rgba(255,255,255,.26) 0 0.7deg, transparent 0.7deg 4deg),
+    radial-gradient(closest-side, transparent 0 84%, rgba(255,255,255,.05) 84% 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 0 30px -14px rgba(206,226,248,.5);
+  display: grid; place-items: center;
+}
+html[data-proto="a"][data-theme="light"] .proto-dial {
+  background:
+    repeating-conic-gradient(from -90deg, rgba(16,20,26,.30) 0 0.7deg, transparent 0.7deg 4deg),
+    radial-gradient(closest-side, transparent 0 84%, rgba(16,20,26,.05) 84% 100%);
+  box-shadow: inset 0 0 0 1px rgba(16,20,26,.08), 0 6px 18px -14px rgba(16,20,26,.5);
+}
+html[data-proto="a"] .proto-dial::before {
+  content: ""; position: absolute; inset: 14px; border-radius: 50%;
+  background:
+    radial-gradient(closest-side, var(--a-plate) 72%, transparent 73% 100%),
+    conic-gradient(from -90deg, #DCE6F2 calc(var(--p) * 1%), rgba(255,255,255,.09) 0);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.10), inset 0 0 22px -8px rgba(0,0,0,.9);
+}
+html[data-proto="a"][data-theme="light"] .proto-dial::before {
+  background:
+    radial-gradient(closest-side, #FFF 72%, transparent 73% 100%),
+    conic-gradient(from -90deg, #1E242C calc(var(--p) * 1%), rgba(16,20,26,.10) 0);
+  box-shadow: 0 0 0 1px rgba(16,20,26,.12), inset 0 1px 2px rgba(16,20,26,.10);
+}
+html[data-proto="a"] .proto-dial-face { position: relative; display: grid; justify-items: center; gap: 2px; }
+html[data-proto="a"] .proto-dial-face b { font-size: 26px; font-weight: 600; letter-spacing: -.03em; font-variant-numeric: tabular-nums; color: var(--a-ink); }
+html[data-proto="a"] .proto-dial-face span { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--a-ink-faint); }
+html[data-proto="a"] .proto-dial-legend { display: grid; gap: 12px; }
+html[data-proto="a"] .proto-dial-legend > div { display: grid; gap: 2px; }
+html[data-proto="a"] .proto-dial-legend span { font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--a-ink-faint); font-weight: 600; }
+html[data-proto="a"] .proto-dial-legend b { font-size: 15px; color: var(--a-ink); font-variant-numeric: tabular-nums; }
+html[data-proto="a"] .proto-brief { margin-top: 18px; }
+
+/* ── A：去重后的紧凑头部（小环 + 计数），以及序列卡铺满右栏 ─────────── */
+html[data-proto="a"] .proto-track-head { align-items: center; gap: 12px; }
+html[data-proto="a"] .proto-track-head b { margin-right: auto; }
+html[data-proto="a"] .proto-gauge-sm {
+  width: 30px; height: 30px; box-shadow: none;
+  background:
+    radial-gradient(closest-side, var(--a-plate-2) 70%, transparent 71% 100%),
+    conic-gradient(from -90deg, var(--a-platinum) calc(var(--p) * 1%), rgba(255,255,255,.12) 0);
+}
+html[data-proto="a"] .proto-gauge-sm::after { font-size: 8px; letter-spacing: -.02em; }
+html[data-proto="a"][data-theme="light"] .proto-gauge-sm {
+  background:
+    radial-gradient(closest-side, #FFF 70%, transparent 71% 100%),
+    conic-gradient(from -90deg, #1B2027 calc(var(--p) * 1%), rgba(16,20,26,.12) 0);
+}
+
+/* ── A：导航也进入仪器语言：直角激活条 + 极细分隔，不用胶囊 ───────── */
+html[data-proto="a"] .sidebar { border-right: 1px solid rgba(255,255,255,.06); }
+html[data-proto="a"] .nav a, html[data-proto="a"] .nav button {
+  border-radius: 2px; letter-spacing: .01em;
+}
+html[data-proto="a"] .nav a[aria-current="page"], html[data-proto="a"] .nav .active {
+  box-shadow: inset 2px 0 0 var(--a-amber);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--a-amber) 10%, transparent), transparent 80%);
+}
+
+/* ── A：探针与低视力复核后的可读性修正 ───────────────────────────── */
+html[data-proto="a"] .proto-clock b {
+  color: var(--a-ink);
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+html[data-proto="a"] .proto-ruler b { color: var(--a-ink-dim); font-size: 10.5px; }
+html[data-proto="a"] .proto-dial-face span { color: var(--a-ink-dim); font-size: 9.5px; letter-spacing: .1em; }
+html[data-proto="a"] .proto-rail-actions button { color: var(--a-ink-dim); }
+html[data-proto="a"] .proto-rail-actions button:hover { color: var(--a-ink); }
+html[data-proto="a"] .proto-brief-head { color: var(--a-ink-dim); }
+html[data-proto="a"] .proto-brief-head b { color: var(--a-ink); }
+html[data-proto="a"] .proto-strip span { color: var(--a-ink-dim); }
+
+/* ── 对比度实测修正：强调色只做标记，文字统一用高对比墨色 ───────────── */
+html[data-proto="a"] .proto-rail-go,
+html[data-proto="a"] .proto-rail-item.is-now .proto-rail-actions .proto-rail-go {
+  color: var(--a-ink);
+  background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.05));
+  border-color: var(--a-hair-strong);
+}
+html[data-proto="a"] .proto-rail-item.is-now .proto-rail-actions .proto-rail-go {
+  background: var(--a-amber); color: #17120A; border-color: transparent;
+}
+html[data-proto="a"][data-theme="light"] .proto-rail-item.is-now .proto-rail-actions .proto-rail-go { color: #FFF; background: #8A5A1C; }
+
+html[data-proto="b"] .proto-next-label { color: var(--b-ink); }
+html[data-proto="b"] .proto-next-label::before {
+  content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--b-warm); margin-right: 8px; vertical-align: 2px;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--b-warm) 60%, transparent);
+}
+
+/* 渐变按钮必须有真实底色：强制色彩 / 打印 / 探针都依赖它 */
+html[data-proto] .primary { background-color: #DCE7F4; }
+html[data-proto][data-theme="light"] .primary { background-color: #14181D; }

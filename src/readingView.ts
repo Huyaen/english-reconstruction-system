@@ -131,9 +131,16 @@ export function readerHTML(input: {
     return `<div class="reading-surface" data-side="${input.sideOpen === false ? 'closed' : 'open'}" id="reading-surface">
   <div class="reader-bar">
     <div class="reader-bar-copy">
+      <span class="rd-kicker">冷读 · 第 ${d.chunkIndex + 1} 段</span>
       <h1 class="reader-title">${esc(input.passage.title)}</h1>
-      <span class="reader-meta">第 ${d.chunkIndex + 1} / ${d.chunks.length} 段 · ${chunk?.wordCount ?? 0} 词 · ${esc(progress.label)} · 点词标记卡点</span>
+      <span class="reader-meta rd-meta-strip">
+        <span>第 ${d.chunkIndex + 1} / ${d.chunks.length} 段</span>
+        <span>${chunk?.wordCount ?? 0} 词</span>
+        <span>${esc(progress.label)}</span>
+        <span>点词标记卡点</span>
+      </span>
     </div>
+    <div class="rd-ticks" aria-hidden="true">${d.chunks.map((_, i) => `<i class="${i < d.chunkIndex ? 'is-done' : i === d.chunkIndex ? 'is-now' : ''}"></i>`).join('')}</div>
     <button class="reader-side-toggle" data-reader-side-toggle="1" aria-expanded="${input.sideOpen === false ? 'false' : 'true'}" aria-controls="read-side">辅助</button>
   </div>
   <div class="reading-layout">

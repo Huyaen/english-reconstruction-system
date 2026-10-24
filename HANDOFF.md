@@ -19,6 +19,7 @@
 | 回归 | Phase 3–13 全部通过（21/36/44/26/31/33/34/19/20/16/16/17/18/20） |
 | Phase 15a 视觉 | 已交付但**方向被否**（暖纸 + 鼠尾草 = Warm Minimalism）；保留其排版 / 任务层级 / 数据安全改进 |
 | Phase 15b 视觉 | **待用户确认方向**：Cinematic Graphite（左上单光源、四类材质、方向性阴影、金属只做一处）；`npm test` 379/379、phase3 21/21、phase5 44/44、phase12 18/18、phase13 20/20、a11y 8 组 0 违规；24 张截图 + 8.8s 交互录屏；详见 `docs/PHASE15B_CINEMATIC.md` |
+| Phase 15c 原型 | **待用户选型**：A·Obsidian Instrument（非对称仪表台/游标尺/竖向序列轨）与 B·Atmospheric Studio（体积光舞台/玻璃层/横向时间带）两套真实页面；`?proto=a\|b` 切换，默认仍是 15b；379/379、phase3 21/21、phase12 18/18、phase13 20/20、对比度 8 组 0 违规、无长任务；13.1s×2 录屏 + reduced-motion 证据；详见 `docs/PHASE15C_PROTOTYPES.md` |
 | 远程 | `Huyaen/english-reconstruction-system`（Private）；功能点/tag `514110a` / `phase14-long-term-safety`；main 上另有 docs-only pin 提交，以 `git ls-remote` 为准 |
 
 ## 2. Phase 14 做了什么

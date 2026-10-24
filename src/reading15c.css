@@ -1,0 +1,84 @@
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Phase 15c · Reading shell（只在原型内生效：html[data-proto]）
+   原则：正文永远是主角；外壳、工具栏、辅助面板给材质细节，不给体积光。
+   ══════════════════════════════════════════════════════════════════════════ */
+
+html[data-proto] .reading-surface { display: grid; gap: 18px; }
+
+/* 工具栏：一条有厚度的金属压条，标题左对齐，段落刻度在右 */
+html[data-proto] .reader-bar {
+  position: relative; display: grid; grid-template-columns: minmax(0,1fr) auto auto;
+  align-items: center; gap: 22px;
+  padding: 16px 20px 15px; border-radius: 4px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0) 62%),
+    var(--surface-2, #14181D);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 1px 2px rgba(0,0,0,.4), 0 18px 34px -30px rgba(0,0,0,.9);
+  overflow: hidden;
+}
+html[data-proto][data-theme="light"] .reader-bar {
+  background: linear-gradient(180deg, #FFFFFF, #F7F8FA);
+  border-color: rgba(16,20,26,.12);
+  box-shadow: inset 0 1px 0 #FFF, 0 1px 2px rgba(16,20,26,.08), 0 16px 30px -28px rgba(16,20,26,.4);
+}
+/* 压条上缘的一道窄光 —— 唯一的高光，且只在上缘 */
+html[data-proto] .reader-bar::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55) 22%, rgba(255,255,255,.18) 60%, transparent);
+  pointer-events: none;
+}
+html[data-proto] .reader-bar-copy { display: grid; gap: 5px; min-width: 0; }
+html[data-proto] .rd-kicker {
+  font-size: 9.5px; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--ink-faint); font-weight: 600;
+}
+html[data-proto] .reader-title { font-size: clamp(19px, 2vw, 24px); letter-spacing: -.02em; line-height: 1.2; }
+/* 元信息做成读数条，不用一串小圆点 */
+html[data-proto] .rd-meta-strip {
+  display: flex; align-items: center; gap: 0; flex-wrap: wrap;
+  font-size: 11.5px; color: var(--ink-muted); letter-spacing: .02em;
+}
+html[data-proto] .rd-meta-strip > span {
+  padding: 0 10px; border-left: 1px solid var(--line); line-height: 1.5;
+}
+html[data-proto] .rd-meta-strip > span:first-child { padding-left: 0; border-left: 0; }
+/* 段落刻度：每段一格，读过的实心，当前段更长 */
+html[data-proto] .rd-ticks { display: flex; align-items: center; gap: 4px; }
+html[data-proto] .rd-ticks i {
+  display: block; width: 12px; height: 3px; border-radius: 1px;
+  background: color-mix(in srgb, var(--ink) 16%, transparent);
+  transition: width 220ms cubic-bezier(.16,1,.3,1), background-color 220ms linear;
+}
+html[data-proto] .rd-ticks i.is-done { background: color-mix(in srgb, var(--ink) 52%, transparent); }
+html[data-proto] .rd-ticks i.is-now { width: 26px; background: var(--ink); box-shadow: 0 0 10px color-mix(in srgb, var(--ink) 40%, transparent); }
+html[data-proto] .reader-side-toggle {
+  padding: 7px 14px; border-radius: 3px; font-size: 11.5px; letter-spacing: .04em;
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+  border: 1px solid var(--line-strong); color: var(--ink-muted); box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+}
+html[data-proto] .reader-side-toggle:hover { color: var(--ink); }
+html[data-proto][data-theme="light"] .reader-side-toggle {
+  background: linear-gradient(180deg, #FFF, #F0F2F5);
+  box-shadow: inset 0 1px 0 #FFF, 0 1px 1px rgba(16,20,26,.10);
+}
+
+/* 正文纸面：安静、居中、边界清楚 */
+html[data-proto] .reader-main { padding: clamp(24px, 3vw, 40px) clamp(22px, 4vw, 56px); border-radius: 4px; }
+html[data-proto] .reader-text { font-size: 19px; line-height: 1.74; max-width: 66ch; margin: 0 auto; }
+html[data-proto] .reader-foot { max-width: 66ch; margin-left: auto; margin-right: auto; }
+
+/* 辅助面板：分节 + 细线 + 小标题，和正文同一套材质语言 */
+html[data-proto] .reader-side { border-radius: 4px; padding: 16px 16px 6px; }
+html[data-proto] .reader-side h2, html[data-proto] .reader-side h3 {
+  font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600;
+}
+html[data-proto] .reader-side section + section { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
+
+@media (max-width: 900px) {
+  html[data-proto] .reader-bar { grid-template-columns: minmax(0,1fr) auto; gap: 12px; padding: 13px 14px; }
+  html[data-proto] .rd-ticks { display: none; }
+  html[data-proto] .rd-meta-strip > span:nth-child(3) { display: none; }
+  html[data-proto] .reader-text { font-size: 18px; line-height: 1.76; }
+}

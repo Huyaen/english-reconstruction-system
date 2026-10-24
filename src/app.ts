@@ -1,5 +1,12 @@
 import './tokens.css';
 import './style.css';
+import './proto15c.css';
+import './proto15c-v2.css';
+import './proto15c-b3.css';
+import './proto15c-b4.css';
+import './reading15c.css';
+import './reading15c-v2.css';
+import { protoTodayHTML, protoTaskViews, type ProtoContext, type ProtoId, type ProtoTaskInput } from './protoToday';
 import type { Data, Word, StudySession, Settings, ReviewRecord, Mastery, DailyPlan, PlanItem, EnergyState, GrammarConcept, SentenceRecord, SentenceStepRecord, SentenceAttempt, SentenceEvidenceClass, GrammarCategory } from './types.ts';
 import { testHooksEnabled, pwaEnabled } from './testMode.ts';
 import { afterRender } from './motion.ts';
@@ -235,6 +242,28 @@ function shell() {
 }
 let lastRenderKey = '';
 let vtPending = false;
+/** Phase 15c 原型开关：?proto=a|b。没有参数时保持 15b 界面（测试与冒烟依赖默认路径）。 */
+const PROTO: ProtoId | null = (() => {
+    try {
+        const v = new URLSearchParams(location.search).get('proto');
+        return v === 'a' || v === 'b' ? v : null;
+    }
+    catch {
+        return null;
+    }
+})();
+function applyProtoAttr(): void {
+    try {
+        const el = document.documentElement;
+        if (PROTO)
+            el.dataset.proto = PROTO;
+        else
+            delete el.dataset.proto;
+    }
+    catch {
+        /* 非浏览器实现忽略 */
+    }
+}
 function renderKey(): string { return page === 'reading' ? `${page}:${readView}` : page; }
 /** 页面过渡只在页面/子视图真的切换时发生；同一视图重绘保持滚动位置。 */
 function render(): void {
@@ -244,6 +273,7 @@ function render(): void {
 function paint(): void {
     const prev = lastRenderKey;
     const y = window.scrollY;
+    applyProtoAttr();
     shell();
     ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp, input: inputPageApp, output: outputPageApp, diagnostics: diagnosticsPageApp, exam: examPageApp }[page] || home)();
     bindAI();
@@ -332,6 +362,10 @@ function metricNum(label: string, value: number, note: string, key: string) { re
 function rangeControls() { return `<div class="range-controls"><label>学习范围<select id="range-book"><option value="">全部词书</option>${data.books.map(b => `<option value="${b.id}" ${bookFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label><label>本轮词量<select id="range-count">${[50, 100, 300, 500, 1000].map(n => `<option value="${n}" ${n === 100 ? 'selected' : ''}>${n} 词</option>`).join('')}</select></label><label>测试方向<select id="range-ratio">${![0, 30, 50, 70, 100].includes(data.settings.ratio) ? `<option value="${data.settings.ratio}" selected>英→中 ${data.settings.ratio}%（自定义）</option>` : ''}<option value="50" ${data.settings.ratio === 50 ? 'selected' : ''}>双向各 50%</option><option value="70" ${data.settings.ratio === 70 ? 'selected' : ''}>英→中 70%</option><option value="30" ${data.settings.ratio === 30 ? 'selected' : ''}>中→英 70%</option><option value="100" ${data.settings.ratio === 100 ? 'selected' : ''}>识别 · 英→中</option><option value="0" ${data.settings.ratio === 0 ? 'selected' : ''}>提取 · 中→英</option></select></label></div>`; }
 function home() {
     const s = summary(data), unfinished = data.sessions.find(x => !x.ended);
+    if (PROTO) {
+        protoHome(s);
+        return;
+    }
     $('#main').innerHTML = `<div class="today">
   ${todayHero(s)}
   ${todaySection()}
@@ -5077,4 +5111,70 @@ function bindAI(): void {
         else if (t.closest('[data-ai-reading]'))
             void aiGenerateReading();
     });
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Phase 15c · 原型页装配（只在 ?proto=a|b 时走到这里）
+   业务动作全部复用既有实现：bindPlan() 负责开始/跳过/延后/替换/调整，
+   其余与默认首页一致，避免原型悄悄改变学习流程或数据写入。
+   ════════════════════════════════════════════════════════════════════════════ */
+function protoHome(s: ReturnType<typeof summary>): void {
+    const plan = todayPlan;
+    const next = plan ? nextOpenTask(plan) : null;
+    const prog = plan ? planProgress(plan) : null;
+    const unfinished = data.sessions.find(x => !x.ended);
+    const views = plan
+        ? protoTaskViews({
+            tasks: plan.initialPlan as unknown as ProtoTaskInput[],
+            nextId: next?.id ?? null,
+            labelOf: (t: ProtoTaskInput) => t.label ?? TASK_LABELS[t.kind ?? ''] ?? t.kind ?? '任务',
+            moduleOf: (t: ProtoTaskInput) => moduleName(taskModule(t as never)),
+            noteOf: (t: ProtoTaskInput) => taskTargetLabel(t as never),
+            reasonOf: (t: ProtoTaskInput) => humanReasons(t.reason),
+        })
+        : [];
+    const used = plan && prog ? Math.max(0, plan.availableMinutes - prog.remainingMinutes) : 0;
+    const ctx: ProtoContext = {
+        proto: PROTO!,
+        hasPlan: !!plan,
+        budget: plan?.availableMinutes ?? planBudget,
+        usedMinutes: used,
+        remainingMinutes: prog?.remainingMinutes ?? planBudget,
+        done: prog?.done ?? 0,
+        total: prog?.total ?? 0,
+        skipped: prog?.skipped ?? 0,
+        ratio: prog?.ratio ?? 0,
+        next: views.find(v => v.isNext) ?? null,
+        tasks: views,
+        reason: next ? humanReasons(next.reason) || '按真实到期与保留率安排' : '',
+        emptyNote: '',
+    };
+    $('#main').innerHTML = `${protoTodayHTML(ctx)}
+<div class="proto-below">
+  ${plan ? '' : `<section class="proto-setup">${planSetup()}</section>`}
+  ${unfinished ? `<div class="resume"><span>有一轮未完成的训练 · 已答 ${unfinished.answered} 题</span><button id="resume" class="primary">继续本轮</button><button id="finish-old" class="text-button">结束本轮</button></div>` : ''}
+  <section class="panel practice">
+    <div class="section-title"><h2>自己再练一轮</h2><span class="subtle">${data.words.length} 个词 · ${data.books.length} 本词书</span></div>
+    ${rangeControls()}
+    <div class="modes" data-stagger>
+      <button class="mode featured" data-mode="quick"><span class="mode-symbol" aria-hidden="true">↗</span><h3>快速刷词</h3><p>大量扫描，找出不熟的词</p><span class="mode-bottom">开始检索 <b>→</b></span></button>
+      <button class="mode" data-mode="due"><span class="mode-symbol" aria-hidden="true">◷</span><h3>今日复习 <em>${s.due}</em></h3><p>优先处理已到期的记忆</p><span class="mode-bottom">巩固记忆 <b>→</b></span></button>
+      <button class="mode" data-mode="weak"><span class="mode-symbol" aria-hidden="true">◎</span><h3>弱词强化 <em>${s.weak}</em></h3><p>集中攻克不会和模糊词</p><span class="mode-bottom">开始强化 <b>→</b></span></button>
+      <button class="mode" data-mode="random"><span class="mode-symbol" aria-hidden="true">⤨</span><h3>随机抽查</h3><p>检验学过的词是否还记得</p><span class="mode-bottom">抽查记忆 <b>→</b></span></button>
+    </div>
+  </section>
+  ${newWordsPanel()}
+  <div class="two-col">
+    <section class="panel"><div class="section-title"><h2>记忆分布</h2><span class="subtle">全部词库</span></div>${distribution()}<p class="hint">“熟练”需要双向和间隔测试证据。短时间反复答对不会直接计入长期掌握。</p></section>
+    <section class="panel"><div class="section-title"><h2>今日弱词变化</h2></div><div class="weak-change"><div><strong>${s.newWeak}</strong><span>新增弱词</span></div><div><strong class="green">${s.resolved}</strong><span>今天修好的</span></div></div><p class="hint">弱词来自真实错误与“模糊”自评；修好需要后续再答对。</p></section>
+  </div>
+</div>`;
+    on('#import', 'click', importDialog);
+    bindPlan();
+    on('#hero-adjust', 'click', planAdjustDialog);
+    on('#resume', 'click', () => startSession(unfinished!));
+    on('#finish-old', 'click', async () => { unfinished!.ended = Date.now(); await putItems('sessions', [unfinished]); render(); });
+    on('#preview-start', 'click', () => startPreview());
+    on('#reflow-start', 'click', () => startReflow());
+    document.querySelectorAll<HTMLElement>('[data-mode]').forEach(b => b.onclick = () => { startMode(b.dataset.mode!).catch(e => toast(e.message)); });
 }

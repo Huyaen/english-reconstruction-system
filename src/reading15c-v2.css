@@ -1,0 +1,40 @@
+
+/* ── Reading 精修：压条更薄更硬，正文更安静，辅助面板更退后 ─────────── */
+
+html[data-proto] .reader-bar {
+  padding: 12px 18px 11px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    inset 0 -1px 0 rgba(0,0,0,.55),
+    0 1px 1px rgba(0,0,0,.5), 0 14px 26px -26px rgba(0,0,0,.9);
+}
+html[data-proto] .reader-bar::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; pointer-events: none;
+  background: linear-gradient(180deg, rgba(0,0,0,.45), transparent);
+}
+html[data-proto][data-theme="light"] .reader-bar::after { background: linear-gradient(180deg, rgba(16,20,26,.10), transparent); }
+html[data-proto] .reader-title { font-size: clamp(17px, 1.6vw, 21px); font-weight: 600; }
+html[data-proto] .rd-kicker { font-size: 9px; letter-spacing: .26em; }
+html[data-proto] .rd-meta-strip { font-size: 11px; color: var(--ink-faint); }
+html[data-proto] .rd-ticks i { width: 10px; height: 2.5px; }
+html[data-proto] .rd-ticks i.is-now { width: 22px; }
+
+/* 正文：行宽与行距固定，纸面边界收一点，避免和工具栏同权重 */
+html[data-proto] .reader-main {
+  background-image: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 18px 44px -40px rgba(0,0,0,.9);
+}
+html[data-proto][data-theme="light"] .reader-main {
+  box-shadow: inset 0 1px 0 #FFF, 0 1px 2px rgba(16,20,26,.06), 0 18px 40px -36px rgba(16,20,26,.35);
+}
+/* 底部操作区降权：细线分隔 + 更小的按钮，阅读时不喊话 */
+html[data-proto] .reader-foot { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line); }
+html[data-proto] .reader-foot .actions button { font-size: 12.5px; }
+html[data-proto] #read-idea-box { margin-top: 14px; opacity: .92; }
+html[data-proto] #read-idea-box label { font-size: 12px; color: var(--ink-muted); }
+
+/* 辅助面板：分组更清楚，按钮更小更轻 */
+html[data-proto] .reader-side { gap: 0; }
+html[data-proto] .reader-side .actions { gap: 5px; flex-wrap: wrap; }
+html[data-proto] .reader-side .actions button { font-size: 11.5px; padding: 4px 9px; }
+html[data-proto] .reader-side p, html[data-proto] .reader-side small { font-size: 11.5px; color: var(--ink-faint); line-height: 1.6; }
