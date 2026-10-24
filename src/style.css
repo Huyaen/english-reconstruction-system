@@ -439,7 +439,7 @@ button.small{padding:5px 10px;font-size:13px;border-radius:7px}
    双层（外壳 + 内芯）：外壳是"铝托盘"，内芯是"玻璃板"。
    光只在这里出现：左上暖灯、顶边描光、指针高光（仅桌面）。 */
 .today-hero{position:relative;overflow:hidden;isolation:isolate;border-radius:var(--r-2xl);padding:9px;
-  background:linear-gradient(168deg,var(--surface-sunken),var(--canvas-deep));
+  background:linear-gradient(168deg,var(--surface-sunken),var(--surface) 42%,var(--surface-raised));
   border:1px solid var(--line);box-shadow:var(--e-2),inset 0 1px 0 var(--sheen-soft)}
 .today-hero::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
   background:
@@ -503,6 +503,7 @@ button.small{padding:5px 10px;font-size:13px;border-radius:7px}
 .task-buttons{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center;min-width:0;align-self:start;padding-top:1px}
 .task-buttons button{padding:5px 12px;min-height:29px;font-size:var(--t-sm);border-radius:var(--r-pill);display:inline-flex;align-items:center}
 .task-buttons .secondary{padding:5px 14px;background:color-mix(in srgb,var(--accent) 14%,var(--surface-raised));border-color:color-mix(in srgb,var(--accent) 34%,var(--line-strong));box-shadow:none;color:var(--ink)}.task-buttons .secondary:hover:not(:disabled){background:var(--surface);border-color:var(--ink-faint)}
+.plan-task .badge.is-next{background:var(--accent-wash);color:var(--accent-ink);border-color:color-mix(in srgb,var(--accent) 45%,var(--line));font-weight:500}
 .plan-task .badge{background:var(--surface-sunken);color:var(--ink-muted);border:1px solid var(--line);border-radius:var(--r-pill);font-size:var(--t-xs);line-height:1.5;padding:1px 8px;white-space:nowrap}
 .plan-panel .actions{margin:var(--s-4) 0 0}
 .plan-panel .hint{margin-top:var(--s-3)}
