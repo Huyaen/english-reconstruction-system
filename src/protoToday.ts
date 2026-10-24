@@ -4,7 +4,7 @@
 // 两套共享业务动作（bindPlan 的数据属性），但 DOM 结构、构图、材质与动效完全不同。
 // ════════════════════════════════════════════════════════════════════════════
 
-export type ProtoId = 'a' | 'b';
+export type ProtoId = 'a' | 'b' | 'd';
 
 export interface ProtoTaskView {
     id: string;
@@ -278,4 +278,99 @@ export function protoTaskViews(input: {
         flexible: !!t.flexible,
         isNext: t.id === input.nextId,
     }));
+}
+
+/* ══════════════════════ D · Cinematic Dynamic（15d）══════════════════════
+   B 的空间 + A 的精密读数，加上一套真正会动的东西：
+   环境光呼吸、指针光场与倾斜、弹簧按压、行内展开与收回。
+   数据与动作仍走 bindPlan() 的 data-* 契约。 */
+
+function rowD(t: ProtoTaskView, index: number, open: boolean): string {
+    const cls = stateClass(t) + (open ? ' is-open' : '');
+    const go = t.status === 'done' || t.status === 'skipped' || t.status === 'replaced'
+        ? ''
+        : `<button class="${t.status === 'started' ? 'is-go' : 'is-go'}" data-task-start="${esc(t.id)}">${t.status === 'started' ? '继续' : '开始'}</button>`;
+    const rest = t.status === 'done' || t.status === 'skipped' || t.status === 'replaced'
+        ? ''
+        : `${t.flexible ? `<button data-task-replace="${esc(t.id)}">替换</button>` : ''}<button data-task-delay="${esc(t.id)}">延后</button><button data-task-skip="${esc(t.id)}">跳过</button>`;
+    return `<div class="d-row ${cls}" data-task="${esc(t.id)}" data-expand="1">
+  <button class="d-row-head" type="button">
+    <span class="d-dot" aria-hidden="true"></span>
+    <span class="d-idx">${String(index + 1).padStart(2, '0')}</span>
+    <span class="d-row-main"><b>${esc(t.label)}</b><small>${esc(t.note)}</small></span>
+    <span class="d-row-meta"><span>${t.minutes}′</span>${t.critical ? '<span>关键</span>' : ''}<i class="d-chev" aria-hidden="true"></i></span>
+  </button>
+  <div class="d-row-detail" style="height:${open ? 'auto' : '0px'}">
+    <p>${esc(t.reason || '按真实到期与保留率安排')} · ${esc(t.module)}</p>
+    <div class="d-row-actions">${go}${rest}</div>
+  </div>
+</div>`;
+}
+
+export function protoTodayD(c: ProtoContext): string {
+    const usedPct = c.budget ? Math.min(100, Math.round((c.usedMinutes / c.budget) * 100)) : 0;
+    const pctDone = c.total ? Math.round((c.done / c.total) * 100) : 0;
+    const t = c.next;
+    const segs = c.tasks.map(x => {
+        const i = c.tasks.indexOf(x) + 1;
+        return `<div class="d-seg ${stateClass(x)}" style="--w:${Math.max(1, x.minutes)}" data-idx="${String(i).padStart(2, '0')}" data-min="${x.minutes}′" data-task="${esc(x.id)}" title="${esc(x.label)} · ${x.minutes} 分钟"></div>`;
+    }).join('');
+    const rows = c.tasks.map((x, i) => rowD(x, i, x.isNext)).join('');
+    const sw = `<nav class="proto-switch" aria-label="原型切换">
+  <a href="?proto=a">A · Obsidian</a>
+  <a href="?proto=b">B · Studio</a>
+  <a href="?proto=d" aria-current="true">D · Cinematic</a>
+  <a href="./">15b 基线</a>
+</nav>`;
+    return `<div class="d-page">
+  <div class="d-ambient" aria-hidden="true">
+    <i class="d-aura a1"></i><i class="d-aura a2"></i><i class="d-aura a3"></i><i class="d-beam"></i>
+  </div>
+  <section class="d-stage" data-specular>
+    <div class="d-lights" aria-hidden="true">
+      <i class="d-sweep"></i>
+      <i class="d-sweep-2"></i>
+      <i class="d-orb"></i>
+      <i class="d-bands"></i>
+      <i class="d-rim"></i>
+    </div>
+    <i class="d-glare" aria-hidden="true"></i>
+    <div class="d-eyebrow"><span>今日学习 · Build your day</span></div>
+    <div class="d-clock">
+      <b data-odometer="${c.remainingMinutes}" data-odometer-key="p15d-remaining">${c.remainingMinutes}</b>
+      <span>分钟可用 · 预算 ${c.budget} 分钟</span>
+    </div>
+    <div class="d-next">
+      <div class="d-next-label"><i aria-hidden="true"></i>${t ? `接下来 · ${t.minutes} 分钟` : '今天已完成'}</div>
+      <h1 class="d-next-title">${t ? esc(t.label) : '今天的任务已经做完。'}</h1>
+      <p class="d-next-reason">${t ? `${esc(c.reason)} · ${esc(t.note)}` : '证据都保留着；明天的隔夜检测会告诉你真正留下了多少。'}</p>
+    </div>
+    <div class="d-cta-row">
+      ${t
+            ? `<button id="start-today" class="d-cta" data-spring>${t.status === 'started' ? '继续这一项' : '开始今天的训练'}</button>`
+            : `<button id="hero-adjust" class="d-cta" data-spring>调整明天</button>`}
+      <button id="import" class="d-quiet">导入词书</button>
+    </div>
+    <div class="d-strip">
+      <div><span>本项时长</span><b>${t ? t.minutes : 0}′</b></div>
+      <div><span>平均每项</span><b>${c.total ? Math.round(c.budget / c.total) : 0}′</b></div>
+      <div><span>关键记忆</span><b>${c.tasks.filter(x => x.critical).length}</b></div>
+      <div class="d-meter" aria-hidden="true"><i style="--p:${usedPct}%"></i></div>
+    </div>
+  </section>
+  <div class="d-slab" role="status">
+    <div><span>已完成</span><b>${c.done}/${c.total}</b><small>项</small></div>
+    <div><span>完成率</span><b>${pctDone}%</b><small>本段</small></div>
+    <div><span>已排分钟</span><b>${c.usedMinutes}</b><small>/ ${c.budget}</small></div>
+  </div>
+  <div class="d-ribbon-wrap">
+    <div class="d-ribbon-head"><b>今日时间带</b><span>段宽 = 该项分钟数 · ${c.usedMinutes}/${c.budget} 分钟</span></div>
+    <div class="d-ribbon">${segs}</div>
+  </div>
+  <div class="d-list">${rows}</div>
+  <div class="d-foot">
+    <button id="plan-regenerate" class="d-quiet">重新生成未完成部分</button>
+    <button id="plan-adjust" class="d-quiet">调整预算 / 状态</button>
+  </div>
+</div>${sw}`;
 }

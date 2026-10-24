@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-const PROTO = process.env.PROTO === 'b' ? 'b' : process.env.PROTO === 'base' ? 'base' : 'a';
+const PROTO = ['a', 'b', 'd', 'base'].includes(process.env.PROTO) ? process.env.PROTO : 'a';
 const PORT = 9297;
 const VW = Number(process.env.VW || 1920), VH = Number(process.env.VH || 1080);
 const WANT = process.env.THEME || 'dark';
@@ -32,7 +32,7 @@ const send = (method, params = {}) => new Promise((res, rej) => { const i = ++id
 const evaluate = async expression => (await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })).result?.value;
 
 const qs = PROTO === 'base' ? '' : `&proto=${PROTO}`;
-const out = resolve(`screenshots/phase15c/${PROTO === 'base' ? '15b' : PROTO}`);
+const out = resolve(PROTO === 'd' ? 'screenshots/phase15d' : `screenshots/phase15c/${PROTO === 'base' ? '15b' : PROTO}`);
 mkdirSync(out, { recursive: true });
 
 try {
@@ -45,7 +45,16 @@ try {
     for (let i = 0; i < 60; i++) { if (await evaluate('!!document.querySelector("#start-today")')) break; await sleep(300); }
     if (((await evaluate('document.documentElement.dataset.theme')) === 'dark') !== (WANT === 'dark')) {
         await evaluate(`(() => { const b = document.querySelector('#theme'); if (b) b.click(); return 1; })()`);
-        await sleep(800);
+        // 主题切换有过渡：等到过渡动画真的结束再采样，否则会把中间色算成违规
+        for (let i = 0; i < 40; i++) {
+            const busy = await evaluate(`(() => {
+              const a = document.getAnimations().filter(x => x.playState === 'running' && (x.effect?.target?.tagName === 'BODY' || x.effect?.target === document.documentElement));
+              return a.length > 0;
+            })()`);
+            if (!busy) break;
+            await sleep(150);
+        }
+        await sleep(900);
     }
 
     const audit = await evaluate(`(() => {

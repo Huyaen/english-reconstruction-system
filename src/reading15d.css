@@ -1,0 +1,79 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Phase 15d · Reading 外围动态
+   正文永远不动：字号、行高、色值、选中、滚动都不参与任何动画。
+   动态只发生在"卡片之上、文字之下"的一层环境光，以及工具压条与辅助面板的材质回应。
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+html[data-proto="d"] #reading-page { position: relative; }
+html[data-proto="d"] #read-cold,
+html[data-proto="d"] .reader-main { position: relative; }
+
+/* 阅读区背后的环境光：只移动/缩放一个固定层，不重绘渐变 */
+html[data-proto="d"] #read-cold::before,
+html[data-proto="d"] .reader-main::before {
+  content: "";
+  position: absolute; inset: -18% -12%;
+  z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(30% 52% at 1% 24%, rgba(157, 196, 230, .55), transparent 74%),
+    radial-gradient(26% 44% at 99% 30%, rgba(255, 214, 168, .34), transparent 76%),
+    radial-gradient(46% 40% at 50% 0%, rgba(198, 224, 250, .22), transparent 78%);
+  filter: blur(34px);
+  animation: d-read-breathe 24s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+@keyframes d-read-breathe {
+  from { transform: translate3d(-2.2%, -1.4%, 0) scale(.96); opacity: .35; }
+  to { transform: translate3d(3%, 2.2%, 0) scale(1.08); opacity: 1; }
+}
+html[data-proto="d"][data-theme="light"] #read-cold::before,
+html[data-proto="d"][data-theme="light"] .reader-main::before {
+  background:
+    radial-gradient(30% 52% at 1% 24%, rgba(150, 178, 214, .5), transparent 74%),
+    radial-gradient(26% 44% at 99% 30%, rgba(206, 176, 140, .32), transparent 76%),
+    radial-gradient(46% 40% at 50% 0%, rgba(255, 255, 255, .5), transparent 78%);
+  opacity: .8;
+}
+
+/* 工具压条：一道很慢的掠光，只在压条内部，不碰正文 */
+/* 环境光必须在内容之下、卡片背景之上 */
+html[data-proto="d"] #reading-page > * { position: relative; z-index: 1; }
+html[data-proto="d"] .reader-bar { position: relative; overflow: hidden; }
+html[data-proto="d"] .reader-bar::after {
+  content: "";
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, .10) 48%, transparent 66%);
+  transform: translate3d(-60%, 0, 0);
+  animation: d-bar-sheen 15s ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes d-bar-sheen {
+  0%, 12% { transform: translate3d(-70%, 0, 0); opacity: 0; }
+  38% { opacity: 1; }
+  62%, 100% { transform: translate3d(70%, 0, 0); opacity: 0; }
+}
+html[data-proto="d"][data-theme="light"] .reader-bar::after {
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, .85) 48%, transparent 66%);
+}
+
+/* 辅助面板：材质比正文轻一档；悬停时只抬 0.5px，不改变布局 */
+html[data-proto="d"] .reader-side {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, .045), rgba(255, 255, 255, 0) 42%);
+  transition: box-shadow 320ms cubic-bezier(.22, 1, .36, 1), transform 320ms cubic-bezier(.22, 1, .36, 1);
+  will-change: transform;
+}
+html[data-proto="d"] .reader-side:hover {
+  transform: translate3d(0, -1px, 0);
+  box-shadow: 0 18px 40px -28px rgba(0, 0, 0, .8), inset 0 1px 0 rgba(255, 255, 255, .10);
+}
+html[data-proto="d"][data-theme="light"] .reader-side:hover {
+  box-shadow: 0 16px 34px -26px rgba(32, 44, 60, .38), inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-proto="d"] #reading-page::before,
+  html[data-proto="d"] .reader-bar::after { animation: none !important; }
+  html[data-proto="d"] .reader-bar::after { opacity: 0; }
+  html[data-proto="d"] .reader-side { transform: none !important; transition: none; }
+}

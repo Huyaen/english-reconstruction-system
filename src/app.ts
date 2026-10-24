@@ -6,7 +6,10 @@ import './proto15c-b3.css';
 import './proto15c-b4.css';
 import './reading15c.css';
 import './reading15c-v2.css';
-import { protoTodayHTML, protoTaskViews, type ProtoContext, type ProtoId, type ProtoTaskInput } from './protoToday';
+import './reading15d.css';
+import './proto15d.css';
+import { protoTodayHTML, protoTodayD, protoTaskViews, type ProtoContext, type ProtoId, type ProtoTaskInput } from './protoToday';
+import { startLiving, stopLiving, livingAllowed } from './living';
 import type { Data, Word, StudySession, Settings, ReviewRecord, Mastery, DailyPlan, PlanItem, EnergyState, GrammarConcept, SentenceRecord, SentenceStepRecord, SentenceAttempt, SentenceEvidenceClass, GrammarCategory } from './types.ts';
 import { testHooksEnabled, pwaEnabled } from './testMode.ts';
 import { afterRender } from './motion.ts';
@@ -246,7 +249,7 @@ let vtPending = false;
 const PROTO: ProtoId | null = (() => {
     try {
         const v = new URLSearchParams(location.search).get('proto');
-        return v === 'a' || v === 'b' ? v : null;
+        return v === 'a' || v === 'b' || v === 'd' ? v : null;
     }
     catch {
         return null;
@@ -276,6 +279,12 @@ function paint(): void {
     applyProtoAttr();
     shell();
     ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp, input: inputPageApp, output: outputPageApp, diagnostics: diagnosticsPageApp, exam: examPageApp }[page] || home)();
+    // 原型路径：有些会话页要先异步取数据，第一帧会是空的；用一块安静的占位代替黑屏。
+    if (PROTO && page !== 'home') {
+        const m = document.querySelector<HTMLElement>('#main');
+        if (m && !m.textContent?.trim())
+            m.innerHTML = `<div class="d-loading" role="status" aria-live="polite"><i class="d-loading-mark"></i><p>正在准备这一项…</p></div>`;
+    }
     bindAI();
     lastRenderKey = renderKey();
     try {
@@ -5118,6 +5127,28 @@ function bindAI(): void {
    业务动作全部复用既有实现：bindPlan() 负责开始/跳过/延后/替换/调整，
    其余与默认首页一致，避免原型悄悄改变学习流程或数据写入。
    ════════════════════════════════════════════════════════════════════════════ */
+function protoBelow(s: ReturnType<typeof summary>, unfinished: StudySession | undefined, plan: DailyPlan | null): string {
+    return `<div class="proto-below">
+  ${plan ? '' : `<section class="proto-setup">${planSetup()}</section>`}
+  ${unfinished ? `<div class="resume"><span>有一轮未完成的训练 · 已答 ${unfinished.answered} 题</span><button id="resume" class="primary">继续本轮</button><button id="finish-old" class="text-button">结束本轮</button></div>` : ''}
+  <section class="panel practice">
+    <div class="section-title"><h2>自己再练一轮</h2><span class="subtle">${data.words.length} 个词 · ${data.books.length} 本词书</span></div>
+    ${rangeControls()}
+    <div class="modes" data-stagger>
+      <button class="mode featured" data-mode="quick"><span class="mode-symbol" aria-hidden="true">↗</span><h3>快速刷词</h3><p>大量扫描，找出不熟的词</p><span class="mode-bottom">开始检索 <b>→</b></span></button>
+      <button class="mode" data-mode="due"><span class="mode-symbol" aria-hidden="true">◷</span><h3>今日复习 <em>${s.due}</em></h3><p>优先处理已到期的记忆</p><span class="mode-bottom">巩固记忆 <b>→</b></span></button>
+      <button class="mode" data-mode="weak"><span class="mode-symbol" aria-hidden="true">◎</span><h3>弱词强化 <em>${s.weak}</em></h3><p>集中攻克不会和模糊词</p><span class="mode-bottom">开始强化 <b>→</b></span></button>
+      <button class="mode" data-mode="random"><span class="mode-symbol" aria-hidden="true">⤨</span><h3>随机抽查</h3><p>检验学过的词是否还记得</p><span class="mode-bottom">抽查记忆 <b>→</b></span></button>
+    </div>
+  </section>
+  ${newWordsPanel()}
+  <div class="two-col">
+    <section class="panel"><div class="section-title"><h2>记忆分布</h2><span class="subtle">全部词库</span></div>${distribution()}<p class="hint">“熟练”需要双向和间隔测试证据。短时间反复答对不会直接计入长期掌握。</p></section>
+    <section class="panel"><div class="section-title"><h2>今日弱词变化</h2></div><div class="weak-change"><div><strong>${s.newWeak}</strong><span>新增弱词</span></div><div><strong class="green">${s.resolved}</strong><span>今天修好的</span></div></div><p class="hint">弱词来自真实错误与“模糊”自评；修好需要后续再答对。</p></section>
+  </div>
+</div>`;
+}
+
 function protoHome(s: ReturnType<typeof summary>): void {
     const plan = todayPlan;
     const next = plan ? nextOpenTask(plan) : null;
@@ -5149,26 +5180,21 @@ function protoHome(s: ReturnType<typeof summary>): void {
         reason: next ? humanReasons(next.reason) || '按真实到期与保留率安排' : '',
         emptyNote: '',
     };
-    $('#main').innerHTML = `${protoTodayHTML(ctx)}
-<div class="proto-below">
-  ${plan ? '' : `<section class="proto-setup">${planSetup()}</section>`}
-  ${unfinished ? `<div class="resume"><span>有一轮未完成的训练 · 已答 ${unfinished.answered} 题</span><button id="resume" class="primary">继续本轮</button><button id="finish-old" class="text-button">结束本轮</button></div>` : ''}
-  <section class="panel practice">
-    <div class="section-title"><h2>自己再练一轮</h2><span class="subtle">${data.words.length} 个词 · ${data.books.length} 本词书</span></div>
-    ${rangeControls()}
-    <div class="modes" data-stagger>
-      <button class="mode featured" data-mode="quick"><span class="mode-symbol" aria-hidden="true">↗</span><h3>快速刷词</h3><p>大量扫描，找出不熟的词</p><span class="mode-bottom">开始检索 <b>→</b></span></button>
-      <button class="mode" data-mode="due"><span class="mode-symbol" aria-hidden="true">◷</span><h3>今日复习 <em>${s.due}</em></h3><p>优先处理已到期的记忆</p><span class="mode-bottom">巩固记忆 <b>→</b></span></button>
-      <button class="mode" data-mode="weak"><span class="mode-symbol" aria-hidden="true">◎</span><h3>弱词强化 <em>${s.weak}</em></h3><p>集中攻克不会和模糊词</p><span class="mode-bottom">开始强化 <b>→</b></span></button>
-      <button class="mode" data-mode="random"><span class="mode-symbol" aria-hidden="true">⤨</span><h3>随机抽查</h3><p>检验学过的词是否还记得</p><span class="mode-bottom">抽查记忆 <b>→</b></span></button>
-    </div>
-  </section>
-  ${newWordsPanel()}
-  <div class="two-col">
-    <section class="panel"><div class="section-title"><h2>记忆分布</h2><span class="subtle">全部词库</span></div>${distribution()}<p class="hint">“熟练”需要双向和间隔测试证据。短时间反复答对不会直接计入长期掌握。</p></section>
-    <section class="panel"><div class="section-title"><h2>今日弱词变化</h2></div><div class="weak-change"><div><strong>${s.newWeak}</strong><span>新增弱词</span></div><div><strong class="green">${s.resolved}</strong><span>今天修好的</span></div></div><p class="hint">弱词来自真实错误与“模糊”自评；修好需要后续再答对。</p></section>
-  </div>
-</div>`;
+    if (PROTO === 'd') {
+        stopLiving();
+        $('#main').innerHTML = protoTodayD(ctx) + protoBelow(s, unfinished, plan);
+        on('#import', 'click', importDialog);
+        bindPlan();
+        on('#hero-adjust', 'click', planAdjustDialog);
+        on('#resume', 'click', () => startSession(unfinished!));
+        on('#finish-old', 'click', async () => { unfinished!.ended = Date.now(); await putItems('sessions', [unfinished]); render(); });
+        on('#preview-start', 'click', () => startPreview());
+        on('#reflow-start', 'click', () => startReflow());
+        document.querySelectorAll<HTMLElement>('[data-mode]').forEach(b => b.onclick = () => { startMode(b.dataset.mode!).catch(e => toast(e.message)); });
+        startLiving($('#main') as HTMLElement);
+        return;
+    }
+    $('#main').innerHTML = protoTodayHTML(ctx) + protoBelow(s, unfinished, plan);
     on('#import', 'click', importDialog);
     bindPlan();
     on('#hero-adjust', 'click', planAdjustDialog);
