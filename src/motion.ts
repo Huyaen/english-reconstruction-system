@@ -103,6 +103,8 @@ export function bindSpecular(): void {
             const py = Math.max(0, Math.min(1, (last.y - rect.top) / rect.height));
             last.el.style.setProperty('--mx', `${(px * 100).toFixed(1)}%`);
             last.el.style.setProperty('--my', `${(py * 100).toFixed(1)}%`);
+            last.el.style.setProperty('--rx', ((px - 0.5) * 2).toFixed(3));
+            last.el.style.setProperty('--ry', ((py - 0.5) * 2).toFixed(3));
             last.el.style.setProperty('--specular', String(Math.max(SPECULAR_MIN, 0.65)));
         });
     }, { passive: true });
@@ -117,4 +119,64 @@ export function afterRender(root: ParentNode = document): void {
     staggerIn(root);
     animateCounters(root);
     bindSpecular();
+    playFlip();
+}
+
+/* —— Shared Element：克隆层过渡 ——
+   关键点：真实 DOM 仍然同步渲染。过渡载体是一个 position:fixed 的空白克隆，
+   它不包含任何业务内容、不接收指针事件、动画结束即移除。
+   这样既不破坏「点击后立刻可查询新 DOM」的合同（Phase 12 冒烟依赖它），
+   也能得到共享元素的连续感。 */
+type FlipCapture = { rect: DOMRect; radius: string } | null;
+let pendingFlip: FlipCapture = null;
+
+export function captureFlip(el: HTMLElement | null): void {
+    if (!el || !motionAllowed()) {
+        pendingFlip = null;
+        return;
+    }
+    const rect = el.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+        pendingFlip = null;
+        return;
+    }
+    pendingFlip = { rect, radius: getComputedStyle(el).borderRadius || '13px' };
+}
+
+function flipTarget(): DOMRect | null {
+    const el = document.querySelector<HTMLElement>('main .page-title h1, main h1');
+    if (!el)
+        return null;
+    const rect = el.getBoundingClientRect();
+    return rect.width && rect.height ? rect : null;
+}
+
+export function playFlip(): void {
+    const cap = pendingFlip;
+    pendingFlip = null;
+    if (!cap || !motionAllowed() || typeof document === 'undefined')
+        return;
+    const to = flipTarget();
+    if (!to)
+        return;
+    const ghost = document.createElement('div');
+    ghost.className = 'flip-ghost';
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.style.left = `${cap.rect.left}px`;
+    ghost.style.top = `${cap.rect.top}px`;
+    ghost.style.width = `${cap.rect.width}px`;
+    ghost.style.height = `${cap.rect.height}px`;
+    ghost.style.borderRadius = cap.radius;
+    document.body.appendChild(ghost);
+    const dx = to.left - cap.rect.left;
+    const dy = to.top - cap.rect.top;
+    const sx = Math.max(0.24, Math.min(1, to.width / cap.rect.width));
+    const sy = Math.max(0.16, Math.min(1, to.height / cap.rect.height));
+    const anim = ghost.animate([
+        { transform: 'translate3d(0,0,0) scale(1,1)', opacity: 0.92 },
+        { transform: `translate3d(${dx}px,${dy}px,0) scale(${sx},${sy})`, opacity: 0 },
+    ], { duration: 420, easing: 'cubic-bezier(0.16,1,0.3,1)', fill: 'forwards' });
+    const done = (): void => ghost.remove();
+    anim.onfinish = done;
+    anim.oncancel = done;
 }

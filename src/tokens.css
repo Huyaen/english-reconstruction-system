@@ -1,73 +1,96 @@
 /* ============================================================================
-   Phase 15 · Design Tokens — 词间（ERV2）
-   「光影留在空间，专注留给文字。」
-   唯一 token 来源：任何页面不得再定义自己的颜色 / 阴影 / 时长。
-   数值来自 docs/reference/词间-UI参考手册.pdf p15 的原创候选值 + Phase 15 实测校准。
+   Phase 15b · Design Tokens — 词间（Cinematic Graphite）
+   方向：高级、精致、有空间感与光影质感（Raycast 的光 / Endel 的深空间）。
+   「一束主光，其余都是材质。」
+
+   与 15a 的差别（15a 为暖纸 + 鼠尾草的单向暖调）：
+   - 底色改为中性冷石墨：空间靠明度层差 + 描光成立，不靠暖纸；
+   - 鼠尾草 #A8BEA6 降级为「状态色」（掌握度 / 通过 / 完成），不再做主视觉；
+   - 主行动改用金属面（浅色主题=深石墨金属，深色主题=亮金属），光源固定左上 45°；
+   - 新增材质层：拉丝石墨、阳极金属、磨砂玻璃、哑光陶面。
+   阅读排版数值（19px / 1.72 / 66ch）保留，不改。
    ========================================================================== */
 
 :root {
   color-scheme: light;
 
-  /* —— 材质：暖纸（Paper）——
-     浅色不是深色反转：纸面有温度、有纤维方向、有极轻的层次。 */
-  --canvas: #F4F2EA;            /* 页面底：暖纸 */
-  --canvas-deep: #EBE8DE;       /* 下沉区：纸的背面 */
-  --surface: #FBF9F3;           /* 面：卡片 / 面板 */
-  --surface-raised: #FFFDF8;    /* 抬升面：主任务、阅读纸面 */
-  --surface-sunken: #EFEDE4;    /* 内凹区：输入槽、代码块 */
-  --ink: #1F2321;               /* 正文（暖炭黑，非纯黑） */
-  --ink-soft: #3C423E;
-  --ink-muted: #585E56;         /* 次级（6.3:1 on surface） */
-  --ink-faint: #5F655C;         /* 三级（5.7:1 on surface） */
-  --line: rgba(31, 35, 33, 0.11);
-  --line-strong: rgba(31, 35, 33, 0.20);
+  /* —— 空间基底（浅色：摄影棚昼光，中性冷白，不是暖纸）—— */
+  --canvas: #E9ECF0;
+  --canvas-deep: #DFE3E9;
+  --surface: #F5F7F9;
+  --surface-raised: #FFFFFF;
+  --surface-sunken: #E3E7EC;
+  --paper: #FFFFFF;
 
-  /* —— 强调：鼠尾草（Sage）——
-     填充用 --accent，文字/图标用 --accent-ink（保证对比度）。 */
+  /* —— 墨色 —— */
+  --ink: #14171B;
+  --ink-soft: #2E343B;
+  --ink-muted: #4C545E;
+  --ink-faint: #5E666F;
+
+  /* —— 金属 / 玻璃 —— */
+  --edge: rgba(255, 255, 255, 0.92);
+  --edge-soft: rgba(255, 255, 255, 0.55);
+  --line: rgba(16, 20, 26, 0.12);
+  --line-strong: rgba(16, 20, 26, 0.22);
+  --glass: rgba(247, 249, 251, 0.74);
+  --glass-strong: rgba(250, 252, 254, 0.88);
+  --glass-blur: blur(18px) saturate(130%);
+
+  /* 阳极金属：主行动面 */
+  --metal-hi: #4C5560;
+  --metal-mid: #232A31;
+  --metal-lo: #0C1015;
+  --metal-ink: #F7FAFD;
+  --metal-sheen: linear-gradient(168deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0) 44%);
+  --spectral: linear-gradient(96deg, #9DB6D9 0%, #C9D8EA 34%, #EDF3FA 58%, #93A6BC 100%);
+
+  /* —— 状态（鼠尾草在此，只表"通过 / 掌握"）—— */
   --accent: #A8BEA6;
-  --accent-ink: #4E6349;
-  --accent-strong: #3E5139;
-  --accent-wash: #E6EBE1;
-
-  /* —— 状态 —— */
-  --ok: #4F7F63;
-  --ok-wash: #E4EFE6;
-  --warn: #9A6A2F;
-  --warn-wash: #F5EAD8;
-  --danger: #A64F4C;
-  --danger-wash: #F6E4E1;
-
-  /* —— 掌握度（保留语义，重新调色以适配暖纸）—— */
+  --accent-ink: #4C6147;
+  --accent-strong: #3C4E38;
+  --accent-wash: rgba(168, 190, 166, 0.20);
+  --ok: #4C7F62;
+  --ok-wash: rgba(76, 127, 98, 0.14);
+  --warn: #8C6224;
+  --warn-wash: rgba(140, 98, 36, 0.14);
+  --danger: #A24B47;
+  --danger-wash: rgba(162, 75, 71, 0.12);
   --m-fluent: #4F8A6E;
   --m-normal: #5C7099;
-  --m-vague: #B98A3C;
-  --m-unknown: #B26A61;
-  --m-new: #9AA096;
+  --m-vague: #A87A2E;
+  --m-unknown: #A8625A;
+  --m-new: #8A929B;
 
-  /* —— 光：一个光源，左上偏上，暖色 —— */
-  --light-warm: rgba(214, 178, 120, 0.30);   /* 台下灯（环境光） */
-  --light-cool: rgba(178, 198, 186, 0.26);   /* 窗光（冷侧） */
-  --sheen: rgba(255, 255, 255, 0.66);        /* 面顶高光 */
-  --sheen-soft: rgba(255, 255, 255, 0.34);
-  --edge: rgba(255, 255, 255, 0.85);         /* 边缘描光 */
-  --glow: rgba(214, 178, 120, 0.16);         /* 状态光（一次性） */
+  /* —— 光：唯一光源左上 45°；底部只留极弱暖反 —— */
+  --light-key: rgba(255, 255, 255, 0.80);
+  --light-core: rgba(255, 255, 255, 0.95);
+  --light-warm: rgba(214, 178, 120, 0.10);
+  --light-cool: rgba(126, 160, 214, 0.18);
+  --aurora-a: rgba(126, 160, 214, 0.30);
+  --aurora-b: rgba(176, 160, 208, 0.22);
+  --aurora-warm: rgba(214, 178, 120, 0.10);
+  --glow-cold: rgba(198, 222, 255, 0.55);
+  --glow: rgba(168, 190, 166, 0.18);
+  --sheen: rgba(255, 255, 255, 0.90);
+  --sheen-soft: rgba(255, 255, 255, 0.45);
+  --noise-opacity: 0.035;
 
-  /* —— 高度：阴影必须带偏移、带柔化；零偏移彩光是装饰，禁止 —— */
+  /* —— 方向性阴影：光在左上，影必落右下 —— */
   --e-flat: 0 0 0 0 transparent;
-  --e-1: 0 1px 1px rgba(31, 35, 33, 0.04), 0 2px 6px -2px rgba(31, 35, 33, 0.06);
-  --e-2: 0 1px 2px rgba(31, 35, 33, 0.05), 0 6px 14px -10px rgba(31, 35, 33, 0.16);
-  --e-3: 0 1px 2px rgba(31, 35, 33, 0.06), 0 14px 32px -22px rgba(31, 35, 33, 0.22);
-  --e-pop: 0 1px 2px rgba(31, 35, 33, 0.08), 0 30px 70px -30px rgba(31, 35, 33, 0.45);
+  --e-1: 0 1px 1px rgba(12, 16, 22, 0.06), 0 2px 5px -2px rgba(12, 16, 22, 0.10);
+  --e-2: 3px 8px 18px -10px rgba(12, 16, 22, 0.22), 0 1px 2px rgba(12, 16, 22, 0.08);
+  --e-3: 8px 22px 44px -26px rgba(12, 16, 22, 0.30), 0 2px 6px -2px rgba(12, 16, 22, 0.12);
+  --e-pop: 10px 30px 70px -30px rgba(12, 16, 22, 0.38), 0 2px 8px rgba(12, 16, 22, 0.14);
+  --e-inset: inset 0 1px 0 var(--edge), inset 0 -1px 0 rgba(16, 20, 26, 0.06);
 
-  /* —— 字体 ——
-     一套 UI 字 + 一套阅读字（衬线只用于英文正文，中文回落系统字）。
-     Inter/Roboto/Arial 一类"AI 默认字"不作显示字。 */
+  /* —— 字体 —— */
   --font-ui: "Segoe UI Variable Text", "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   --font-display: "Segoe UI Variable Display", "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  --font-reading: "Charter", "Iowan Old Style", "Palatino Linotype", Georgia, "Songti SC", "Microsoft YaHei", serif;
-  --font-num: var(--font-ui);
+  --font-reading: "Charter", "Iowan Old Style", "Palatino Linotype", Georgia, "Songti SC", serif;
+  --font-num: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
 
-  /* —— 字号阶（px，1rem=16）：11 12 13 14 16 18 21 26 34 44 —— */
+  /* —— 字号阶 —— */
   --t-2xs: 11px;
   --t-xs: 12px;
   --t-sm: 13px;
@@ -79,35 +102,35 @@
   --t-3xl: 34px;
   --t-4xl: 44px;
 
-  /* 阅读排版（PDF 候选 18–20px / 1.65–1.8 / 60–75ch，实测取中值） */
+  /* 阅读排版：沿用 15a 实测值（18–20px / 1.65–1.8 / 60–75ch） */
   --read-size: 19px;
   --read-leading: 1.72;
   --read-measure: 66ch;
   --read-tracking: 0.004em;
+  --read-ink: #14171B;
 
-  /* —— 间距（4px 基）—— */
+  /* —— 间距 / 圆角 —— */
   --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px; --s-5: 22px;
   --s-6: 28px; --s-7: 36px; --s-8: 48px; --s-9: 64px; --s-10: 88px;
-
-  /* —— 圆角：内紧外松（同心圆）—— */
   --r-xs: 4px;
   --r-sm: 8px;
   --r-md: 12px;
   --r-lg: 16px;
-  --r-xl: 22px;
-  --r-2xl: 28px;
+  --r-xl: 20px;
+  --r-2xl: 26px;
   --r-pill: 999px;
 
-  /* —— 动效 —— */
-  --dur-1: 120ms;   /* 控制反馈 */
-  --dur-2: 220ms;   /* 标准 */
-  --dur-3: 380ms;   /* 展开 / 切换 */
-  --dur-4: 620ms;   /* 罕见：首屏 / 完成 */
+  /* —— 动效（八类共用一套时长）—— */
+  --dur-1: 110ms;
+  --dur-2: 200ms;
+  --dur-3: 360ms;
+  --dur-4: 640ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-std: cubic-bezier(0.32, 0.72, 0, 1);
-  --ease-spring: cubic-bezier(0.34, 1.42, 0.64, 1);
-  --stagger: 45ms;      /* 每项间隔；最多 8 项参与 */
-  --press-scale: 0.982;
+  --ease-spring: cubic-bezier(0.34, 1.32, 0.64, 1);
+  --stagger: 40ms;
+  --press-scale: 0.984;
+  --tilt-max: 1.4deg;
 
   /* —— 层 —— */
   --z-ambient: 0;
@@ -116,77 +139,97 @@
   --z-sheet: 60;
   --z-toast: 100;
 
-  /* —— 旧变量别名：Phase 1–14 的组件仍引用这些名字 ——
-     不再各处单独定义颜色，一律映射到上面的 token。 */
+  /* —— 15a 旧别名（其余页面仍引用）—— */
   --bg: var(--canvas);
   --blue: var(--accent-ink);
   --soft: var(--accent-wash);
   --shadow: var(--e-1);
   --border: var(--line);
-  --card: var(--surface);
+  --card: var(--surface-raised);
   --foreground: var(--ink);
   --muted: var(--ink-muted);
 }
 
-/* —— 深色：石墨（Graphite）——
-   不是纯黑；靠明度差和边缘描光分层，靠一盏暖灯提供空间感。 */
+/* —— 深色：石墨 + 冷光（主方向）—— */
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --canvas: #101312;
-  --canvas-deep: #0A0D0C;
-  --surface: #1C211E;
-  --surface-raised: #252B27;
-  --surface-sunken: #0D100F;
-  --ink: #EAEEE9;
-  --ink-soft: #CFD6CE;
-  --ink-muted: #ADB4AB;
-  --ink-faint: #99A198;
-  --line: rgba(233, 237, 232, 0.10);
-  --line-strong: rgba(233, 237, 232, 0.20);
+  --canvas: #08090B;
+  --canvas-deep: #050607;
+  --surface: #0E1116;
+  --surface-raised: #151A20;
+  --surface-sunken: #0A0C10;
+  --paper: #12161B;
+
+  --ink: #E9EDF2;
+  --ink-soft: #C3CAD3;
+  --ink-muted: #A6AFBA;
+  --ink-faint: #8A939E;
+
+  --edge: rgba(255, 255, 255, 0.10);
+  --edge-soft: rgba(255, 255, 255, 0.06);
+  --line: rgba(255, 255, 255, 0.075);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --glass: rgba(14, 17, 22, 0.62);
+  --glass-strong: rgba(18, 22, 28, 0.80);
+  --glass-blur: blur(20px) saturate(140%);
+
+  /* 深色主题的主行动是"亮金属" */
+  --metal-hi: #DCE7F4;
+  --metal-mid: #B2C5DA;
+  --metal-lo: #7C91A8;
+  --metal-ink: #0C1015;
+  --metal-sheen: linear-gradient(168deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0) 46%);
 
   --accent: #A8BEA6;
   --accent-ink: #BCD2B7;
   --accent-strong: #D3E4CF;
-  --accent-wash: #26302A;
-
+  --accent-wash: rgba(168, 190, 166, 0.16);
   --ok: #8CC2A4;
-  --ok-wash: #1E2C25;
+  --ok-wash: rgba(140, 194, 164, 0.12);
   --warn: #D8AC74;
-  --warn-wash: #2E2718;
+  --warn-wash: rgba(216, 172, 116, 0.12);
   --danger: #D89490;
-  --danger-wash: #2E1E1D;
-
+  --danger-wash: rgba(216, 148, 144, 0.12);
   --m-fluent: #7FBB9D;
   --m-normal: #93A8D2;
   --m-vague: #D9AE6A;
   --m-unknown: #D69A92;
-  --m-new: #8A928A;
+  --m-new: #8A929A;
 
-  --light-warm: rgba(226, 186, 126, 0.16);
-  --light-cool: rgba(150, 180, 168, 0.10);
+  --light-key: rgba(214, 230, 255, 0.16);
+  --light-core: rgba(240, 248, 255, 0.20);
+  --light-warm: rgba(226, 186, 126, 0.07);
+  --light-cool: rgba(96, 132, 196, 0.16);
+  --aurora-a: rgba(74, 108, 176, 0.30);
+  --aurora-b: rgba(108, 88, 156, 0.24);
+  --aurora-warm: rgba(226, 186, 126, 0.07);
+  --glow-cold: rgba(198, 222, 255, 0.30);
+  --glow: rgba(168, 190, 166, 0.16);
   --sheen: rgba(255, 255, 255, 0.09);
   --sheen-soft: rgba(255, 255, 255, 0.05);
-  --edge: rgba(255, 255, 255, 0.14);
-  --glow: rgba(226, 186, 126, 0.18);
+  --noise-opacity: 0.05;
 
-  --e-1: 0 1px 1px rgba(0, 0, 0, 0.28), 0 2px 6px -2px rgba(0, 0, 0, 0.35);
-  --e-2: 0 1px 2px rgba(0, 0, 0, 0.30), 0 8px 18px -12px rgba(0, 0, 0, 0.50);
-  --e-3: 0 1px 3px rgba(0, 0, 0, 0.32), 0 16px 36px -24px rgba(0, 0, 0, 0.62);
-  --e-pop: 0 1px 2px rgba(0, 0, 0, 0.45), 0 34px 80px -34px rgba(0, 0, 0, 0.85);
+  --e-1: 0 1px 1px rgba(0, 0, 0, 0.55), 0 3px 8px -4px rgba(0, 0, 0, 0.55);
+  --e-2: 4px 10px 24px -12px rgba(0, 0, 0, 0.72), 0 1px 2px rgba(0, 0, 0, 0.5);
+  --e-3: 10px 26px 54px -28px rgba(0, 0, 0, 0.85), 0 2px 8px -2px rgba(0, 0, 0, 0.55);
+  --e-pop: 14px 34px 80px -34px rgba(0, 0, 0, 0.92), 0 2px 10px rgba(0, 0, 0, 0.6);
+  --e-inset: inset 0 1px 0 var(--edge), inset 0 -1px 0 rgba(0, 0, 0, 0.45);
+
+  --read-ink: #DDE3EA;
 
   --bg: var(--canvas);
   --blue: var(--accent-ink);
   --soft: var(--accent-wash);
   --shadow: var(--e-1);
   --border: var(--line);
-  --card: var(--surface);
+  --card: var(--surface-raised);
   --foreground: var(--ink);
   --muted: var(--ink-muted);
 }
 
 /* ── 基础 ───────────────────────────────────────────────────────────────── */
-html {
+html, body {
   background: var(--canvas);
   color: var(--ink);
   font-family: var(--font-ui);
@@ -194,29 +237,22 @@ html {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
-body {
-  background: var(--canvas);
-  color: var(--ink);
-  font-family: var(--font-ui);
-  font-size: var(--t-base);
-  line-height: 1.6;
-  text-wrap: pretty;
-}
+body { font-size: var(--t-base); line-height: 1.6; text-wrap: pretty; }
 h1, h2, h3, h4 {
   font-family: var(--font-display);
   color: var(--ink);
   text-wrap: balance;
 }
-h1 { font-size: var(--t-3xl); line-height: 1.18; letter-spacing: -0.022em; font-weight: 600; }
-h2 { font-size: var(--t-xl); line-height: 1.3; letter-spacing: -0.012em; font-weight: 600; }
+h1 { font-size: var(--t-3xl); line-height: 1.14; letter-spacing: -0.026em; font-weight: 600; }
+h2 { font-size: var(--t-xl); line-height: 1.3; letter-spacing: -0.014em; font-weight: 600; }
 h3 { font-size: var(--t-lg); line-height: 1.35; font-weight: 600; }
 
-/* 数据用等宽数字；正文用比例数字 */
-.num, .metric strong, td, .hero-progress b, .task-minutes { font-variant-numeric: tabular-nums; }
+/* 数据用等宽数字 */
+.num, .metric strong, td, .hero-progress b, .task-minute, .reader-meta { font-variant-numeric: tabular-nums; }
 
-/* ── 浏览器表面：不属于任何设计系统的默认值，必须一起设计 ────────────────── */
-::selection { background: var(--accent); color: #141814; }
-[data-theme="dark"] ::selection { background: #3C5340; color: #EFF3EE; }
+/* ── 浏览器表面 ─────────────────────────────────────────────────────────── */
+::selection { background: var(--accent); color: #10130F; }
+[data-theme="dark"] ::selection { background: #3A5039; color: #EFF4EE; }
 :root { caret-color: var(--accent-ink); accent-color: var(--accent-ink); }
 * { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
 *::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -232,34 +268,43 @@ a { text-decoration-thickness: 1px; text-underline-offset: 3px; }
   border-radius: var(--r-xs);
 }
 [data-theme="dark"] :where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline-color: var(--accent);
+  outline-color: #B9CFB4;
 }
 
-/* ── Surface 四类：环境 / 交互 / 阅读 / 数据 ────────────────────────────── */
+/* ── 材质工具类（四种表面 + 一种光）─────────────────────────────────────── */
+.mat-graphite {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 38%),
+    linear-gradient(172deg, var(--surface), var(--canvas-deep));
+  box-shadow: var(--e-inset), var(--e-2);
+}
+.mat-ceramic {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-raised) 88%, #FFF 12%), var(--surface-raised));
+  box-shadow: var(--e-inset), var(--e-1);
+}
+.mat-glass {
+  background: var(--glass);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--e-inset), var(--e-2);
+}
+.mat-paper { background: var(--paper); color: var(--read-ink); }
+
+/* 15a 的语义类保留（其它页面在用） */
 .srf-ambient {
   background:
-    radial-gradient(120% 130% at 8% -20%, var(--light-warm), transparent 58%),
+    radial-gradient(120% 130% at 8% -20%, var(--aurora-a), transparent 58%),
     linear-gradient(160deg, var(--surface-raised), var(--surface) 62%);
 }
-.srf-interactive {
-  background: var(--surface);
-  box-shadow: var(--e-1), inset 0 1px 0 var(--sheen-soft);
-}
-.srf-reading {
-  background: var(--surface-raised);
-  color: var(--ink);
-}
-.srf-data {
-  background: var(--surface-sunken);
-  box-shadow: inset 0 1px 2px rgba(31, 35, 33, 0.05);
-}
-[data-theme="dark"] .srf-data { box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45); }
+.srf-interactive { background: var(--surface); box-shadow: var(--e-1), inset 0 1px 0 var(--sheen-soft); }
+.srf-reading { background: var(--paper); color: var(--read-ink); }
+.srf-data { background: var(--surface-sunken); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12); }
 
-/* ── 动效：只有显式声明 motion-ok（JS 检测非 reduced）才播放 ───────────────── */
+/* ── 动效：只有显式声明 motion-ok（JS 检测非 reduced）才播放 ──────────────── */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --dur-1: 1ms; --dur-2: 1ms; --dur-3: 1ms; --dur-4: 1ms;
-    --press-scale: 1;
+    --press-scale: 1; --tilt-max: 0deg; --stagger: 0ms;
   }
   *, *::before, *::after {
     animation-duration: 1ms !important;
@@ -267,4 +312,5 @@ a { text-decoration-thickness: 1px; text-underline-offset: 3px; }
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;
   }
+  .mat-glass { backdrop-filter: none; -webkit-backdrop-filter: none; }
 }

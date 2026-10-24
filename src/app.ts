@@ -1917,7 +1917,7 @@ function taskCard(t: PlanItem, nextId?: string): string {
     return `<div class="plan-task ${esc(t.status)}" data-task="${esc(t.id)}">
   <span class="task-state" aria-hidden="true"></span>
   <div class="task-main">
-    <div class="task-head"><b>${esc(t.label ?? TASK_LABELS[t.kind ?? ''] ?? t.kind ?? '任务')}</b>${nextId && t.id === nextId ? '<span class="badge is-next">下一项</span>' : ''}<span class="task-minute">${t.minutes} 分钟</span><span class="badge normal">${esc(moduleName(taskModule(t)))}</span>${t.critical ? '<span class="badge vague">关键记忆</span>' : ''}${t.flexible ? '<span class="badge normal">可调整</span>' : ''}${statusText[t.status] ? `<span class="badge ${badge}">${statusText[t.status]}</span>` : ''}</div>
+    <div class="task-head"><b>${esc(t.label ?? TASK_LABELS[t.kind ?? ''] ?? t.kind ?? '任务')}</b>${nextId && t.id === nextId ? '<span class="badge is-next">下一项</span>' : ''}<span class="task-minute">${t.minutes} 分钟</span><span class="badge normal">${esc(moduleName(taskModule(t)))}</span>${t.critical ? '<span class="badge vague">关键记忆</span>' : ''}${t.flexible ? '<span class="badge normal badge-flex">可调整</span>' : ''}${statusText[t.status] ? `<span class="badge ${badge}">${statusText[t.status]}</span>` : ''}</div>
     ${humanReasons(t.reason) ? `<small>${esc(humanReasons(t.reason))}</small>` : ''}
     <small>${esc(taskTargetLabel(t))}</small>
   </div>

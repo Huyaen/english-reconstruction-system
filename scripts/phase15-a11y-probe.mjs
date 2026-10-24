@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // —— Phase 15：真实浏览器无障碍/对比度探针 ——
 // 前置：npm run build:test → node server.mjs --dir=dist-test --port=4173
-// 用法：node scripts/phase15-a11y-probe.mjs [--out=screenshots/phase15/a11y.json]
+// 用法：node scripts/phase15-a11y-probe.mjs [--out=screenshots/phase15b/a11y.json]
 // 检查项：文字对比度（WCAG AA 4.5:1 / 大字号 3:1）、可访问名称、横向溢出、触控尺寸。
 import { spawn } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -12,7 +12,7 @@ const args = Object.fromEntries(process.argv.slice(2).map(a => {
     const m = a.match(/^--([^=]+)=?(.*)$/);
     return m ? [m[1], m[2] || 'true'] : [a, 'true'];
 }));
-const OUT = args.out || 'screenshots/phase15/a11y.json';
+const OUT = args.out || 'screenshots/phase15b/a11y.json';
 const PORT = Number(process.env.CDP_PORT || 9245);
 const APP = process.env.APP_URL || 'http://127.0.0.1:4173/?test=1';
 const PROFILE = path.resolve(process.env.LOCALAPPDATA || 'C:/Users/86152/AppData/Local', 'Temp/edge-p15-a11y');
