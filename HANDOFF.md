@@ -1,4 +1,79 @@
-# HANDOFF — Phase 12（2026-10-23）
+# HANDOFF — 当前状态（Phase 14）
+
+**本文件是唯一交接入口。** 本段优先于下方历史段落；与下方旧 Phase 12/13 内容冲突时，以本段和 `STATE.json` 为准。
+
+## 1. 当前工程状态
+
+| 项 | 值 |
+| --- | --- |
+| 根目录 | `D:\英语重构训练\vocabulary-app` |
+| 分支 | `main` |
+| 当前代码 HEAD | `9d1f25d`（Phase 13 pin；Phase 14 实现待提交，提交后见 STATE） |
+| DB 版本 | **v7**（Phase 14 无新 store、无迁移） |
+| 单测 | **379/379 pass** |
+| 类型/构建 | `tsc --noEmit` 0；生产构建通过；生产包测试钩子 grep 0 |
+| Phase 14 E2E | **11/11**（origin 隔离、地址提示、备份往返、旧备份缺域、写入回滚、双标签锁） |
+| PWA A→B | **7/7** |
+| 离线真实动作 | **4/4** |
+| Phase 13 离线 | **8/8**（新增构建指纹缓存检查） |
+| 回归 | Phase 3–13 全部通过（21/36/44/26/31/33/34/19/20/16/16/17/18/20） |
+| 远程 | `Huyaen/english-reconstruction-system`（Private）；Phase 13 远端 main `9d1f25d`，tag `phase13-hardening` |
+
+## 2. Phase 14 做了什么
+
+1. **数据地址隔离**：新增 `src/origin.ts`；推荐 `http://localhost:4173`。`127.0.0.1:4173` 是另一个 origin，数据不共享；设置页显示当前/推荐地址和迁移风险，不自动跳转、不自动搬运。
+2. **恢复事务原子性**：`replaceData()` 任何写入异常都显式 `tx.abort()`；测试证明中途失败后 books/words 原样保留。
+3. **备份压力回归**：`tests/backupRoundtrip.test.ts` 覆盖 28 个数据域、240 词、嵌套 FSRS/sourceTypes/confusions、Key 剔除、重开数据库。
+4. **长周期语义**：`tests/longitudinal.test.ts` 验证 D1/D7/D30 精确窗口、样本不足 `rate=null`、FSRS due 前进、周诊断幂等。
+5. **PWA 更新门禁**：`scripts/stamp-sw.mjs` 把构建指纹写进 `CACHE = 'erv2-shell-v2-<hash>'`；CI 校验。A→B 实测：新缓存安装、旧缓存清理、数据保留、停服可开。
+6. **离线真实动作**：断网前写入 6 词并完成一次真实词汇作答，停服刷新后记录 1→1。
+7. **长会话观测**：80 轮页面循环，堆 +0.16 MB、DOM 142→142、JS 异常 0；明确是加速代理，不是 4 小时真实使用。
+
+## 3. 验收命令
+
+```bash
+npm test
+npx tsc --noEmit
+npm run build                 # 末尾自动 node scripts/stamp-sw.mjs
+grep -R "__planTest\|__examTest\|__inputTest" -n dist/assets/*.js | wc -l   # 必须 0
+
+# test build + 4173 + 独立 Edge 9230
+node scripts/phase13-smoke.mjs
+node scripts/phase14-smoke.mjs
+node scripts/phase14-long-session.mjs
+node scripts/phase13-benchmark.mjs        # 独立 Edge 9233
+
+# 独立 Edge 9240 / 9242；脚本自行起停 4190 / 4192
+node scripts/phase14-pwa-upgrade.mjs
+node scripts/phase14-offline-actions.mjs
+
+# 独立 Edge 9231；脚本自行起停 4180
+node scripts/offline-smoke.mjs
+```
+
+## 4. 未完成 / 不能声称通过
+
+- 4 小时真实使用（只做 80 轮加速观测）；
+- 真实存储配额耗尽（QuotaExceededError 未制造）；
+- 真实断电 / 浏览器进程崩溃；
+- 真实 iPhone / Android / 触控 / 软键盘；
+- NVDA / VoiceOver / TalkBack 屏幕阅读器；
+- 离线输出草稿续写（只测了离线词汇作答）；
+- PWA 各平台安装提示/图标差异。
+
+以上限制同时写入 `docs/PHASE14_LONG_TERM_SAFETY.md` 和 `CHANGELOG.md`，不得在交付报告中删掉。
+
+## 5. 数据地址警告（必读）
+
+日常只使用 **`http://localhost:4173`**。如果曾用 `127.0.0.1:4173`，那边的数据不会自动出现在 localhost。迁移必须由用户显式导出/导入，先保留备份，不清空旧地址。详见 `docs/ORIGIN_DATA_SAFETY.md`。
+
+## 6. 下一步
+
+`STATE.next_task_id = await_user_phase15_directive`。**不自动开始 Phase 15**；等待用户明确指示。
+
+---
+
+# 历史：Phase 12（已过时，仅供追溯）
 
 **Phase 12（考试记录与分值一致性）已实现并完成本地验收；下一阶段由用户指定（`STATE.next_task_id = await_user_phase13_directive`）。**
 

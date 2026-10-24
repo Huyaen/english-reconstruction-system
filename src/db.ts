@@ -211,15 +211,27 @@ export async function replaceData(d: Data): Promise<void> {
     await openDB();
     const tx = db.transaction([...stores], 'readwrite');
     const p = done(tx);
-    const bag = d as unknown as Record<string, unknown[]>;
-    for (const name of stores) {
-        const s = tx.objectStore(name);
-        s.clear();
-        if (name === 'meta')
-            s.put({ id: 'settings', value: storedSettings(d.settings) });
-        else
-            for (const item of bag[name] ?? [])
-                s.put(item);
+    try {
+        const bag = d as unknown as Record<string, unknown[]>;
+        for (const name of stores) {
+            const s = tx.objectStore(name);
+            s.clear();
+            if (name === 'meta')
+                s.put({ id: 'settings', value: storedSettings(d.settings) });
+            else
+                for (const item of bag[name] ?? [])
+                    s.put(item);
+        }
+    }
+    catch (e) {
+        // 恢复是破坏性写入：任何一项无法序列化/写入时，必须显式回滚整个事务，
+        // 不能让已 clear 的 store 先提交、后面的 store 再失败，留下半套数据。
+        try {
+            tx.abort();
+        }
+        catch { }
+        await p.catch(() => { });
+        throw e;
     }
     await p;
 }

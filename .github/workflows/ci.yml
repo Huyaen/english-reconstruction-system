@@ -49,6 +49,15 @@ jobs:
       - name: Production build
         run: npm run build
 
+      # Phase 14：缓存名必须由构建产物指纹生成；预缓存或资产变化时不允许沿用旧缓存名。
+      - name: Verify PWA cache is build-stamped
+        run: |
+          if ! grep -Eq "const CACHE = 'erv2-shell-v2-[a-f0-9]{10}';" dist/sw.js; then
+            echo "::error::dist/sw.js 缺少构建指纹缓存名 — 运行 npm run build"
+            exit 1
+          fi
+          echo "ok: PWA cache is build-stamped"
+
       # dist 纳入 Git，但只在 Node 22 上核对一次，避免矩阵重复报同一个差异。
       # 若 Linux 与 Windows 出现合法差异，必须先在本地定位原因，不允许直接删掉这一步。
       - name: Verify committed build artifacts

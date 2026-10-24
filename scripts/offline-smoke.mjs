@@ -54,6 +54,8 @@ try {
     await cdp.waitFor('!!navigator.serviceWorker.controller', 15000, 'controller');
     const cached = await cdp.eval('caches.keys().then(async ks=>{const out=[];for(const k of ks){const c=await caches.open(k);for(const r of await c.keys())out.push(new URL(r.url).pathname)}return out})');
     check('应用外壳与 hashed 资源已进入缓存', cached.includes('/index.html') && cached.some(p => p.startsWith('/assets/') && p.endsWith('.js')), JSON.stringify(cached));
+    const cacheNames = await cdp.eval('caches.keys()');
+    check('PWA 缓存名包含构建指纹', cacheNames.some(k => /^erv2-shell-v2-[a-f0-9]{10}$/.test(k)), JSON.stringify(cacheNames));
     server.kill();
     server = null;
     await sleep(600);

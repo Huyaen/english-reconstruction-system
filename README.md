@@ -2,7 +2,7 @@
 
 用大量双向检索、反应时间、薄弱词强化和独立间隔调度，建立个人词汇学习记录。本地优先，不需要账号，也不需要 AI 才能刷词。
 
-**当前工程状态（2026-10-24 实测）**：Phase 0–13 已交付。最新 **Phase 13（稳定性、安全、性能、离线与发布准备）** 增加：只读数据完整性审计（结构性错误与孤儿引用分开报告，不修复不改数据）、未捕获错误可见化与启动失败出口、静态服务器加固（GET/HEAD、405/400/403、安全响应头、路径穿越防护）、PWA 离线外壳（只缓存同源静态资源，不缓存 AI/用户材料）、真实学习旅程 Browser E2E、合成数据性能基准。DB 仍 **v7**；**368/368** 单测、tsc 0、生产构建无测试钩子、Phase 13 smoke **20/20**、生产离线 **7/7**，Phase 3–12 回归全绿。详细规格与边界见 `docs/PHASE13_HARDENING.md`。Phase 12 Full Integration 的统一执行层（`src/taskExecutor.ts`）继续作为 Today 计划任务的唯一判定。
+**当前工程状态（2026-10-24 实测）**：Phase 0–14 已交付。最新 **Phase 14（长期使用、数据安全与发布准备）** 增加：数据地址隔离与迁移提示（localhost 与 127.0.0.1 不自动共享，绝不静默搬运）、恢复备份中途失败的事务回滚、28 个数据域的备份压力回归、D1/D7/D30 与 FSRS 长周期测试、PWA 构建指纹缓存名与 A→B 更新验收、离线真实词汇作答。DB 仍 **v7**；**379/379** 单测、tsc 0、生产构建无测试钩子、Phase 3–13 回归全绿、Phase 14 smoke **11/11**、PWA A→B **7/7**、离线真实动作 **4/4**、生产离线 **8/8**。详细边界见 `docs/PHASE14_LONG_TERM_SAFETY.md`。Phase 12 Full Integration 的统一执行层（`src/taskExecutor.ts`）继续作为 Today 计划任务的唯一判定。
 
 ## 最快启动（Windows）
 
@@ -78,7 +78,7 @@ JSON：
 
 ## 数据保存与备份
 
-数据库：浏览器 IndexedDB `vocabulary-memory-v1`（当前 schema 版本 4）。所有版本升级均为「只加不删」的原子迁移（v1→v2→v3 均有 fixture 测试；旧词书与学习记录 100% 保留）；真实升级后首次启动会提示导出一次备份。对象仓库：books / words / records / sessions / analyses / meta + V2 新增 14 个 Learning Model 仓库（wordExposures、grammarConcepts、grammarAttempts、sentenceAttempts、passages、readingSessions、inputSources、inputSessions、outputAttempts、dailyPlans、miniUnits、skillSnapshots、weeklyDiagnostics、libraryItems）。V3 为 words 增加 FSRS 调度状态与预览结果字段。
+数据库：浏览器 IndexedDB `vocabulary-memory-v1`（当前 schema 版本 **v7**）。所有版本升级均为「只加不删」的原子迁移（v1→v7 均有迁移/备份 fixture 测试；旧词书与学习记录保留）；真实升级后首次启动会提示导出一次备份。对象仓库：books / words / records / sessions / analyses / meta + v2 学习模型仓库（wordExposures、grammarConcepts、grammarAttempts、sentenceAttempts、passages、readingSessions、inputSources、inputSessions、outputAttempts、dailyPlans、miniUnits、skillSnapshots、weeklyDiagnostics、libraryItems）+ v4 句子库 + v5 AI 生成记录 + v6 字幕/输入证据 + v7 考试规格/材料/题目/会话/学校记录；共 28 个数据域。
 
 **学习数据不在项目文件夹里。复制程序目录不能代替导出学习备份。** 请固定使用同一浏览器配置和 http://localhost:4173；localhost 与 127.0.0.1、不同端口、不同浏览器是不同存储空间。
 
@@ -281,3 +281,12 @@ Based on your interests / Based on your recent activity / Related to your Mini U
 - 每条记录固定 `self_reported` 来源，可刷新、编辑、删除、导出、导入或随完整备份恢复；类别/年份/满分/来源不丢。
 - 自评（如“阅读时间不够”）只作为线索保存，`errorTypes` 为空，不升级成已验证错因；诊断只有 `exam.selfReportedLogs` 计数。
 - 详见 `docs/PHASE12_EXAM_LOG.md`。
+
+### 长期使用与数据安全（Phase 14）
+
+- **地址就是数据边界**：固定使用 `http://localhost:4173`；`127.0.0.1:4173` 是另一个 origin，不共享数据。设置页会显示当前/推荐地址，不会自动跳转或迁移。
+- 恢复备份中途失败会回滚整个事务，不留下半套数据；完整备份覆盖 28 个数据域并剔除 API Key。
+- 长周期按真实证据统计 D1/D7/D30；样本不足不拿 0 冒充；周诊断同周幂等。
+- PWA 缓存名带构建指纹，更新时清理旧外壳；离线不仅能打开首页，还能继续词汇作答并保存。
+- 明确边界：4 小时真实使用、真实配额耗尽、断电、真实手机/读屏、离线输出草稿尚未实测；见 `docs/PHASE14_LONG_TERM_SAFETY.md`。
+- 其他文档：`docs/ORIGIN_DATA_SAFETY.md`、`docs/BACKUP_AND_RESTORE.md`、`docs/PERFORMANCE_BASELINE.md`、`docs/MOBILE_AND_ACCESSIBILITY.md`、`docs/TROUBLESHOOTING.md`、`CHANGELOG.md`。
