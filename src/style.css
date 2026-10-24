@@ -648,7 +648,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
   background:color-mix(in srgb,var(--ink) 5%,transparent);white-space:nowrap}
 .badge.is-next{color:var(--ink);border-color:color-mix(in srgb,var(--glow-cold) 55%,var(--line));
   background:color-mix(in srgb,var(--glow-cold) 18%,transparent)}
-.badge.fluent{color:var(--ink-muted)}
+/* 旧版徽标带硬编码底色（0,2,0 优先级），这里整体收敛为中性 + 状态文字色 */
+.badge.normal{background:color-mix(in srgb,var(--ink) 5%,transparent);color:var(--ink-soft);border-color:var(--line)}
+.badge.fluent{background:color-mix(in srgb,var(--m-fluent) 10%,transparent);color:color-mix(in srgb,var(--m-fluent) 72%,var(--ink));border-color:color-mix(in srgb,var(--m-fluent) 32%,var(--line))}
 .badge.vague{color:color-mix(in srgb,var(--m-vague) 74%,var(--ink));border-color:color-mix(in srgb,var(--m-vague) 42%,var(--line));background:color-mix(in srgb,var(--m-vague) 12%,transparent)}
 .badge.unknown{color:var(--ink-faint)}
 

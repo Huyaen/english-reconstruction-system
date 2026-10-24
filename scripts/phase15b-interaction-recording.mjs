@@ -77,7 +77,7 @@ class CDP {
   }
   async eval(expr, awaitPromise = false) {
     const r = await this.send('Runtime.evaluate', { expression: expr, awaitPromise, returnByValue: true });
-    if (r.exceptionDetails) throw new Error(r.exceptionDetails.text || 'eval failed');
+    if (r.exceptionDetails) throw new Error(`eval failed: ${expression.slice(0, 90)} :: ${r.exceptionDetails.text || ''} ${r.exceptionDetails.exception?.description?.slice(0, 200) || ''}`);
     return r.result?.value;
   }
   async move(x, y, steps = 8, dt = 24) {
@@ -109,7 +109,7 @@ let started = 0;
 
 async function main() {
   await waitJson();
-  const t = await (await fetch(`http://127.0.0.1:${PORT}/json/new?${encodeURIComponent(URL)}`, { method: 'PUT' })).json();
+  const t = await (await fetch(`http://127.0.0.1:${PORT}/json/new?about:blank`, { method: 'PUT' })).json();
   const ws = new WebSocket(t.webSocketDebuggerUrl);
   await new Promise((res, rej) => { ws.addEventListener('open', res); ws.addEventListener('error', rej); });
   const cdp = new CDP(ws);
@@ -121,6 +121,8 @@ async function main() {
 
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
+  await cdp.send('Page.navigate', { url: URL });
+  await sleep(600);
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile: false });
 
   // 等应用真正挂载
@@ -130,9 +132,13 @@ async function main() {
     await sleep(250);
   }
   // 与截图脚本同一套种数据路径：真实计划（9 项）+ 真实阅读材料
-  await cdp.eval('__planTest.seedUnified()', true);
-  await cdp.eval('__planTest.resetPlan()', true);
-  await cdp.eval('__planTest.createPlan(150)', true);
+  try {
+    await cdp.eval('__planTest.seedUnified()', true);
+    await cdp.eval('__planTest.resetPlan()', true);
+    await cdp.eval('__planTest.createPlan(150)', true);
+  } catch (err) {
+    console.warn('seed skipped:', err.message);
+  }
   // 主方向是深色：确保从石墨开始，录屏中段再切浅色
   const themeNow = await cdp.eval(`document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')`);
   if (themeNow !== 'dark') {
