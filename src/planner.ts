@@ -40,7 +40,7 @@ export const TASK_LABELS: Record<string, string> = {
     'due-review': '到期复习',
     'weak-review': '弱词强化',
     'new-preview': '新词预览',
-    'new-recall': '新词 Recall',
+    'new-recall': '新词回忆',
     'closing-recall': '今日收尾回忆',
     're-entry-check': '重新进入检测',
     'output-task': '真实表达',
@@ -687,7 +687,7 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
         tasks.push(makeTask(date, 're-entry-check', recoveryMinutes, refs, {
             priority: 100, critical: true, flexible: false, source: 'recovery',
             reason: recovery.kind === 'mini-diagnostic' ? [...recovery.reasons, 'mini-diagnostic-contract'] : recovery.reasons,
-            label: recovery.kind === 'mini-diagnostic' ? 'Mini Diagnostic（词汇）' : TASK_LABELS['re-entry-check'],
+            label: recovery.kind === 'mini-diagnostic' ? '小诊断（词汇）' : TASK_LABELS['re-entry-check'],
         }));
     }
     else if (recallMinutes > 0) {

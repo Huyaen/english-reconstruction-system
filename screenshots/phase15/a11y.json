@@ -1,0 +1,201 @@
+{
+  "at": "2026-10-24T07:18:15.254Z",
+  "app": "http://127.0.0.1:4173/?test=1",
+  "runs": [
+    {
+      "page": "today",
+      "theme": "light",
+      "vp": "1920x1080",
+      "viewport": {
+        "w": 1920,
+        "h": 1080
+      },
+      "contrastIssues": [],
+      "contrastCount": 0,
+      "unnamedControls": [],
+      "smallTargets": [],
+      "overflow": [],
+      "h1Count": 1
+    },
+    {
+      "page": "today",
+      "theme": "dark",
+      "vp": "1920x1080",
+      "viewport": {
+        "w": 1920,
+        "h": 1080
+      },
+      "contrastIssues": [],
+      "contrastCount": 0,
+      "unnamedControls": [],
+      "smallTargets": [],
+      "overflow": [],
+      "h1Count": 1
+    },
+    {
+      "page": "today",
+      "theme": "light",
+      "vp": "390x844",
+      "viewport": {
+        "w": 390,
+        "h": 844
+      },
+      "contrastIssues": [],
+      "contrastCount": 0,
+      "unnamedControls": [],
+      "smallTargets": [],
+      "overflow": [],
+      "h1Count": 1
+    },
+    {
+      "page": "today",
+      "theme": "dark",
+      "vp": "390x844",
+      "viewport": {
+        "w": 390,
+        "h": 844
+      },
+      "contrastIssues": [],
+      "contrastCount": 0,
+      "unnamedControls": [],
+      "smallTargets": [],
+      "overflow": [],
+      "h1Count": 1
+    },
+    {
+      "page": "reading",
+      "theme": "light",
+      "vp": "1920x1080",
+      "viewport": {
+        "w": 1920,
+        "h": 1080
+      },
+      "contrastIssues": [],
+      "contrastCount": 0,
+      "unnamedControls": [],
+      "smallTargets": [],
+      "overflow": [],
+      "h1Count": 1
+    },
+    {
+      "page": "reading",
+      "theme": "dark",
+      "vp": "1920x1080",
+      "viewport": {
+        "w": 1920,
+        "h": 1080
+      },
+      "contrastIssues": [],
+      "contrastCount": 0,
+      "unnamedControls": [],
+      "smallTargets": [],
+      "overflow": [],
+      "h1Count": 1
+    },
+    {
+      "page": "reading",
+      "theme": "dark",
+      "vp": "390x844",
+      "viewport": {
+        "w": 390,
+        "h": 844
+      },
+      "contrastIssues": [],
+      "contrastCount": 0,
+      "unnamedControls": [],
+      "smallTargets": [
+        {
+          "label": "Attention",
+          "h": 31
+        },
+        {
+          "label": "is",
+          "h": 31
+        },
+        {
+          "label": "not",
+          "h": 31
+        },
+        {
+          "label": "a",
+          "h": 31
+        },
+        {
+          "label": "single",
+          "h": 31
+        },
+        {
+          "label": "ability",
+          "h": 31
+        },
+        {
+          "label": "It",
+          "h": 31
+        },
+        {
+          "label": "changes",
+          "h": 31
+        },
+        {
+          "label": "with",
+          "h": 31
+        },
+        {
+          "label": "sleep",
+          "h": 31
+        },
+        {
+          "label": "interest",
+          "h": 31
+        },
+        {
+          "label": "and",
+          "h": 31
+        },
+        {
+          "label": "the",
+          "h": 31
+        },
+        {
+          "label": "difficulty",
+          "h": 31
+        },
+        {
+          "label": "of",
+          "h": 31
+        },
+        {
+          "label": "the",
+          "h": 31
+        },
+        {
+          "label": "material",
+          "h": 31
+        },
+        {
+          "label": "A",
+          "h": 31
+        },
+        {
+          "label": "short",
+          "h": 31
+        },
+        {
+          "label": "walk",
+          "h": 31
+        }
+      ],
+      "overflow": [],
+      "h1Count": 1
+    }
+  ],
+  "summary": [
+    "today/light/1920x1080: contrast=0 unnamed=0 small=0 overflow=0",
+    "today/dark/1920x1080: contrast=0 unnamed=0 small=0 overflow=0",
+    "today/light/390x844: contrast=0 unnamed=0 small=0 overflow=0",
+    "today/dark/390x844: contrast=0 unnamed=0 small=0 overflow=0",
+    "reading/light/1920x1080: contrast=0 unnamed=0 small=0 overflow=0",
+    "reading/dark/1920x1080: contrast=0 unnamed=0 small=0 overflow=0",
+    "reading/dark/390x844: contrast=0 unnamed=0 small=20 overflow=0"
+  ]
+}

@@ -143,14 +143,14 @@ try {
     const panelText1 = await ev(`document.querySelector('#plan-panel').textContent`);
     check('生成今日计划（时间预算优先）', /预算 30 分钟/.test(panelText1), title1.slice(0, 60));
     check('任务顺序：Preview → Recall →（可选）句任务 → Closing',
-        cards1.length >= 3 && cards1[0].includes('新词预览') && cards1[1].includes('新词 Recall') && cards1[cards1.length - 1].includes('今日收尾回忆'),
+        cards1.length >= 3 && cards1[0].includes('新词预览') && cards1[1].includes('新词回忆') && cards1[cards1.length - 1].includes('今日收尾回忆'),
         cards1.map(c => c.split(' ||')[0]).join(' | '));
     const plan1 = JSON.parse(await todayPlan());
     check('计划预算不溢出', plan1[0].planned <= plan1[0].budget, `planned=${plan1[0].planned} budget=${plan1[0].budget}`);
     check('Closing 使用真实词', plan1[0].tasks.find(t => t[0] === 'closing-recall')[3] > 0);
 
     // —— 3. 替换不可用（无同目标候选时不生成假任务）——
-    await cardClick('新词 Recall', 'replace');
+    await cardClick('新词回忆', 'replace');
     await wait(`document.querySelector('#toast').textContent.includes('没有可替换')`, 'replace unavailable');
     check('替换无候选时明确拒绝', true, await toast());
 
@@ -168,7 +168,7 @@ try {
     await wait(`document.querySelector('#plan-panel').textContent.includes('已完成')`, 'preview task done');
     check('Preview 任务完成并落盘', /完成 1\/\d+/.test(await planTitle()), await planTitle());
 
-    await cardClick('新词 Recall', 'start');
+    await cardClick('新词回忆', 'start');
     await wait(`!!document.querySelector('.answers')`, 'recall started');
     for (let i = 0; i < 8; i++) {
         if (await ev(`!!document.querySelector('#back-home')`))

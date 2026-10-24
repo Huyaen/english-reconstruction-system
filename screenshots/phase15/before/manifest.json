@@ -1,0 +1,47 @@
+{
+  "tag": "before",
+  "at": "2026-10-24T06:15:26.920Z",
+  "app": "http://127.0.0.1:4173/?test=1",
+  "viewports": [
+    "1920x1080",
+    "1366x768",
+    "768x1024",
+    "390x844",
+    "360x780"
+  ],
+  "files": [
+    "today-light-1920x1080",
+    "today-light-1920x1080-full",
+    "today-light-1366x768",
+    "today-light-768x1024",
+    "today-light-390x844",
+    "today-light-390x844-full",
+    "today-light-360x780",
+    "today-dark-1920x1080",
+    "today-dark-1366x768",
+    "today-dark-768x1024",
+    "today-dark-390x844",
+    "today-dark-360x780",
+    "reading-light-1920x1080",
+    "reading-light-1920x1080-full",
+    "reading-light-1366x768",
+    "reading-light-768x1024",
+    "reading-light-390x844",
+    "reading-light-360x780",
+    "reading-light-1920x1080-sidebar-collapsed",
+    "reading-dark-1920x1080",
+    "reading-dark-1366x768",
+    "reading-dark-768x1024",
+    "reading-dark-390x844",
+    "reading-dark-360x780"
+  ],
+  "metrics": {
+    "errors": 0,
+    "fonts": "Inter, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+    "bodySize": "17.92px",
+    "docHeight": 2179,
+    "overflowX": false,
+    "theme": "dark"
+  },
+  "consoleErrors": []
+}

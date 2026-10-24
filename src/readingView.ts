@@ -11,7 +11,7 @@ export function esc(s: string): string {
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
 }
 const MARK_LABELS: Record<ReadingMark['judgment'], string> = {
-    known: '知道', vague: '模糊', unknown: '不知道', guessed: '根据上下文猜出',
+    known: '知道', vague: '模糊', unknown: '不知道', guessed: '猜出',
 };
 export function sourceLabel(p: Passage): string {
     const map: Record<string, string> = {
@@ -118,6 +118,7 @@ export function readerHTML(input: {
     tokens: ReadingToken[];
     helpText: string;
     showHelp: boolean;
+    sideOpen?: boolean;
 }): string {
     const d = input.session.detail!;
     const chunk: ReadingChunk | undefined = d.chunks[d.chunkIndex];
@@ -127,25 +128,32 @@ export function readerHTML(input: {
     const body = sentences.map(s => sentenceHTML(s, input.tokens, marks)).join(' ');
     const marksOfChunk = marks.filter(m => sentences.some(s => s.index === m.sentenceIndex));
     const difficult = (d.difficultSentences ?? []).filter(x => sentences.some(s => s.index === x.sentenceIndex));
-    return `<div class="reading-layout">
-  <section class="panel reader-main" id="read-chunk">
-    <div class="reader-head">
-      <span class="eyebrow">${esc(input.passage.title)}</span>
-      <span class="hint">第 ${d.chunkIndex + 1} / ${d.chunks.length} 段 · ${chunk?.wordCount ?? 0} 词 · ${esc(progress.label)}</span>
+    return `<div class="reading-surface" data-side="${input.sideOpen === false ? 'closed' : 'open'}" id="reading-surface">
+  <div class="reader-bar">
+    <div class="reader-bar-copy">
+      <h1 class="reader-title">${esc(input.passage.title)}</h1>
+      <span class="reader-meta">第 ${d.chunkIndex + 1} / ${d.chunks.length} 段 · ${chunk?.wordCount ?? 0} 词 · ${esc(progress.label)} · 点词标记卡点</span>
     </div>
+    <button class="reader-side-toggle" data-reader-side-toggle="1" aria-expanded="${input.sideOpen === false ? 'false' : 'true'}" aria-controls="read-side">辅助</button>
+  </div>
+  <div class="reading-layout">
+  <section class="panel reader-main" id="read-chunk" data-vt-stage="reading">
     <div class="reader-text" id="read-text">${body}</div>
-    <div class="actions">
-      <button class="secondary" data-read-prev="1" ${d.chunkIndex === 0 ? 'disabled' : ''}>上一段</button>
-      <button class="primary" data-read-next="1">${d.chunkIndex + 1 >= d.chunks.length ? '读完这一段，说大意' : '下一段'}</button>
-      <button class="text-button" data-read-finish-first="1">结束首读</button>
-    </div>
-    <div id="read-idea-box">
-      <label>这一段主要在说什么？（中文可以）<input id="read-idea" placeholder="一句话" /></label>
-      <div class="actions"><button class="secondary" data-read-idea-submit="1">记录我的说法</button></div>
+    <div class="reader-foot">
+      <div class="actions">
+        <button class="secondary" data-read-prev="1" ${d.chunkIndex === 0 ? 'disabled' : ''}>上一段</button>
+        <button class="primary" data-read-next="1">${d.chunkIndex + 1 >= d.chunks.length ? '读完这一段，说大意' : '下一段'}</button>
+        <button class="text-button" data-read-finish-first="1">结束首读</button>
+      </div>
+      <div id="read-idea-box">
+        <label>这一段主要在说什么？（中文可以）<input id="read-idea" aria-label="这一段主要在说什么" placeholder="一句话" /></label>
+        <div class="actions"><button class="secondary" data-read-idea-submit="1">记录我的说法</button></div>
+      </div>
     </div>
   </section>
   <aside class="panel reader-side" id="read-side">
-    <div class="section-title">这一段</div>
+    <button class="reader-side-toggle reader-sheet-close" data-reader-side-toggle="1" aria-label="收起辅助面板">收起</button>
+    <div class="section-title"><b>这一段</b></div>
     <p class="hint">点词标记：知道 / 模糊 / 不知道 / 猜出。标记只在这里记接触，不会直接改掌握度。</p>
     <div class="actions" id="read-mark-tools">
       ${Object.entries(MARK_LABELS).map(([k, v]) => `<button class="chip" data-mark="${k}">${v}</button>`).join('')}
@@ -154,14 +162,14 @@ export function readerHTML(input: {
     <div id="read-marks">${marksOfChunk.length
         ? `<ul class="plain-list">${marksOfChunk.map(m => `<li><b>${esc(m.surface)}</b> · ${MARK_LABELS[m.judgment]}<button class="text-button" data-unmark="${m.id}">撤销</button></li>`).join('')}</ul>`
         : '<p class="hint">还没有标记。</p>'}</div>
-    <div class="section-title">难句</div>
+    <div class="section-title"><b>难句</b></div>
     <div class="actions" id="read-difficult-tools">
       ${sentences.slice(0, 6).map(s => `<button class="chip" data-difficult="${s.index}">第 ${s.index + 1} 句难</button>`).join('')}
     </div>
     <div id="read-difficult">${difficult.length
         ? `<ul class="plain-list">${difficult.map(x => `<li>「${esc(x.text.slice(0, 40))}…」<button class="text-button" data-read-lab="${x.id}">进拆句训练</button></li>`).join('')}</ul>`
         : '<p class="hint">读完一段后，把卡住的句子标出来，可以进句子训练。</p>'}</div>
-    <div class="section-title">需要帮助？</div>
+    <div class="section-title"><b>需要帮助？</b></div>
     <div class="actions" id="read-help-tools">
       <button class="chip" data-read-help="1">轻提示</button>
       <button class="chip" data-read-help="2">重点提示</button>
@@ -172,6 +180,7 @@ export function readerHTML(input: {
     ${input.showHelp && input.helpText ? `<div class="grammar-card">${input.helpText}</div>` : ''}
     <p class="hint">已用最高辅助：${maxHelpLevelUsed(input.session)}（${esc(SUPPORT_LABELS[maxHelpLevelUsed(input.session)])}）</p>
   </aside>
+  </div>
 </div>`;
 }
 export function coldTestHTML(): string {

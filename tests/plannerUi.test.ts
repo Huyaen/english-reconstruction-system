@@ -81,7 +81,7 @@ test('Phase 3 UI：生成计划 → 预览 → Recall → 校准/重排 → Clos
         const labels = [...w.document.querySelectorAll('.plan-task')].map(c => c.querySelector('.task-main b')!.textContent!);
         // 顺序契约：预览 → Recall → （可选）句子/语法任务 → Closing 末位
         assert.ok(labels[0].includes('新词预览'), `首项必须是新词预览：${labels.join(' | ')}`);
-        assert.ok(labels[1].includes('新词 Recall'), `第二项必须是新词 Recall：${labels.join(' | ')}`);
+        assert.ok(labels[1].includes('新词回忆'), `第二项必须是新词回忆：${labels.join(' | ')}`);
         assert.equal(labels[labels.length - 1], '今日收尾回忆', 'Closing 必须末位');
         assert.ok(labels.some(l => /句子|语法/.test(l)), `Phase 4 句任务必须进入今日计划：${labels.join(' | ')}`);
         assert.ok(labels.length >= 3 && labels.length <= 6, `任务数量应在合理范围：${labels.join(' | ')}`);
@@ -93,12 +93,12 @@ test('Phase 3 UI：生成计划 → 预览 → Recall → 校准/重排 → Clos
         assert.equal(/输出（phase/.test(gating), false, 'Phase 9 起真实表达已可用，不得再列为未上线');
         assert.equal(/（disabled-this-session）/.test(gating), false, '没有模块处于会话级禁用');
         // 替换：没有同目标候选时必须明确不可用，不生成假任务
-        clickInCard(w, '新词 Recall', 'replace');
+        clickInCard(w, '新词回忆', 'replace');
         await until(w, () => w.document.querySelector('#toast')!.textContent!.includes('没有可替换'), 'replace unavailable toast');
         // 延后：只在本日计划内重排
-        clickInCard(w, '新词 Recall', 'delay');
+        clickInCard(w, '新词回忆', 'delay');
         await until(w, () => w.document.querySelector('#toast')!.textContent!.includes('已延后'), 'delay toast');
-        assert.ok(card(w, '新词 Recall').textContent!.includes('已延后'));
+        assert.ok(card(w, '新词回忆').textContent!.includes('已延后'));
         // 执行 Preview 任务
         clickInCard(w, '新词预览', 'start');
         await until(w, () => !!w.document.querySelector('[data-preview]'), 'preview page');
@@ -111,20 +111,20 @@ test('Phase 3 UI：生成计划 → 预览 → Recall → 校准/重排 → Clos
         await until(w, () => !!w.document.querySelector('#plan-panel'), 'home plan panel');
         await until(w, () => card(w, '新词预览').textContent!.includes('已完成'), 'preview task marked done');
         await until(w, () => new RegExp(`完成 1/${totalTasks}`).test(w.document.querySelector('#plan-panel .section-title')!.textContent!), `progress 1/${totalTasks}`);
-        // 前置依赖：新词 Recall 在预览完成后才可执行
-        clickInCard(w, '新词 Recall', 'start');
+        // 前置依赖：新词回忆 在预览完成后才可执行
+        clickInCard(w, '新词回忆', 'start');
         await until(w, () => !!w.document.querySelector('.answers'), 'recall started');
         await answerQuestions(w, 8);
         await until(w, () => !!w.document.querySelector('#back-home'), 'recall results');
         click(w, '#back-home');
         await until(w, () => !!w.document.querySelector('#plan-panel'), 'back home');
-        await until(w, () => card(w, '新词 Recall').textContent!.includes('已完成'), 'recall task marked done');
+        await until(w, () => card(w, '新词回忆').textContent!.includes('已完成'), 'recall task marked done');
         await until(w, () => new RegExp(`完成 2/${totalTasks}`).test(w.document.querySelector('#plan-panel .section-title')!.textContent!), `progress 2/${totalTasks}`);
         // Regenerate：只重排未完成部分，保留已提交证据
         click(w, '#plan-regenerate');
         await until(w, () => w.document.querySelector('#toast')!.textContent!.includes('重排未完成任务'), 'regenerate toast');
         assert.ok(card(w, '新词预览').textContent!.includes('已完成'), '重排后已完成任务保留');
-        assert.ok(card(w, '新词 Recall').textContent!.includes('已完成'), '重排后已完成任务保留');
+        assert.ok(card(w, '新词回忆').textContent!.includes('已完成'), '重排后已完成任务保留');
         const closingCard = card(w, '今日收尾回忆');
         assert.ok(closingCard.querySelector('[data-task-start]'), 'Closing 仍可执行');
         assert.equal([...w.document.querySelectorAll('.plan-task')].pop(), closingCard, 'Closing 始终是最后一个任务');
