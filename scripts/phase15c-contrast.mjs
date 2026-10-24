@@ -63,6 +63,7 @@ try {
         return parse(getComputedStyle(document.body).backgroundColor) || { r: 255, g: 255, b: 255, a: 1 };
       };
       const rows = [];
+      let skipped = 0;
       const seen = new Set();
       document.querySelectorAll('main *, .sidebar *').forEach(el => {
         const txt = (el.textContent || '').trim();
@@ -72,6 +73,8 @@ try {
         if (r.width < 2 || r.height < 2) return;
         const s = getComputedStyle(el);
         if (s.visibility === 'hidden' || s.display === 'none' || +s.opacity === 0) return;
+        // 不可用控件按 WCAG 1.4.3 豁免（用例：0 个新词时"预览新词（0）"是 disabled）
+        if (el.matches(':disabled') || el.getAttribute('aria-disabled') === 'true' || el.closest('[aria-disabled="true"]')) { skipped++; return; }
         const fg = parse(s.color);
         if (!fg) return;
         const size = parseFloat(s.fontSize);
@@ -87,7 +90,7 @@ try {
             fg: fg.r + ',' + fg.g + ',' + fg.b, bg: bg.r + ',' + bg.g + ',' + bg.b, theme: document.documentElement.dataset.theme });
         }
       });
-      return { checked: document.querySelectorAll('main *').length, failures: rows.slice(0, 20) };
+      return { checked: document.querySelectorAll('main *').length, skippedDisabled: skipped, failures: rows.slice(0, 20) };
     })()`);
 
     const report = { proto: PROTO, theme: WANT, at: new Date().toISOString(), viewport: `${VW}x${VH}`, ...audit };
