@@ -8,7 +8,7 @@
 | --- | --- |
 | 根目录 | `D:\英语重构训练\vocabulary-app` |
 | 分支 | `main` |
-| 当前代码 HEAD | `9d1f25d`（Phase 13 pin；Phase 14 实现待提交，提交后见 STATE） |
+| 当前代码 HEAD | `514110a`（Phase 14 功能提交；pin 提交见 STATE） |
 | DB 版本 | **v7**（Phase 14 无新 store、无迁移） |
 | 单测 | **379/379 pass** |
 | 类型/构建 | `tsc --noEmit` 0；生产构建通过；生产包测试钩子 grep 0 |
@@ -17,7 +17,7 @@
 | 离线真实动作 | **4/4** |
 | Phase 13 离线 | **8/8**（新增构建指纹缓存检查） |
 | 回归 | Phase 3–13 全部通过（21/36/44/26/31/33/34/19/20/16/16/17/18/20） |
-| 远程 | `Huyaen/english-reconstruction-system`（Private）；Phase 13 远端 main `9d1f25d`，tag `phase13-hardening` |
+| 远程 | `Huyaen/english-reconstruction-system`（Private）；远端 main `514110a`，tag `phase14-long-term-safety` |
 
 ## 2. Phase 14 做了什么
 
