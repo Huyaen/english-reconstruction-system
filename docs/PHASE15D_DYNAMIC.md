@@ -162,7 +162,7 @@
 - 浏览器冒烟：`phase3` **21/21**、`phase12` **18/18**、`phase13` **20/20**（生产构建另跑 phase3 = 21/21）
 - 对比度：4 组组合 **0 违规**
 - reduced-motion：running 0，全部 `animation: none`
-- 性能：空闲与交互帧间隔 p50/p95 与基线一致，无 longtask、无 >32ms 掉帧
+- 性能：空闲与交互帧间隔 p50/p95 与基线一致，无 longtask；交互期有 1 帧 >32ms（见 §11.6，本节数字以 §11 为准）
 
 ---
 
@@ -181,16 +181,27 @@
 
 ### 11.2 移动端横向布局的真实验收
 
-- `scripts/phase15d-mobile-audit.mjs`（新增）：360 / 390 / 414 / 768 四个视口 × Today / Reading 两个页面，同时校验 `innerWidth === 视口`、`documentElement.scrollWidth`、越过视口且不在横向滚动容器内的元素、以及全页截图实际像素宽度。
-- 结果：**8/8 OK，escapers=0**；`today-light-390x844-full.png` 实际 **390×3521**，`reading-dark-360x780.png` 实际 **360×780**。
+`scripts/phase15d-mobile-audit.mjs` 现在跑**两个分别判定的配置档**，不再用同一个「mobile:false」同时冒充手机和窄窗口：
+
+| 档 | 设备参数 | 用途 |
+| --- | --- | --- |
+| `device` | `mobile:true`、DPR **3**、Android Chrome UA、触摸 5 点、`pointer:coarse` | 移动设备模拟（布局层） |
+| `desktop` | `mobile:false`、DPR **1**、桌面 Edge UA、触摸关闭、`pointer:fine` | 桌面引擎的窄视口 |
+
+每档都跑 5 个宽度（**320 / 360 / 390 / 414 / 768**）× 2 个页面（Today / Reading），逐项校验 `innerWidth`、`visualViewport.width`、`documentElement.body.scrollWidth`、越界元素、以及**全页截图像素宽 = 视口 × DPR**。
+
+- 实测：**device 10/10 通过、desktop 10/10 通过，escapers=0**（合计 20 个组合）。
+- 像素证据：device 390 档全页 **1170×10563**（=390×3），desktop 390 档 **390×3521**，desktop 360 档 **360×3539**。
+- 设备模拟只代表**布局响应**，不等于真机：浏览器 UI、地址栏收缩、软键盘、真实触摸滚动物理都未被模拟；本文件不把模拟结果当作真机验收。
+- 已知字段噪声：无头 Edge 的 `navigator.maxTouchPoints` 在 desktop 档仍报 10（CDP 无法清零），但 `pointer:coarse` 为 `false`、触摸事件未启用；该字段不用于判定设备类型。
 - `src/style.css` 移动端 `aside` 由 sticky/auto 宽改为 `position: relative` 固定单列，`nav` 保持横向滚动，不再把 `main` 挤宽。
 
 ### 11.3 Today → Training：真实容器变形
 
 旧实现（`motion.ts playFlip`）是空 div 从旧位置缩到新标题后淡出，页面同帧替换 —— 观感就是「突变 + 淡入」。本轮换成 Material Container Transform：
 
-- `src/morph15d.ts`（新增）：克隆出发卡片的**真实 DOM** 到 fixed 层，测量目标面板矩形，用弹簧积分连续变形 `left/top/width/height/border-radius`；内容在 16%–34% 淡出，旧页面快照与目标页面交叉透出，最后交接真实 DOM。点击当帧追加 `scale(1.006)` 的「拿起」提示，避免前 200ms 看起来没反应。
-- 逐帧证据：`screenshots/phase15d/morph-cast/frames.json`，**50 帧 / 748ms**，转场窗口 46 帧；`_strip.png` 为 12 帧时间条。
+- `src/morph15d.ts`（新增）：克隆出发卡片的**真实 DOM** 到 fixed 层，测量目标面板矩形，用弹簧积分连续变形 `left/top/width/height/border-radius`；内容在 **14%–34%** 淡出，容器表面 **30%–62%** 退场，目标页面延迟 40ms、用 260ms 提前进场，最后交接真实 DOM。点击当帧追加 `scale(1.006)` 的「拿起」提示，避免前 200ms 看起来没反应。
+- 逐帧证据：`screenshots/phase15d/morph-cast/frames.json`，**40 帧（点击后 29 帧）/ 603ms**，几何轨迹 106 个采样点；容器宽 **1001px → 710px**、x **353 → 499**，单帧最大位移 42px（首帧包含会话准备延迟），`_strip.png` 为 12 帧时间条。
 - 空白帧检查：对转场窗口逐帧统计内容区灰度标准差，**没有一帧低于 8**（早期版本在 422–454ms 有约 30–60ms 的纯白空档，已通过「内容先淡出、表面后退场、目标页提前进场」的重叠修复）。
 
 ### 11.4 光影与材质（P1）
@@ -213,15 +224,17 @@
 - 指针光场改为**与刷新率无关的阻尼**（`dt` 指数插值），收敛即停 rAF；指针静止、页面隐藏、舞台离屏时 JS 帧循环为 0。
 - 呼吸完全交给合成层（CSS animation），`html[data-lights=paused]` 时 `animation-play-state: paused`。
 - 无头浏览器里 `window` 从不获得焦点，原先的 `blur → paused` 会把整页动画永久冻住（导致录屏只有 1 帧），已移除该监听，只在 `visibilitychange` 与舞台离屏时暂停。
-- `perf.json`（1440×900，10s 空闲 + 4s 合成指针扫动）：空闲 p50 **3.8ms** / p95 **3.9ms** / >32ms **0** / longtask **0**；交互 p50 **3.8ms** / p95 **3.9ms**，合成扫动期间 1 帧 >32ms（61.5ms，软件光栅下首次给三层混合光写样式）。reduced-motion：`running 0`，所有光层 `animation: none`。
+- `perf.json`（1440×900，10s 空闲 + 4s 合成指针扫动）：空闲 p50 **3.8ms** / p95 **3.9ms** / >32ms **0** / longtask **0**；交互 p50 **3.8ms** / p95 **3.9ms**，合成扫动期间 1 帧 >32ms（61.6ms，软件光栅下首次给三层混合光写样式）。reduced-motion：`running 0`，所有光层 `animation: none`。
 
 ### 11.7 本轮证据清单
 
 | 证据 | 文件 | 关键数字 |
 | --- | --- | --- |
-| 移动端真实截图 | `screenshots/phase15d/today-light-390x844-full.png`、`reading-dark-360x780.png` | 390×3521 / 360×780 |
-| 移动端多视口审计 | `screenshots/phase15d/mobile-audit.json` | 8 组合，escapers 0 |
-| Shared Element 逐帧 | `screenshots/phase15d/morph-cast/frames.json`、`_strip.png` | 50 帧 / 748ms，无空白帧 |
+| 移动端真实截图（device 档） | `screenshots/phase15d/mobile/device/*.png` | 320/360/390/414/768 × Today/Reading，全页宽 = 视口 × 3 |
+| 桌面窄视口截图 | `screenshots/phase15d/mobile/desktop/*.png` | 同上 10 组，全页宽 = 视口 × 1 |
+| 采集脚本整页截图 | `screenshots/phase15d/today-light-390x844-full.png`、`reading-dark-360x780.png` | 390×3521 / 360×780 |
+| 移动端多视口审计 | `screenshots/phase15d/mobile-audit.json` | device 10/10、desktop 10/10，escapers 0 |
+| Shared Element 逐帧 | `screenshots/phase15d/morph-cast/frames.json`、`_strip.png` | 40 帧 / 603ms，无空白帧 |
 | 10s 呼吸 | `recording/idle-dark.mp4`、`idle-light.mp4` | 10.00s；区域像素差 15.6% >6，max <20 |
 | 指针光影 | `recording/pointer-dark.mp4`、`pointer-light.mp4` | 5.5s；17.8% 像素 >6 |
 | 主按钮全过程 | `recording/press-dark.mp4` | 0.951 → 1.020 → 1.000 |
@@ -240,3 +253,17 @@
 - reduced-motion：`running 0`
 - DB 版本仍为 **v7**，学习功能未改动
 - 仍为 `?proto=d` 开关，未合并 `main`，未推广其余页面
+
+### 11.9 最终验收包
+
+`review-export/phase15d-final-visual-review.zip`（43.06 MB，108 个条目）内含：
+
+- `screenshots/` 24 张页面截图 + 1 张 reduced-motion；
+- `recordings/` 9 段原始录屏（未重编码、未加速、未裁剪，卡顿帧保留）；
+- `shared-element/` 40 张逐帧 + 时间条 + `frames.json`（106 个几何采样点）；
+- `mobile-audit/` 两档 JSON + 20 张全页截图（device 10 / desktop 10）；
+- `metrics/perf.json`、`docs/PHASE15D_DYNAMIC.md`、`docs/PHASE15D_TEST_REPORT.md`；
+- `README.md`、`review-index.md`、`manifest.csv`（105 条，含 SHA-256 / 尺寸 / 时长）。
+
+校验：`zip.testzip()` 通过；解压后 105 条清单的字节数与 SHA-256 全部一致；9 段时长与源文件相同（10.00 / 10.00 / 5.57 / 5.60 / 6.17 / 6.07 / 9.03 / 3.13 / 8.10 秒）。
+该目录已加入 `.git/info/exclude`，不进入版本库。

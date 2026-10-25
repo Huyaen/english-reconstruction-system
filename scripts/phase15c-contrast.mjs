@@ -68,7 +68,17 @@ try {
             if (!busy) break;
             await sleep(150);
         }
-        await sleep(900);
+        await sleep(400);
+        // 主题翻转会让带 transition 的卡片做 220ms 颜色过渡；等颜色真正稳定再采样，
+        // 否则会把中间色当成最终色（曾把深色行卡读成 rgba(176,178,180,.886)）。
+        let prev = '', stable = 0;
+        for (let i = 0; i < 40 && stable < 3; i++) {
+            const now = await evaluate(`(() => { const r = document.querySelector('.d-row'); return r ? getComputedStyle(r).backgroundColor : 'none'; })()`);
+            stable = now === prev ? stable + 1 : 0;
+            prev = now;
+            await sleep(60);
+        }
+        await sleep(120);
     }
 
     const audit = await evaluate(`(() => {
@@ -147,7 +157,8 @@ try {
           let bn = el, bgFrom = 'theme-base';
           while (bn && bn !== document.documentElement) { const cc = parse(getComputedStyle(bn).backgroundColor); if (cc && cc.a >= 0.9) { bgFrom = bn.tagName.toLowerCase() + '.' + String(bn.className || '').split(/\s+/)[0]; break; } bn = bn.parentElement; }
           const rb = el.getBoundingClientRect();
-          rows.push({ text: txt.slice(0, 28), cls: (el.className || '').toString().slice(0, 44), size: Math.round(size), weight, ratio: cr, need,
+          const chainDbg = (() => { const out = []; let a = el; while (a && a !== document.body && out.length < 5) { const acs = getComputedStyle(a); out.push(a.tagName.toLowerCase() + '.' + String(a.className || '').split(/\s+/).slice(0, 2).join('.') + (a.matches(':hover') ? ':hover' : '') + '[' + acs.backgroundColor + '|' + (acs.backgroundImage === 'none' ? '-' : acs.backgroundImage.slice(0, 40)) + ']'); a = a.parentElement; } return out.join(' < '); })();
+          rows.push({ debug: chainDbg, text: txt.slice(0, 28), cls: (el.className || '').toString().slice(0, 44), size: Math.round(size), weight, ratio: cr, need,
             rect: [Math.round(rb.left), Math.round(rb.top), Math.round(rb.width), Math.round(rb.height)],
             fg: fg.r + ',' + fg.g + ',' + fg.b, bg: bg.r + ',' + bg.g + ',' + bg.b, from: bgFrom, theme: document.documentElement.dataset.theme });
         }
@@ -178,7 +189,7 @@ try {
     const report = { proto: PROTO, theme: WANT, at: new Date().toISOString(), viewport: `${VW}x${VH}`, ...audit };
     writeFileSync(join(out, `contrast-audit-${WANT}-${VW}x${VH}.json`), JSON.stringify(report, null, 1));
 console.log(`checked=${audit.checked} failures=${audit.failures.length}`);
-    for (const f of audit.failures) console.log(` - ${f.ratio} (need ${f.need}) ${f.size}px ${f.cls} :: ${f.text} [fg ${f.fg} / bg ${f.bg} / ${f.theme} / from ${f.from}]`);
+    for (const f of audit.failures) console.log(` - ${f.ratio} (need ${f.need}) ${f.size}px ${f.cls} :: ${f.text} [fg ${f.fg} / bg ${f.bg} / ${f.theme} / from ${f.from}]${process.env.DEBUG ? '\n     chain: ' + f.debug : ''}`);
 } finally {
     ws.close();
     child.kill();
