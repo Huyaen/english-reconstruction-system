@@ -24,9 +24,7 @@ type LightNode = HTMLElement | null;
 
 interface Field {
     stage: HTMLElement;
-    glare: LightNode;
-    key: LightNode;
-    spec: LightNode;
+    page: HTMLElement;
     rim: LightNode;
     px: number;
     py: number;
@@ -69,28 +67,17 @@ function frame(now = performance.now()): void {
     const dist = clamp(Math.hypot(cx, cy * 0.8), 0, 1.4);
     const focus = clamp(1 - dist / 1.15);
 
-    if (f.glare)
-        f.glare.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
-    if (f.key) {
-        // 主光被指针牵引；位移按舞台尺寸换算，小屏同样成立
-        const kx = x * 0.86 + f.w * 0.07;
-        const ky = y * 0.78 - f.h * 0.22;
-        f.key.style.transform = `translate3d(${kx.toFixed(1)}px, ${ky.toFixed(1)}px, 0)`;
-    }
-    if (f.spec) {
-        // 高光方位角跟随指针：反射在指针方向被点亮
-        const angle = Math.atan2(cy, cx) * 180 / Math.PI;
-        f.spec.style.transform = `translate3d(${(cx * f.w * 0.1).toFixed(1)}px, ${(cy * f.h * 0.08).toFixed(1)}px, 0) rotate(${(angle * 0.32).toFixed(1)}deg)`;
-    }
+    // 单一光源：把归一化坐标写进 CSS 变量，各材质按自己的比例位移（金属 1.0 / 玻璃 .45 / 哑光 .18）。
+    // 只写父级两个自定义属性，不做逐元素 transform，避免每帧多次样式重算。
+    f.page.style.setProperty('--lx', (Math.abs(cx) < 0.004 ? 0 : cx).toFixed(3));
+    f.page.style.setProperty('--ly', (Math.abs(cy) < 0.004 ? 0 : cy).toFixed(3));
 
     // 收敛即停：指针停住时不再占用 rAF（下一次 pointermove 会重新 kick）
     const settled = Math.abs(f.px - f.tx) < 0.0012 && Math.abs(f.py - f.ty) < 0.0012;
     if (settled) {
         // 亮度只在进入/离开/收敛时写一次：每帧写 opacity 会触发逐帧样式重算与重绘
-        if (f.glare) f.glare.style.opacity = (f.active ? 0.72 + focus * 0.28 : 0).toFixed(2);
-        if (f.key) f.key.style.opacity = (0.55 + focus * 0.5).toFixed(2);
-        if (f.spec) f.spec.style.opacity = (0.14 + focus * 0.66).toFixed(2);
         if (f.rim) f.rim.style.opacity = (0.35 + clamp(1 - f.py * 1.35) * 0.55).toFixed(2);
+        f.page.style.setProperty('--focus', (f.active ? 0.25 + focus * 0.75 : 0).toFixed(3));
         f.raf = 0;
         lastFrameAt = 0;
         return;
@@ -121,9 +108,7 @@ function onPointerMove(ev: PointerEvent): void {
         field.px = clamp((ev.clientX - rect.left) / rect.width);
         field.py = clamp((ev.clientY - rect.top) / rect.height);
         // 进入时立刻点亮，不等收敛：光要跟着指针「进来」就出现
-        if (field.glare) field.glare.style.opacity = '.86';
-        if (field.key) field.key.style.opacity = '.78';
-        if (field.spec) field.spec.style.opacity = '.55';
+        field.page.style.setProperty('--focus', '.85');
         if (field.rim) field.rim.style.opacity = '.62';
     }
     field.active = inside;
@@ -400,6 +385,27 @@ function popNumbers(root: ParentNode): void {
     });
 }
 
+/** 路线段 → 跳到对应任务行并展开。只做滚动与展开，不改变任务状态。 */
+function bindSegments(root: ParentNode): void {
+    root.querySelectorAll<HTMLElement>('.d-seg[data-seg]').forEach(seg => {
+        seg.addEventListener('click', () => {
+            const id = seg.dataset.seg;
+            if (!id)
+                return;
+            const row = root.querySelector<HTMLElement>(`.d-row[data-task="${CSS.escape(id)}"]`);
+            if (!row)
+                return;
+            row.scrollIntoView({ block: 'center', behavior: livingAllowed() ? 'smooth' : 'auto' });
+            if (!row.classList.contains('is-open'))
+                row.querySelector<HTMLElement>('.d-row-head')?.click();
+            row.classList.remove('is-flash');
+            void row.offsetWidth;
+            row.classList.add('is-flash');
+            window.setTimeout(() => row.classList.remove('is-flash'), 1100);
+        });
+    });
+}
+
 export function startLiving(root: ParentNode = document): void {
     if (!livingAllowed())
         return;
@@ -410,10 +416,8 @@ export function startLiving(root: ParentNode = document): void {
     if (!field || field.stage !== stage) {
         field = {
             stage,
-            glare: stage.querySelector<HTMLElement>('.d-glare'),
-            key: stage.querySelector<HTMLElement>('.d-key'),
-            spec: stage.querySelector<HTMLElement>('.d-spec'),
-            rim: stage.querySelector<HTMLElement>('.d-rim'),
+            page,
+            rim: page.querySelector<HTMLElement>('.d-rim'),
             px: 0.5, py: 0.32, tx: 0.5, ty: 0.32,
             w: stage.getBoundingClientRect().width || 1,
             h: stage.getBoundingClientRect().height || 1,
@@ -424,6 +428,7 @@ export function startLiving(root: ParentNode = document): void {
     root.querySelectorAll<HTMLElement>('.d-cta').forEach(bindGlint);
     root.querySelectorAll<HTMLElement>('[data-expand].d-row').forEach((r, i) => bindExpand(r, i));
     root.querySelectorAll<HTMLElement>('.d-row, .d-cta, .d-row-actions button, .d-quiet').forEach(bindTouchGlow);
+    bindSegments(root);
     bindBreath();
     popNumbers(root);
 

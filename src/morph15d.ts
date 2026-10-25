@@ -36,8 +36,8 @@ function geoProgress(u: number): number {
 }
 
 const TIMING = {
-    forward: { dur: 440, contentOut: 100, snapOut: 110, pageIn: [160, 405] as [number, number], lift: 1.006 },
-    reverse: { dur: 360, contentOut: 90, snapOut: 95, pageIn: [140, 330] as [number, number], lift: 1.004 },
+    forward: { dur: 440, contentOut: 100, fadeOut: 80, pageIn: [90, 330] as [number, number], lift: 1.006 },
+    reverse: { dur: 360, contentOut: 90, fadeOut: 70, pageIn: [70, 250] as [number, number], lift: 1.004 },
 };
 
 let running = false;
@@ -71,8 +71,6 @@ function surfaceOf(el: Element): string {
     const bits = [`background-color:${cs.backgroundColor}`];
     if (cs.backgroundImage && cs.backgroundImage !== 'none')
         bits.push(`background-image:${cs.backgroundImage}`);
-    if (cs.backdropFilter && cs.backdropFilter !== 'none')
-        bits.push(`backdrop-filter:${cs.backdropFilter}`);
     return bits.join(';');
 }
 
@@ -86,7 +84,9 @@ function snapshotMain(): HTMLElement | null {
     layer.className = 'm15-snapshot';
     layer.setAttribute('aria-hidden', 'true');
     layer.inert = true;
-    layer.style.cssText = `position:fixed;left:${rect.x}px;top:${rect.y}px;width:${rect.w}px;height:${rect.h}px;overflow:hidden;z-index:70;pointer-events:none;will-change:opacity;`;
+    layer.style.cssText = `position:fixed;left:${rect.x}px;top:${rect.y}px;width:${rect.w}px;height:${rect.h}px;overflow:hidden;z-index:70;pointer-events:none;will-change:opacity;` +
+        // 快照层自带页面底色：克隆体拿不到 body 背景，否则整层会透成黑
+        `background:${backgroundColorOf(main)};`;
     const clone = main.cloneNode(true) as HTMLElement;
     clone.removeAttribute('id');
     clone.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
@@ -201,8 +201,9 @@ export async function morphNavigate(opts: MorphOptions): Promise<void> {
         document.body.appendChild(backdrop);
 
         snapshot = snapshotMain();
+        // 不隐藏 #main：快照层在它上面，隐藏只会让中间一帧露出底板
         if (main)
-            main.style.visibility = 'hidden';
+            main.style.opacity = '0';
 
         const built = buildTraveler(fromEl, r0, radius0);
         traveler = built.layer;
@@ -250,13 +251,13 @@ export async function morphNavigate(opts: MorphOptions): Promise<void> {
                 }
                 // 材质：几何走了 15% 之后开始换，85% 时完成
                 if (dest)
-                    dest.style.opacity = clamp01((p - 0.15) / 0.7).toFixed(3);
+                    dest.style.opacity = (0.42 * clamp01((p - 0.15) / 0.7)).toFixed(3);
                 // 衬底随几何一起换色，页面交接时不会闪底色
                 if (backdropTo)
                     backdropTo.style.opacity = p.toFixed(3);
                 // 旧页面在容器还盖着原位时退干净，避免缩走之后露出旧文字
                 if (snapshot)
-                    snapshot.style.opacity = clamp01(1 - elapsed / T.snapOut).toFixed(3);
+                    snapshot.style.opacity = (1 - clamp01((elapsed - T.pageIn[1]) / T.fadeOut)).toFixed(3);
 
                 // 旧内容快速退场，此后容器里没有旧内容
                 const contentOut = clamp01(1 - elapsed / T.contentOut);
@@ -306,6 +307,13 @@ export async function morphNavigate(opts: MorphOptions): Promise<void> {
             };
             raf = requestAnimationFrame(tick);
         });
+
+        // 落定后皮质层淡出，把真实页面交出来——避免最后一下“啪”地换掉
+        if (traveler) {
+            traveler.animate([{ opacity: 1 }, { opacity: 0 }],
+                { duration: 90, easing: 'ease-out', fill: 'forwards' });
+            await new Promise<void>(r => setTimeout(r, 90));
+        }
     }
     finally {
         if (raf)
