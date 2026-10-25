@@ -76,6 +76,7 @@ const geom = () => evaluate(`(() => {
   const r = el => { if (!el) return null; const b = el.getBoundingClientRect(); return { x: Math.round(b.x + b.width / 2), y: Math.round(b.y + b.height / 2), top: Math.round(b.top), h: Math.round(b.height) }; };
   return { stage: r(document.querySelector('.d-stage')), cta: r(document.querySelector('#start-today')),
     row1: r(document.querySelectorAll('.d-row')[0]), row2: r(document.querySelectorAll('.d-row')[1]),
+    head1: r(document.querySelectorAll('.d-row-head')[0]), head2: r(document.querySelectorAll('.d-row-head')[1]),
     theme: r(document.querySelector('#theme')), navHome: r(document.querySelector('[data-nav="home"]')),
     scrollY: Math.round(window.scrollY) };
 })()`);
@@ -83,10 +84,13 @@ const geom = () => evaluate(`(() => {
 try {
     await send('Page.enable');
     await send('Runtime.enable');
-    if (MOBILE)
+    if (MOBILE) {
         await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
-    else
+        await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
+    } else {
         await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile: false });
+        await send('Emulation.setTouchEmulationEnabled', { enabled: false });
+    }
     await send('Page.navigate', { url: URL });
     for (let i = 0; i < 90; i++) { if (await evaluate('!!(window.__planTest && document.querySelector(".d-stage"))')) break; await sleep(350); }
     await evaluate('window.__planTest && window.__planTest.seedUnified && window.__planTest.seedUnified()');
@@ -126,23 +130,43 @@ try {
         await sleep(900);
         await deduceHover(g);
     }
+    else if (CLIP === 'press') {
+        // 主按钮完整过程：接近 → 按下 → 持住 → 释放回弹 → 再次轻点
+        await move(g.cta.x - 260, g.cta.y - 160);
+        await sleep(300);
+        await glide({ x: g.cta.x - 260, y: g.cta.y - 160 }, { x: g.cta.x, y: g.cta.y }, 22, 40);
+        await sleep(420);
+        await press(g.cta.x, g.cta.y);
+        await sleep(160);            // 压下
+        await move(g.cta.x + 5, g.cta.y + 3);
+        await sleep(1050);           // 持住
+        await glide({ x: g.cta.x + 5, y: g.cta.y + 3 }, { x: g.cta.x + 190, y: g.cta.y + 40 }, 12, 34);
+        await release(g.cta.x + 190, g.cta.y + 40);
+        await sleep(1100);           // 拖出后释放：完整回弹，不跳页
+        await move(g.cta.x, g.cta.y);
+        await sleep(420);
+        await press(g.cta.x, g.cta.y);
+        await sleep(90);
+        await release(g.cta.x, g.cta.y);
+        await sleep(900);            // 轻点：真实进入训练
+    }
     else if (CLIP === 'expand') {
         await evaluate(`(() => { const l = document.querySelector('.d-list'); if (l) l.scrollIntoView({ block: 'center', behavior: 'instant' }); return 1; })()`);
         await sleep(700);
         g = await geom();
         await move(g.row1.x, g.row1.y);
         await sleep(500);
-        await press(g.row1.x, g.row1.y);
-        await release(g.row1.x, g.row1.y);
+        await press(g.head1.x, g.head1.y);
+        await release(g.head1.x, g.head1.y);
+        await sleep(1100);
+        await move(g.head1.x + 40, g.head1.y + 60);
         await sleep(900);
-        await move(g.row1.x + 40, g.row1.y + 60);
-        await sleep(1400);
-        await press(g.row2.x, g.row2.y);
-        await release(g.row2.x, g.row2.y);
-        await sleep(1200);
-        await press(g.row1.x, g.row1.y);
-        await release(g.row1.x, g.row1.y);
-        await sleep(1400);
+        await press(g.head2.x, g.head2.y);
+        await release(g.head2.x, g.head2.y);
+        await sleep(1300);
+        await press(g.head1.x, g.head1.y);
+        await release(g.head1.x, g.head1.y);
+        await sleep(1500);
     }
     else if (CLIP === 'journey') {
         await move(g.cta.x, g.cta.y);

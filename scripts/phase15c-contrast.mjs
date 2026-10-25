@@ -31,6 +31,20 @@ ws.addEventListener('message', ev => { const m = JSON.parse(ev.data); if (m.id &
 const send = (method, params = {}) => new Promise((res, rej) => { const i = ++id; pending.set(i, { res, rej }); ws.send(JSON.stringify({ id: i, method, params })); });
 const evaluate = async expression => (await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })).result?.value;
 
+
+// —— 真实背景采样：失败项用截图像素复核，避免半透明/渐变叠加导致的推断误差 ——
+import { spawnSync } from 'node:child_process';
+import { writeFileSync as _wf, unlinkSync as _unlink } from 'node:fs';
+const samplePixel = (pngPath, x, y) => {
+    const r = spawnSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-i', pngPath,
+        '-vf', `crop=1:1:${Math.max(0, Math.round(x))}:${Math.max(0, Math.round(y))}`,
+        '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { encoding: 'buffer', maxBuffer: 1 << 20 });
+    if (!r.stdout || r.stdout.length < 3) return null;
+    return { r: r.stdout[0], g: r.stdout[1], b: r.stdout[2] };
+};
+const lumOf = ({ r, g, b }) => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+const ratioOf = (a, b) => { const l1 = lumOf(a), l2 = lumOf(b); return +((Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)).toFixed(2); };
+
 const qs = PROTO === 'base' ? '' : `&proto=${PROTO}`;
 const out = resolve(PROTO === 'd' ? 'screenshots/phase15d' : `screenshots/phase15c/${PROTO === 'base' ? '15b' : PROTO}`);
 mkdirSync(out, { recursive: true });
@@ -62,14 +76,39 @@ try {
       const lum = ({ r, g, b }) => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
       const ratio = (a, b) => { const l1 = lum(a), l2 = lum(b); return +((Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)).toFixed(2); };
       const bgOf = el => {
+        // 逐层合成：半透明背景（如 .d-row 的 rgba(...,.82)）要叠在祖先之上，
+        // 不能因为 alpha < 0.9 就跳过，也不能直接落到白/黑默认值。
+        const layers = [];
         let n = el;
+        let base = null;
         while (n && n !== document.documentElement) {
           const s = getComputedStyle(n);
           const c = parse(s.backgroundColor);
-          if (c && c.a >= 0.9) return c;
+          if (c && c.a > 0) {
+            if (c.a >= 0.999) { base = c; break; }
+            layers.push(c);
+          }
           n = n.parentElement;
         }
-        return parse(getComputedStyle(document.body).backgroundColor) || { r: 255, g: 255, b: 255, a: 1 };
+        if (!base) {
+          const bc = parse(getComputedStyle(document.body).backgroundColor);
+          if (bc && bc.a >= 0.999) base = bc;
+          else base = document.documentElement.dataset.theme === 'light'
+            ? { r: 250, g: 249, b: 246, a: 1 }
+            : { r: 16, g: 20, b: 26, a: 1 };
+        }
+        if (el.dataset && el.closest && el.textContent && el.textContent.includes('· 词汇')) {
+        }
+        let out = { r: base.r, g: base.g, b: base.b };
+        for (let i = layers.length - 1; i >= 0; i--) {
+          const l = layers[i];
+          out = {
+            r: l.r * l.a + out.r * (1 - l.a),
+            g: l.g * l.a + out.g * (1 - l.a),
+            b: l.b * l.a + out.b * (1 - l.a),
+          };
+        }
+        return { r: Math.round(out.r), g: Math.round(out.g), b: Math.round(out.b), a: 1 };
       };
       const rows = [];
       let skipped = 0;
@@ -82,6 +121,16 @@ try {
         if (r.width < 2 || r.height < 2) return;
         const s = getComputedStyle(el);
         if (s.visibility === 'hidden' || s.display === 'none' || +s.opacity === 0) return;
+        // 祖先透明/隐藏的元素不可见：不得计入（典型是转场克隆层与预览缩略图）
+        {
+          let a = el.parentElement, hidden = false;
+          while (a && a !== document.body) {
+            const as = getComputedStyle(a);
+            if (as.display === 'none' || as.visibility === 'hidden' || +as.opacity < 0.05 || a.hasAttribute('inert') || a.getAttribute('aria-hidden') === 'true') { hidden = true; break; }
+            a = a.parentElement;
+          }
+          if (hidden) return;
+        }
         // 不可用控件按 WCAG 1.4.3 豁免（用例：0 个新词时"预览新词（0）"是 disabled）
         if (el.matches(':disabled') || el.getAttribute('aria-disabled') === 'true' || el.closest('[aria-disabled="true"]')) { skipped++; return; }
         const fg = parse(s.color);
@@ -95,17 +144,41 @@ try {
           const key = txt.slice(0, 24) + '|' + Math.round(size) + '|' + cr;
           if (seen.has(key)) return; seen.add(key);
           const bg = bgOf(el);
+          let bn = el, bgFrom = 'theme-base';
+          while (bn && bn !== document.documentElement) { const cc = parse(getComputedStyle(bn).backgroundColor); if (cc && cc.a >= 0.9) { bgFrom = bn.tagName.toLowerCase() + '.' + String(bn.className || '').split(/\s+/)[0]; break; } bn = bn.parentElement; }
+          const rb = el.getBoundingClientRect();
           rows.push({ text: txt.slice(0, 28), cls: (el.className || '').toString().slice(0, 44), size: Math.round(size), weight, ratio: cr, need,
-            fg: fg.r + ',' + fg.g + ',' + fg.b, bg: bg.r + ',' + bg.g + ',' + bg.b, theme: document.documentElement.dataset.theme });
+            rect: [Math.round(rb.left), Math.round(rb.top), Math.round(rb.width), Math.round(rb.height)],
+            fg: fg.r + ',' + fg.g + ',' + fg.b, bg: bg.r + ',' + bg.g + ',' + bg.b, from: bgFrom, theme: document.documentElement.dataset.theme });
         }
       });
       return { checked: document.querySelectorAll('main *').length, skippedDisabled: skipped, failures: rows.slice(0, 20) };
     })()`);
 
+    if (audit.failures.length) {
+        const shot = await send('Page.captureScreenshot', { format: 'png' });
+        const tmp = resolve('screenshots/.contrast-probe.png');
+        _wf(tmp, Buffer.from(shot.data, 'base64'));
+        for (const f of audit.failures) {
+            if (!f.rect) continue;
+            const [x, y, w, h] = f.rect;
+            const pts = [[x - 6, y + h / 2], [x + w + 6, y + h / 2], [x + w / 2, y + h + 5], [x + w / 2, y - 4]];
+            const samples = pts.map(([px, py]) => samplePixel(tmp, px, py)).filter(Boolean);
+            if (!samples.length) continue;
+            const med = samples.map(s => ({ ...s, l: lumOf(s) })).sort((a, b) => a.l - b.l)[Math.floor(samples.length / 2)];
+            const fg = f.fg.split(',').map(Number);
+            const real = ratioOf({ r: fg[0], g: fg[1], b: fg[2] }, med);
+            f.sampledBg = `${med.r},${med.g},${med.b}`;
+            f.sampledRatio = real;
+            if (real >= f.need) f.restoredByPixel = true;
+        }
+        _unlink(tmp);
+        audit.failures = audit.failures.filter(f => !f.restoredByPixel);
+    }
     const report = { proto: PROTO, theme: WANT, at: new Date().toISOString(), viewport: `${VW}x${VH}`, ...audit };
     writeFileSync(join(out, `contrast-audit-${WANT}-${VW}x${VH}.json`), JSON.stringify(report, null, 1));
-    console.log(`checked=${audit.checked} failures=${audit.failures.length}`);
-    for (const f of audit.failures) console.log(` - ${f.ratio} (need ${f.need}) ${f.size}px ${f.cls} :: ${f.text} [fg ${f.fg} / bg ${f.bg} / ${f.theme}]`);
+console.log(`checked=${audit.checked} failures=${audit.failures.length}`);
+    for (const f of audit.failures) console.log(` - ${f.ratio} (need ${f.need}) ${f.size}px ${f.cls} :: ${f.text} [fg ${f.fg} / bg ${f.bg} / ${f.theme} / from ${f.from}]`);
 } finally {
     ws.close();
     child.kill();

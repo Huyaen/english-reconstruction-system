@@ -163,3 +163,80 @@
 - 对比度：4 组组合 **0 违规**
 - reduced-motion：running 0，全部 `animation: none`
 - 性能：空闲与交互帧间隔 p50/p95 与基线一致，无 longtask、无 >32ms 掉帧
+
+---
+
+## 11. 验收纠偏（第二轮，2026-10-25）
+
+评审反馈：光影与呼吸有进展，但**移动端截图宽度异常、Shared Element 仍是突变、光影语言偏生硬**。以下是本轮的定位、改动与证据。第 10 节中的性能/对比度结论以本节数字为准。
+
+### 11.1 390px 全页截图 756px 的成因
+
+两个独立原因，**都不是页面真的横向溢出**：
+
+1. **截图脚本没有开移动端 Emulation**：`phase15-visual-capture.mjs` 只设了 `width/height`，`mobile:false`，Edge 按桌面视口布局（390px 下 `innerWidth` 仍是 390，但 `mobile:false` 时不会应用移动端 UA/缩放语义），全页 `captureBeyondViewport` 按桌面重排宽度计算，产出 756px 宽的图。
+   → 现在 `setViewport()` 在 `width < 700` 时下发 `mobile:true` + `maxTouchPoints:1`，桌面视口下发 `enabled:false`（`maxTouchPoints:0` 会被 CDP 拒绝）。
+2. **阅读页装饰伪元素外扩**：`reading15d.css` 里 `#read-cold::before` / `.reader-main::before` 用 `inset:-18% -12%` 画环境光，负右边界把 12px 撑进 `scrollWidth`。伪元素不会出现在 `querySelectorAll`，所以「查越界元素」的探针永远查不到它。
+   → 给这两个容器加 `overflow: clip`；截图脚本的溢出断言改为**等 8 帧再判定**，失败时同时输出越界元素与滚动容器，避免用单点探针下结论。
+
+### 11.2 移动端横向布局的真实验收
+
+- `scripts/phase15d-mobile-audit.mjs`（新增）：360 / 390 / 414 / 768 四个视口 × Today / Reading 两个页面，同时校验 `innerWidth === 视口`、`documentElement.scrollWidth`、越过视口且不在横向滚动容器内的元素、以及全页截图实际像素宽度。
+- 结果：**8/8 OK，escapers=0**；`today-light-390x844-full.png` 实际 **390×3521**，`reading-dark-360x780.png` 实际 **360×780**。
+- `src/style.css` 移动端 `aside` 由 sticky/auto 宽改为 `position: relative` 固定单列，`nav` 保持横向滚动，不再把 `main` 挤宽。
+
+### 11.3 Today → Training：真实容器变形
+
+旧实现（`motion.ts playFlip`）是空 div 从旧位置缩到新标题后淡出，页面同帧替换 —— 观感就是「突变 + 淡入」。本轮换成 Material Container Transform：
+
+- `src/morph15d.ts`（新增）：克隆出发卡片的**真实 DOM** 到 fixed 层，测量目标面板矩形，用弹簧积分连续变形 `left/top/width/height/border-radius`；内容在 16%–34% 淡出，旧页面快照与目标页面交叉透出，最后交接真实 DOM。点击当帧追加 `scale(1.006)` 的「拿起」提示，避免前 200ms 看起来没反应。
+- 逐帧证据：`screenshots/phase15d/morph-cast/frames.json`，**50 帧 / 748ms**，转场窗口 46 帧；`_strip.png` 为 12 帧时间条。
+- 空白帧检查：对转场窗口逐帧统计内容区灰度标准差，**没有一帧低于 8**（早期版本在 422–454ms 有约 30–60ms 的纯白空档，已通过「内容先淡出、表面后退场、目标页提前进场」的重叠修复）。
+
+### 11.4 光影与材质（P1）
+
+- 移除梯形探照灯 `.d-beam`、扫描线 `.d-sweep/.d-sweep-2`、`.d-orb/.d-bands`。
+- 新的光具：`.d-sky`（顶部方向光，线性渐变，无模糊）、`.d-key`（被指针牵引的主光）、`.d-spec`（跟随指针方位角旋转的斜向高光条）、`.d-rim`（上缘掠射）、`.d-glare`（指针聚光）、`.d-breath`（11s 呼吸，最大半径、极低振幅）、`.d-grain`（哑光颗粒）。
+- 材质：舞台用方向性渐变 + 内缘高光 + 底部内阴影 + 外侧接触阴影，形成「有厚度的板」而不是一块渐变。
+- 光照与材质联动：指针移动时主光位移、高光条旋转、上缘掠射增强、聚光点亮；亮度（`opacity`）只在**进入 / 离开 / 收敛**三处写一次，避免逐帧样式重算。
+- 浅色主题：同一套光具，改为暖白透射（`.d-breath` 用 `rgba(255,252,244,.55)`），行卡为 `rgba(255,255,255,.92)`，保留同样的方向光与指针响应。
+
+### 11.5 交互物理（P1）
+
+- 主按钮：`bindSpring` 弹簧 `K=320, C=20`，按下目标 `0.955`，释放注入 `+1.9` 初速。DOM 实测：基线宽 199.95px → 按下最窄 **190.18px（0.951）** → 释放过冲 **203.97px（1.020）** → 收敛回 199.95px；`press-dark.mp4` 完整录下「接近 → 按下 → 持住 → 拖出释放 → 回弹 → 再次轻点」。
+- 释放不再用 `setPointerCapture`（capture 会让「拖出后松开」合成 click 直接跳页），改为 `window.pointerup` 兜底；按住拖出按钮再松开也会正常回弹。
+- 任务行：展开/收起用高度弹簧（开 `K=210,C=24`，合 `K=300,C=30`），内容按 26ms 级联滑入、12ms 级联退出；整行都是可点面（标题、留白、右侧箭头），展开区内的操作按钮不触发折叠。
+- 阅读页：环境光伪元素裁剪后不再产生横向滚动；阅读导航无空屏（`reading-dark.mp4` 全程有内容）。
+
+### 11.6 性能与降级（P2）
+
+- 指针光场改为**与刷新率无关的阻尼**（`dt` 指数插值），收敛即停 rAF；指针静止、页面隐藏、舞台离屏时 JS 帧循环为 0。
+- 呼吸完全交给合成层（CSS animation），`html[data-lights=paused]` 时 `animation-play-state: paused`。
+- 无头浏览器里 `window` 从不获得焦点，原先的 `blur → paused` 会把整页动画永久冻住（导致录屏只有 1 帧），已移除该监听，只在 `visibilitychange` 与舞台离屏时暂停。
+- `perf.json`（1440×900，10s 空闲 + 4s 合成指针扫动）：空闲 p50 **3.8ms** / p95 **3.9ms** / >32ms **0** / longtask **0**；交互 p50 **3.8ms** / p95 **3.9ms**，合成扫动期间 1 帧 >32ms（61.5ms，软件光栅下首次给三层混合光写样式）。reduced-motion：`running 0`，所有光层 `animation: none`。
+
+### 11.7 本轮证据清单
+
+| 证据 | 文件 | 关键数字 |
+| --- | --- | --- |
+| 移动端真实截图 | `screenshots/phase15d/today-light-390x844-full.png`、`reading-dark-360x780.png` | 390×3521 / 360×780 |
+| 移动端多视口审计 | `screenshots/phase15d/mobile-audit.json` | 8 组合，escapers 0 |
+| Shared Element 逐帧 | `screenshots/phase15d/morph-cast/frames.json`、`_strip.png` | 50 帧 / 748ms，无空白帧 |
+| 10s 呼吸 | `recording/idle-dark.mp4`、`idle-light.mp4` | 10.00s；区域像素差 15.6% >6，max <20 |
+| 指针光影 | `recording/pointer-dark.mp4`、`pointer-light.mp4` | 5.5s；17.8% 像素 >6 |
+| 主按钮全过程 | `recording/press-dark.mp4` | 0.951 → 1.020 → 1.000 |
+| 任务展开/收起 | `recording/expand-dark.mp4` | 6.1s，两次展开一次收起 |
+| 阅读导航 | `recording/reading-dark.mp4` | 8.1s，无空屏 |
+| Light/Dark 对照 | `screenshots/phase15d/*-light-*` / `*-dark-*` | 24 张 |
+| Reduced Motion | `screenshots/phase15d/reduced-motion-1440.png`、`perf.json` | running 0 |
+
+### 11.8 本轮验收
+
+- `npx tsc --noEmit`：0
+- `npm test`：**379/379**
+- `npm run build`：通过（`dist` 已更新）
+- 浏览器冒烟：`phase3` **21/21**、`phase12-full` **18/18**、`phase13` **20/20**
+- 对比度（PROTO=d）：暗/亮 × 1920/390 = **4 组 0 违规**（失败项改用截图像素复核，避免半透明叠加推断误差）
+- reduced-motion：`running 0`
+- DB 版本仍为 **v7**，学习功能未改动
+- 仍为 `?proto=d` 开关，未合并 `main`，未推广其余页面

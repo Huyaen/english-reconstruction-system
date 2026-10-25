@@ -65,7 +65,7 @@ async function measure(label, url, port, reduced) {
 
         if (reduced) {
             const styles = await evaluate(`(() => {
-              const pick = ['.d-orb', '.d-bands', '.d-sweep', '.d-sweep-2', '.d-rim', '.d-aura', '.d-glare'];
+              const pick = ['.d-sky', '.d-key', '.d-spec', '.d-rim', '.d-aura', '.d-glare'];
               const out = {};
               pick.forEach(s => { const el = document.querySelector(s); if (!el) return; const cs = getComputedStyle(el);
                 out[s] = { animationName: cs.animationName, animationDuration: cs.animationDuration, display: cs.display }; });

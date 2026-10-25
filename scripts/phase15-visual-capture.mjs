@@ -88,8 +88,28 @@ const seedScript = `(async()=>{
 })()`;
 
 async function setViewport(cdp, width, height) {
-    await cdp.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width < 700 });
-    await sleep(220);
+    // mobile:true 时 Chromium 的布局视口不是 width（实测 390 请求 → innerWidth 745，
+    // 整页截图因此变成 756/861px 宽，与真实手机不符）。用 mobile:false 得到严格 width 的
+    // CSS 视口，再用 touch 仿真保留触控语义。
+    await cdp.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+    await cdp.send('Emulation.setTouchEmulationEnabled', width < 700
+        ? { enabled: true, maxTouchPoints: 1 }
+        : { enabled: false });
+    await sleep(260);
+    for (let attempt = 0; attempt < 8; attempt++) {
+        const m = await cdp.eval(`({ iw: innerWidth, ih: innerHeight, sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth })`);
+        if (m.iw !== width) throw new Error(`viewport mismatch: requested ${width}, innerWidth ${m.iw}`);
+        if (m.sw <= width + 1) return;
+        if (attempt === 7) {
+            const detail = await cdp.eval(`({
+              wide: [...document.querySelectorAll('body *')].filter(el => { const b = el.getBoundingClientRect(); return b.width > 0 && b.right > innerWidth + 0.5; }).slice(0, 5).map(el => el.tagName.toLowerCase() + '.' + String(el.className || '').split(/\\s+/)[0] + '@' + Math.round(el.getBoundingClientRect().right)),
+              scrollers: [...document.querySelectorAll('html, body, body *')].filter(el => el.scrollWidth > el.clientWidth + 1).slice(0, 6).map(el => (el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + '.' + String(el.className || '').split(/\\s+/)[0]) + ' ' + el.scrollWidth + '/' + el.clientWidth + ' ' + getComputedStyle(el).overflowX),
+              page: (document.querySelector('main h1, main .page-title') || {}).textContent || '',
+            })`);
+            throw new Error(`horizontal overflow at ${width}px: scrollWidth ${m.sw} > ${width} :: ${JSON.stringify(detail)}`);
+        }
+        await sleep(160);
+    }
 }
 
 async function shot(cdp, name) {
@@ -100,11 +120,16 @@ async function shot(cdp, name) {
     return file;
 }
 
-async function fullShot(cdp, name) {
-    const { data, } = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+async function fullShot(cdp, name, expectWidth) {
+    const { data } = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+    const buf = Buffer.from(data, 'base64');
+    const w = buf.readUInt32BE(16), h = buf.readUInt32BE(20);
+    const vp = await cdp.eval('({ iw: innerWidth, sw: document.documentElement.scrollWidth })');
+    if (expectWidth && w !== expectWidth) throw new Error(`fullpage width ${w} !== viewport ${expectWidth} (${name})`);
+    if (vp.sw > vp.iw + 1) throw new Error(`fullpage overflow ${vp.sw} > ${vp.iw} (${name})`);
     const file = path.join(OUT, `${name}.png`);
-    await writeFile(file, Buffer.from(data, 'base64'));
-    manifest.push({ file, name });
+    await writeFile(file, buf);
+    manifest.push({ file, name, width: w, height: h });
     return file;
 }
 
@@ -139,7 +164,7 @@ try {
         await cdp.eval(`(()=>{const m=document.querySelector('main');if(m)m.scrollTop=0;window.scrollTo(0,0);return 1})()`);
         await sleep(300);
         await shot(cdp, `today-light-${vp.id}`);
-        if (vp.id === '1920x1080' || vp.id === '390x844') await fullShot(cdp, `today-light-${vp.id}-full`);
+        if (vp.id === '1920x1080' || vp.id === '390x844') await fullShot(cdp, `today-light-${vp.id}-full`, vp.width);
     }
     // 深色：走真实设置写入路径
     await cdp.click('#theme');

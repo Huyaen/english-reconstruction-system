@@ -9,6 +9,10 @@ html[data-proto="d"] #read-cold,
 html[data-proto="d"] .reader-main { position: relative; }
 
 /* 阅读区背后的环境光：只移动/缩放一个固定层，不重绘渐变 */
+/* 环境光的伪元素用负 inset 外扩，必须裁剪在容器内，否则会撑出横向滚动 */
+html[data-proto="d"] #read-cold,
+html[data-proto="d"] .reader-main { overflow: clip; }
+
 html[data-proto="d"] #read-cold::before,
 html[data-proto="d"] .reader-main::before {
   content: "";

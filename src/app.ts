@@ -7,12 +7,13 @@ import './proto15c-b4.css';
 import './reading15c.css';
 import './reading15c-v2.css';
 import './reading15d.css';
-import './proto15d.css';
+import './cinematic15d.css';
 import { protoTodayHTML, protoTodayD, protoTaskViews, type ProtoContext, type ProtoId, type ProtoTaskInput } from './protoToday';
 import { startLiving, stopLiving, livingAllowed } from './living';
 import type { Data, Word, StudySession, Settings, ReviewRecord, Mastery, DailyPlan, PlanItem, EnergyState, GrammarConcept, SentenceRecord, SentenceStepRecord, SentenceAttempt, SentenceEvidenceClass, GrammarCategory } from './types.ts';
 import { testHooksEnabled, pwaEnabled } from './testMode.ts';
 import { afterRender } from './motion.ts';
+import { morphNavigate } from './morph15d.ts';
 // —— Phase 5：Reading Lab ——
 import type { Passage, ReadingSession, ReadingToken, ReadingMark, ReadingDifficultyReport, WordExposure, DifficultSentence, ReadingProblemType } from './types.ts';
 import { parsePassageText, sentenceAtSpan, tokenizeSentence, countWords } from './readingText.ts';
@@ -1984,7 +1985,10 @@ function bindPlan() {
     on('#plan-regenerate', 'click', () => void regeneratePlan(todayPlan?.availableMinutes ?? planBudget, todayPlan?.energyState ?? planEnergy));
     on('#start-today', 'click', () => void startTodayTraining());
     on('#plan-adjust', 'click', planAdjustDialog);
-    document.querySelectorAll<HTMLElement>('[data-task-start]').forEach(b => b.onclick = () => void startPlanTask(b.dataset.taskStart!));
+    document.querySelectorAll<HTMLElement>('[data-task-start]').forEach(b => b.onclick = () => void morphNavigate({
+        from: b, target: '.preview-card, .quiz-card, .reader-main, .exam-card, .lab-card',
+        run: () => startPlanTask(b.dataset.taskStart!),
+    }));
     document.querySelectorAll<HTMLElement>('[data-task-skip]').forEach(b => b.onclick = () => void planAction(b.dataset.taskSkip!, 'skip'));
     document.querySelectorAll<HTMLElement>('[data-task-delay]').forEach(b => b.onclick = () => void planAction(b.dataset.taskDelay!, 'delay'));
     document.querySelectorAll<HTMLElement>('[data-task-replace]').forEach(b => b.onclick = () => void replacePlanTask(b.dataset.taskReplace!));
@@ -2247,7 +2251,10 @@ async function startTodayTraining(): Promise<void> {
         render();
         return;
     }
-    await startPlanTask(next.id, true);
+    await morphNavigate({
+        from: '#start-today', target: '.preview-card, .quiz-card, .reader-main, .exam-card, .lab-card',
+        run: () => startPlanTask(next.id, true),
+    });
 }
 async function completePlanTask(exec: {
     planTaskId: string;

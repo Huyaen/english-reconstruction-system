@@ -324,17 +324,18 @@ export function protoTodayD(c: ProtoContext): string {
 </nav>`;
     return `<div class="d-page">
   <div class="d-ambient" aria-hidden="true">
-    <i class="d-aura a1"></i><i class="d-aura a2"></i><i class="d-aura a3"></i><i class="d-beam"></i>
+    <i class="d-aura a1"></i><i class="d-aura a2"></i><i class="d-aura a3"></i>
   </div>
   <section class="d-stage" data-specular>
     <div class="d-lights" aria-hidden="true">
-      <i class="d-sweep"></i>
-      <i class="d-sweep-2"></i>
-      <i class="d-orb"></i>
-      <i class="d-bands"></i>
+      <i class="d-sky"></i>
+      <i class="d-key"></i>
+      <i class="d-spec"></i>
       <i class="d-rim"></i>
+      <i class="d-glare"></i>
+      <i class="d-breath"></i>
+      <i class="d-grain"></i>
     </div>
-    <i class="d-glare" aria-hidden="true"></i>
     <div class="d-eyebrow"><span>今日学习 · Build your day</span></div>
     <div class="d-clock">
       <b data-odometer="${c.remainingMinutes}" data-odometer-key="p15d-remaining">${c.remainingMinutes}</b>
@@ -347,8 +348,8 @@ export function protoTodayD(c: ProtoContext): string {
     </div>
     <div class="d-cta-row">
       ${t
-            ? `<button id="start-today" class="d-cta" data-spring>${t.status === 'started' ? '继续这一项' : '开始今天的训练'}</button>`
-            : `<button id="hero-adjust" class="d-cta" data-spring>调整明天</button>`}
+            ? `<button id="start-today" class="d-cta" data-spring><span class="d-glint" aria-hidden="true"></span>${t.status === 'started' ? '继续这一项' : '开始今天的训练'}</button>`
+            : `<button id="hero-adjust" class="d-cta" data-spring><span class="d-glint" aria-hidden="true"></span>调整明天</button>`}
       <button id="import" class="d-quiet">导入词书</button>
     </div>
     <div class="d-strip">
