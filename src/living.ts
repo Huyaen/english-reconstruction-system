@@ -225,12 +225,59 @@ function bindGlint(btn: HTMLElement): void {
         return;
     btn.dataset.glintBound = '1';
     btn.addEventListener('pointermove', ev => {
+        if (ev.pointerType === 'touch')
+            return;
         const r = btn.getBoundingClientRect();
         glint.style.transform = `translate3d(${(ev.clientX - r.left).toFixed(1)}px, ${(ev.clientY - r.top).toFixed(1)}px, 0)`;
     }, { passive: true });
     btn.addEventListener('pointerleave', () => {
         glint.style.transform = 'translate3d(50%, -40%, 0)';
     }, { passive: true });
+}
+
+/* ── 触控落点光：按住的地方有反光（不模拟持续悬停） ─────────────── */
+function bindTouchGlow(el: HTMLElement): void {
+    if (el.dataset.tapBound)
+        return;
+    el.dataset.tapBound = '1';
+    let tap: HTMLElement | null = null;
+
+    const show = (ev: PointerEvent): void => {
+        if (ev.pointerType === 'mouse')
+            return;
+        if (!tap) {
+            tap = document.createElement('i');
+            tap.className = 'd-tap';
+            tap.setAttribute('aria-hidden', 'true');
+        }
+        if (tap.parentElement !== el)
+            el.appendChild(tap);
+        const r = el.getBoundingClientRect();
+        const x = Math.round(ev.clientX - r.left);
+        const y = Math.round(ev.clientY - r.top);
+        tap.style.transform = `translate3d(${x}px, ${y}px, 0) scale(.4)`;
+        void tap.offsetWidth;
+        tap.style.transform = `translate3d(${x}px, ${y}px, 0) scale(1)`;
+        tap.classList.add('is-on');
+        el.classList.add('is-pressed');
+    };
+    const hide = (): void => {
+        tap?.classList.remove('is-on');
+        el.classList.remove('is-pressed');
+    };
+    el.addEventListener('pointerdown', show, { passive: true });
+    el.addEventListener('pointerup', hide, { passive: true });
+    el.addEventListener('pointercancel', hide, { passive: true });
+    el.addEventListener('pointerleave', hide, { passive: true });
+}
+
+/* ── 呼吸周期：?breath=9|11|15 供 A/B 录屏；缺省用样式表里的 --d-breath ── */
+function bindBreath(): void {
+    if (typeof location === 'undefined')
+        return;
+    const v = new URLSearchParams(location.search).get('breath');
+    if (v === '9' || v === '11' || v === '15')
+        document.documentElement.dataset.breath = v;
 }
 
 /* ── 展开 / 收回：高度用弹簧，内容分层滑入 ─────────────────────── */
@@ -376,6 +423,8 @@ export function startLiving(root: ParentNode = document): void {
     root.querySelectorAll<HTMLElement>('[data-spring]').forEach(bindSpring);
     root.querySelectorAll<HTMLElement>('.d-cta').forEach(bindGlint);
     root.querySelectorAll<HTMLElement>('[data-expand].d-row').forEach((r, i) => bindExpand(r, i));
+    root.querySelectorAll<HTMLElement>('.d-row, .d-cta, .d-row-actions button, .d-quiet').forEach(bindTouchGlow);
+    bindBreath();
     popNumbers(root);
 
     if (!bound) {

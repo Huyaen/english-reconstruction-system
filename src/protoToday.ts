@@ -293,7 +293,7 @@ function rowD(t: ProtoTaskView, index: number, open: boolean): string {
     const rest = t.status === 'done' || t.status === 'skipped' || t.status === 'replaced'
         ? ''
         : `${t.flexible ? `<button data-task-replace="${esc(t.id)}">替换</button>` : ''}<button data-task-delay="${esc(t.id)}">延后</button><button data-task-skip="${esc(t.id)}">跳过</button>`;
-    return `<div class="d-row ${cls}" data-task="${esc(t.id)}" data-expand="1">
+    return `<div class="d-row ${cls}" data-task="${esc(t.id)}" data-expand="1" style="--i:${index}">
   <button class="d-row-head" type="button">
     <span class="d-dot" aria-hidden="true"></span>
     <span class="d-idx">${String(index + 1).padStart(2, '0')}</span>
@@ -323,8 +323,10 @@ export function protoTodayD(c: ProtoContext): string {
   <a href="./">15b 基线</a>
 </nav>`;
     return `<div class="d-page">
-  <div class="d-ambient" aria-hidden="true">
-    <i class="d-aura a1"></i><i class="d-aura a2"></i><i class="d-aura a3"></i>
+  <div class="d-field" aria-hidden="true">
+    <i class="d-tide t1"></i>
+    <i class="d-tide t2"></i>
+    <i class="d-haze"></i>
   </div>
   <section class="d-stage" data-specular>
     <div class="d-lights" aria-hidden="true">
@@ -334,6 +336,7 @@ export function protoTodayD(c: ProtoContext): string {
       <i class="d-rim"></i>
       <i class="d-glare"></i>
       <i class="d-breath"></i>
+      <i class="d-undersky"></i>
       <i class="d-grain"></i>
     </div>
     <div class="d-eyebrow"><span>今日学习 · Build your day</span></div>
@@ -360,11 +363,13 @@ export function protoTodayD(c: ProtoContext): string {
     </div>
   </section>
   <div class="d-slab" role="status">
-    <div><span>已完成</span><b>${c.done}/${c.total}</b><small>项</small></div>
-    <div><span>完成率</span><b>${pctDone}%</b><small>本段</small></div>
-    <div><span>已排分钟</span><b>${c.usedMinutes}</b><small>/ ${c.budget}</small></div>
+    <i class="d-catch" aria-hidden="true"></i>
+    <div><span>已完成 / 项</span><b>${c.done}/${c.total}</b></div>
+    <div><span>完成率 / 本段</span><b>${pctDone}%</b></div>
+    <div><span>已排 / 预算分钟</span><b>${c.usedMinutes}/${c.budget}</b></div>
   </div>
   <div class="d-ribbon-wrap">
+    <i class="d-catch" aria-hidden="true"></i>
     <div class="d-ribbon-head"><b>今日时间带</b><span>段宽 = 该项分钟数 · ${c.usedMinutes}/${c.budget} 分钟</span></div>
     <div class="d-ribbon">${segs}</div>
   </div>

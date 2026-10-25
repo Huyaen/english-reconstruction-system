@@ -5,3 +5,6 @@ node_modules/
 docs/history.bundle
 *-smoke-result.json
 dist-test/
+
+# 录屏体积大，本地保留；仓库只提交静帧与报告
+screenshots/phase15e/recording/*.mp4

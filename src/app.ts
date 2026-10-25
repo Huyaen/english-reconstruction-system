@@ -511,7 +511,16 @@ function previewDone() {
     page = 'preview-done';
     $('#main').innerHTML = title('PREVIEW COMPLETE', '第一次编码完成', `已预览 ${done.length} 个词；未预览完的 ${remain} 个已保留，下次可继续。`) + `<div class="actions"><button id="recall-now" class="primary" ${done.length ? '' : 'disabled'}>开始 Recall（${done.length} 词）</button><button id="back-home" class="secondary">返回首页</button></div><p class="hint">Preview 只负责第一次装填；Recall 才检验提取。未预览的新词不会进入正式测试。</p>`;
     on('#recall-now', 'click', () => { void startMode('previewed-recall', done); });
-    on('#back-home', 'click', () => setPage('home'));
+    on('#back-home', 'click', () => backToToday('#main > *'));
+}
+
+/** 学习页 → Today：反向共享元素转场（非 15d 界面时直接切页）。 */
+function backToToday(from: string): void {
+    const run = (): void => { setPage('home'); };
+    if (document.documentElement.dataset.proto === 'd')
+        void morphNavigate({ from, target: '.d-stage', run, mode: 'reverse' });
+    else
+        run();
 }
 async function startMode(mode: string, explicit?: Word[]) {
     if (startingSession)
@@ -596,7 +605,7 @@ async function showQuestion() {
         $('#main').innerHTML = `<div class="quiz-top"><button id="quit" class="text-button">← 保存并退出</button><span>${active.index + 1} / ${active.queue.length}</span><button id="pause" class="text-button">暂停</button></div><div class="quiz-progress"><i style="width:${active.index / active.queue.length * 100}%"></i></div><section class="quiz-card"><div class="eyebrow">${q.direction === 'en-zh' ? 'ENGLISH → 中文' : '中文 → ENGLISH'}</div><div id="question-text" class="question">${esc(q.direction === 'en-zh' ? w.en : w.zh)}</div><p class="subtle">选出对应的${q.direction === 'en-zh' ? '中文释义' : '英文单词'}</p><div class="answers">${q.options.map((id, i) => { const option = wordMap.get(id)!; return `<button class="answer" data-answer="${id}"><kbd>${i + 1}</kbd><span>${esc(q.direction === 'en-zh' ? option.zh : option.en)}</span></button>`; }).join('')}</div><button id="unknown" class="unknown">不知道 <kbd>Space</kbd></button><div id="feedback" aria-live="polite"></div><div id="pause-cover" hidden><h2>已暂停</h2><p>暂停时间不计入反应时间</p><button id="continue" class="primary">继续答题</button></div></section><div class="quiz-hint">数字键选择 · 空格不知道 · Enter 下一题</div>`;
         document.querySelectorAll<HTMLButtonElement>('[data-answer]').forEach(b => b.onclick = () => { void submit(b.dataset.answer!, 'answer'); });
         on('#unknown', 'click', () => submit(null, 'unknown'));
-        on('#quit', 'click', () => setPage('home'));
+        on('#quit', 'click', () => backToToday('.quiz-card'));
         on('#pause', 'click', pauseQuiz);
         on('#continue', 'click', resumeQuiz);
         // Start clock only after the new DOM has reached a paint boundary.
