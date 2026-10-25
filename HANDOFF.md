@@ -1,3 +1,11 @@
+# HANDOFF — 当前状态（Phase 15e）
+
+> **2026-10-25 更新（15e）**：UI 工作全在 `phase15e-cinematic` 分支（HEAD `ad9a2b1`），`main` 仍是功能基线
+> `514110a` + Phase 14 的旧 UI，**未合并**。功能层（DB v7 / FSRS / Task Executor / PWA / Backup）零改动。
+> 契约文件：`PRODUCT.md`、`DESIGN.md`；本轮实现与证据见 `docs/PHASE15E_IMPLEMENTATION.md`、
+> `docs/PHASE15E_SKILL_EXECUTION.md`、`docs/PHASE15E_TEST_REPORT.md`。
+> **Phase 15 未标 completed**：用户尚未做视觉验收（`STATE.next_task_id = await_user_visual_acceptance_phase15e`）。
+
 # HANDOFF — 当前状态（Phase 14）
 
 **本文件是唯一交接入口。** 本段优先于下方历史段落；与下方旧 Phase 12/13 内容冲突时，以本段和 `STATE.json` 为准。
