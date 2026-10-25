@@ -776,6 +776,14 @@
       "commit": "514110a",
       "tag": "phase14-long-term-safety",
       "ci": "40058298365 success"
+    },
+    {
+      "phase": "phase15f",
+      "branch": "phase15f-art-direction",
+      "commit": "b54e70d",
+      "tag": "phase15f-15f-preview",
+      "remote": "origin/phase15f-art-direction = b54e70d（GitHub API 复核）",
+      "status": "prototype delivered, awaiting user visual acceptance"
     }
   ]
 }

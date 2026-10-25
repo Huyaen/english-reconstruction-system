@@ -1,10 +1,13 @@
-# HANDOFF — 当前状态（Phase 15e）
+# HANDOFF — 当前状态（Phase 15f）
 
-> **2026-10-25 更新（15e）**：UI 工作全在 `phase15e-cinematic` 分支（HEAD `ad9a2b1`），`main` 仍是功能基线
-> `514110a` + Phase 14 的旧 UI，**未合并**。功能层（DB v7 / FSRS / Task Executor / PWA / Backup）零改动。
-> 契约文件：`PRODUCT.md`、`DESIGN.md`；本轮实现与证据见 `docs/PHASE15E_IMPLEMENTATION.md`、
-> `docs/PHASE15E_SKILL_EXECUTION.md`、`docs/PHASE15E_TEST_REPORT.md`。
-> **Phase 15 未标 completed**：用户尚未做视觉验收（`STATE.next_task_id = await_user_visual_acceptance_phase15e`）。
+> **2026-10-26 更新（15f）**：UI 工作全在 `phase15f-art-direction` 分支（起点 `ef4e43f`，HEAD `b54e70d`），
+> `main` 仍是功能基线 `514110a` + Phase 14 的旧 UI，**未合并**。功能层（DB v7 / FSRS / Task Executor /
+> PWA / Backup）零改动。
+> 本轮做的是**构图重做**，不是 CSS 微调：拆掉全宽渐变 Hero，Today 改为金属立柱 + 玻璃板 + 哑光路线 + 账页，
+> 光按高度依次到达（相位 0.60/0.80/2.00/2.30s，周期 11.00s）。
+> 契约：`PRODUCT.md`（按 PROJECT_SPEC 重写为六能力面）、`DESIGN.md` v2；证据见
+> `docs/PHASE15F_ART_DIRECTION.md`、`docs/PHASE15F_TEST_REPORT.md`、`screenshots/phase15f/`。
+> **Phase 15 未标 completed**：用户尚未做视觉验收（`STATE.next_task_id = await_user_visual_acceptance_phase15f`）。
 
 # HANDOFF — 当前状态（Phase 14）
 
