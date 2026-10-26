@@ -784,6 +784,14 @@
       "tag": "phase15f-15f-preview",
       "remote": "origin/phase15f-art-direction = b54e70d（GitHub API 复核）",
       "status": "prototype delivered, awaiting user visual acceptance"
+    },
+    {
+      "phase": "phase15g",
+      "branch": "phase15g-motion-integrity",
+      "commit": "bbfeafb",
+      "tag": "phase15g-motion",
+      "remote": "origin/phase15g-motion-integrity = bbfeafb（GitHub API 复核）",
+      "status": "delivered, awaiting user visual acceptance"
     }
   ]
 }
