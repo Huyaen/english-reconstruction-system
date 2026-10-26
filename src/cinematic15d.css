@@ -45,6 +45,11 @@ html[data-proto="d"] {
   --d-ease: cubic-bezier(.22, .9, .24, 1);
   --d-ease-out: cubic-bezier(.16, 1, .3, 1);
   --d-breath: 11s;
+  /* 同一光源、不同惯性：玻璃/哑光的响应周期比金属长，合成图案几分钟内不重复 */
+  --d-b-key: var(--d-breath);
+  --d-b-metal: calc(var(--d-breath) * 1.21);
+  --d-b-glass: calc(var(--d-breath) * 1.47);
+  --d-b-matte: calc(var(--d-breath) * 1.73);
 
   --d-lit: rgba(255, 255, 255, .17);
   --d-lit-soft: rgba(255, 255, 255, .12);
@@ -123,6 +128,19 @@ html[data-proto="d"] .d-grain {
 }
 html[data-proto="d"][data-theme="light"] .d-grain { opacity: .20; }
 
+/* 专注页的环境光：进入学习后画面不该掉进纯黑——沿用 Today 的光，但静止、不呼吸。
+   只作用于带学习卡片的页面，不改任何学习页布局。 */
+html[data-proto="d"] #main:has(.preview-card, .quiz-card, .reader-main, .exam-card, .lab-card) {
+  background:
+    radial-gradient(74% 52% at 18% -6%, rgba(127, 178, 218, .17), transparent 68%),
+    radial-gradient(60% 44% at 86% 104%, rgba(215, 154, 82, .085), transparent 72%);
+}
+html[data-proto="d"][data-theme="light"] #main:has(.preview-card, .quiz-card, .reader-main, .exam-card, .lab-card) {
+  background:
+    radial-gradient(74% 52% at 18% -6%, rgba(56, 120, 168, .11), transparent 68%),
+    radial-gradient(60% 44% at 86% 104%, rgba(198, 146, 86, .085), transparent 72%);
+}
+
 /* ══ 构图 ═══════════════════════════════════════════════════════════════ */
 
 html[data-proto="d"] .d2-frame {
@@ -145,7 +163,8 @@ html[data-proto="d"] .d2-spine {
     linear-gradient(90deg, rgba(255, 255, 255, .07), transparent 28%, transparent 76%, rgba(0, 0, 0, .42)),
     linear-gradient(180deg, #252D38, #151A21 44%, #090C11);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .22),
+    inset 0 1px 0 rgba(255, 255, 255, .26),
+    inset -1px 0 0 rgba(255, 255, 255, .13),
     inset 0 -1px 0 rgba(0, 0, 0, .65),
     0 34px 70px -52px #000;
   overflow: hidden;
@@ -159,15 +178,20 @@ html[data-proto="d"] .d2-spine::before {
 }
 /* 镜面高光：窄、锐、顺纹理方向上下走 */
 html[data-proto="d"] .d2-spine::after {
-  content: ""; position: absolute; left: -20%; right: -20%; top: -30%; height: 130%;
+  content: ""; position: absolute; left: -20%; right: -20%; top: -30%; height: 160%;
   pointer-events: none;
-  background: linear-gradient(180deg,
-    transparent 30%, rgba(255, 255, 255, .20) 42%, rgba(255, 255, 255, .06) 46%,
-    rgba(0, 0, 0, .30) 51%, transparent 66%);
-  transform: translate3d(calc(var(--lx, 0) * 30px), calc(var(--ly, 0) * 26px), 0);
-  animation: d-metal var(--d-breath) ease-in-out infinite;
-  animation-delay: calc(var(--d-breath) * -.145);
+  /* 两层：2px 宽的镜面线（锐） + 很弱的次级反射（宽）。金属只认方向，不认位置扫描 */
+  background:
+    linear-gradient(180deg,
+      transparent 44%, rgba(255, 255, 255, .46) 47.4%, rgba(255, 255, 255, .94) 48.2%,
+      rgba(255, 255, 255, .30) 48.9%, transparent 50.6%),
+    linear-gradient(180deg,
+      transparent 26%, rgba(255, 255, 255, .07) 44%, rgba(0, 0, 0, .16) 52%, transparent 68%);
+  transform: translate3d(calc(var(--lx, 0) * 16px), calc(var(--ly, 0) * 46px), 0);
+  animation: d-metal var(--d-b-metal) cubic-bezier(.37, 0, .63, 1) infinite;
+  animation-delay: calc(var(--d-b-metal) * -.145);
   mix-blend-mode: screen;
+  will-change: transform, opacity;
 }
 html[data-proto="d"][data-theme="light"] .d2-spine {
   border-color: rgba(255, 255, 255, .14);
@@ -302,29 +326,33 @@ html[data-proto="d"] .d2-now {
      改成「透射式玻璃」——静态填充 + 边缘受光 + 内层光带，视觉一致且可稳定合成 */
   backdrop-filter: none;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .30),
+    inset 0 1px 0 rgba(255, 255, 255, .34),
+    inset 1px 0 0 rgba(255, 255, 255, .09),
+    inset -1px 0 0 rgba(255, 255, 255, .13),
     inset 0 0 0 1px rgba(255, 255, 255, .07),
-    inset 0 -32px 60px -46px rgba(255, 255, 255, .26),
+    inset 0 -46px 68px -54px rgba(255, 255, 255, .30),
+    inset 0 34px 54px -50px rgba(140, 178, 214, .22),
     0 50px 100px -70px #000;
   overflow: hidden;
 }
 /* 玻璃的透射光晕：宽、软、慢 */
-/* 玻璃的透射：一条有方向的窄光带（102°）+ 一层更小的柔光，不是一团雾 */
+/* 玻璃的透射：宽而柔的两团透射光（不是扫描线），下缘来自路线的暖色再反上来。
+   内表面与外表面各一层，边界靠 inset 边缘光交代，不靠一条亮带。 */
 html[data-proto="d"] .d2-glass {
-  position: absolute; inset: -40% -20%; pointer-events: none;
+  position: absolute; inset: -30% -14%; pointer-events: none;
   background:
-    linear-gradient(180deg,
-      transparent 42%,
-      rgba(214, 232, 250, .05) 47%,
-      rgba(238, 246, 255, .22) 49.4%,
-      rgba(255, 255, 255, .38) 50%,
-      rgba(238, 246, 255, .18) 50.8%,
-      rgba(214, 232, 250, .04) 54%,
-      transparent 62%),
-    radial-gradient(34% 30% at 30% 18%, rgba(160, 198, 232, .07), transparent 76%);
-  transform: translate3d(calc(var(--lx, 0) * 16px), calc(var(--ly, 0) * 12px), 0);
-  animation: d-glass var(--d-breath) ease-in-out infinite;
-  animation-delay: calc(var(--d-breath) * -.082);
+    radial-gradient(64% 54% at 26% 12%, rgba(214, 232, 250, .16), transparent 68%),
+    radial-gradient(52% 46% at 82% 78%, rgba(150, 192, 230, .12), transparent 72%);
+  transform: translate3d(calc(var(--lx, 0) * 13px), calc(var(--ly, 0) * 9px), 0);
+  animation: d-glass var(--d-b-glass) cubic-bezier(.45, 0, .55, 1) infinite;
+  animation-delay: calc(var(--d-b-glass) * -.082);
+  opacity: .9;
+  will-change: transform, opacity;
+}
+/* 内表面：一层更小、更淡的透射，制造「板有厚度」的层次 */
+html[data-proto="d"] .d2-glass::after {
+  content: ""; position: absolute; inset: 12% 10%;
+  background: radial-gradient(70% 60% at 40% 30%, rgba(255, 255, 255, .09), transparent 70%);
   opacity: .8;
 }
 /* 路线反射：把下方时间带的暖色反到玻璃下缘 */
@@ -400,7 +428,8 @@ html[data-proto="d"] .d-cta {
     0 10px 20px -12px rgba(150, 190, 230, .45),
     var(--d-sh-contact);
   transform: translateZ(0);
-  transition: box-shadow var(--d-t-ui, 160ms) var(--d-ease);
+  /* 按压时：形变（弹簧 JS）、接触阴影（本行）、表面亮度（filter）用同一条 130ms 曲线 */
+  transition: box-shadow 130ms cubic-bezier(.22, .72, .24, 1), filter 130ms linear;
   overflow: hidden;
 }
 html[data-proto="d"] .d-cta::after { content: "→"; opacity: .5; margin-left: 2px; }
@@ -413,8 +442,9 @@ html[data-proto="d"] .d-glint {
   transition: opacity var(--d-t-ui, 160ms) linear;
 }
 html[data-proto="d"] .d-cta.is-pressed {
-  box-shadow: inset 0 -6px 14px -12px rgba(20, 40, 60, .5), inset 0 2px 8px rgba(24, 48, 72, .30),
-    0 4px 12px -8px rgba(120, 160, 200, .5);
+  filter: brightness(.965);
+  box-shadow: inset 0 -4px 10px -12px rgba(20, 40, 60, .5), inset 0 2px 8px rgba(24, 48, 72, .34),
+    0 2px 6px -6px rgba(120, 160, 200, .55), 0 0 0 1px rgba(255, 255, 255, .18);
 }
 html[data-proto="d"] .d-cta.is-pressed .d-glint { opacity: .8; }
 html[data-proto="d"][data-theme="light"] .d-cta {
@@ -457,11 +487,11 @@ html[data-proto="d"] .d2-route {
 /* 哑光：极宽的柔光，只有明暗，没有高光条 */
 html[data-proto="d"] .d2-route::after {
   content: ""; position: absolute; inset: -60% -20%; pointer-events: none;
-  background: radial-gradient(60% 50% at 50% 40%, var(--d-lit-soft), transparent 72%);
-  transform: translate3d(calc(var(--lx, 0) * 8px), calc(var(--ly, 0) * 6px), 0);
-  animation: d-matte var(--d-breath) ease-in-out infinite;
-  animation-delay: calc(var(--d-breath) * -.018);
-  opacity: .3; mix-blend-mode: screen;
+  background: radial-gradient(96% 82% at 50% 44%, var(--d-lit-soft), transparent 82%);
+  transform: translate3d(calc(var(--lx, 0) * 3px), calc(var(--ly, 0) * 2px), 0);
+  animation: d-matte var(--d-b-matte) cubic-bezier(.42, 0, .58, 1) infinite;
+  animation-delay: calc(var(--d-b-matte) * -.018);
+  opacity: .16; mix-blend-mode: screen;
 }
 html[data-proto="d"][data-theme="light"] .d2-route {
   background: linear-gradient(180deg, #FBFCFE, #F2F6FA 92%);
@@ -591,6 +621,23 @@ html[data-proto="d"] .d-row.is-now::before {
   opacity: .9;
 }
 html[data-proto="d"] .d-row.is-pressed { background: rgba(255, 255, 255, .045); }
+/* 完成反馈：一次镜面扫过 + 轻微抬起，不做持续闪烁 */
+html[data-proto="d"] .d-seg.is-just-done { animation: d-seg-done 1.15s var(--d-ease-out); }
+@keyframes d-seg-done {
+  0%   { transform: translateY(0); box-shadow: 0 0 0 0 rgba(215, 154, 82, 0); }
+  14%  { transform: translateY(-2px); box-shadow: 0 6px 18px -10px rgba(215, 154, 82, .55); }
+  100% { transform: translateY(0); box-shadow: 0 0 0 0 rgba(215, 154, 82, 0); }
+}
+html[data-proto="d"] .d-seg.is-just-done::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, .16) 48%, transparent 76%);
+  animation: d-seg-sweep 1.15s var(--d-ease-out);
+}
+@keyframes d-seg-sweep {
+  0% { transform: translate3d(-60%, 0, 0); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translate3d(60%, 0, 0); opacity: 0; }
+}
 html[data-proto="d"] .d-row.is-flash { animation: d-flash 1.1s var(--d-ease-out); }
 @keyframes d-flash {
   0%   { background: rgba(127, 178, 218, .20); }
@@ -655,21 +702,43 @@ html[data-proto="d"] .d-foot {
 
 /* ══ 动效 ═══════════════════════════════════════════════════════════════ */
 
+/* 呼吸 = 明暗与体积的缓慢起伏，不是灯条扫过。位移都 ≤ 10px（金属 26px 的镜面线除外）。 */
+/* 呼吸暂停：指针诊断录屏要隔离「光跟指针」与「自动呼吸」两种运动。
+   data-nobreath 是硬开关（JS 的 kick() 会把 data-lights 翻回 on，不能用来做诊断）。 */
+html[data-proto="d"][data-nobreath] .d-key,
+html[data-proto="d"][data-nobreath] .d2-spine::after,
+html[data-proto="d"][data-nobreath] .d2-glass,
+html[data-proto="d"][data-nobreath] .d2-glass::after,
+html[data-proto="d"][data-nobreath] .d2-route::after,
+html[data-proto="d"][data-nobreath] .d-next-label i,
+html[data-proto="d"][data-nobreath] [data-rowlit]::after { animation: none !important; }
+
+html[data-proto="d"][data-lights="paused"] .d-key,
+html[data-proto="d"][data-lights="paused"] .d2-spine::after,
+html[data-proto="d"][data-lights="paused"] .d2-glass,
+html[data-proto="d"][data-lights="paused"] .d2-glass::after,
+html[data-proto="d"][data-lights="paused"] .d2-route::after,
+html[data-proto="d"][data-lights="paused"] .d-next-label i,
+html[data-proto="d"][data-lights="paused"] [data-rowlit]::after { animation-play-state: paused !important; }
+
 @keyframes d-key-breathe {
-  0%, 100% { opacity: .55; transform: translate3d(0, -46px, 0) scale(.98); }
-  50%      { opacity: 1;   transform: translate3d(0, 46px, 0) scale(1.05); }
+  0%, 100% { opacity: .62; transform: translate3d(0, -6px, 0) scale(.995); }
+  38%      { opacity: .92; transform: translate3d(0, 0, 0) scale(1.012); }
+  62%      { opacity: 1;   transform: translate3d(0, 4px, 0) scale(1.02); }
 }
 @keyframes d-metal {
-  0%, 100% { transform: translate3d(calc(var(--lx, 0) * 30px), -18%, 0); opacity: .42; }
-  50%      { transform: translate3d(calc(var(--lx, 0) * 30px), 12%, 0);  opacity: 1; }
+  0%, 100% { transform: translate3d(calc(var(--lx, 0) * 16px), calc(var(--ly, 0) * 46px - 26px), 0); opacity: .34; }
+  45%      { transform: translate3d(calc(var(--lx, 0) * 16px), calc(var(--ly, 0) * 46px), 0); opacity: 1; }
+  72%      { transform: translate3d(calc(var(--lx, 0) * 16px), calc(var(--ly, 0) * 46px + 14px), 0); opacity: .58; }
 }
 @keyframes d-glass {
-  0%, 100% { opacity: .30; transform: translate3d(calc(var(--lx, 0) * 14px), -74px, 0); }
-  50%      { opacity: .95; transform: translate3d(calc(var(--lx, 0) * 14px), 66px, 0); }
+  0%, 100% { opacity: .58; transform: translate3d(calc(var(--lx, 0) * 13px), calc(var(--ly, 0) * 9px - 8px), 0) scale(.997); }
+  40%      { opacity: 1;   transform: translate3d(calc(var(--lx, 0) * 13px), calc(var(--ly, 0) * 9px), 0) scale(1.006); }
+  68%      { opacity: .82; transform: translate3d(calc(var(--lx, 0) * 13px), calc(var(--ly, 0) * 9px + 4px), 0) scale(1.002); }
 }
 @keyframes d-matte {
-  0%, 100% { opacity: .28; transform: translate3d(0, -26px, 0); }
-  50%      { opacity: .88; transform: translate3d(0, 16px, 0); }
+  0%, 100% { opacity: .34; transform: translate3d(calc(var(--lx, 0) * 3px), calc(var(--ly, 0) * 2px - 3px), 0); }
+  55%      { opacity: 1;   transform: translate3d(calc(var(--lx, 0) * 3px), calc(var(--ly, 0) * 2px), 0); }
 }
 @keyframes d-rowlit {
   0%, 100% { opacity: .10; }

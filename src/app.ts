@@ -13,7 +13,7 @@ import { startLiving, stopLiving, livingAllowed } from './living';
 import type { Data, Word, StudySession, Settings, ReviewRecord, Mastery, DailyPlan, PlanItem, EnergyState, GrammarConcept, SentenceRecord, SentenceStepRecord, SentenceAttempt, SentenceEvidenceClass, GrammarCategory } from './types.ts';
 import { testHooksEnabled, pwaEnabled } from './testMode.ts';
 import { afterRender } from './motion.ts';
-import { morphNavigate } from './morph15d.ts';
+import { morphNavigate, morphBusy } from './morph15d.ts';
 // —— Phase 5：Reading Lab ——
 import type { Passage, ReadingSession, ReadingToken, ReadingMark, ReadingDifficultyReport, WordExposure, DifficultSentence, ReadingProblemType } from './types.ts';
 import { parsePassageText, sentenceAtSpan, tokenizeSentence, countWords } from './readingText.ts';
@@ -511,14 +511,14 @@ function previewDone() {
     page = 'preview-done';
     $('#main').innerHTML = title('PREVIEW COMPLETE', '第一次编码完成', `已预览 ${done.length} 个词；未预览完的 ${remain} 个已保留，下次可继续。`) + `<div class="actions"><button id="recall-now" class="primary" ${done.length ? '' : 'disabled'}>开始 Recall（${done.length} 词）</button><button id="back-home" class="secondary">返回首页</button></div><p class="hint">Preview 只负责第一次装填；Recall 才检验提取。未预览的新词不会进入正式测试。</p>`;
     on('#recall-now', 'click', () => { void startMode('previewed-recall', done); });
-    on('#back-home', 'click', () => backToToday('#main > *'));
+    on('#back-home', 'click', () => backToToday('#main .preview-card, #main .quiz-card, #main .reader-main, #main .exam-card, #main .lab-card, #main > *'));
 }
 
 /** 学习页 → Today：反向共享元素转场（非 15d 界面时直接切页）。 */
 function backToToday(from: string): void {
     const run = (): void => { setPage('home'); };
     if (document.documentElement.dataset.proto === 'd')
-        void morphNavigate({ from, target: '.d-stage', run, mode: 'reverse' });
+        void morphNavigate({ from, target: '[data-morph-dest="today"]', run, mode: 'reverse' });
     else
         run();
 }
@@ -1994,14 +1994,34 @@ function bindPlan() {
     on('#plan-regenerate', 'click', () => void regeneratePlan(todayPlan?.availableMinutes ?? planBudget, todayPlan?.energyState ?? planEnergy));
     on('#start-today', 'click', () => void startTodayTraining());
     on('#plan-adjust', 'click', planAdjustDialog);
-    document.querySelectorAll<HTMLElement>('[data-task-start]').forEach(b => b.onclick = () => void morphNavigate({
-        from: b, target: '.preview-card, .quiz-card, .reader-main, .exam-card, .lab-card',
-        run: () => startPlanTask(b.dataset.taskStart!),
-    }));
+    document.querySelectorAll<HTMLElement>('[data-task-start]').forEach(b => b.onclick = () => {
+        if (morphBusy())
+            return;
+        void morphNavigate({
+            from: b, target: '#main .preview-card, #main .quiz-card, #main .reader-main, #main .exam-card, #main .lab-card',
+            run: () => startPlanTask(b.dataset.taskStart!),
+        });
+    });
     document.querySelectorAll<HTMLElement>('[data-task-skip]').forEach(b => b.onclick = () => void planAction(b.dataset.taskSkip!, 'skip'));
     document.querySelectorAll<HTMLElement>('[data-task-delay]').forEach(b => b.onclick = () => void planAction(b.dataset.taskDelay!, 'delay'));
     document.querySelectorAll<HTMLElement>('[data-task-replace]').forEach(b => b.onclick = () => void replacePlanTask(b.dataset.taskReplace!));
 }
+/** 刚完成的任务在 Today 路线上闪一次（只在回到 Today 时生效，一次性）。 */
+function pulseJustCompleted(): void {
+    let id: string | null = null;
+    try { id = sessionStorage.getItem('d.justDone'); } catch { return; }
+    if (!id)
+        return;
+    try { sessionStorage.removeItem('d.justDone'); } catch { /* ignore */ }
+    if (page !== 'home')
+        return;
+    const seg = document.querySelector<HTMLElement>(`.d-seg[data-seg="${CSS.escape(id)}"]`);
+    if (!seg || !livingAllowed())
+        return;
+    seg.classList.add('is-just-done');
+    window.setTimeout(() => seg.classList.remove('is-just-done'), 1250);
+}
+
 function upsertPlan(list: DailyPlan[], plan: DailyPlan): DailyPlan[] {
     const i = list.findIndex(p => p.id === plan.id);
     const next = [...list];
@@ -2248,6 +2268,11 @@ async function startPlanTaskOnce(taskId: string, fromFlow = false): Promise<void
         taskExecution = null;
 }
 async function startTodayTraining(): Promise<void> {
+    if (morphBusy())
+        return;
+    // 录屏专用钩子：press 片段要单独展示「按下/保持/松开/回弹」，不能顺带跳页
+    if ((window as unknown as { __noNavClick?: boolean }).__noNavClick)
+        return;
     if (!todayPlan) {
         toast('先生成今日计划');
         return;
@@ -2261,7 +2286,7 @@ async function startTodayTraining(): Promise<void> {
         return;
     }
     await morphNavigate({
-        from: '#start-today', target: '.preview-card, .quiz-card, .reader-main, .exam-card, .lab-card',
+        from: '#start-today', target: '#main .preview-card, #main .quiz-card, #main .reader-main, #main .exam-card, #main .lab-card',
         run: () => startPlanTask(next.id, true),
     });
 }
@@ -2310,6 +2335,10 @@ async function completePlanTask(exec: {
     const savedPlan = await persistPlan(plan);
     if (savedPlan && exec.kind === 'closing-recall')
         closingFeedback();
+    if (savedPlan) {
+        // 路线段的一次性完成反馈：只做视觉，不改任何学习证据
+        try { sessionStorage.setItem('d.justDone', exec.planTaskId); } catch { /* 隐私模式忽略 */ }
+    }
     if (savedPlan && trainingFlow) {
         page = 'home';
         render();
@@ -5208,6 +5237,7 @@ function protoHome(s: ReturnType<typeof summary>): void {
         on('#reflow-start', 'click', () => startReflow());
         document.querySelectorAll<HTMLElement>('[data-mode]').forEach(b => b.onclick = () => { startMode(b.dataset.mode!).catch(e => toast(e.message)); });
         startLiving($('#main') as HTMLElement);
+        pulseJustCompleted();
         return;
     }
     $('#main').innerHTML = protoTodayHTML(ctx) + protoBelow(s, unfinished, plan);

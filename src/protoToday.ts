@@ -394,7 +394,7 @@ export function protoTodayD(c: ProtoContext): string {
       </div>
     </div>
 
-    <section class="d-stage d2-now" data-specular>
+    <section class="d-stage d2-now" data-specular data-morph-anchor="today" data-morph-dest="today">
       <div class="d2-glass" aria-hidden="true"></div>
       <div class="d2-now-reflect" aria-hidden="true"></div>
       <div class="d2-now-body">

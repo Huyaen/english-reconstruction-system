@@ -414,6 +414,10 @@ export function startLiving(root: ParentNode = document): void {
     if (!stage || !page)
         return;
     if (!field || field.stage !== stage) {
+        // 重渲染会换掉整个舞台：旧观察器还盯着已脱离文档的节点，
+        // 会在下一次回调里把呼吸判成「离屏」并永久暂停（15f 的空闲呼吸时有时无就是这个）。
+        if (stageObserver) { stageObserver.disconnect(); stageObserver = null; }
+        if (resizeObserver) { resizeObserver.disconnect(); resizeObserver = null; }
         field = {
             stage,
             page,
@@ -463,6 +467,8 @@ export function startLiving(root: ParentNode = document): void {
         let seenVisible = false;
         stageObserver = new IntersectionObserver(entries => {
             for (const e of entries) {
+                if (field && e.target !== field.stage)
+                    continue;                  // 旧舞台的回调一律忽略
                 if (e.isIntersecting) { seenVisible = true; idleClass(false); }
                 else if (seenVisible) idleClass(true);
             }

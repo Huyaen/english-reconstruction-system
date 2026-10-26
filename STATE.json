@@ -2,9 +2,9 @@
   "project": "English Reconstruction System V2",
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
-  "current_phase": "phase_15f_art_direction",
-  "phase_status": "in_progress（15a–15f 已实现；15f 为 Today 新构图原型，未达用户视觉验收，不标 completed）",
-  "last_updated": "2026-10-26T12:00:00+08:00",
+  "current_phase": "phase_15g_motion_integrity",
+  "phase_status": "in_progress（15a–15g 已实现；15g 修转场与材质，未达用户视觉验收，不标 completed）",
+  "last_updated": "2026-10-26T18:30:00+08:00",
   "last_verified_commit": "514110a（功能基线；15d/15e 为 phase15 分支上的 UI 提交，未合并 main）",
   "baseline_tag": "v1.0.0-mvp-baseline",
   "database_version": 7,
@@ -703,7 +703,7 @@
     "专用考试记录导入只接受本应用导出的 erv2-exam-logs；完整学习数据仍走全局备份。"
   ],
   "blocked": [],
-  "next_task_id": "await_user_visual_acceptance_phase15f",
+  "next_task_id": "await_user_visual_acceptance_phase15g",
   "environment": {
     "node": "v26.7.0",
     "npm": "11.19.0",
