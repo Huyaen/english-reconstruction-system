@@ -1,0 +1,203 @@
+{
+  "seeded": "existing:50",
+  "sessionResult": "skipped",
+  "shots": [
+    {
+      "file": "home-dark-1366x768.png",
+      "page": "home",
+      "theme": "dark",
+      "size": "1366x768",
+      "head": "先给今天留一段时间。"
+    },
+    {
+      "file": "books-dark-1366x768.png",
+      "page": "books",
+      "theme": "dark",
+      "size": "1366x768",
+      "head": "你的词库"
+    },
+    {
+      "file": "weak-dark-1366x768.png",
+      "page": "weak",
+      "theme": "dark",
+      "size": "1366x768",
+      "head": "把薄弱的地方练扎实"
+    },
+    {
+      "file": "sentence-dark-1366x768.png",
+      "page": "sentence",
+      "theme": "dark",
+      "size": "1366x768",
+      "head": "句子训练"
+    },
+    {
+      "file": "reading-dark-1366x768.png",
+      "page": "reading",
+      "theme": "dark",
+      "size": "1366x768",
+      "head": "阅读"
+    },
+    {
+      "file": "input-dark-1366x768.png",
+      "page": "input",
+      "theme": "dark",
+      "size": "1366x768",
+      "head": "真实输入"
+    },
+    {
+      "file": "output-dark-1366x768.png",
+      "page": "output",
+      "theme": "dark",
+      "size": "1366x768",
+      "head": "真实表达"
+    },
+    {
+      "file": "grammar-dark-1366x768.png",
+      "page": "grammar",
+      "theme": "dark",
+      "size": "1366x768",
+      "head": "语法图谱"
+    },
+    {
+      "file": "unit-dark-1366x768.png",
+      "page": "unit",
+      "theme": "dark",
+      "size": "1366x768",
+      "head": "Mini Unit · 主题学习单元"
+    },
+    {
+      "file": "diagnostics-dark-1366x768.png",
+      "page": "diagnostics",
+      "theme": "dark",
+      "size": "1366x768",
+      "head": "学情诊断"
+    },
+    {
+      "file": "exam-dark-1366x768.png",
+      "page": "exam",
+      "theme": "dark",
+      "size": "1366x768",
+      "head": "把练习迁移到考试"
+    },
+    {
+      "file": "stats-dark-1366x768.png",
+      "page": "stats",
+      "theme": "dark",
+      "size": "1366x768",
+      "head": "看见记忆的变化"
+    },
+    {
+      "file": "ai-dark-1366x768.png",
+      "page": "ai",
+      "theme": "dark",
+      "size": "1366x768",
+      "head": "让数据给出下一步"
+    },
+    {
+      "file": "settings-dark-1366x768.png",
+      "page": "settings",
+      "theme": "dark",
+      "size": "1366x768",
+      "head": "按你的速度来"
+    },
+    {
+      "file": "home-light-1366x768.png",
+      "page": "home",
+      "theme": "light",
+      "size": "1366x768",
+      "head": "先给今天留一段时间。"
+    },
+    {
+      "file": "books-light-1366x768.png",
+      "page": "books",
+      "theme": "light",
+      "size": "1366x768",
+      "head": "你的词库"
+    },
+    {
+      "file": "weak-light-1366x768.png",
+      "page": "weak",
+      "theme": "light",
+      "size": "1366x768",
+      "head": "把薄弱的地方练扎实"
+    },
+    {
+      "file": "sentence-light-1366x768.png",
+      "page": "sentence",
+      "theme": "light",
+      "size": "1366x768",
+      "head": "句子训练"
+    },
+    {
+      "file": "reading-light-1366x768.png",
+      "page": "reading",
+      "theme": "light",
+      "size": "1366x768",
+      "head": "阅读"
+    },
+    {
+      "file": "input-light-1366x768.png",
+      "page": "input",
+      "theme": "light",
+      "size": "1366x768",
+      "head": "真实输入"
+    },
+    {
+      "file": "output-light-1366x768.png",
+      "page": "output",
+      "theme": "light",
+      "size": "1366x768",
+      "head": "真实表达"
+    },
+    {
+      "file": "grammar-light-1366x768.png",
+      "page": "grammar",
+      "theme": "light",
+      "size": "1366x768",
+      "head": "语法图谱"
+    },
+    {
+      "file": "unit-light-1366x768.png",
+      "page": "unit",
+      "theme": "light",
+      "size": "1366x768",
+      "head": "Mini Unit · 主题学习单元"
+    },
+    {
+      "file": "diagnostics-light-1366x768.png",
+      "page": "diagnostics",
+      "theme": "light",
+      "size": "1366x768",
+      "head": "学情诊断"
+    },
+    {
+      "file": "exam-light-1366x768.png",
+      "page": "exam",
+      "theme": "light",
+      "size": "1366x768",
+      "head": "把练习迁移到考试"
+    },
+    {
+      "file": "stats-light-1366x768.png",
+      "page": "stats",
+      "theme": "light",
+      "size": "1366x768",
+      "head": "看见记忆的变化"
+    },
+    {
+      "file": "ai-light-1366x768.png",
+      "page": "ai",
+      "theme": "light",
+      "size": "1366x768",
+      "head": "让数据给出下一步"
+    },
+    {
+      "file": "settings-light-1366x768.png",
+      "page": "settings",
+      "theme": "light",
+      "size": "1366x768",
+      "head": "按你的速度来"
+    }
+  ],
+  "errors": []
+}
