@@ -796,10 +796,22 @@
     {
       "phase": "phase15h",
       "branch": "phase15h-full-ui-migration",
-      "commit": null,
+      "commit": "4863818",
       "tag": "phase15h-full-ui",
-      "remote": "pending",
-      "status": "delivered, awaiting user visual acceptance"
+      "remote": "verified (local==remote==4863818)",
+      "status": "delivered, awaiting user visual acceptance",
+      "evidence": {
+        "screenshots": 88,
+        "videos": 6,
+        "review_zip": "review-export/phase15h-full-ui-review.zip (38.5MB)"
+      },
+      "not_done": [
+        "用户视觉验收",
+        "mobile composition",
+        "old prototype layer cleanup",
+        "3 flows without video",
+        "impeccable animate/polish not executed"
+      ]
     }
   ]
 }
