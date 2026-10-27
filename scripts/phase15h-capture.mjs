@@ -8,7 +8,7 @@
 //  - 在真实导入后跑一次 12 词 Preview，产生真实作答记录（统计/诊断才有内容）；
 //  - 采集用 headful Edge + Page.captureScreenshot（不依赖 screencast）。
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync, existsSync, cpSync, rmSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, cpSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 const PORT = Number(process.env.CDP_PORT || 9500 + (Date.now() % 90));
@@ -463,7 +463,15 @@ for (const size of SIZES) {
   }
 }
 
-writeFileSync(join(OUT, 'capture-manifest.json'), JSON.stringify({ seeded, sessionResult, shots: manifest, errors: consoleErrors.slice(0, 10) }, null, 2));
+// 合并写：分批跑尺寸时不能覆盖上一次的记录（曾出现只留最后 28 条的问题）
+const mf = join(OUT, 'capture-manifest.json');
+let prevShots = [];
+try { prevShots = JSON.parse(readFileSync(mf, 'utf8')).shots || [] } catch {}
+const byKey = new Map();
+for (const s of prevShots) byKey.set(`${s.page}|${s.theme}|${s.size}`, s);
+for (const s of manifest) byKey.set(`${s.page}|${s.theme}|${s.size}`, s);
+const merged = [...byKey.values()].sort((a, b) => (a.page + a.theme + a.size).localeCompare(b.page + b.theme + b.size));
+writeFileSync(mf, JSON.stringify({ seeded, sessionResult, shots: merged, errors: consoleErrors.slice(0, 10) }, null, 2));
 console.log(JSON.stringify({ seeded, sessionResult, shots: manifest.length, errors: consoleErrors.slice(0, 3) }));
 
 ws.close();
