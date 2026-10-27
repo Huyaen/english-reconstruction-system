@@ -10,3 +10,6 @@ dist-test/
 screenshots/phase15e/recording/*.mp4
 screenshots/phase15f/recording/
 screenshots/phase15g/recording/
+screenshots/phase15h/recording/frames-*/
+screenshots/phase15h/recording/*.mp4
+review-export/

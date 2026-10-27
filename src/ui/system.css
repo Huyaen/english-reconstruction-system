@@ -945,7 +945,11 @@
   width: 2px;
   border-radius: 2px;
   background: linear-gradient(180deg, var(--metal-hi), var(--metal-mid));
-  box-shadow: 0 0 12px -2px var(--metal-hi);
+}
+/* 旧层的导航竖条带蓝色光晕（impeccable dark-glow）；这里压掉，只留金属条本身 */
+html[data-level] .app-shell aside nav button.active::before {
+  box-shadow: none;
+  background: linear-gradient(180deg, var(--metal-hi), var(--metal-mid));
 }
 [data-level] .app-shell aside nav button.active > span { color: var(--accent-ink); }
 
@@ -964,7 +968,7 @@
   height: 6px;
   border-radius: 50%;
   background: var(--ok);
-  box-shadow: 0 0 0 3px var(--ok-wash);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 0 0 3px color-mix(in srgb, var(--ok) 16%, transparent);
   display: inline-block;
   margin-right: 6px;
 }
@@ -1038,6 +1042,22 @@
   letter-spacing: 0;
 }
 [data-page="home"] .d2-spine .d2-remaining span { color: var(--ink-faint); }
+
+
+/* ── 15h · 去掉"AI 光环"：零偏移彩色光晕 ─────────────────────────────────
+   impeccable detect 的 dark-glow 规则命中两处：预算条 .d2-fill 的蓝色光晕、
+   当前任务标签前的暖色圆点。彩色光晕是最典型的 AI 味，改为中性投影 + 内高光。 */
+html[data-page="home"] .d2-fill {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+    0 1px 2px rgba(0, 0, 0, 0.35);
+}
+html[data-page="home"] .d-next-label > i {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    0 1px 2px rgba(0, 0, 0, 0.4);
+}
 
 /* ── 12. 窄视口：不重做构图，只保证不溢出、不丢失操作 ───────────────────── */
 @media (max-width: 900px) {

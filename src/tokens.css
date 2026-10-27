@@ -127,7 +127,8 @@
   --dur-4: 640ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-std: cubic-bezier(0.32, 0.72, 0, 1);
-  --ease-spring: cubic-bezier(0.34, 1.32, 0.64, 1);
+  /* 15h：弹性过冲在真实材质上不成立（会被读成玩具感），改为强减速曲线 */
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
   --stagger: 40ms;
   --press-scale: 0.984;
   --tilt-max: 1.4deg;
