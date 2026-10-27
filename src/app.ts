@@ -16,7 +16,6 @@ import './ui/pages/reading.css';
 import './ui/pages/sentence-grammar.css';
 import './ui/pages/io.css';
 import './ui/pages/data.css';
-import './ui/pages/io.css';
 import { protoTodayHTML, protoTodayD, protoTaskViews, type ProtoContext, type ProtoId, type ProtoTaskInput } from './protoToday';
 import { startLiving, stopLiving, livingAllowed } from './living';
 import type { Data, Word, StudySession, Settings, ReviewRecord, Mastery, DailyPlan, PlanItem, EnergyState, GrammarConcept, SentenceRecord, SentenceStepRecord, SentenceAttempt, SentenceEvidenceClass, GrammarCategory } from './types.ts';
@@ -321,7 +320,11 @@ function paint(): void {
         main.classList.add('p15-enter');
     }
 }
-function title(kicker: string, title: string, sub: string, action = '') { return `<div class="page-title"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p>${sub}</p></div>${action}</div>`; }
+function title(kicker: string, title: string, sub: string, action = '') {
+    // 15h 复核：eyebrow 原本压在 h1 上方，占掉标题上的黄金位，且检测器判 kicker-above-heading。
+    // 它的信息（YOUR WORDBOOKS / FOCUSED REVIEW）属于元信息，不是标题——移到 h1 之后。
+    return `<div class="page-title"><div><h1>${title}</h1><div class="eyebrow">${kicker}</div><p>${sub}</p></div>${action}</div>`;
+}
 /** 计划理由码 → 人话。计划层只给内部码，界面不能直接暴露。 */
 function humanReason(raw: string): string {
     const m = raw.match(/^([a-z0-9-]+?)(?:\((.*?)\)|:(.*))?$/);
@@ -769,9 +772,27 @@ function showResults(s: StudySession) {
 function wordChips(ws: Word[]) { return ws.length ? `<div class="chips">${ws.map(w => `<button data-detail="${w.id}">${esc(w.en)}</button>`).join('')}</div>` : '<p class="subtle">没有这一类单词</p>'; }
 function filtered(weak: boolean) { let ws = data.words.filter(w => (!weak || isWeak(w)) && (!bookFilter || w.bookId === bookFilter) && (!levelFilter || w.state.level === levelFilter) && (!search || `${w.en} ${w.zh} ${w.tags}`.toLowerCase().includes(search.toLowerCase()))); return ws.sort(sort === 'alpha' ? (a, b) => a.en.localeCompare(b.en) : sort === 'due' ? (a, b) => effectiveDue(a, data.settings.schedulingAuthority) - effectiveDue(b, data.settings.schedulingAuthority) : (a, b) => priority(b) - priority(a)); }
 function library(weak: boolean) {
-    $('#main').innerHTML = title(weak ? 'FOCUSED REVIEW' : 'YOUR WORDBOOKS', weak ? '把薄弱的地方练扎实' : '你的词库', weak ? '不会和模糊词，按照当前复习优先级排列。' : '导入你要学的词，所有记录留在这台设备。', `<button id="import" class="primary">＋ 导入词书</button>`) + `<div class="book-tabs"><button data-book="" class="${!bookFilter ? 'selected' : ''}">全部词书</button>${data.books.map(b => `<button data-book="${b.id}" class="${bookFilter === b.id ? 'selected' : ''}">${esc(b.name)} <small>${data.words.filter(w => w.bookId === b.id).length}</small></button>`).join('')}</div><div class="toolbar"><input id="search" placeholder="搜索单词、释义或标签" aria-label="搜索词库" value="${esc(search)}"><select id="level" aria-label="掌握筛选"><option value="">全部状态</option>${Object.entries(labels).filter(([k]) => !weak || k === 'unknown' || k === 'vague').map(([k, v]) => `<option value="${k}" ${k === levelFilter ? 'selected' : ''}>${v}</option>`).join('')}</select><select id="sort" aria-label="排序"><option value="priority" ${sort === 'priority' ? 'selected' : ''}>优先级排序</option><option value="alpha" ${sort === 'alpha' ? 'selected' : ''}>字母排序</option><option value="due" ${sort === 'due' ? 'selected' : ''}>复习时间排序</option></select><span class="toolbar-actions"><button id="train-filter" class="secondary">训练这批</button><button id="export-filter" class="secondary">导出</button><button id="preview-lib" class="secondary">预览新词</button></span>${bookFilter ? '<button id="rename-book" class="text-button">重命名</button><button id="delete-book" class="danger-text">删除词书</button>' : ''}</div><section class="panel no-padding" id="word-table"></section>`;
+    // 15h 复核 P0：薄弱词与词库曾共用同一模板（只换标题），用户切了侧栏却得到同一张屏，
+    // 本页唯一意图（复习弱词）被降级成工具栏第三个次要按钮，最亮的却是无关的"导入"。
+    // 这里给薄弱词一条自己的首屏：一个复习启动器 + 唯一的金属主行动；导入降级到工具栏。
+    const weakWords = weak ? filtered(true) : [];
+    const launcher = weak
+        ? `<section class="panel review-launcher">
+  <div class="review-launcher-copy">
+    <span class="review-kicker">这一页只做一件事</span>
+    <strong>${weakWords.length ? `${weakWords.length} 个词等着再练一次` : '还没有需要强化的词'}</strong>
+    <span class="subtle">${weakWords.length ? '按当前优先级排序；答错的词会立刻回到本轮队列。' : '先在词库里记录几次真实作答，薄弱词会自己出现。'}</span>
+  </div>
+  ${weakWords.length
+            ? '<button id="review-start" class="primary">开始复习</button>'
+            : '<button id="import-weak" class="primary">导入词书</button>'}
+</section>`
+        : '';
+    $('#main').innerHTML = title(weak ? 'FOCUSED REVIEW' : 'YOUR WORDBOOKS', weak ? '把薄弱的地方练扎实' : '你的词库', weak ? '不会和模糊词，按当前复习优先级排列。' : '导入你要学的词，所有记录留在这台设备。', weak ? '' : `<button id="import" class="primary">＋ 导入词书</button>`) + launcher + `${weak ? `<details class="weak-ledger"><summary>查看这 ${weakWords.length} 个词的明细</summary><div class="weak-ledger-body">` : ''}<div class="book-tabs"><button data-book="" class="${!bookFilter ? 'selected' : ''}">全部词书</button>${data.books.map(b => `<button data-book="${b.id}" class="${bookFilter === b.id ? 'selected' : ''}">${esc(b.name)} <small>${data.words.filter(w => w.bookId === b.id).length}</small></button>`).join('')}</div><div class="toolbar"><input id="search" placeholder="搜索单词、释义或标签" aria-label="搜索词库" value="${esc(search)}"><select id="level" aria-label="掌握筛选"><option value="">全部状态</option>${Object.entries(labels).filter(([k]) => !weak || k === 'unknown' || k === 'vague').map(([k, v]) => `<option value="${k}" ${k === levelFilter ? 'selected' : ''}>${v}</option>`).join('')}</select><select id="sort" aria-label="排序"><option value="priority" ${sort === 'priority' ? 'selected' : ''}>优先级排序</option><option value="alpha" ${sort === 'alpha' ? 'selected' : ''}>字母排序</option><option value="due" ${sort === 'due' ? 'selected' : ''}>复习时间排序</option></select><span class="toolbar-actions">${weak ? '<button id="import" class="secondary">导入词书</button>' : ''}<button id="train-filter" class="secondary">训练这批</button><button id="export-filter" class="secondary">导出</button><button id="preview-lib" class="secondary">预览新词</button></span>${bookFilter ? '<button id="rename-book" class="text-button">重命名</button><button id="delete-book" class="danger-text">删除词书</button>' : ''}</div><section class="panel no-padding" id="word-table"></section>${weak ? '</div></details>' : ''}`;
     drawTable(weak);
     on('#import', 'click', importDialog);
+    on('#review-start', 'click', () => startMode('weak', filtered(true).slice(0, 1000)));
+    on('#import-weak', 'click', importDialog);
     document.querySelectorAll<HTMLElement>('[data-book]').forEach(b => b.onclick = () => { bookFilter = b.dataset.book!; listPage = 0; library(weak); });
     on('#search', 'input', e => { search = (e.target as HTMLInputElement).value; listPage = 0; drawTable(weak); });
     on('#level', 'change', e => { levelFilter = (e.target as HTMLSelectElement).value; listPage = 0; drawTable(weak); });

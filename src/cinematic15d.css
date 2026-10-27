@@ -388,8 +388,8 @@ html[data-proto="d"] .d-next-label {
 }
 html[data-proto="d"] .d-next-label i {
   width: 6px; height: 6px; border-radius: 50%; background: var(--d-amber);
-  box-shadow: 0 0 12px rgba(215, 154, 82, .9);
-  animation: d-pulse 3.6s ease-in-out infinite;
+  /* 15h 复核：无限脉冲 + 暖色光晕 = 装饰性动画，且 detect 判 pulsing-dot。改为静态点 + 中性投影 */
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .28), 0 1px 1px rgba(0, 0, 0, .35);
 }
 html[data-proto="d"] .d-next-title {
   margin: 10px 0 0;

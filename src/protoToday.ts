@@ -352,7 +352,7 @@ export function protoTodayD(c: ProtoContext): string {
     <div class="d2-spine" role="group" aria-label="今日时间预算">
       <div class="d2-remaining"><b>—</b><span>分钟可用</span></div>
       <div class="d2-budget d2-budget--empty"><i class="d2-fill" style="--p:0%"></i></div>
-      <div class="d2-progress"><b>0/0</b><span>已完成</span></div>
+      <div class="d2-progress is-empty"><b>—</b><span>还没有任务</span></div>
     </div>
     <section class="d-stage d2-now">
       <div class="d2-glass" aria-hidden="true"></div>
@@ -363,7 +363,7 @@ export function protoTodayD(c: ProtoContext): string {
       </div>
       <div class="d2-now-side">
         <button id="import" class="d-cta" data-spring><span class="d-glint" aria-hidden="true"></span>导入词书</button>
-        <span class="d2-now-hint">右侧选择预算与状态后生成今日路线</span>
+        <span class="d2-now-hint">先用上方预算设定今天的可用时间，再生成路线</span>
       </div>
     </section>
     <section class="d2-route"><div class="d2-route-head"><b>今日路线</b><span>生成计划后出现</span></div><div class="d-ribbon"></div></section>

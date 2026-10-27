@@ -56,3 +56,21 @@ Skill 根目录：`C:\Users\86152\AppData\Local\hermes\skills\`
 - **真正驱动力**：`impeccable detect` 找出的 25 条问题 + 我自己的截图复核 + 子代理的双评估。
 - **不是**"读了 SKILL.md 就宣称用了"：`animate/polish/bolder/overdrive/high-end-visual-design/design-taste-frontend/anti-ui-slop` 本轮**没有执行**，不写进"已使用"。
 - 下一轮若继续做视觉精修，应先补 `animate` 与 `polish` 的逐字执行，再谈审美验收。
+
+
+---
+
+## 4. 更正（评审回执后）
+
+上一节写的"活页面 `detect` 0 anti-pattern"**不成立**，已作废。原因：
+
+- `detect --json src/ui` 的 0 是"未测量"：引擎自述 `8 files scanned with regex matching only`，
+  `tiny-text` / `low-contrast` 等元素级规则根本没跑。
+- `detect <url>` 与 SPA 竞态：同一 URL 连跑 4 次得到 1 / 1 / 3 / 1 条，多数运行扫到脚本渲染前的空壳，
+  空壳同样返回 exit 0。我的"0"就来自这种运行。
+
+**改用可复现的方法**（新增 `scripts/phase15h-snapshot.mjs`）：
+渲染完成 → `documentElement.cloneNode(true)` → 剥掉 `<script>` → 写成同源静态页 → 对快照跑 detect。
+28 张快照（14 页 × 深/浅）复测：修复前 **255** 条 → 修复后 **34** 条。
+
+这条经验已写进 `docs/PHASE15H_VISUAL_REVIEW.md` §4 与 `scripts/phase15h-snapshot.mjs` 的头部注释。

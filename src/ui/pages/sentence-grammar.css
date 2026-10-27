@@ -1080,3 +1080,22 @@
   [data-level] [data-page="grammar"] .weak-grammar > li > .row-actions { margin-left: 0; }
 }
 
+
+/* ── 15h 复核：34 张概念卡嵌套在一张面板里（detect nested-cards ×36）─────────
+   卡片套卡片是"管理后台"的语言。概念本来就是一条一条的，改成行式：
+   去掉各自的边框/底色/阴影，用 1px 分隔线排队，薄弱项保留左侧警示条（形状不变）。 */
+#main [data-page="grammar"] .concept-card,
+#main .concept-card {
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid var(--line);
+  background: none;
+  box-shadow: none;
+  padding: var(--s-3) var(--s-2) var(--s-3) var(--s-4);
+}
+#main .concept-card:first-of-type { border-top: 0; }
+#main .concept-card:hover { background: var(--wash-hover, rgba(255, 255, 255, 0.035)); border-top-color: var(--line-strong); }
+#main .concept-card:focus-within { background: none; box-shadow: var(--ring); }
+#main .concept-card.weak {
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--warn) 62%, transparent);
+}

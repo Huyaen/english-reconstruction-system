@@ -1390,3 +1390,12 @@
 @media (prefers-reduced-motion: reduce) {
   [data-page="stats"] .bar-col:hover .bar { filter: none; }
 }
+
+/* 诊断页 11px 说明文字（detect tiny-text ×29）：提到 12px 并放宽行高，
+   信息量不变，但不再需要凑近看。 */
+[data-page="diagnostics"] .diag-metric small,
+[data-page="diagnostics"] .diag-metric .diag-def,
+[data-page="diagnostics"] .diag-def {
+  font-size: 12px;
+  line-height: 1.62;
+}

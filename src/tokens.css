@@ -56,11 +56,11 @@
   --warn-wash: rgba(140, 98, 36, 0.14);
   --danger: #A24B47;
   --danger-wash: rgba(162, 75, 71, 0.12);
-  --m-fluent: #4F8A6E;
-  --m-normal: #5C7099;
-  --m-vague: #A87A2E;
-  --m-unknown: #A8625A;
-  --m-new: #8A929B;
+  --m-fluent: #3C6F57;
+  --m-normal: #4A5C82;
+  --m-vague: #7A5518;
+  --m-unknown: #8C4A43;
+  --m-new: #5D656D;
 
   /* —— 光：唯一光源左上 45°；底部只留极弱暖反 —— */
   --light-key: rgba(255, 255, 255, 0.80);

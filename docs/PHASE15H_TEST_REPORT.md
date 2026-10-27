@@ -31,7 +31,7 @@ Windows 11 · Node 26.7 · Edge headful · 采集 1440×948 / 截图 1440×900 �
 | 1366×768 | 14 页 | 14 页 | 28 |
 | 训练流程（question / feedback） | 2 | — | 2 |
 | 阅读态（真实文章，深/浅） | 1 | 1 | 2 |
-| **合计** | | | **88 张** |
+| **合计** | | | **86 张**（训练态截图由视频覆盖，见 §8） |
 
 页面：home / books / weak / sentence / reading / input / output / grammar / unit / diagnostics / exam / stats / ai / settings。
 清单与每张的标题文本：`screenshots/phase15h/capture-manifest.json`。
@@ -99,3 +99,28 @@ Windows 11 · Node 26.7 · Edge headful · 采集 1440×948 / 截图 1440×900 �
 
 样文是本项目自写的英文短文（`The Cost of Convenience`），**不是抓取的真实文章**，不冒充任何来源；
 它只用于验证阅读态排版。导入链路本身走的是真实表单与真实持久层。
+
+
+## 8. 评审回执后的第二轮验收（2026-10-28）
+
+按两个独立评审的意见修完，并用**渲染后 DOM 快照**复测（`scripts/phase15h-snapshot.mjs`，14 页 × 深/浅 = 28 张）：
+
+| 阶段 | detect findings（28 快照合计） |
+|---|---|
+| 修复前 | 255 |
+| 第一轮 | 63 |
+| 第二轮（本轮） | **34**，其中 8 条是金属拉丝纹理、8 条是 3 处手写 eyebrow、少量 nested-cards 判定 |
+
+| 项 | 结果 |
+|---|---|
+| `tsc --noEmit` | 0 |
+| `npm test` | **379 / 379** |
+| 对比度（proto=d） | **225 / 0** |
+| 移动端 | device 10/10 · desktop 10/10 |
+| Reduced Motion | 深/浅两主题 `overflowX: false` |
+| 截图 | **86 张**（84 = 14 页 × 3 尺寸 × 2 主题，+ 2 张阅读态）。原先两张 22:08 的训练态截图已过期，已删除；训练态由 `vocab-dark.mp4` 视频承担 |
+| 视频 | 6 段（本轮未重录；受影响的是 weak/books/grammar 三页的静态布局） |
+
+本轮修掉的真实缺陷：books `lifecycle` 3.3:1（根因旧层 `opacity:.65`）、浅色掌握度色 3.08/2.54/3.12、
+diagnostics 11px ×29、grammar 34 张卡嵌套 ×36、`d-pulse` 无限脉冲、nav/预算条/圆点彩色光晕、
+考试 2px 彩边 + 16px 圆角、设置极光光斑、重复 `import io.css`、薄弱词与词库同构（P0）。

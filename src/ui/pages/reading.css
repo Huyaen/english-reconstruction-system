@@ -990,3 +990,27 @@
 /* sticky 轨道的顶部留白：分离后首块标题会贴到裁切边缘，补一格 */
 [data-page="reading"] .reader-side { padding-top: var(--s-3); scroll-padding-top: var(--s-3); }
 [data-page="reading"] .reader-side > .section-title:first-child { margin-top: 0; }
+
+/* ── 阅读导入：让"入口"看得见出口（复核 P2）─────────────────────────────────
+   实测问题：正文 textarea 约 995px 宽、超出首屏，提交按钮落在折叠线以下；
+   产品定位是"真实材料是唯一入口"，入口却看不见出口。
+   处理：正文框限宽到阅读测量宽度（760px / 1.72），操作条吸底常驻。 */
+[data-page="reading"] #read-paste {
+  max-width: 760px;
+  min-height: 220px;
+  line-height: 1.72;
+  font-size: 15px;
+}
+[data-page="reading"] .read-import-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--s-4);
+  padding: 10px 0 max(10px, env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, transparent, var(--surface) 42%);
+}
+[data-page="reading"] .read-import-bar .primary { order: -1; }

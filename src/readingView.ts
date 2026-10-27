@@ -34,7 +34,7 @@ export function importPanelHTML(duplicateHint = ''): string {
   <label>正文<textarea id="read-paste" rows="10" placeholder="把英文文章正文粘贴到这里……"></textarea></label>
   <p class="hint" id="read-count">0 词</p>
   <label class="hint"><input type="checkbox" id="read-allow-short" /> 不足 60 词也按短文导入（仍要用它练完整流程）</label>
-  <div class="actions">
+  <div class="actions read-import-bar">
     <button class="primary" data-read-save="paste">预览并保存</button>
     <label class="secondary" style="display:inline-flex;align-items:center;gap:6px">上传文件<input type="file" id="read-file" accept=".txt,.md,.markdown,.text,.html,.htm" hidden /><span data-read-file-label>选择 TXT / MD / HTML</span></label>
     <button class="secondary" data-read-url-open="1">从网址导入</button>
