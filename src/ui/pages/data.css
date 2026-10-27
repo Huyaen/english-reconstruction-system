@@ -1399,3 +1399,9 @@
   font-size: 12px;
   line-height: 1.62;
 }
+
+/* ── 零作答日：不能画成"有高度"的柱子（15h 复核，drawTrend 曾用内联 height:2px）──
+   0 次 ≠ 微小的能力。零值改成基线上的虚线刻度，不占高度、不产生假读数。 */
+/* 高度已由内联 height:0 决定（不再需要 !important）；这里只换视觉 */
+[data-page="stats"] .chart .bar-col .bar.is-zero { border-top: 1px dashed var(--line-strong); background: none; }
+[data-page="stats"] .chart .bar-col .bar.is-zero::before { content: none; }

@@ -138,6 +138,6 @@ export function examLogsHtml(logs: ExamLog[], specs: ExamSpecification[], editin
 }
 export function specsAuditHtml(specs: ExamSpecification[], items: AssessmentItem[]): string {
     return `<section class="panel"><div class="section-title"><h2>规格审计</h2><span class="subtle">来源优先于记忆</span></div>
-        <table class="exam-table"><thead><tr><th>年份</th><th>类别</th><th>状态</th><th>总分</th><th>来源</th><th>题目</th></tr></thead><tbody>${specs.map(s => `<tr><td>${s.applicableYear}</td><td>${esc(examCategoryLabel(s.examCategory))}</td><td>${esc(statusLabel(s.status))}</td><td>${s.totalScore ?? 'null'}</td><td>${s.sourceRefs.length}</td><td>${items.filter(i => i.examCategory === s.examCategory).length}</td></tr>`).join('')}</tbody></table>
+        <table class="exam-table"><thead><tr><th>年份</th><th>类别</th><th>状态</th><th>总分</th><th>来源</th><th>题目</th></tr></thead><tbody>${specs.map(s => `<tr><td>${s.applicableYear}</td><td>${esc(examCategoryLabel(s.examCategory))}</td><td>${esc(statusLabel(s.status))}</td><td>${s.totalScore ?? '—'}</td><td>${s.sourceRefs.length}</td><td>${items.filter(i => i.examCategory === s.examCategory).length}</td></tr>`).join('')}</tbody></table>
         <p class="hint">规格与题目均版本化保存在本地；2028 没有官方文件时，所有未知字段保持 null，不用默认值填空。</p></section>`;
 }
