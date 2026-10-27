@@ -13,7 +13,7 @@ Windows 11 · Node 26.7 · Edge headful · 采集 1440×948 / 截图 1440×900 �
 | 单元 / 集成 | `npm test` | **379 / 379 pass**，0 fail |
 | 生产构建 | `npm run build:test` | 成功（`dist-test`） |
 | 测试钩子 | 构建产物内 `?test=1` 钩子 | 截图与录屏全部经由真实钩子路径，未绕过业务层 |
-| 对比度（默认路径 `proto=d`） | `PROTO=d node scripts/phase15c-contrast.mjs` | **225 检查 / 0 失败** |
+| 对比度（默认路径 `proto=d`） | `PROTO=d node scripts/phase15c-contrast.mjs` | **225 检查 / 0 失败**（修掉 Hero 禁用态 2.25:1 后复测） |
 | Reduced Motion | `node scripts/phase15c-reduced-motion.mjs` | 深/浅两主题 `overflowX: false`，动效时长归零 |
 | 移动端窄视口 | `node scripts/phase15d-mobile-audit.mjs` | **device 10/10 · desktop 10/10** |
 | 帧时间 | `node scripts/phase15c-perf.mjs` | 平均 **15.5ms**（vsync 上限，≈64fps）、p95 16.1ms、**0 掉帧**、**0 long task**、DOM 254 |
@@ -30,7 +30,8 @@ Windows 11 · Node 26.7 · Edge headful · 采集 1440×948 / 截图 1440×900 �
 | 1920×1080 | 14 页 | 14 页 | 28 |
 | 1366×768 | 14 页 | 14 页 | 28 |
 | 训练流程（question / feedback） | 2 | — | 2 |
-| **合计** | | | **86 张** |
+| 阅读态（真实文章，深/浅） | 1 | 1 | 2 |
+| **合计** | | | **88 张** |
 
 页面：home / books / weak / sentence / reading / input / output / grammar / unit / diagnostics / exam / stats / ai / settings。
 清单与每张的标题文本：`screenshots/phase15h/capture-manifest.json`。
@@ -85,3 +86,16 @@ Windows 11 · Node 26.7 · Edge headful · 采集 1440×948 / 截图 1440×900 �
 3. **阅读辅助面板、Output 自动保存、考试错因** 三条没有视频证据。
 4. `--ease-spring`（弹性）仍留在 tokens 里，新层不用它，但旧层会；`impeccable detect` 因此报 1 条 advisory。
 5. 学情诊断 / 统计在"完全没有记录"的新 profile 下只验证了空态，没有验证长期数据下的图表密度。
+
+## 7. 阅读态专项（本轮新增证据）
+
+| 项 | 实测 |
+|---|---|
+| 正文列宽 | 622px |
+| 字号 / 行高 | 19px / 33.06px（1.74） |
+| 每行字符 | ≈ 65 字符 |
+| 右栏 | 去卡片化后降为 1px 分隔轨；视觉复核判定"不再抢正文" |
+| 截图 | `reading-passage-dark-1440x900.png` / `reading-passage-light-1440x900.png` |
+
+样文是本项目自写的英文短文（`The Cost of Convenience`），**不是抓取的真实文章**，不冒充任何来源；
+它只用于验证阅读态排版。导入链路本身走的是真实表单与真实持久层。

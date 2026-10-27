@@ -923,3 +923,70 @@
     min-width: 0;
   }
 }
+
+/* ── 辅助栏降噪（15h 阅读态复核后修正）────────────────────────────────────
+   视觉复核结论：右栏是一堆带边框的小方块层层嵌套（标记 2×2、难句 3 列、帮助 2×2），
+   和正文抢注意力，读起来像表单而不是文章。这里把它改成"一行线 + 无边框文字键"：
+   - 外层不再是一张卡片（去边框、去底色、去阴影），只在左侧保留一条 1px 分隔；
+   - 组标题用 1px 线分隔，不再每块自带框；
+   - 键位去掉边框和底色，靠留白与 hover 白噪区分，只有危险/主操作保留描边。 */
+[data-page="reading"] .reader-side {
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  padding: var(--s-2) 0 var(--s-5) var(--s-5);
+  gap: 0;
+}
+[data-page="reading"] .reader-side .section-title {
+  margin: var(--s-4) 0 var(--s-2);
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--t-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+[data-page="reading"] .reader-side .chip {
+  border: 0;
+  background: none;
+  padding: 0 2px;
+  min-height: 26px;
+  color: var(--ink-muted);
+  justify-content: flex-start;
+}
+[data-page="reading"] .reader-side .chip:hover {
+  background: var(--wash-hover, rgba(255, 255, 255, 0.05));
+  color: var(--ink);
+  border: 0;
+}
+[data-page="reading"] .reader-side .chip.is-active,
+[data-page="reading"] .reader-side .chip[aria-pressed="true"] {
+  color: var(--ink);
+  font-weight: 600;
+  background: none;
+  box-shadow: inset 2px 0 0 var(--metal-hi);
+  padding-left: 6px;
+}
+[data-page="reading"] .reader-side .actions { gap: 2px; margin-top: var(--s-1); }
+[data-page="reading"] #read-marks .plain-list,
+[data-page="reading"] #read-difficult .plain-list {
+  border: 0;
+  background: none;
+}
+
+/* 空状态与提示：不再用虚线框（虚线是"待填表单"的语言，不是"还没标记"的语言） */
+[data-page="reading"] .reader-side .empty-inline,
+[data-page="reading"] #read-marks .empty-inline,
+[data-page="reading"] .reader-side .hint.is-box {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  padding: 0;
+  color: var(--ink-faint);
+}
+
+/* sticky 轨道的顶部留白：分离后首块标题会贴到裁切边缘，补一格 */
+[data-page="reading"] .reader-side { padding-top: var(--s-3); scroll-padding-top: var(--s-3); }
+[data-page="reading"] .reader-side > .section-title:first-child { margin-top: 0; }

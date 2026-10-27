@@ -1067,3 +1067,14 @@ html[data-page="home"] .d-next-label > i {
   [data-level] .two-col { grid-template-columns: 1fr; }
   .modal-backdrop > .panel { padding: var(--s-5); }
 }
+
+/* ── 禁用态可读性 ────────────────────────────────────────────────────────
+   实测：Hero 的"重新生成未完成部分 / 调整预算"禁用时是 2.25:1（fg 65,75,88 on 8,9,11）。
+   虽然 WCAG 对 inactive 组件有豁免，但 2.25 等于"看不见"，仍会被读成页面缺块。
+   这里把禁用文字抬到 ink-faint，靠透明度而不是压暗来表达不可用。 */
+[data-level] button[disabled],
+[data-level] .d-quiet:disabled,
+[data-level] .d-quiet[aria-disabled="true"] {
+  color: var(--ink-faint);
+  opacity: 0.72;
+}
