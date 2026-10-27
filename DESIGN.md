@@ -159,3 +159,38 @@
 - 屏幕录制必须说明采集路径；screencast 掉层时不得据此改应用代码。
 - 近黑帧要区分：应用渲染 / 采集丢层 / 设计本身 / 脚本误操作。四类都要有实测依据。
 
+---
+
+## 14. Phase 15h 全站系统化（实现契约）
+
+15f/15g 定的是 Today 的美术语言；15h 把它变成全站可执行的一套系统。以下为**代码事实**，
+对应 `src/ui/system.css` 与 `src/ui/pages/*.css`。
+
+### 14.1 视觉强度按场景分级
+- **A 表现型**：home / stats / diagnostics / unit —— 允许空间纵深、呼吸光场、材质差异。
+- **B 交互型**：books / weak / quiz / preview / sentence / grammar / input / output / exam —— 只做按压、选中、收放，不做常驻扫光。
+- **C 专注型**：reading / settings / ai —— 正文零动画、背景稳定、可读性优先。
+- 运行时由 `<html data-level>` 决定，不允许单页自己另立强度。
+
+### 14.2 三种材质 + 一种数据面
+- 玻璃：两团宽柔透射 + 内表面 + **只保留上沿**的 1px 边光；阴影 `0 14px 34px -28px`。
+- 金属：2px 级镜面线，hover 时沿 `background-position` 移动 620ms；内阴影造厚度。
+- 哑光：2% 白 wash，几乎不反射，用于列表与工作区。
+- 数据面：`--surface-sunken` 表头 + 1px 行线 + tabular-nums。
+- **禁止 `backdrop-filter`**（15g 已证明会导致转场快照发黑，且性能差）。
+
+### 14.3 交互与状态
+- 按钮：Press → 1px 下沉 + `brightness(.965)` + 接触阴影同帧（≤110ms），主按钮叠加金属面。
+- 判分：正确/错误同时用 **✓/✕ 形状 + 1px 语义边线 + 文案**，不允许只靠颜色。
+- 空态：给方向与入口（导入 / 清除筛选），不给假数据。
+- 证据来源：`data-src="verified|self|inferred|ai"` 四种标签形态（实线/虚线/暖色/冷色）。
+
+### 14.4 全站一致性红线
+1. 新样式只能写在 `system.css` / `pages/*.css`，必须带 `[data-level]` 或 `[data-page]` 作用域。
+2. 不新增裸色值，不写 `!important`，不给正文加常驻动画。
+3. 任何"看起来像能力"的视觉必须能追到证据来源。
+4. 每次 UI 改动后跑 `impeccable detect`（含真实页面），side-tab / bounce-easing 必须为 0。
+
+### 14.5 与 15f/15g 的关系
+- 15f/15g 的参数**仍然有效**（共享元素、呼吸惯性、材质响应强度）。
+- 15h 不推翻 Today，只把同一套语言扩展到其余 13 个页面，并修正全局外壳（导航、顶栏、弹窗、Toast）。

@@ -1,6 +1,6 @@
-# HANDOFF — 当前状态（Phase 15g）
+# HANDOFF — 当前状态（Phase 15h）
 
-> **2026-10-26 更新（15g）**：UI 工作全在 `phase15g-motion-integrity` 分支（起点 `8ff5524`），
+> **2026-10-27 更新（15h）**：UI 工作全在 `phase15h-full-ui-migration` 分支（起点 `6a550fe`），
 > `main` 仍是功能基线 `514110a` + Phase 14 的旧 UI，**未合并**。功能层（DB v7 / FSRS / Task Executor /
 > PWA / Backup）零改动。
 > 本轮做的是**动效完整性**：共享元素只让任务容器飞（底板不缩放），转场中段的近黑经三路取证
@@ -9,7 +9,7 @@
 > 契约：`PRODUCT.md`（按 PROJECT_SPEC 重写为六能力面）、`DESIGN.md` v2；证据见
 > `docs/PHASE15G_TRANSITION_FORENSICS.md`（取证）、`docs/PHASE15G_IMPLEMENTATION.md`、
 > `docs/PHASE15G_TEST_REPORT.md`、`screenshots/phase15g/recording/`（9 段原始视频）。
-> **Phase 15 未标 completed**：用户尚未做视觉验收（`STATE.next_task_id = await_user_visual_acceptance_phase15g`）。
+> **Phase 15 未标 completed**：用户尚未做视觉验收（`STATE.next_task_id = await_user_visual_acceptance_phase15h`）。
 
 # HANDOFF — 当前状态（Phase 14）
 

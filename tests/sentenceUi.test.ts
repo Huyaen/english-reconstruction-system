@@ -13,7 +13,7 @@ const NOW = 1700000000000;
 const POOL = curatedSentenceRecords(NOW);
 async function harness() {
     const output = await build({ entryPoints: ['src/app.ts'], bundle: true, format: 'iife', write: false, loader: { '.css': 'empty' } });
-    const dom = new JSDOM('<div id="app"></div><div id="toast"></div><dialog id="modal"></dialog>', { url: 'http://localhost:4173', runScripts: 'outside-only', pretendToBeVisual: true });
+    const dom = new JSDOM('<div id="app"></div><div id="toast"></div><dialog id="modal"></dialog>', { url: 'http://localhost:4173/?proto=legacy', runScripts: 'outside-only', pretendToBeVisual: true });
     const w = dom.window;
     Object.assign(w, { indexedDB, structuredClone, TextDecoder, TextEncoder });
     Object.defineProperty(w.crypto, 'randomUUID', { value: randomUUID });

@@ -1,0 +1,925 @@
+/* ============================================================================
+   Phase 15h · 阅读 Lab（Reading Lab）
+   等级 C：专注优先。正文是唯一主角，工具退到边缘；背景稳定，正文永不动画。
+
+   范围：本文件所有选择器都在 [data-page="reading"]（<html> 上的运行时标记，
+        src/ui/motion.ts → reading = level 'c'）之下；只写阅读页专属布局与状态，
+        通用原语（.panel / .card / button / .chip / table / .empty-state / .metrics）
+        由 system.css 负责，这里只做增量。
+
+   硬约束：
+   - 无 !important；无裸色值（只允许 rgba(0,0,0,x) / rgba(255,255,255,x) 半透明层，
+     其余一律 var() 或 color-mix(in srgb, var(--token) N%, transparent)）；
+   - 无新增 @keyframes；无 backdrop-filter；无持续动画；
+   - 正文区域（.reader-text 及其子节点）animation/transition 全部为 none：
+     阅读是“读”的动作，任何位移、掠光、呼吸都和视线争夺注意力。
+   ========================================================================== */
+
+[data-page="reading"] {
+  /* 阅读页专属布局尺寸（不是颜色，不新增主题 token） */
+  --read-rail: clamp(272px, 25vw, 322px);
+  --read-sticky-top: 52px;      /* 与 .app-shell .workspace > header 同高 */
+  --read-pad-y: clamp(26px, 3.2vw, 52px);
+  --read-pad-x: clamp(22px, 3.4vw, 56px);
+}
+
+/* 页面纵向节奏由 grid 负责：清零子项外边距，避免 .panel/.metrics 的双重间距 */
+[data-page="reading"] #reading-page {
+  display: grid;
+  gap: var(--s-5);
+  align-content: start;
+}
+[data-page="reading"] #reading-page > * { margin-block: 0; }
+
+/* 消息条（readMessage）：一条左侧实心规则，不做整块告警底色 */
+[data-page="reading"] #reading-page > .hint.warn {
+  margin: 0;
+  padding: var(--s-2) var(--s-3);
+  border-left: 1px solid var(--warn);
+  border-radius: var(--r-xs);
+  background: color-mix(in srgb, var(--warn) 9%, transparent);
+  font-size: var(--t-xs);
+  line-height: 1.6;
+}
+
+/* ── 1. 阅读库：列表是主体，导入/生成退到下面 ───────────────────────────── */
+[data-page="reading"] #reading-page .table-scroll { border-radius: var(--r-md); }
+[data-page="reading"] #reading-page thead th { font-size: var(--t-2xs); letter-spacing: 0.08em; }
+[data-page="reading"] #reading-page thead th:first-child { width: auto; }
+[data-page="reading"] #reading-page thead th:nth-child(2),
+[data-page="reading"] #reading-page tbody td:nth-child(2) {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+[data-page="reading"] #reading-page thead th:nth-child(3),
+[data-page="reading"] #reading-page tbody td:nth-child(3) {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+[data-page="reading"] #reading-page tbody td { vertical-align: top; padding-top: 10px; padding-bottom: 10px; }
+[data-page="reading"] #reading-page tbody td b {
+  display: inline-block;
+  max-width: 62ch;
+  font-weight: 600;
+  letter-spacing: -0.004em;
+  line-height: 1.4;
+  color: var(--ink);
+}
+/* 条目状态（来源 / 主题 / 词数 / 未完成百分比）：读数条而不是一堆圆点 */
+[data-page="reading"] #reading-page tbody td small.hint {
+  display: block;
+  margin-top: 3px;
+  font-size: var(--t-2xs);
+  line-height: 1.5;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="reading"] #reading-page tbody .badge {
+  height: 19px;
+  padding: 0 7px;
+  font-size: var(--t-2xs);
+  border-style: dashed;
+  vertical-align: baseline;
+}
+[data-page="reading"] #reading-page tbody button.small {
+  min-height: 30px;
+  padding: 0 var(--s-3);
+  font-size: var(--t-xs);
+}
+[data-page="reading"] #read-search { max-width: 340px; }
+[data-page="reading"] #read-filter { max-width: 132px; }
+/* 空库：给方向，不给假装的数据 */
+[data-page="reading"] #reading-page .empty-cell {
+  padding: var(--s-7) var(--s-4);
+  color: var(--ink-muted);
+  font-size: var(--t-sm);
+  line-height: 1.7;
+}
+
+/* ── 2. 导入 / OCR：安静的步骤面板，不和阅读库抢视线 ────────────────────── */
+[data-page="reading"] #read-import,
+[data-page="reading"] #ai-reading-panel {
+  border-color: var(--line);
+  box-shadow: var(--e-1);
+}
+[data-page="reading"] #read-import > .section-title,
+[data-page="reading"] #ai-reading-panel > .section-title { margin-bottom: var(--s-3); }
+[data-page="reading"] #read-import > .hint {
+  margin: 0 0 var(--s-4);
+  max-width: 92ch;
+  font-size: var(--t-xs);
+  line-height: 1.65;
+  color: var(--ink-muted);
+}
+[data-page="reading"] #read-import > .hint.warn {
+  margin: 0 0 var(--s-3);
+  padding-left: var(--s-3);
+  border-left: 1px solid var(--warn);
+}
+[data-page="reading"] #read-import > .two-col { margin-bottom: var(--s-4); gap: var(--s-3); }
+[data-page="reading"] #read-import > label { margin-bottom: var(--s-3); }
+[data-page="reading"] #read-import > label:last-of-type { margin-bottom: 0; }
+
+/* 粘贴区：用阅读字体，让“将要读的那篇文章”先接近它最终的样子 */
+[data-page="reading"] #read-paste,
+[data-page="reading"] #read-ocr-text {
+  font-family: var(--font-reading);
+  font-size: 15px;
+  line-height: 1.62;
+  letter-spacing: 0.002em;
+  color: var(--ink-soft);
+  background: var(--surface-sunken);
+}
+[data-page="reading"] #read-paste { min-height: 190px; }
+[data-page="reading"] #read-ocr-text { min-height: 170px; }
+
+/* 词数读数：等宽数字，一个安静的仪器读数 */
+[data-page="reading"] #read-count {
+  margin: var(--s-2) 0 0;
+  font-size: var(--t-xs);
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 复选框：全局 input{width:100%} 会把它拉满，这里收回成勾选框 */
+[data-page="reading"] #reading-page input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  min-height: 0;
+  margin: 0;
+  flex: 0 0 15px;
+  accent-color: var(--accent-ink);
+}
+[data-page="reading"] #read-import label.hint:not([hidden]) {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: var(--s-2) 0 var(--s-4);
+  font-size: var(--t-xs);
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+/* 上传文件：<label class="secondary"> 是按钮语义，按次级按钮画 */
+[data-page="reading"] #read-import label.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 38px;
+  padding: 0 var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+  cursor: pointer;
+  transition: background-color var(--dur-2) linear, border-color var(--dur-2) linear;
+}
+[data-page="reading"] #read-import label.secondary:hover {
+  background: var(--mat-matte-wash);
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+[data-page="reading"] #read-import label.secondary span[data-read-file-label] {
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 网址 / OCR 折叠区：步骤面板，左边缘一条实心规则作为“展开中的步骤”标记 */
+[data-page="reading"] #read-url-box:not([hidden]),
+[data-page="reading"] #read-ocr-box:not([hidden]) {
+  display: grid;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--line);
+  border-left: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+}
+[data-page="reading"] #read-url-box .hint,
+[data-page="reading"] #read-ocr-box .hint {
+  margin: 0;
+  font-size: var(--t-xs);
+  line-height: 1.6;
+  color: var(--ink-muted);
+}
+[data-page="reading"] #read-url-box .actions,
+[data-page="reading"] #read-ocr-box .actions { margin-top: 0; }
+[data-page="reading"] #read-ocr-box label:not([hidden]).hint {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--t-xs);
+}
+[data-page="reading"] #read-ocr-progress:not([hidden]) {
+  display: block;
+  height: 3px;
+  margin-top: var(--s-1);
+}
+[data-page="reading"] #read-ocr-preview:not([hidden]) {
+  display: block;
+  max-width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  margin-top: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  background: var(--canvas-deep);
+}
+/* 抓取 / 识别的状态行：占位固定，不让面板跳高 */
+[data-page="reading"] #read-url-msg,
+[data-page="reading"] #read-ocr-msg {
+  min-height: 1.6em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 3. 材料预览：难度与覆盖在前，猜测在后 ─────────────────────────────── */
+[data-page="reading"] #read-preview > .section-title {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.1vw, 25px);
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 1.28;
+  color: var(--ink);
+  padding-bottom: var(--s-3);
+  text-wrap: balance;
+}
+[data-page="reading"] #read-preview > .hint {
+  margin: 0 0 var(--s-4);
+  font-size: var(--t-xs);
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
+[data-page="reading"] #read-preview .metrics { grid-template-columns: repeat(auto-fit, minmax(152px, 1fr)); }
+[data-page="reading"] #read-preview .metric small { font-size: var(--t-2xs); }
+[data-page="reading"] #read-preview .plain-list { margin: var(--s-4) 0; }
+[data-page="reading"] #read-preview .plain-list > li {
+  position: relative;
+  padding-left: var(--s-5);
+  font-size: var(--t-sm);
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+[data-page="reading"] #read-preview .plain-list > li::before {
+  content: "";
+  position: absolute;
+  left: var(--s-3);
+  top: 0.76em;
+  width: 5px;
+  height: 1px;
+  background: var(--line-strong);
+}
+[data-page="reading"] #read-preview label { max-width: 46ch; }
+
+/* ── 4. 冷读 / 重读：同构的两块状态面板，靠边缘规则与措辞区分 ──────────── */
+/* 冷读：第一次见面（鼠尾草）；重读：检验能否更顺（石墨）。形状相同、色相不同，
+   并且标题自己写明状态 —— 不靠颜色单独传达。 */
+[data-page="reading"] #read-cold {
+  display: grid;
+  gap: var(--s-4);
+  border-left: 1px solid var(--accent-ink);
+}
+[data-page="reading"] #read-reread {
+  display: grid;
+  gap: var(--s-3);
+  border-left: 1px solid var(--ink-faint);
+}
+[data-page="reading"] :is(#read-cold, #read-reread) > .section-title {
+  margin-bottom: 0;
+  padding-bottom: var(--s-2);
+  font-size: var(--t-base);
+  font-weight: 600;
+  color: var(--ink);
+}
+[data-page="reading"] :is(#read-cold, #read-reread) > .hint {
+  margin: 0;
+  font-size: var(--t-sm);
+  line-height: 1.65;
+  color: var(--ink-muted);
+}
+[data-page="reading"] :is(#read-cold, #read-reread) label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-4);
+  font-size: var(--t-xs);
+  color: var(--ink-muted);
+}
+[data-page="reading"] :is(#read-cold, #read-reread) .actions { margin-top: 0; }
+
+/* 滑杆 = 刻度仪器：3px 轨道 + 15px 圆形读数柄，移动只发生在拖动时 */
+[data-page="reading"] :is(#read-cold, #read-reread) input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1 1 280px;
+  min-width: 160px;
+  width: auto;
+  height: 22px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+}
+[data-page="reading"] :is(#read-cold, #read-reread) input[type="range"]::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: var(--r-pill);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+[data-page="reading"] :is(#read-cold, #read-reread) input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 15px;
+  height: 15px;
+  margin-top: -6px;
+  border: 1px solid var(--accent-ink);
+  border-radius: 50%;
+  background: var(--surface-raised);
+  box-shadow: var(--e-1);
+}
+[data-page="reading"] :is(#read-cold, #read-reread) input[type="range"]::-moz-range-track {
+  height: 3px;
+  border-radius: var(--r-pill);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+[data-page="reading"] :is(#read-cold, #read-reread) input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--accent-ink);
+  border-radius: 50%;
+  background: var(--surface-raised);
+  box-shadow: var(--e-1);
+}
+[data-page="reading"] :is(#read-cold, #read-reread) output {
+  min-width: 3.4ch;
+  text-align: right;
+  font-size: var(--t-lg);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="reading"] :is(#read-cold, #read-reread) select { max-width: 42ch; }
+
+/* ── 5. 阅读器：工具压条 + 纸面正文 + 侧栏工具 ─────────────────────────── */
+[data-page="reading"] .reading-surface { display: grid; gap: var(--s-4); }
+/* 981px 以上横向滚动时压条留在顶部；底色接近不透明，正文从它下面经过时不透出来 */
+[data-page="reading"] .reader-bar {
+  position: sticky;
+  top: var(--read-sticky-top);
+  z-index: 12;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--s-5);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--surface-raised) 96%, var(--canvas));
+  box-shadow: var(--e-1);
+}
+[data-page="reading"] .reader-bar-copy { display: grid; gap: 2px; min-width: 0; }
+/* 冷读标记：一个方形刻度 + 字距，说明“这是第几段的状态”，不做徽章 */
+[data-page="reading"] .rd-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--t-2xs);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+[data-page="reading"] .rd-kicker::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  background: var(--accent-ink);
+}
+[data-page="reading"] .reader-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(18px, 1.7vw, 22px);
+  font-weight: 600;
+  line-height: 1.24;
+  letter-spacing: -0.022em;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+/* 元信息 = 读数条：竖线分隔，等宽数字 */
+[data-page="reading"] .rd-meta-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: var(--t-2xs);
+  letter-spacing: 0.02em;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="reading"] .rd-meta-strip > span {
+  padding: 0 var(--s-3);
+  border-left: 1px solid var(--line);
+  line-height: 1.45;
+}
+[data-page="reading"] .rd-meta-strip > span:first-child { padding-left: 0; border-left: 0; }
+/* 段刻度：读过的实心、当前段更长；无过渡、无发光 */
+[data-page="reading"] .rd-ticks { display: flex; align-items: center; gap: 3px; }
+[data-page="reading"] .rd-ticks i {
+  display: block;
+  width: 10px;
+  height: 3px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--ink) 14%, transparent);
+}
+[data-page="reading"] .rd-ticks i.is-done { background: color-mix(in srgb, var(--ink) 44%, transparent); }
+[data-page="reading"] .rd-ticks i.is-now { width: 24px; background: var(--ink); }
+/* 辅助开合：桌面端也常驻（旧的只在窄屏显示，关掉面板后就找不回来了） */
+[data-page="reading"] .reader-bar .reader-side-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  height: 30px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: var(--t-xs);
+  letter-spacing: 0.02em;
+  box-shadow: none;
+  transition: color var(--dur-2) linear, border-color var(--dur-2) linear, background-color var(--dur-2) linear;
+}
+[data-page="reading"] .reader-bar .reader-side-toggle:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+  background: var(--mat-matte-wash);
+}
+[data-page="reading"] .reader-bar .reader-side-toggle[aria-expanded="true"] {
+  color: var(--ink);
+  border-color: var(--line-strong);
+  background: var(--surface-sunken);
+}
+
+[data-page="reading"] .reading-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--read-rail);
+  gap: var(--s-4);
+  align-items: start;
+}
+/* 面板收起：正文单独占满，行宽仍然 66ch，不跟着变宽 */
+[data-page="reading"] .reading-surface[data-side="closed"] .reading-layout { grid-template-columns: minmax(0, 1fr); }
+[data-page="reading"] .reading-surface[data-side="closed"] .reader-side { display: none; }
+
+/* 纸面：纯色背景（无渐变移动、无环境光漂移），比侧栏亮一级 */
+[data-page="reading"] .reader-main {
+  min-height: clamp(320px, 44vh, 560px);
+  padding: var(--read-pad-y) var(--read-pad-x) var(--s-6);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface-raised);
+}
+
+/* ── 6. 正文：不动的部分 ───────────────────────────────────────────────── */
+[data-page="reading"] .reader-text {
+  max-width: var(--read-measure);
+  margin: 0 auto;
+  font-family: var(--font-reading);
+  font-size: var(--read-size);
+  line-height: var(--read-leading);
+  letter-spacing: 0.004em;
+  color: var(--read-ink);
+  text-wrap: pretty;
+  animation: none;
+  transition: none;
+}
+/* Level C 的硬规则：正文及其子节点不做任何动画/过渡（标记只换状态，不播放过程） */
+[data-page="reading"] .reader-text,
+[data-page="reading"] .reader-text *,
+[data-page="reading"] .reader-text *::before,
+[data-page="reading"] .reader-text *::after {
+  animation: none;
+  transition: none;
+}
+/* 正文选区：用低透明度鼠尾草，不用全局的高对比块 */
+[data-page="reading"] .reader-text::selection,
+[data-page="reading"] .reader-text *::selection {
+  background: var(--accent-wash);
+  color: var(--read-ink);
+}
+
+/* 词：是按钮，但在正文里必须长得像词。全部按钮装饰清零，只留行内排版 */
+[data-page="reading"] .reader-text .word {
+  display: inline;
+  min-height: 0;
+  min-width: 0;
+  margin: 0;
+  padding: 0 1px;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  text-align: inherit;
+  text-decoration-line: none;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  transform: none;
+  cursor: pointer;
+}
+[data-page="reading"] .reader-text .word:hover {
+  background: var(--accent-wash);
+  color: var(--read-ink);
+}
+[data-page="reading"] .reader-text .word:active,
+[data-page="reading"] .reader-text .word.is-pressed {
+  transform: none;
+  filter: none;
+  box-shadow: none;
+  background: var(--accent-wash);
+}
+[data-page="reading"] .reader-text .word:focus-visible { outline-offset: 2px; }
+
+/* 已选中的词：下缘一条 2px 实线（形状不变，文字不位移） */
+[data-page="reading"] .reader-text .word.selected {
+  background: var(--accent-wash);
+  box-shadow: inset 0 -2px 0 var(--accent-ink);
+  color: var(--read-ink);
+}
+
+/* 标记词：四种判断 = 四种下划线形状 + 四种色相。
+   形状（点/虚/实/双）是主要区分手段，色相只是加强 —— 色盲也能分辨。 */
+[data-page="reading"] .reader-text .word.marked {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+[data-page="reading"] .reader-text .word.mark-known {
+  text-decoration-style: dotted;
+  text-decoration-color: var(--ok);
+  color: var(--read-ink);
+}
+[data-page="reading"] .reader-text .word.mark-vague {
+  text-decoration-style: dashed;
+  text-decoration-color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+}
+[data-page="reading"] .reader-text .word.mark-unknown {
+  text-decoration-style: solid;
+  text-decoration-thickness: 2px;
+  text-decoration-color: color-mix(in srgb, var(--danger) 65%, transparent);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+[data-page="reading"] .reader-text .word.mark-guessed {
+  text-decoration-style: double;
+  text-decoration-color: var(--accent-ink);
+}
+
+/* 句：只在有词标记时才有 span 包裹；不参与动画，不做悬停高亮（会晃视线） */
+[data-page="reading"] .reader-text .rsent { animation: none; }
+
+/* ── 7. 正文底部：操作降权，理解记录是一格虚线工作区 ───────────────────── */
+[data-page="reading"] .reader-foot {
+  max-width: var(--read-measure);
+  margin: var(--s-7) auto 0;
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--line);
+}
+[data-page="reading"] .reader-foot > .actions { margin-top: 0; gap: var(--s-2); }
+[data-page="reading"] .reader-foot > .actions button { min-height: 34px; font-size: var(--t-xs); }
+[data-page="reading"] .reader-foot > .actions .text-button { margin-left: auto; }
+[data-page="reading"] #read-idea-box {
+  display: grid;
+  gap: var(--s-2);
+  margin-top: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--mat-matte-wash);
+}
+[data-page="reading"] #read-idea-box label { font-size: var(--t-xs); color: var(--ink-muted); }
+[data-page="reading"] #read-idea-box input { max-width: 46ch; }
+[data-page="reading"] #read-idea-box .actions { margin-top: 0; }
+
+/* ── 8. 侧栏工具：粘在视口里、不覆盖正文（独立列 + 独立滚动）───────────── */
+[data-page="reading"] .reader-side {
+  position: sticky;
+  top: calc(var(--read-sticky-top) + var(--s-4));
+  max-height: calc(100dvh - var(--read-sticky-top) - var(--s-8));
+  overflow: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  align-content: start;
+  gap: 0;
+  padding: var(--s-4) var(--s-4) var(--s-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--e-1);
+}
+[data-page="reading"] .reader-side .section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-2);
+  margin: var(--s-4) 0 var(--s-2);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--t-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+[data-page="reading"] .reader-side .section-title:first-of-type { margin-top: 0; }
+[data-page="reading"] .reader-side .section-title b { font-weight: 600; font-size: var(--t-xs); color: var(--ink-muted); }
+[data-page="reading"] .reader-side > .hint {
+  margin: var(--s-2) 0 0;
+  max-width: none;
+  font-size: var(--t-xs);
+  line-height: 1.6;
+  color: var(--ink-muted);
+}
+/* 工具组：等宽网格，按键位排，不用一排长短不一的胶囊 */
+[data-page="reading"] .reader-side .actions { display: grid; gap: 6px; margin-top: var(--s-3); }
+[data-page="reading"] #read-mark-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+[data-page="reading"] #read-difficult-tools { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+[data-page="reading"] #read-help-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+[data-page="reading"] .reader-side .chip {
+  height: auto;
+  min-height: 30px;
+  padding: 0 6px;
+  justify-content: center;
+  border-radius: var(--r-xs);
+  background: var(--surface-sunken);
+  font-size: var(--t-xs);
+  box-shadow: none;
+  transform: none;
+  transition: background-color var(--dur-2) linear, border-color var(--dur-2) linear, color var(--dur-2) linear;
+}
+[data-page="reading"] .reader-side .chip:hover {
+  transform: none;
+  border-color: var(--line-strong);
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+[data-page="reading"] #read-difficult-tools .chip {
+  font-size: var(--t-2xs);
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 标记清单 / 难句清单：仪表读数行，撤销永远是最后一个动作 */
+[data-page="reading"] #read-marks .plain-list,
+[data-page="reading"] #read-difficult .plain-list {
+  margin: var(--s-2) 0 0;
+  border-radius: var(--r-xs);
+}
+[data-page="reading"] #read-marks .plain-list > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--s-2);
+  padding: 7px var(--s-3);
+  font-size: var(--t-xs);
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+[data-page="reading"] #read-marks .plain-list > li b {
+  font-family: var(--font-reading);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+[data-page="reading"] #read-difficult .plain-list > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--s-2);
+  padding: 8px var(--s-3);
+  font-family: var(--font-reading);
+  font-size: var(--t-sm);
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+[data-page="reading"] #read-marks .plain-list .text-button,
+[data-page="reading"] #read-difficult .plain-list .text-button {
+  margin-left: auto;
+  min-height: 22px;
+  padding: 0 var(--s-1);
+  font-family: var(--font-ui);
+  font-size: var(--t-2xs);
+}
+/* 空态：给下一步，不占大块 */
+[data-page="reading"] #read-marks > .hint,
+[data-page="reading"] #read-difficult > .hint {
+  margin: var(--s-2) 0 0;
+  max-width: none;
+  padding: var(--s-3);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-xs);
+  background: var(--mat-matte-wash);
+  font-size: var(--t-xs);
+  line-height: 1.55;
+  color: var(--ink-faint);
+}
+
+/* 辅助文本：内嵌工作卡，比侧栏再沉一级 */
+[data-page="reading"] .reader-side .grammar-card {
+  margin-top: var(--s-3);
+  padding: var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  background: var(--surface-sunken);
+  box-shadow: none;
+  font-size: var(--t-xs);
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+[data-page="reading"] .reader-side .grammar-card > p { margin: 0 0 6px; font-size: var(--t-xs); color: var(--ink); }
+[data-page="reading"] .reader-side .grammar-card .plain-list { margin: 0; border: 0; border-radius: 0; background: none; }
+[data-page="reading"] .reader-side .grammar-card .plain-list > li {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--t-2xs);
+  line-height: 1.55;
+}
+[data-page="reading"] .reader-side .grammar-card .plain-list > li:last-child { border-bottom: 0; }
+[data-page="reading"] .reader-side .grammar-card .hint { margin: 6px 0 0; font-size: var(--t-2xs); line-height: 1.55; }
+
+/* ── 9. 重读：同一篇文章，正文左侧一条定位规，行宽与字号不变 ────────────── */
+[data-page="reading"] #read-reread > .reader-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-4);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px dotted var(--line-strong);
+}
+[data-page="reading"] #read-reread > .reader-head .hint { margin: 0; font-size: var(--t-2xs); color: var(--ink-faint); }
+[data-page="reading"] #read-reread .reader-text {
+  margin: 0 auto;
+  padding: var(--s-4) 0 var(--s-4) var(--s-5);
+  border-left: 1px solid var(--line);
+  white-space: pre-wrap;
+}
+[data-page="reading"] #read-reread .actions { margin-top: 0; }
+
+/* ── 10. 全文理解 / 阅读结果 / 生词整理 ─────────────────────────────────── */
+[data-page="reading"] #read-whole label,
+[data-page="reading"] #read-words label { max-width: 100%; }
+[data-page="reading"] #read-whole input,
+[data-page="reading"] #read-whole textarea { max-width: 66ch; }
+[data-page="reading"] #read-whole textarea { min-height: 62px; }
+[data-page="reading"] #read-whole .actions,
+[data-page="reading"] #read-words .actions { margin-top: var(--s-5); }
+
+/* 结果：八个读数各自成立，长值不撑破格子 */
+[data-page="reading"] #read-result .metrics { grid-template-columns: repeat(auto-fit, minmax(198px, 1fr)); }
+[data-page="reading"] #read-result .metric { gap: 4px; }
+[data-page="reading"] #read-result .metric strong { font-size: clamp(19px, 1.6vw, 24px); letter-spacing: -0.018em; }
+[data-page="reading"] #read-result .metric small { font-size: var(--t-2xs); line-height: 1.45; }
+/* 注意事项：一条左侧实心规则，这些是“不要误读”的前提，不是装饰 */
+[data-page="reading"] #read-result .plain-list { margin: var(--s-4) 0 0; }
+[data-page="reading"] #read-result .plain-list > li {
+  padding: 7px var(--s-3) 7px var(--s-4);
+  border-left: 1px solid var(--warn);
+  font-size: var(--t-xs);
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+[data-page="reading"] #read-result .plain-list > li + li { border-top: 1px solid var(--line); }
+
+/* 生词整理：词条 + 释义输入 + 上下文，一行一个决策 */
+[data-page="reading"] #read-words .plain-list > li {
+  display: grid;
+  gap: 6px;
+  padding: var(--s-3) var(--s-4);
+  font-size: var(--t-sm);
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+[data-page="reading"] #read-words .plain-list > li b {
+  font-family: var(--font-reading);
+  font-size: var(--t-base);
+  font-weight: 600;
+  letter-spacing: 0.002em;
+  color: var(--ink);
+}
+[data-page="reading"] #read-words .plain-list input[data-def] { max-width: 280px; }
+[data-page="reading"] #read-words .plain-list .hint { margin: 0; max-width: none; font-size: var(--t-xs); line-height: 1.55; }
+
+/* ── 11. 加载：单一静态标记（Level C 不允许持续旋转）────────────────────── */
+[data-page="reading"] .d-loading,
+[data-page="reading"] .loading-state { padding: 12vh 0; gap: var(--s-3); }
+[data-page="reading"] .d-loading-mark,
+[data-page="reading"] .loading-state i {
+  animation: none;
+  border-color: var(--line-strong);
+  border-top-color: var(--accent-ink);
+}
+[data-page="reading"] .d-loading p { margin: 0; font-size: var(--t-sm); color: var(--ink-muted); }
+
+/* ── 12. 窄视口：侧栏落回正文之后（不覆盖文字），压条不再粘顶 ───────────── */
+@media (max-width: 1100px) {
+  [data-page="reading"] { --read-rail: 288px; }
+  [data-page="reading"] .reader-main { padding: var(--s-6) var(--s-5) var(--s-5); }
+}
+
+@media (max-width: 980px) {
+  [data-page="reading"] .reader-bar {
+    position: static;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--s-3);
+    padding: var(--s-3);
+  }
+  [data-page="reading"] .reader-bar .rd-ticks { display: none; }
+  [data-page="reading"] .reader-bar .reader-side-toggle { grid-column: 2; }
+  [data-page="reading"] .reading-layout { grid-template-columns: minmax(0, 1fr); }
+  /* 工具面板：静态块，出现在正文之下；打开时也是它自己撑开页面，绝不压在文字上 */
+  [data-page="reading"] .reader-side {
+    position: static;
+    top: auto;
+    max-height: none;
+    overflow: visible;
+    order: 2;
+  }
+  [data-page="reading"] .reading-surface[data-side="open"]::after { content: none; display: none; }
+  [data-page="reading"] .reader-text { max-width: none; }
+  [data-page="reading"] .reader-foot { max-width: none; }
+  [data-page="reading"] #read-reread .reader-text { padding-left: var(--s-4); }
+  [data-page="reading"] .reader-side .reader-sheet-close {
+    justify-self: end;
+    margin: 0 0 var(--s-2);
+    min-height: 26px;
+    padding: 0 var(--s-2);
+    font-size: var(--t-2xs);
+  }
+  [data-page="reading"] #read-difficult-tools { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  [data-page="reading"] .reader-main { padding: var(--s-5) var(--s-4) var(--s-4); }
+  [data-page="reading"] .reader-text { font-size: 18px; line-height: 1.74; }
+  [data-page="reading"] .reader-foot > .actions .text-button { margin-left: 0; }
+  [data-page="reading"] .reader-title { font-size: 18px; }
+  [data-page="reading"] #read-mark-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  [data-page="reading"] #read-difficult-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  [data-page="reading"] #read-import > .two-col { gap: var(--s-2); }
+  [data-page="reading"] #read-preview .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  [data-page="reading"] #read-result .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  [data-page="reading"] :is(#read-cold, #read-reread) label { gap: var(--s-2); }
+  [data-page="reading"] :is(#read-cold, #read-reread) input[type="range"] { flex-basis: 100%; }
+}
+
+/* ── 13. 减弱动效：本页本就没有动画，这里只是把残留过渡也封死 ───────────── */
+@media (prefers-reduced-motion: reduce) {
+  [data-page="reading"] .reader-text,
+  [data-page="reading"] .reader-text *,
+  [data-page="reading"] .reader-side .chip,
+  [data-page="reading"] .reader-bar .reader-side-toggle,
+  [data-page="reading"] #read-import label.secondary {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* ── 窄视口防线：阅读页在 320–414px 不允许出现横向溢出 ────────────────────
+   实测（mobile-audit）：结果/预览的指标网格把内容撑到 398px，导致 docScrollW=416。
+   这里把网格降为单列、允许收缩，并让页面标题不再被内容反向撑宽。 */
+@media (max-width: 900px) {
+  [data-page="reading"] .page-title,
+  [data-page="reading"] .panel,
+  [data-page="reading"] .metric,
+  [data-page="reading"] .metrics > * {
+    min-width: 0;
+  }
+  [data-page="reading"] .metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  [data-page="reading"] #read-preview .metrics,
+  [data-page="reading"] #read-result .metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  [data-page="reading"] .reading-layout,
+  [data-page="reading"] .reader-main {
+    min-width: 0;
+  }
+}

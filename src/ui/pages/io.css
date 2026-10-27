@@ -1,0 +1,591 @@
+/* ============================================================================
+   Phase 15h · 真实输入 Hub / 表达 Lab（io.css）
+   两个页面，两种工作性质：
+   - 输入 = 等级 B「操作区」：材料 → 会话步骤 → 自评 → 记录。手要快，眼睛不被装饰牵走。
+   - 表达 = 等级 C「长文本编辑」：正文是唯一主角，右栏只放证据，背景全程静止。
+
+   范围：[data-page="input"] / [data-page="output"]（由 motion.ts 写在 <html>）。
+   约束：
+   - 只用 tokens.css / system.css 的变量；无裸色值、无 !important、无 backdrop-filter
+   - 无循环动画；表达编辑区在输入过程中不重绘背景、不做脉冲式保存提示
+   - 焦点环完全交给 system.css：本文件不写 outline / :focus-visible
+   - 通用组件（panel / button / chip / metrics / toolbar / notice）不重做，只做本页增量
+   ========================================================================== */
+
+/* ── 1. 输入 · 页面骨架 ─────────────────────────────────────────────────── */
+[data-page="input"] #main { --page-max: 1200px; }
+[data-page="input"] .page-title p { max-width: 68ch; }
+
+/* 继续上次：常驻回归条。左侧一条光说明"从哪继续"，不呼吸、不位移 */
+[data-page="input"] .today-return {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-5);
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--line);
+  border-left: 1px solid var(--accent-ink);
+  border-radius: var(--r-md);
+  background:
+    linear-gradient(90deg, var(--accent-wash), transparent 54%),
+    var(--surface-raised);
+  box-shadow: var(--e-1);
+}
+[data-page="input"] .today-return > div { display: grid; gap: 2px; min-width: 0; }
+[data-page="input"] .today-return b { font-size: var(--t-md); color: var(--ink); }
+[data-page="input"] .today-return p { margin: 0; font-size: var(--t-sm); }
+[data-page="input"] .today-return > button { flex: 0 0 auto; }
+
+/* ── 2. 输入 · 材料卡（source / video / audio 同一族）────────────────────── */
+[data-page="input"] .input-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--s-4);
+  margin-top: var(--s-3);
+}
+[data-page="input"] .input-grid > .panel { margin: 0; }
+[data-page="input"] .panel.input-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-5);
+}
+[data-page="input"] .input-card > b {
+  font-family: var(--font-display);
+  font-size: var(--t-md);
+  font-weight: 600;
+  line-height: 1.42;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+[data-page="input"] .input-card p { margin: 0; font-size: var(--t-xs); line-height: 1.62; }
+[data-page="input"] .input-reason { margin: 0; }
+/* 推荐理由是一条可读的理由，不是一颗标签：允许换行，去掉胶囊高度 */
+[data-page="input"] .input-reason .pill {
+  height: auto;
+  padding: 3px 9px;
+  border-radius: var(--r-sm);
+  white-space: normal;
+  line-height: 1.55;
+  font-size: var(--t-2xs);
+}
+/* 卡片底栏：动作压在底部，与标题解耦，扫视时不会看串 */
+[data-page="input"] .panel.input-card > .actions {
+  margin: auto 0 0;
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line);
+  gap: var(--s-2);
+}
+
+/* ── 3. 输入 · 记录列表（My English Library）────────────────────────────── */
+[data-page="input"] .library-list {
+  display: grid;
+  margin-top: var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--surface-sunken);
+}
+[data-page="input"] .library-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--line);
+  transition: background-color var(--dur-2) linear;
+}
+[data-page="input"] .library-row:last-child { border-bottom: 0; }
+[data-page="input"] .library-row:hover { background: var(--mat-matte-wash); }
+[data-page="input"] .library-row > div:first-child { display: grid; gap: 2px; min-width: 0; }
+[data-page="input"] .library-row b {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+/* 元信息：主题 · 类型 · 时长 · 状态 · 完成度 —— 等宽数字便于纵向比较 */
+[data-page="input"] .library-row p {
+  margin: 0;
+  font-size: var(--t-2xs);
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+}
+[data-page="input"] .library-row .actions { margin: 0; gap: var(--s-1); flex-wrap: nowrap; }
+[data-page="input"] .library-row .actions .button,
+[data-page="input"] .library-row .actions button {
+  min-height: 30px;
+  padding: 0 var(--s-2);
+  font-size: var(--t-2xs);
+}
+
+/* 输入统计：与 .metrics 同构但不复用（这四条是自报，不是成绩） */
+[data-page="input"] .stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1px;
+  margin: var(--s-4) 0 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--line);
+}
+[data-page="input"] .stat {
+  display: grid;
+  gap: 2px;
+  padding: var(--s-3) var(--s-4);
+  background: linear-gradient(180deg, var(--mat-matte-wash), transparent 72%), var(--surface-raised);
+}
+[data-page="input"] .stat > span {
+  font-size: var(--t-2xs);
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+}
+[data-page="input"] .stat b {
+  font-family: var(--font-num);
+  font-size: var(--t-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 4. 输入 · 会话：理解自评必须看起来像"自报" ─────────────────────────── */
+/* 自评 / 自报时长使用虚线圈定的字段：形状本身说明证据等级，不靠一句提示文字 */
+[data-page="input"] label:has(> #baseline-comprehension),
+[data-page="input"] label:has(> #refl-comprehension),
+[data-page="input"] label:has(> #refl-watched) {
+  display: grid;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--mat-matte-wash);
+  color: var(--ink-soft);
+}
+[data-page="input"] label:has(> #baseline-comprehension) > input,
+[data-page="input"] label:has(> #refl-comprehension) > input,
+[data-page="input"] label:has(> #refl-watched) > input {
+  margin-top: 0;
+  background: var(--surface-raised);
+}
+
+/* 障碍原因：勾选即高亮，未勾选是安静的空圈，不是一排等价按钮 */
+[data-page="input"] .ai-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin: var(--s-3) 0 var(--s-2);
+  font-size: var(--t-xs);
+}
+[data-page="input"] .ai-targets .check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: border-color var(--dur-2) linear, color var(--dur-2) linear, background-color var(--dur-2) linear;
+}
+[data-page="input"] .ai-targets .check:hover { border-color: var(--line-strong); color: var(--ink-soft); }
+[data-page="input"] .ai-targets .check input { width: 14px; height: 14px; margin: 0; accent-color: var(--accent-ink); }
+[data-page="input"] .ai-targets .check:has(input:checked) {
+  border-color: color-mix(in srgb, var(--accent-ink) 52%, transparent);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+/* 复盘模式：三个入口并排，只让当前档位有金属下沿 */
+[data-page="input"] [data-mode] { min-height: 34px; font-size: var(--t-xs); }
+
+/* ── 5. 输入 · 字幕 / 转写面板 ──────────────────────────────────────────── */
+/* 时间码与文本现在在同一个文本节点里（见 gap 报告）：用等宽数字 + 悬挂缩进，
+   让换行落到文本起点而不是压在时间码上。真正的对齐仍需 .cue-time 钩子。 */
+[data-page="input"] .transcript-cues {
+  display: grid;
+  gap: 1px;
+  margin: var(--s-4) 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--line);
+  font-size: var(--t-sm);
+  line-height: 1.68;
+}
+[data-page="input"] .transcript-cues li {
+  margin: 0;
+  padding: 10px var(--s-4) 10px calc(var(--s-4) + 12.6ch);
+  text-indent: -12.6ch;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  transition: background-color var(--dur-2) linear;
+}
+[data-page="input"] .transcript-cues li:hover { background: var(--mat-matte-wash); }
+[data-page="input"] .transcript-cues li .text-button {
+  margin-left: var(--s-2);
+  font-size: var(--t-2xs);
+  vertical-align: baseline;
+}
+
+/* 字幕文件入口：虚线是"还没拿到材料"，不是危险 */
+[data-page="input"] .file-box {
+  display: grid;
+  gap: var(--s-2);
+  margin: var(--s-3) 0;
+  padding: var(--s-4);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--mat-matte-wash);
+  color: var(--ink-muted);
+  font-size: var(--t-xs);
+  transition: border-color var(--dur-2) linear;
+}
+[data-page="input"] .file-box:hover { border-color: color-mix(in srgb, var(--accent-ink) 46%, var(--line-strong)); }
+[data-page="input"] .file-box input[type="file"] {
+  min-height: 30px;
+  padding: var(--s-2);
+  background: var(--surface-raised);
+  color: var(--ink-soft);
+  font-size: var(--t-xs);
+}
+
+/* 会话状态记录条（已完成 / 冷测已记录 / 关联单元）：一行档案，不再当卡片 */
+[data-page="input"] #main:has([data-input-back]) section.panel:has(> b) {
+  display: grid;
+  gap: var(--s-1);
+  padding: var(--s-4) var(--s-5);
+  border-left: 1px solid var(--line-strong);
+  background: linear-gradient(90deg, var(--mat-matte-wash), transparent 62%), var(--surface);
+  box-shadow: none;
+}
+[data-page="input"] #main:has([data-input-back]) section.panel:has(> b) > b {
+  font-size: var(--t-2xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+[data-page="input"] #main:has([data-input-back]) section.panel:has(> b) p {
+  margin: 0;
+  font-size: var(--t-sm);
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ══ 6. 表达 · 页面骨架（等级 C：正文优先）═══════════════════════════════ */
+[data-page="output"] #main { --page-max: 1180px; }
+[data-page="output"] .page-title p { max-width: 68ch; }
+
+/* 任务类型：可选轨道，选中只是"我现在想写这个"，不是难度分级 */
+[data-page="output"] .output-types { gap: var(--s-2); margin: var(--s-3) 0 var(--s-2); }
+[data-page="output"] .output-types .chip { height: 28px; padding: 0 12px; font-size: var(--t-xs); }
+[data-page="output"] .output-start .form-grid { margin-top: var(--s-4); }
+
+/* 建议任务：本页唯一被推荐的入口，用一条左侧光区分于普通卡片 */
+[data-page="output"] .output-suggestion {
+  margin-top: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--line);
+  border-left: 1px solid var(--accent-ink);
+  border-radius: var(--r-md);
+  background: linear-gradient(90deg, var(--accent-wash), transparent 50%), var(--surface-raised);
+}
+[data-page="output"] .output-suggestion > b { font-size: var(--t-md); color: var(--ink); }
+[data-page="output"] .output-suggestion p { margin: 6px 0 0; font-size: var(--t-sm); line-height: 1.6; }
+[data-page="output"] .output-suggestion .actions { margin-top: var(--s-3); }
+
+/* 从刚才的材料继续：带入的是原文，卡片先给内容再给箭头 */
+[data-page="output"] .output-handoffs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: var(--s-3);
+}
+[data-level] [data-page="output"] .handoff {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  min-height: 0;
+  padding: var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  box-shadow: var(--e-1);
+}
+[data-level] [data-page="output"] .handoff:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  background: var(--surface-raised);
+}
+[data-level] [data-page="output"] .handoff b { font-size: var(--t-sm); font-weight: 600; }
+[data-level] [data-page="output"] .handoff small { font-size: var(--t-xs); line-height: 1.55; color: var(--ink-muted); }
+[data-level] [data-page="output"] .handoff span {
+  margin-top: var(--s-1);
+  font-size: var(--t-2xs);
+  letter-spacing: 0.04em;
+  color: var(--accent-ink);
+}
+
+/* 可选任务卡：与输入卡同族，底栏承载唯一动作 */
+[data-page="output"] .output-grid { gap: var(--s-4); margin-top: var(--s-3); }
+[data-page="output"] .output-grid > .panel { margin: 0; }
+[data-page="output"] .panel.output-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-5);
+}
+[data-page="output"] .row.spread {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+[data-page="output"] .output-card .row.spread { flex-wrap: nowrap; }
+[data-page="output"] .output-card .row.spread > b {
+  min-width: 0;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+[data-page="output"] .output-card p { margin: 0; font-size: var(--t-xs); line-height: 1.62; }
+[data-page="output"] .panel.output-card .actions {
+  margin: auto 0 0;
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line);
+}
+
+/* 以前的表达：一行一条，靠 hover 报出可点，不常驻高亮 */
+[data-page="output"] .output-history { display: grid; gap: 0; margin-top: var(--s-2); }
+[data-level] [data-page="output"] .history-row {
+  display: grid;
+  grid-template-columns: minmax(104px, max-content) minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--s-4);
+  min-height: 0;
+  padding: 10px var(--s-3);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink-soft);
+  text-align: left;
+}
+[data-level] [data-page="output"] .history-row:last-child { border-bottom: 0; }
+[data-level] [data-page="output"] .history-row:hover:not(:disabled) { background: var(--mat-matte-wash); }
+[data-level] [data-page="output"] .history-row b { font-size: var(--t-sm); font-weight: 600; color: var(--ink); }
+[data-level] [data-page="output"] .history-row span { font-size: var(--t-xs); color: var(--ink-muted); }
+[data-level] [data-page="output"] .history-row small {
+  font-size: var(--t-2xs);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ══ 7. 表达 · 会话版式：编辑器在左，证据在右 ═══════════════════════════ */
+[data-page="output"] .output-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 344px);
+  gap: var(--s-5);
+  align-items: start;
+}
+[data-page="output"] .output-layout > .panel { margin: 0; }
+[data-page="output"] .output-side { display: grid; gap: var(--s-4); }
+[data-page="output"] .output-side > .panel { margin: 0; padding: var(--s-5); }
+
+/* ── 8. 表达 · 草稿编辑器：静止表面 ─────────────────────────────────────── */
+/* 面板去掉内层渐变与呼吸：写作时背景不参与，只有字在动 */
+[data-page="output"] .panel.output-editor {
+  padding: var(--s-5) var(--s-6) var(--s-6);
+  background: var(--surface-raised);
+  box-shadow: var(--e-1);
+}
+[data-page="output"] .panel.output-editor::after { content: none; }
+[data-page="output"] .panel.output-editor .section-title { border-bottom: 1px solid var(--line); }
+
+/* 只改排版与表面，不碰 border-color / box-shadow / outline：
+   system.css 的 textarea:focus-visible 用这两项画焦点环，覆盖它等于让编辑器失去键盘焦点 */
+[data-page="output"] .output-editor textarea {
+  display: block;
+  width: 100%;
+  max-width: var(--read-measure);
+  min-height: clamp(280px, 42vh, 460px);
+  margin: var(--s-3) 0 0;
+  padding: var(--s-4) var(--s-5);
+  background: var(--surface);
+  color: var(--read-ink);
+  font-family: var(--font-reading);
+  font-size: var(--read-size);
+  line-height: var(--read-leading);
+  letter-spacing: normal;
+  resize: vertical;
+  transition: none;
+  animation: none;
+}
+
+/* 保存状态：一行静态文字。不是脉冲点、不是发光条，输入过程中不重绘背景 */
+[data-page="output"] .output-editor .row.spread {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  max-width: var(--read-measure);
+  margin: var(--s-2) 0 0;
+  padding-top: var(--s-2);
+  border-top: 1px solid var(--line);
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="output"] #out-count,
+[data-page="output"] #out-save-state {
+  font-size: var(--t-2xs);
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  animation: none;
+  transition: none;
+}
+[data-page="output"] #out-save-state { text-align: right; }
+
+/* 支架按钮：L1–L3 是次级动作；L4 完整示范用虚线标出"会降低证据等级" */
+[data-page="output"] .output-editor > .actions { margin-top: var(--s-4); }
+[data-level] [data-page="output"] .output-editor [data-out-support] {
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  font-size: var(--t-xs);
+}
+[data-level] [data-page="output"] .output-editor [data-out-support="4"] {
+  border-style: dashed;
+  border-color: var(--line-strong);
+  color: var(--ink-muted);
+}
+
+/* 支架提示：安静的一块，可滚不抖动。折叠需要 <details>（见 gap 报告） */
+[data-page="output"] .hint-box {
+  max-width: var(--read-measure);
+  margin: var(--s-4) 0 0;
+  padding: var(--s-4);
+  border: 1px solid var(--line);
+  border-left: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+}
+[data-page="output"] .hint-box > b {
+  display: block;
+  margin-bottom: var(--s-2);
+  font-size: var(--t-2xs);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+}
+[data-page="output"] .hint-box pre {
+  max-height: 300px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  background: none;
+  border-radius: 0;
+  color: var(--ink-soft);
+  font-family: var(--font-reading);
+  font-size: var(--t-sm);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+/* 修改稿：与草稿同一阅读字体，但低一层，正文仍属于第一次写下的东西 */
+[data-page="output"] .output-side textarea {
+  min-height: 160px;
+  max-width: 100%;
+  margin-top: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  background: var(--surface);
+  color: var(--read-ink);
+  font-family: var(--font-reading);
+  font-size: var(--t-base);
+  line-height: var(--read-leading);
+  resize: vertical;
+  transition: none;
+}
+
+/* 已完成：正文变成档案，不再接受输入，也不再有编辑器的呼吸 */
+[data-page="output"] .output-editor textarea[readonly] {
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+  resize: none;
+  cursor: default;
+}
+
+/* ── 9. 表达 · 反馈面板：先看意思，再看细节 ─────────────────────────────── */
+[data-page="output"] .feedback-row {
+  display: grid;
+  gap: 6px;
+  padding: var(--s-3) 0;
+  border-top: 1px solid var(--line);
+}
+[data-page="output"] .feedback-row:first-of-type { padding-top: 0; border-top: 0; }
+[data-page="output"] .feedback-row > .pill {
+  justify-self: start;
+  height: 20px;
+  padding: 0 8px;
+  font-size: var(--t-2xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+[data-page="output"] .feedback-row > b { font-size: var(--t-md); color: var(--ink); }
+[data-page="output"] .feedback-row > small { font-size: var(--t-2xs); line-height: 1.55; }
+[data-page="output"] .feedback-row ul { margin: 0; padding-left: var(--s-5); }
+[data-page="output"] .feedback-row li { margin: 4px 0; font-size: var(--t-sm); line-height: 1.62; }
+[data-page="output"] .feedback-row li b { color: var(--ink); font-weight: 600; }
+[data-page="output"] .feedback-row p { margin: 0; font-size: var(--t-sm); line-height: 1.65; color: var(--ink-soft); }
+[data-page="output"] .ok-line { margin: 4px 0; color: var(--ok); font-size: var(--t-sm); }
+[data-page="output"] .warn-line { margin: 4px 0; color: var(--warn); font-size: var(--t-xs); }
+
+/* ── 10. 表达 · 迁移练习：新语境是另一条跑道，虚线表示"尚未发生" ────────── */
+[data-page="output"] section.panel:has([data-out-transfer-start]) {
+  border-style: dashed;
+  border-color: var(--line-strong);
+  background: linear-gradient(90deg, var(--accent-wash), transparent 46%), var(--surface);
+}
+[data-page="output"] section.panel:has([data-out-transfer-start]) .section-title { border-bottom-style: dashed; }
+[data-page="output"] section.panel:has([data-out-transfer-start]) p {
+  margin: 0 0 6px;
+  font-size: var(--t-sm);
+  line-height: 1.65;
+}
+[data-level] [data-page="output"] [data-out-transfer-start] { min-height: 34px; font-size: var(--t-xs); }
+
+/* ── 11. 窄视口：只保证不溢出、动作不丢 ────────────────────────────────── */
+@media (max-width: 1080px) {
+  [data-page="output"] .output-layout { grid-template-columns: minmax(0, 1fr); }
+  [data-page="output"] .output-side { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+}
+
+@media (max-width: 900px) {
+  [data-page="input"] .input-grid { grid-template-columns: minmax(0, 1fr); }
+  [data-page="input"] .library-row { grid-template-columns: minmax(0, 1fr); gap: var(--s-2); }
+  [data-page="input"] .library-row .actions { flex-wrap: wrap; }
+  [data-page="input"] .transcript-cues li { padding-left: var(--s-3); text-indent: 0; }
+  [data-page="output"] .output-editor textarea { min-height: 40vh; padding: var(--s-4); font-size: var(--t-lg); }
+  [data-page="output"] .output-side { grid-template-columns: minmax(0, 1fr); }
+  [data-level] [data-page="output"] .history-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+
+/* 减少动效：本文件没有循环动画，这里只把过渡收紧为瞬时 */
+@media (prefers-reduced-motion: reduce) {
+  [data-page="input"] .library-row,
+  [data-page="input"] .transcript-cues li,
+  [data-page="input"] .ai-targets .check,
+  [data-page="input"] .file-box,
+  [data-page="output"] .handoff,
+  [data-page="output"] .history-row {
+    transition: none;
+  }
+}

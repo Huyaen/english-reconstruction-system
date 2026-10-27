@@ -1,4 +1,5 @@
 import './tokens.css';
+import { applyPageChrome, disposePageChrome, installPressFeedback } from './ui/motion.ts';
 import './style.css';
 import './proto15c.css';
 import './proto15c-v2.css';
@@ -8,6 +9,14 @@ import './reading15c.css';
 import './reading15c-v2.css';
 import './reading15d.css';
 import './cinematic15d.css';
+import './ui/system.css';
+import './ui/pages/quiz.css';
+import './ui/pages/mgmt.css';
+import './ui/pages/reading.css';
+import './ui/pages/sentence-grammar.css';
+import './ui/pages/io.css';
+import './ui/pages/data.css';
+import './ui/pages/io.css';
 import { protoTodayHTML, protoTodayD, protoTaskViews, type ProtoContext, type ProtoId, type ProtoTaskInput } from './protoToday';
 import { startLiving, stopLiving, livingAllowed } from './living';
 import type { Data, Word, StudySession, Settings, ReviewRecord, Mastery, DailyPlan, PlanItem, EnergyState, GrammarConcept, SentenceRecord, SentenceStepRecord, SentenceAttempt, SentenceEvidenceClass, GrammarCategory } from './types.ts';
@@ -250,10 +259,15 @@ let vtPending = false;
 const PROTO: ProtoId | null = (() => {
     try {
         const v = new URLSearchParams(location.search).get('proto');
-        return v === 'a' || v === 'b' || v === 'd' ? v : null;
+        // Phase 15h：电影感界面成为默认路径；?proto=legacy 保留 15b 旧界面作为回退。
+        if (v === 'legacy' || v === 'off' || v === 'a' || v === 'b')
+            return null;
+        if (v === 'd')
+            return 'd';
+        return 'd';
     }
     catch {
-        return null;
+        return 'd';
     }
 })();
 function applyProtoAttr(): void {
@@ -277,6 +291,7 @@ function render(): void {
 function paint(): void {
     const prev = lastRenderKey;
     const y = window.scrollY;
+    disposePageChrome();
     applyProtoAttr();
     shell();
     ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp, input: inputPageApp, output: outputPageApp, diagnostics: diagnosticsPageApp, exam: examPageApp }[page] || home)();
@@ -296,6 +311,7 @@ function paint(): void {
     catch {
         /* 非浏览器实现（测试环境）忽略 */
     }
+    applyPageChrome(page);
     afterRender();
     // 页面切换的运动：只在这一帧之后播放，不延迟任何 DOM 写入（测试与业务代码依赖同步渲染）
     const main = document.querySelector<HTMLElement>('#main');
@@ -653,9 +669,9 @@ async function submit(selectedId: string | null, reason: ReviewRecord['reason'])
     }
     feedback = true;
     busy = false;
-    document.querySelectorAll<HTMLButtonElement>('.answer').forEach(b => { b.disabled = true; b.classList.toggle('correct', b.dataset.answer === w.id); b.classList.toggle('wrong', b.dataset.answer === selectedId); });
+    document.querySelectorAll<HTMLButtonElement>('.answer').forEach(b => { b.disabled = true; b.classList.toggle('correct', b.dataset.answer === w.id); b.classList.toggle('is-correct', b.dataset.answer === w.id); b.classList.toggle('wrong', b.dataset.answer === selectedId); b.classList.toggle('is-wrong', b.dataset.answer === selectedId); });
     $('#unknown').setAttribute('disabled', '');
-    $('#feedback').innerHTML = `<div class="answer-feedback"><strong>${esc(w.en)} · ${esc(w.zh)}</strong><span>${reason === 'timeout' ? '超时' : reason === 'unknown' ? '已加入复习' : '已记录错词'} · ${seconds(result.record.ms)}</span><button id="next" class="primary">下一题 <kbd>Enter</kbd></button></div>`;
+    $('#feedback').innerHTML = `<div class="answer-feedback bad" role="status"><div class="feedback-copy"><strong>${esc(w.en)} · ${esc(w.zh)}</strong><span>${reason === 'timeout' ? '超时未答' : reason === 'unknown' ? '标记为不知道，已加入复习' : '已记录错词'} · ${seconds(result.record.ms)}</span></div><button id="next" class="primary">下一题 <kbd>Enter</kbd></button></div>`;
     on('#next', 'click', nextQuestion);
     if (data.settings.feedback >= 0)
         timer = setTimeout(() => void nextQuestion(), data.settings.feedback);
@@ -753,7 +769,7 @@ function showResults(s: StudySession) {
 function wordChips(ws: Word[]) { return ws.length ? `<div class="chips">${ws.map(w => `<button data-detail="${w.id}">${esc(w.en)}</button>`).join('')}</div>` : '<p class="subtle">没有这一类单词</p>'; }
 function filtered(weak: boolean) { let ws = data.words.filter(w => (!weak || isWeak(w)) && (!bookFilter || w.bookId === bookFilter) && (!levelFilter || w.state.level === levelFilter) && (!search || `${w.en} ${w.zh} ${w.tags}`.toLowerCase().includes(search.toLowerCase()))); return ws.sort(sort === 'alpha' ? (a, b) => a.en.localeCompare(b.en) : sort === 'due' ? (a, b) => effectiveDue(a, data.settings.schedulingAuthority) - effectiveDue(b, data.settings.schedulingAuthority) : (a, b) => priority(b) - priority(a)); }
 function library(weak: boolean) {
-    $('#main').innerHTML = title(weak ? 'FOCUSED REVIEW' : 'YOUR WORDBOOKS', weak ? '把薄弱的地方练扎实' : '你的词库', weak ? '不会和模糊词，按照当前复习优先级排列。' : '导入你要学的词，所有记录留在这台设备。', `<button id="import" class="primary">＋ 导入词书</button>`) + `<div class="book-tabs"><button data-book="" class="${!bookFilter ? 'selected' : ''}">全部词书</button>${data.books.map(b => `<button data-book="${b.id}" class="${bookFilter === b.id ? 'selected' : ''}">${esc(b.name)} <small>${data.words.filter(w => w.bookId === b.id).length}</small></button>`).join('')}</div><div class="toolbar"><input id="search" placeholder="搜索单词、释义或标签" aria-label="搜索词库" value="${esc(search)}"><select id="level" aria-label="掌握筛选"><option value="">全部状态</option>${Object.entries(labels).filter(([k]) => !weak || k === 'unknown' || k === 'vague').map(([k, v]) => `<option value="${k}" ${k === levelFilter ? 'selected' : ''}>${v}</option>`).join('')}</select><select id="sort" aria-label="排序"><option value="priority" ${sort === 'priority' ? 'selected' : ''}>优先级排序</option><option value="alpha" ${sort === 'alpha' ? 'selected' : ''}>字母排序</option><option value="due" ${sort === 'due' ? 'selected' : ''}>复习时间排序</option></select><button id="train-filter" class="secondary">测试筛选结果</button><button id="export-filter" class="secondary">导出</button><button id="preview-lib" class="secondary">预览新词</button>${bookFilter ? '<button id="rename-book" class="text-button">重命名</button><button id="delete-book" class="danger-text">删除词书</button>' : ''}</div><section class="panel no-padding" id="word-table"></section>`;
+    $('#main').innerHTML = title(weak ? 'FOCUSED REVIEW' : 'YOUR WORDBOOKS', weak ? '把薄弱的地方练扎实' : '你的词库', weak ? '不会和模糊词，按照当前复习优先级排列。' : '导入你要学的词，所有记录留在这台设备。', `<button id="import" class="primary">＋ 导入词书</button>`) + `<div class="book-tabs"><button data-book="" class="${!bookFilter ? 'selected' : ''}">全部词书</button>${data.books.map(b => `<button data-book="${b.id}" class="${bookFilter === b.id ? 'selected' : ''}">${esc(b.name)} <small>${data.words.filter(w => w.bookId === b.id).length}</small></button>`).join('')}</div><div class="toolbar"><input id="search" placeholder="搜索单词、释义或标签" aria-label="搜索词库" value="${esc(search)}"><select id="level" aria-label="掌握筛选"><option value="">全部状态</option>${Object.entries(labels).filter(([k]) => !weak || k === 'unknown' || k === 'vague').map(([k, v]) => `<option value="${k}" ${k === levelFilter ? 'selected' : ''}>${v}</option>`).join('')}</select><select id="sort" aria-label="排序"><option value="priority" ${sort === 'priority' ? 'selected' : ''}>优先级排序</option><option value="alpha" ${sort === 'alpha' ? 'selected' : ''}>字母排序</option><option value="due" ${sort === 'due' ? 'selected' : ''}>复习时间排序</option></select><span class="toolbar-actions"><button id="train-filter" class="secondary">训练这批</button><button id="export-filter" class="secondary">导出</button><button id="preview-lib" class="secondary">预览新词</button></span>${bookFilter ? '<button id="rename-book" class="text-button">重命名</button><button id="delete-book" class="danger-text">删除词书</button>' : ''}</div><section class="panel no-padding" id="word-table"></section>`;
     drawTable(weak);
     on('#import', 'click', importDialog);
     document.querySelectorAll<HTMLElement>('[data-book]').forEach(b => b.onclick = () => { bookFilter = b.dataset.book!; listPage = 0; library(weak); });
@@ -779,8 +795,11 @@ function library(weak: boolean) {
     });
     on('#delete-book', 'click', deleteBookDialog);
 }
-function drawTable(weak: boolean) { const ws = filtered(weak), pages = Math.max(1, Math.ceil(ws.length / 50)); listPage = Math.min(listPage, pages - 1); $('#word-table').innerHTML = `<div class="table-scroll"><table><thead><tr><th>单词 / 释义</th><th>掌握状态</th><th>优先级</th><th>正确 / 作答</th><th>平均反应</th><th>下次复习</th></tr></thead><tbody>${ws.slice(listPage * 50, listPage * 50 + 50).map(w => `<tr><td><button class="word-link" data-detail="${w.id}">${esc(w.en)}</button><small>${esc(w.zh)}</small></td><td><span class="badge ${w.state.level}">${labels[w.state.level]}</span> <small class="lifecycle">${LIFECYCLE_LABELS[lifecycleOf(w)]}</small></td><td><b class="priority-${priorityGrade(w)}">${priorityGrade(w)}</b></td><td>${w.state.correct} / ${w.state.total}</td><td>${w.state.total ? seconds(w.state.meanMs) : '—'}</td><td>${w.state.total ? (effectiveDue(w, data.settings.schedulingAuthority) <= Date.now() ? '<span class="due-text">已到期</span>' : date(effectiveDue(w, data.settings.schedulingAuthority))) : '未测试'}</td></tr>`).join('') || '<tr><td colspan="6" class="empty-cell">暂无符合条件的单词。导入词书或调整筛选。</td></tr>'}</tbody></table></div><div class="pagination"><span>共 ${ws.length} 个词 · 每页 50 个</span><div><button id="prev" ${listPage === 0 ? 'disabled' : ''}>上一页</button><span>${listPage + 1} / ${pages}</span><button id="next-page" ${listPage === pages - 1 ? 'disabled' : ''}>下一页</button></div></div>`; on('#prev', 'click', () => { listPage--; drawTable(weak); }); on('#next-page', 'click', () => { listPage++; drawTable(weak); }); bindDetails(); }
-function bindDetails() { document.querySelectorAll<HTMLElement>('[data-detail]').forEach(b => b.onclick = () => wordDetail(wordMap.get(b.dataset.detail!)!)); }
+function drawTable(weak: boolean) { const ws = filtered(weak), pages = Math.max(1, Math.ceil(ws.length / 50)); listPage = Math.min(listPage, pages - 1); $('#word-table').innerHTML = `<div class="table-scroll"><table><thead><tr><th>单词 / 释义</th><th>掌握状态</th><th>优先级</th><th>正确 / 作答</th><th>平均反应</th><th>下次复习</th></tr></thead><tbody>${ws.slice(listPage * 50, listPage * 50 + 50).map(w => `<tr><td><button class="word-link" data-detail="${w.id}">${esc(w.en)}</button><small>${esc(w.zh)}</small></td><td><span class="badge ${w.state.level}">${labels[w.state.level]}</span> <small class="lifecycle">${LIFECYCLE_LABELS[lifecycleOf(w)]}</small></td><td><b class="priority-${priorityGrade(w)}">${priorityGrade(w)}</b></td><td>${w.state.correct} / ${w.state.total}</td><td>${w.state.total ? seconds(w.state.meanMs) : '—'}</td><td>${w.state.total ? (effectiveDue(w, data.settings.schedulingAuthority) <= Date.now() ? '<span class="due-text">已到期</span>' : date(effectiveDue(w, data.settings.schedulingAuthority))) : '未测试'}</td></tr>`).join('') || `<tr><td colspan="6" class="empty-cell"><div class="empty-state"><strong>没有符合条件的单词</strong><span>导入词书，或把搜索与筛选清空再看一遍。</span><div class="actions"><button id="empty-import" class="primary">导入词书</button><button id="empty-clear" class="secondary">清除筛选</button></div></div></td></tr>`}</tbody></table></div><div class="pagination"><span>共 ${ws.length} 个词 · 每页 50 个</span><div><button id="prev" ${listPage === 0 ? 'disabled' : ''}>上一页</button><span>${listPage + 1} / ${pages}</span><button id="next-page" ${listPage === pages - 1 ? 'disabled' : ''}>下一页</button></div></div>`; on('#prev', 'click', () => { listPage--; drawTable(weak); }); on('#next-page', 'click', () => { listPage++; drawTable(weak); }); bindDetails();
+ on('#empty-import', 'click', importDialog);
+ on('#empty-clear', 'click', () => { search = ''; bookFilter = ''; levelFilter = ''; listPage = 0; drawTable(weak); });
+ }
+ function bindDetails() { document.querySelectorAll<HTMLElement>('[data-detail]').forEach(b => b.onclick = () => wordDetail(wordMap.get(b.dataset.detail!)!)); }
 function wordDetail(w: Word) {
     const rs = data.records.filter(r => r.wordId === w.id).sort((a, b) => a.at - b.at);
     const r = fsrsRetrievability(w.fsrs, data.settings);
@@ -4600,6 +4619,7 @@ function examPageApp(): void {
 }
 async function boot() {
     installTestHook();
+    installPressFeedback();
     await openDB();
     data = await loadData();
     try {

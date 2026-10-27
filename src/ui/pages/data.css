@@ -1,0 +1,1392 @@
+/* ============================================================================
+   Phase 15h · 数据三页：学情诊断 / 学习统计 / 考试迁移（data.css）
+   覆盖范围只有三条：
+     [data-page="diagnostics"] · [data-page="stats"] · [data-page="exam"]
+   等级：diagnostics=a / stats=a / exam=b（见 ui/motion.ts），本文件只做增量，
+   不重排外壳、不碰其它页面。
+
+   数据纪律（比视觉更重要）：
+   - Activity ≠ Ability：作答次数用石墨描线；掌握度才用 --m-* / --ok。
+   - 空样本不画 0：无数据的格子走虚线/斜纹“无数据”面，不产生有高度的柱。
+   - 自评 → 虚线边框；推断/AI → 点线标签 + 低饱和面；可核对 → 实线 + 实心底。
+   - 不加发光、不加仪表盘、不加装饰性 sparkline；未验证内容不得长成能力。
+   ========================================================================== */
+
+/* ── 0. 本区域共用度量（只挂在三页的 #main 上，不污染 :root）─────────────── */
+:is([data-page="diagnostics"], [data-page="stats"], [data-page="exam"]) #main {
+  /* 证据图案：形状本身承担语义，颜色只是辅助 */
+  --data-hatch: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ink-muted) 42%, transparent) 0 1px,
+    transparent 1px 6px
+  );
+  --data-dots: radial-gradient(
+    color-mix(in srgb, var(--ink-muted) 55%, transparent) 1px,
+    transparent 1.15px
+  );
+  --data-hair: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--warn) 36%, transparent) 0 1px,
+    transparent 1px 7px
+  );
+  --data-cell: var(--surface-sunken);
+  --data-series: color-mix(in srgb, var(--ink-muted) 76%, transparent);
+  --data-series-soft: color-mix(in srgb, var(--ink-muted) 42%, transparent);
+  --data-read: 68ch;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   1. 学情诊断
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* 1.1 观察窗口：控件与“正在看什么”并列，先说明来源再给数字 */
+[data-page="diagnostics"] .diag-range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--s-3) var(--s-5);
+  margin: 0 0 var(--s-5);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--mat-matte-wash);
+}
+[data-page="diagnostics"] .diag-range label {
+  width: auto;
+  min-width: 150px;
+  display: grid;
+  gap: var(--s-1);
+  font-size: var(--t-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+[data-page="diagnostics"] .diag-range select { min-height: 32px; }
+[data-page="diagnostics"] .diag-range .muted {
+  flex: 1 1 240px;
+  font-size: var(--t-xs);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 1.2 结论：一条左轨 + 一句话，不是分数牌 */
+[data-page="diagnostics"] .diag-verdict {
+  display: grid;
+  gap: var(--s-2);
+  margin-bottom: var(--s-5);
+  padding: var(--s-5) var(--s-6);
+  border: 1px solid var(--line);
+  border-left: 1px solid var(--accent-ink);
+  border-radius: 0 var(--r-lg) var(--r-lg) 0;
+  background: linear-gradient(90deg, var(--accent-wash), transparent 46%), var(--surface);
+}
+[data-page="diagnostics"] .diag-verdict .eyebrow { margin: 0; }
+[data-page="diagnostics"] .diag-verdict h2 {
+  margin: 0;
+  font-size: clamp(22px, 2.3vw, 30px);
+  letter-spacing: -0.024em;
+}
+[data-page="diagnostics"] .diag-verdict p {
+  margin: 0;
+  max-width: var(--data-read);
+  font-size: var(--t-md);
+  color: var(--ink-soft);
+  line-height: 1.64;
+}
+[data-page="diagnostics"] .diag-verdict .hint { color: var(--ink-faint); font-size: var(--t-xs); }
+
+/* 1.3 证据构成：四段图案互不相同（实心 / 斜纹 / 点阵 / 竖线） */
+[data-page="diagnostics"] .diag-evidence .section-title { margin-bottom: var(--s-3); }
+[data-page="diagnostics"] .diag-evidence > p {
+  margin: 0 0 var(--s-3);
+  max-width: var(--data-read);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
+  line-height: 1.62;
+}
+[data-page="diagnostics"] .diag-evidence-bar {
+  display: flex;
+  align-items: stretch;
+  height: 16px;
+  margin: 0 0 var(--s-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-xs);
+  background: var(--data-cell);
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--canvas-deep) 40%, transparent);
+  overflow: hidden;
+}
+[data-page="diagnostics"] .diag-evidence-bar > i {
+  display: block;
+  flex: 0 0 auto;
+  min-width: 3px;
+  height: 100%;
+}
+/* 四类证据都为 0：条形退为空槽 + 斜纹，不用满格底色冒充“有证据” */
+[data-page="diagnostics"] .diag-evidence-bar:not(:has(> i)) {
+  border-style: dashed;
+  background-image: var(--data-hatch);
+  box-shadow: none;
+}
+[data-page="diagnostics"] .diag-evidence-bar > i.verified {
+  background-color: color-mix(in srgb, var(--ok) 44%, transparent);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--edge) 60%, transparent),
+    transparent 72%
+  );
+  box-shadow: inset -1px 0 0 color-mix(in srgb, var(--canvas) 70%, transparent);
+}
+[data-page="diagnostics"] .diag-evidence-bar > i.behavior {
+  background-color: color-mix(in srgb, var(--ink-soft) 14%, transparent);
+  background-image: var(--data-hatch);
+  box-shadow: inset -1px 0 0 color-mix(in srgb, var(--canvas) 70%, transparent);
+}
+[data-page="diagnostics"] .diag-evidence-bar > i.self {
+  background-color: color-mix(in srgb, var(--surface) 55%, transparent);
+  background-image: var(--data-dots);
+  background-size: 4px 4px;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--line-strong) 55%, transparent),
+    inset -1px 0 0 color-mix(in srgb, var(--canvas) 70%, transparent);
+}
+[data-page="diagnostics"] .diag-evidence-bar > i.inferred {
+  background-color: color-mix(in srgb, var(--warn) 9%, transparent);
+  background-image: var(--data-hair);
+  box-shadow: inset -1px 0 0 color-mix(in srgb, var(--canvas) 70%, transparent);
+}
+
+/* 图例：色块与条形同图案同权重，不只靠颜色区分 */
+[data-page="diagnostics"] .diag-evidence-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+[data-page="diagnostics"] .diag-evidence-row > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+  font-size: var(--t-xs);
+  color: var(--ink-muted);
+  line-height: 1.2;
+}
+[data-page="diagnostics"] .diag-evidence-row > span::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid var(--line-strong);
+  background-color: transparent;
+}
+[data-page="diagnostics"] .diag-evidence-row > span:nth-child(1)::before {
+  background-color: color-mix(in srgb, var(--ok) 44%, transparent);
+  border-color: color-mix(in srgb, var(--ok) 40%, var(--line-strong));
+}
+[data-page="diagnostics"] .diag-evidence-row > span:nth-child(2)::before {
+  background-color: color-mix(in srgb, var(--ink-soft) 14%, transparent);
+  background-image: var(--data-hatch);
+}
+[data-page="diagnostics"] .diag-evidence-row > span:nth-child(3)::before {
+  background-color: color-mix(in srgb, var(--surface) 55%, transparent);
+  background-image: var(--data-dots);
+  background-size: 4px 4px;
+  border-style: dashed;
+}
+[data-page="diagnostics"] .diag-evidence-row > span:nth-child(4)::before {
+  background-color: color-mix(in srgb, var(--warn) 9%, transparent);
+  background-image: var(--data-hair);
+}
+[data-page="diagnostics"] .diag-evidence-row > span:nth-child(5)::before {
+  background: var(--line);
+  border-style: dotted;
+}
+[data-page="diagnostics"] .diag-evidence-row b {
+  margin-left: auto;
+  font-size: var(--t-md);
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 1.4 记忆保持：D1 / D7 / D30 —— 样本不足就是“样本不足”，不画 0 */
+[data-page="diagnostics"] .diag-retention > p { max-width: var(--data-read); }
+[data-page="diagnostics"] .diag-retention-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: var(--s-2);
+  margin: var(--s-4) 0 var(--s-2);
+}
+[data-page="diagnostics"] .diag-retention-row > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: linear-gradient(180deg, var(--mat-matte-wash), transparent 74%), var(--surface-raised);
+}
+[data-page="diagnostics"] .diag-retention-row b {
+  font-size: var(--t-2xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 600;
+}
+[data-page="diagnostics"] .diag-retention-row strong {
+  font-size: var(--t-2xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="diagnostics"] .diag-retention-row small {
+  font-size: var(--t-2xs);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="diagnostics"] .diag-retention-row > div.is-empty {
+  opacity: 1;
+  border-style: dashed;
+  border-color: var(--line-strong);
+  background: none;
+}
+[data-page="diagnostics"] .diag-retention-row > div.is-empty strong {
+  font-size: var(--t-sm);
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-faint);
+}
+
+/* 1.5 分域对比：一行一指标，值与样本同权重 */
+[data-page="diagnostics"] .diag-domains {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--s-4);
+  align-items: start;
+  margin-bottom: var(--s-5);
+}
+[data-page="diagnostics"] .diag-domain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  margin: 0;
+  padding: var(--s-5);
+}
+[data-page="diagnostics"] .diag-domain .section-title {
+  margin-bottom: var(--s-2);
+  padding-bottom: var(--s-2);
+}
+[data-page="diagnostics"] .diag-domain .section-title .pill {
+  height: 22px;
+  font-size: var(--t-2xs);
+  letter-spacing: 0.02em;
+}
+[data-page="diagnostics"] .diag-metric {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1px var(--s-3);
+  padding: var(--s-3) 0;
+  border-top: 1px dashed var(--data-line);
+}
+[data-page="diagnostics"] .diag-metric:first-of-type { border-top: 0; }
+[data-page="diagnostics"] .diag-metric-label {
+  align-self: center;
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+[data-page="diagnostics"] .diag-metric strong {
+  font-size: var(--t-lg);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  text-align: right;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="diagnostics"] .diag-metric small {
+  grid-column: 2;
+  text-align: right;
+  font-size: var(--t-2xs);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="diagnostics"] .diag-metric .diag-def {
+  grid-column: 1 / -1;
+  font-size: var(--t-2xs);
+  line-height: 1.55;
+  color: var(--ink-faint);
+  opacity: 1;
+}
+/* 证据不足 / 不适用：虚线单元 + 斜纹面，值退为说明文字，不长成“0 分” */
+[data-page="diagnostics"] .diag-metric.is-empty {
+  border-top-style: dashed;
+  border-top-color: var(--line-strong);
+  border-left: 2px dashed var(--line-strong);
+  padding-left: var(--s-3);
+  background-image: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--line-strong) 34%, transparent) 0 1px,
+    transparent 1px 10px
+  );
+}
+[data-page="diagnostics"] .diag-metric.is-empty strong {
+  font-size: var(--t-sm);
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-faint);
+}
+[data-page="diagnostics"] .diag-metric.is-empty .diag-def { color: var(--ink-faint); opacity: 0.86; }
+
+/* 1.6 折叠的其余指标：明细不抢主视线 */
+[data-page="diagnostics"] .diag-more { margin-top: var(--s-2); }
+[data-page="diagnostics"] .diag-more > summary {
+  cursor: pointer;
+  padding: var(--s-2) 0;
+  font-size: var(--t-xs);
+  color: var(--ink-muted);
+  border-top: 1px dashed var(--data-line);
+  list-style: none;
+}
+[data-page="diagnostics"] .diag-more > summary::-webkit-details-marker { display: none; }
+[data-page="diagnostics"] .diag-more > summary::before {
+  content: "+";
+  display: inline-block;
+  width: 14px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="diagnostics"] .diag-more[open] > summary::before { content: "−"; }
+[data-page="diagnostics"] .diag-more > summary:hover { color: var(--ink); }
+
+/* 1.7 与上一周期相比：方向只用箭头与字重，不用红绿判好坏 */
+[data-page="diagnostics"] .diag-compare-head,
+[data-page="diagnostics"] .diag-compare-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 104px 104px minmax(96px, auto);
+  align-items: center;
+  gap: var(--s-3);
+}
+[data-page="diagnostics"] .diag-compare-head {
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--line-strong);
+  font-size: var(--t-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+[data-page="diagnostics"] .diag-compare-row {
+  padding: var(--s-3) 0;
+  border-bottom: 1px dashed var(--data-line);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="diagnostics"] .diag-compare-row:last-child { border-bottom: 0; }
+[data-page="diagnostics"] .diag-compare-row > span:first-child { color: var(--ink); }
+[data-page="diagnostics"] .diag-compare-row > span:nth-child(2) { color: var(--ink-faint); }
+[data-page="diagnostics"] .diag-compare-row b {
+  justify-self: end;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+[data-page="diagnostics"] .diag-compare-row b::before {
+  content: "▲";
+  display: inline-block;
+  margin-right: 5px;
+  font-size: 8px;
+  vertical-align: 1px;
+  color: var(--ink-faint);
+}
+[data-page="diagnostics"] .diag-compare-row b.down {
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+[data-page="diagnostics"] .diag-compare-row b.down::before { content: "▼"; }
+
+/* 1.8 下周行动计划：建议，不是排期表 */
+[data-page="diagnostics"] .diag-plan-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-5);
+  padding: var(--s-3) 0;
+  border-bottom: 1px dashed var(--data-line);
+}
+[data-page="diagnostics"] .diag-plan-row:last-of-type { border-bottom: 0; }
+[data-page="diagnostics"] .diag-plan-row > div:first-child { min-width: 0; }
+[data-page="diagnostics"] .diag-plan-row b {
+  font-size: var(--t-md);
+  font-weight: 600;
+  color: var(--ink);
+}
+[data-page="diagnostics"] .diag-plan-row p {
+  margin: 3px 0 0;
+  max-width: 74ch;
+  font-size: var(--t-xs);
+  line-height: 1.6;
+  color: var(--ink-muted);
+}
+[data-page="diagnostics"] .diag-plan-side {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+[data-page="diagnostics"] .diag-plan-side > span {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface-sunken);
+  font-size: var(--t-2xs);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 1.9 边界：脚注级元信息，不喊口号 */
+[data-page="diagnostics"] .diag-disclaimer {
+  margin-bottom: var(--s-5);
+  padding: var(--s-4) var(--s-5);
+  border-style: dashed;
+  background: var(--mat-matte-wash);
+}
+[data-page="diagnostics"] .diag-disclaimer h2 {
+  margin: 0 0 var(--s-2);
+  font-size: var(--t-2xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+[data-page="diagnostics"] .diag-disclaimer p {
+  margin: 0;
+  max-width: var(--data-read);
+  font-size: var(--t-sm);
+  color: var(--ink-muted);
+  line-height: 1.66;
+}
+
+/* 1.10 历史快照：可回溯的标签，不是趋势图 */
+[data-page="diagnostics"] .diag-history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+[data-page="diagnostics"] .diag-history .text-button {
+  min-height: 28px;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+  font-size: var(--t-xs);
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+}
+[data-page="diagnostics"] .diag-history .text-button:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   2. 学习统计
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* 2.1 指标条：数字是记录量，脚注写清口径 */
+[data-page="stats"] .metrics {
+  background: var(--line);
+  border-color: var(--line);
+  box-shadow: none;
+}
+[data-page="stats"] .metric {
+  gap: 2px;
+  padding: var(--s-4) var(--s-5);
+  background: linear-gradient(180deg, var(--mat-matte-wash), transparent 62%), var(--surface-raised);
+  box-shadow: none;
+}
+[data-page="stats"] .metric strong { color: var(--ink); }
+[data-page="stats"] .metric small {
+  font-size: var(--t-2xs);
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+/* 2.2 双向表现：两个方向各自独立，中→英不等于拼写能力 */
+[data-page="stats"] .direction-stat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0 var(--s-4);
+  margin: 0;
+  padding: var(--s-4) 0;
+}
+[data-page="stats"] .direction-stat + .direction-stat {
+  border-top: 1px dashed var(--data-line);
+}
+[data-page="stats"] .direction-stat > b {
+  font-size: var(--t-sm);
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+[data-page="stats"] .direction-stat strong {
+  grid-row: span 2;
+  font-size: var(--t-2xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="stats"] .direction-stat span {
+  font-size: var(--t-2xs);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 2.3 掌握分布：色只标掌握等级，长度是占比 */
+[data-page="stats"] .distribution {
+  display: grid;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+}
+[data-page="stats"] .distribution > div {
+  display: grid;
+  grid-template-columns: 8px minmax(56px, auto) minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: var(--s-3);
+  font-size: var(--t-sm);
+  color: var(--ink-muted);
+}
+[data-page="stats"] .distribution > div > span:nth-child(2) { width: auto; }
+[data-page="stats"] .distribution .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: none;
+}
+[data-page="stats"] .distribution .dot.fluent { background: var(--m-fluent); }
+[data-page="stats"] .distribution .dot.normal { background: var(--m-normal); }
+[data-page="stats"] .distribution .dot.vague { background: var(--m-vague); }
+[data-page="stats"] .distribution .dot.unknown { background: var(--m-unknown); }
+[data-page="stats"] .distribution .dot.new { background: var(--m-new); }
+[data-page="stats"] .distribution .track {
+  height: 5px;
+  margin: 0;
+  background: var(--data-cell);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--line-strong) 34%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--canvas-deep) 35%, transparent);
+}
+[data-page="stats"] .distribution .track > i { transition: width var(--dur-3) var(--ease-out); }
+[data-page="stats"] .distribution .track > i.fluent {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--m-fluent) 46%, transparent), var(--m-fluent));
+}
+[data-page="stats"] .distribution .track > i.normal {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--m-normal) 46%, transparent), var(--m-normal));
+}
+[data-page="stats"] .distribution .track > i.vague {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--m-vague) 46%, transparent), var(--m-vague));
+}
+[data-page="stats"] .distribution .track > i.unknown {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--m-unknown) 46%, transparent), var(--m-unknown));
+}
+[data-page="stats"] .distribution .track > i.new {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--m-new) 40%, transparent), var(--m-new));
+}
+[data-page="stats"] .distribution b {
+  min-width: 32px;
+  text-align: right;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 2.4 长期趋势：网格线只在绘图带内，柱高＝作答次数（活动量，不是能力） */
+[data-page="stats"] .chart {
+  --chart-plot: 128px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-1);
+  height: auto;
+  min-height: calc(var(--chart-plot) + 40px);
+  margin: var(--s-4) 0 var(--s-3);
+  padding: 0 0 var(--s-1);
+  overflow-x: auto;
+  background-image: repeating-linear-gradient(
+    to top,
+    color-mix(in srgb, var(--line-strong) 58%, transparent) 0 1px,
+    transparent 1px 32px
+  );
+  background-size: 100% var(--chart-plot);
+  background-position: left bottom 24px;
+  background-repeat: no-repeat;
+  border-bottom: 1px solid var(--line-strong);
+}
+[data-page="stats"] .bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1 1 0;
+  min-width: 26px;
+  height: 100%;
+  font-size: var(--t-2xs);
+  color: var(--ink-faint);
+}
+[data-page="stats"] .bar-col > span {
+  min-height: 15px;
+  padding-bottom: 2px;
+  font-size: var(--t-2xs);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+[data-page="stats"] .bar-col > small {
+  margin-top: 4px;
+  font-size: var(--t-2xs);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="stats"] .chart .bar {
+  width: 58%;
+  max-width: 32px;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, var(--data-series), var(--data-series-soft));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--canvas) 55%, transparent);
+  transition: filter var(--dur-2) linear;
+}
+[data-page="stats"] .bar-col:hover .bar { filter: brightness(1.14); }
+/* 零作答日：只留基线上的虚线刻度，不制造“有一点点”的柱
+   注：当前 bar 的内联 height 无法被覆盖，故用 title 末段判定零值（见报告缺口） */
+[data-page="stats"] .chart .bar[title$="：0次"] {
+  background: none;
+  border-top: 1px dashed color-mix(in srgb, var(--ink-muted) 82%, transparent);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* 2.5 图表下的表：与柱同源，没有记录的日期不进表 */
+[data-page="stats"] #trend .table-scroll { margin-top: var(--s-2); }
+[data-page="stats"] #trend .table-scroll table { font-variant-numeric: tabular-nums; }
+[data-page="stats"] #trend td[colspan] {
+  padding: var(--s-6) 0;
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: var(--t-sm);
+  border-bottom: 0;
+  background-image: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--line-strong) 28%, transparent) 0 1px,
+    transparent 1px 10px
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   3. 考试迁移
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* 3.1 页内分段：一条轨道上的滑块，不是一排并列按钮 */
+[data-page="exam"] .exam-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: var(--s-4) 0 var(--s-5);
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--canvas-deep) 35%, transparent);
+}
+[data-page="exam"] .exam-tabs button {
+  min-height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink-muted);
+  font-size: var(--t-xs);
+  font-weight: 500;
+}
+[data-page="exam"] .exam-tabs button:hover { color: var(--ink); background: var(--mat-matte-wash); }
+[data-page="exam"] .exam-tabs button.active {
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: var(--contact-light);
+}
+
+/* 3.2 概览：先讲边界，再给入口 */
+[data-page="exam"] .exam-intro .lede {
+  max-width: 74ch;
+  color: var(--ink-soft);
+  line-height: 1.66;
+}
+[data-page="exam"] .exam-warning {
+  display: block;
+  margin: var(--s-4) 0;
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid color-mix(in srgb, var(--warn) 32%, transparent);
+  border-left: 1px solid var(--warn);
+  border-radius: var(--r-sm);
+  background: linear-gradient(90deg, var(--warn-wash), transparent 58%), var(--surface-sunken);
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+  line-height: 1.64;
+}
+[data-page="exam"] .exam-warning strong { color: var(--warn); font-weight: 600; }
+[data-page="exam"] .exam-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  margin: var(--s-4) 0 0;
+}
+[data-page="exam"] .switch-line {
+  display: flex;
+  flex: 1 1 100%;
+  align-items: center;
+  gap: var(--s-2);
+  margin: var(--s-2) 0 0;
+  padding: var(--s-2) var(--s-3);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--mat-matte-wash);
+  font-size: var(--t-xs);
+  color: var(--ink-muted);
+  line-height: 1.55;
+}
+[data-page="exam"] .switch-line input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent-ink);
+}
+
+/* 3.3 规格卡片：官方 = 实线实顶；暂定 = 虚线；未知 = 点线 + 斜纹 */
+[data-page="exam"] .exam-spec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--s-4);
+  margin-top: var(--s-5);
+  align-items: stretch;
+}
+[data-page="exam"] .exam-spec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, var(--mat-matte-wash), transparent 66%), var(--surface-raised);
+  box-shadow: var(--contact-light);
+}
+[data-page="exam"] .exam-spec.official_confirmed {
+  border-top: 2px solid color-mix(in srgb, var(--ok) 60%, transparent);
+}
+[data-page="exam"] .exam-spec.provisional {
+  border: 1px dashed var(--line-strong);
+  background-image: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--line-strong) 26%, transparent) 0 1px,
+    transparent 1px 12px
+  );
+}
+[data-page="exam"] .exam-spec.historical_reference {
+  border-top: 1px solid var(--line-strong);
+}
+[data-page="exam"] .exam-spec.unknown {
+  opacity: 1;
+  border: 1px dotted var(--line);
+  background-image: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--line) 60%, transparent) 0 1px,
+    transparent 1px 14px
+  );
+}
+[data-page="exam"] .exam-spec-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+[data-page="exam"] .exam-spec-head > div { min-width: 0; }
+[data-page="exam"] .exam-spec-head .eyebrow {
+  margin: 0 0 2px;
+  font-size: var(--t-2xs);
+  letter-spacing: 0.12em;
+}
+[data-page="exam"] .exam-spec h3 {
+  margin: 0;
+  font-size: var(--t-base);
+  letter-spacing: -0.01em;
+}
+[data-page="exam"] .exam-spec > p {
+  margin: 0;
+  font-size: var(--t-xs);
+  line-height: 1.62;
+  color: var(--ink-muted);
+}
+
+/* 状态徽章：形状先于颜色（实线 / 虚线 / 点线 / 加粗） */
+[data-page="exam"] .badge.official_confirmed {
+  border-color: color-mix(in srgb, var(--ok) 52%, transparent);
+  background: var(--ok-wash);
+  color: var(--ok);
+  font-weight: 600;
+}
+[data-page="exam"] .badge.provisional {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--warn) 52%, transparent);
+  color: var(--warn);
+}
+[data-page="exam"] .badge.historical_reference {
+  border-style: dashed;
+  color: var(--ink-muted);
+}
+[data-page="exam"] .badge.unknown {
+  border-style: dotted;
+  color: var(--ink-faint);
+}
+[data-page="exam"] .badge.low {
+  border-style: dotted;
+  color: var(--ink-muted);
+  font-style: italic;
+}
+[data-page="exam"] .badge.medium {
+  border-style: dashed;
+  color: var(--ink-soft);
+}
+[data-page="exam"] .badge.high {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+/* 来源行：出处是声明，不是成绩，压在卡片底部 */
+[data-page="exam"] .exam-source-line {
+  margin: var(--s-2) 0 0;
+  padding: var(--s-2) var(--s-3);
+  border-left: 1px solid var(--line-strong);
+  border-radius: 0 var(--r-xs) var(--r-xs) 0;
+  background: var(--surface-sunken);
+  font-size: var(--t-2xs);
+  line-height: 1.6;
+  color: var(--ink-muted);
+}
+[data-page="exam"] .exam-source-line b { color: var(--ink-soft); font-weight: 600; }
+[data-page="exam"] .exam-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-2);
+  margin: auto 0 0;
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--data-line);
+}
+[data-page="exam"] .exam-facts dt {
+  font-size: var(--t-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+[data-page="exam"] .exam-facts dd {
+  margin: 2px 0 0;
+  font-size: var(--t-md);
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="exam"] .exam-spec details { border-top: 1px dashed var(--data-line); padding-top: var(--s-2); }
+[data-page="exam"] .exam-spec details > summary {
+  cursor: pointer;
+  padding: 2px 0;
+  font-size: var(--t-xs);
+  color: var(--ink-muted);
+}
+[data-page="exam"] .exam-spec details > summary:hover { color: var(--ink); }
+[data-page="exam"] .exam-sources {
+  margin: var(--s-2) 0 0;
+  padding-left: var(--s-4);
+  font-size: var(--t-2xs);
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+[data-page="exam"] .exam-sources li + li { margin-top: 4px; }
+[data-page="exam"] .exam-sources li span {
+  display: block;
+  color: var(--ink-faint);
+  font-size: var(--t-2xs);
+}
+[data-page="exam"] .exam-sources a { color: var(--accent-ink); }
+
+/* 3.4 可用新题 / 规格审计：数据表，行不发光 */
+[data-page="exam"] .exam-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--t-sm);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="exam"] .exam-table thead th {
+  padding: 9px 12px;
+  text-align: left;
+  font-size: var(--t-2xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: var(--data-head);
+  border-bottom: 1px solid var(--line-strong);
+  white-space: nowrap;
+}
+[data-page="exam"] .exam-table tbody td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--data-line);
+  color: var(--ink-soft);
+  vertical-align: middle;
+}
+[data-page="exam"] .exam-table tbody tr:last-child td { border-bottom: 0; }
+[data-page="exam"] .exam-table tbody tr:hover td { background: var(--mat-matte-wash); }
+[data-page="exam"] .exam-table tbody td:first-child { color: var(--ink); }
+[data-page="exam"] .exam-table .text-button { min-height: 24px; padding: 0 4px; font-size: var(--t-xs); }
+
+/* 3.5 练习会话 */
+[data-page="exam"] .exam-session { display: grid; gap: var(--s-4); }
+[data-page="exam"] .exam-progress {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-3);
+  margin: 0;
+  font-size: var(--t-xs);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="exam"] .exam-progress strong {
+  font-size: var(--t-md);
+  font-weight: 600;
+  color: var(--ink);
+}
+[data-page="exam"] .exam-progress .track {
+  height: 3px;
+  margin: 0;
+  background: var(--data-cell);
+}
+[data-page="exam"] .exam-progress .track i {
+  background: linear-gradient(90deg, var(--metal-lo), var(--metal-hi));
+}
+[data-page="exam"] .exam-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-2);
+  margin: 0;
+  font-size: var(--t-2xs);
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
+[data-page="exam"] .exam-item-meta span {
+  padding: 2px 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  background: var(--surface-sunken);
+}
+[data-page="exam"] .exam-stem {
+  margin: 0;
+  font-family: var(--font-reading);
+  font-size: clamp(17px, 1.6vw, 20px);
+  line-height: 1.66;
+  color: var(--ink);
+  max-width: 74ch;
+}
+[data-page="exam"] .exam-options { display: grid; gap: var(--s-2); margin-top: var(--s-1); }
+[data-page="exam"] .exam-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-size: var(--t-md);
+  line-height: 1.55;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition:
+    border-color var(--dur-2) linear,
+    background-color var(--dur-2) linear,
+    box-shadow var(--dur-2) var(--ease-std);
+}
+[data-page="exam"] .exam-option:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-raised);
+}
+[data-page="exam"] .exam-option input { margin: 3px 0 0; accent-color: var(--accent-ink); }
+[data-page="exam"] .exam-option-id {
+  min-width: 14px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="exam"] .exam-option.selected {
+  border-color: color-mix(in srgb, var(--accent-ink) 62%, transparent);
+  background: linear-gradient(90deg, var(--accent-wash), transparent 64%), var(--surface-raised);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-ink) 26%, transparent);
+  color: var(--ink);
+}
+[data-page="exam"] .exam-option.selected .exam-option-id { color: var(--accent-ink); }
+[data-page="exam"] .exam-session textarea { font-family: var(--font-reading); font-size: var(--t-md); line-height: 1.66; }
+[data-page="exam"] .exam-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--data-line);
+}
+[data-page="exam"] .exam-nav .primary { margin-left: auto; }
+
+/* 3.6 结果：只有客观分，开放题保留 rubric */
+[data-page="exam"] .exam-result { display: grid; gap: var(--s-3); }
+[data-page="exam"] .exam-score {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-2) var(--s-3);
+  margin: var(--s-1) 0;
+  padding: var(--s-4) 0;
+  border-top: 1px solid var(--data-line);
+  border-bottom: 1px dashed var(--data-line);
+}
+[data-page="exam"] .exam-score strong {
+  font-size: clamp(32px, 3.8vw, 44px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="exam"] .exam-score > span {
+  font-size: var(--t-sm);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="exam"] .exam-score small {
+  flex-basis: 100%;
+  font-size: var(--t-xs);
+  color: var(--ink-faint);
+  line-height: 1.6;
+}
+[data-page="exam"] .exam-result > h3 {
+  margin: var(--s-3) 0 0;
+  font-size: var(--t-sm);
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+/* 错因：推断的归因用虚线左轨，用户自报在文本里明写 */
+[data-page="exam"] .exam-error {
+  display: grid;
+  gap: var(--s-2);
+  margin: var(--s-2) 0;
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--line);
+  border-left: 1px solid color-mix(in srgb, var(--warn) 52%, transparent);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: linear-gradient(90deg, var(--warn-wash), transparent 42%), var(--surface);
+}
+[data-page="exam"] .exam-error > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+[data-page="exam"] .exam-error > div .hint { margin: 0; font-size: var(--t-2xs); }
+[data-page="exam"] .exam-error h4 {
+  margin: 0;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  line-height: 1.62;
+  color: var(--ink);
+}
+[data-page="exam"] .exam-error > p {
+  margin: 0;
+  font-size: var(--t-xs);
+  line-height: 1.62;
+  color: var(--ink-muted);
+}
+[data-page="exam"] .exam-error label {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--t-2xs);
+  color: var(--ink-faint);
+}
+[data-page="exam"] .exam-error select.exam-correct {
+  width: auto;
+  min-height: 28px;
+  padding: 2px 8px;
+  font-size: var(--t-xs);
+}
+
+/* 3.7 周测：清单两栏，缺项保留原位并标原因 */
+[data-page="exam"] .exam-weekly-list {
+  display: grid;
+  gap: 1px;
+  margin: var(--s-2) 0 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--data-line);
+  overflow: hidden;
+}
+[data-page="exam"] .exam-weekly-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1px var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  background: var(--surface);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
+}
+[data-page="exam"] .exam-weekly-list li strong { font-weight: 500; }
+[data-page="exam"] .exam-weekly-list li > span {
+  font-size: var(--t-2xs);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+[data-page="exam"] .exam-weekly-list li small {
+  grid-column: 1 / -1;
+  font-size: var(--t-2xs);
+  color: var(--ink-faint);
+}
+[data-page="exam"] .exam-weekly-list li.missing {
+  border-left: 2px dashed var(--line-strong);
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+}
+[data-page="exam"] .exam-weekly-list li.missing strong { color: var(--ink-muted); }
+[data-page="exam"] .exam-weekly-list li.missing > span { white-space: normal; }
+
+/* 3.8 学校考试记录：整块是自评事实，虚线即“未经核验” */
+[data-page="exam"] .exam-log-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(184px, 1fr));
+  align-items: end;
+  gap: var(--s-3) var(--s-4);
+  margin: var(--s-4) 0;
+  padding: var(--s-4);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface-sunken);
+}
+[data-page="exam"] .exam-log-form label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  min-width: 0;
+  font-size: var(--t-2xs);
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+[data-page="exam"] .exam-log-form .field-label {
+  display: flex;
+  gap: 4px;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+}
+[data-page="exam"] .exam-log-form label.log-name,
+[data-page="exam"] .exam-log-form label.log-spec,
+[data-page="exam"] .exam-log-form label.log-note { grid-column: 1 / -1; }
+[data-page="exam"] .exam-log-form .exam-log-basis { grid-column: 1 / -1; margin: 0; }
+[data-page="exam"] .exam-log-form .req { color: var(--danger); }
+[data-page="exam"] .exam-log-form label.exam-log-ack {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--mat-matte-wash);
+  font-size: var(--t-xs);
+  letter-spacing: 0;
+  color: var(--ink-soft);
+}
+[data-page="exam"] .exam-log-form label.exam-log-ack[hidden] { display: none; }
+[data-page="exam"] .exam-log-form input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--warn);
+}
+[data-page="exam"] .exam-log-form .exam-log-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+[data-page="exam"] .exam-log-basis {
+  font-size: var(--t-2xs);
+  line-height: 1.55;
+  color: var(--ink-faint);
+}
+[data-page="exam"] .exam-log-basis.custom { color: var(--ink-muted); }
+[data-page="exam"] .exam-log-warning {
+  margin: var(--s-2) 0 var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--line);
+  border-left: 1px solid var(--line-strong);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  background: var(--surface-sunken);
+  font-size: var(--t-xs);
+  line-height: 1.6;
+  color: var(--ink-muted);
+}
+[data-page="exam"] .exam-log-warning.blocked {
+  border-left-color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 30%, transparent);
+  background: var(--warn-wash);
+  color: var(--ink-soft);
+}
+[data-page="exam"] .exam-log-warning p { margin: 3px 0; }
+[data-page="exam"] .exam-log-warning .exam-log-error { color: var(--danger); }
+
+[data-page="exam"] .exam-log-list {
+  display: grid;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+[data-page="exam"] .exam-log-item {
+  display: grid;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, var(--mat-matte-wash), transparent 72%), var(--surface);
+}
+[data-page="exam"] .exam-log-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+[data-page="exam"] .exam-log-head strong {
+  font-size: var(--t-md);
+  font-weight: 600;
+  color: var(--ink);
+}
+[data-page="exam"] .exam-log-head time {
+  margin-left: auto;
+  font-size: var(--t-2xs);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+[data-page="exam"] .exam-log-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--s-4);
+  align-items: baseline;
+  margin-top: 0;
+  font-size: var(--t-2xs);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+[data-page="exam"] .exam-log-score {
+  font-size: var(--t-md);
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+/* 来源自报：点线左轨 + 虚下划线的来源名，读起来就是“未核验” */
+[data-page="exam"] .exam-log-source {
+  margin-top: 0;
+  padding-left: var(--s-2);
+  border-left: 2px dotted color-mix(in srgb, var(--warn) 55%, transparent);
+  font-size: var(--t-2xs);
+  line-height: 1.55;
+  color: var(--ink-muted);
+}
+[data-page="exam"] .exam-log-source strong {
+  color: var(--warn);
+  font-weight: 600;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+[data-page="exam"] .exam-log-conflict {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--s-2);
+  padding: 1px 6px;
+  border: 1px solid color-mix(in srgb, var(--warn) 46%, transparent);
+  border-radius: var(--r-xs);
+  color: var(--warn);
+  font-size: var(--t-2xs);
+  white-space: nowrap;
+}
+[data-page="exam"] .exam-log-clue {
+  margin: 0;
+  padding: var(--s-2) var(--s-3);
+  border: 1px dotted color-mix(in srgb, var(--aurora-a) 95%, transparent);
+  border-radius: var(--r-xs);
+  background: var(--mat-matte-wash);
+  font-size: var(--t-xs);
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+[data-page="exam"] .exam-log-clue span {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--t-2xs);
+  color: var(--ink-faint);
+}
+[data-page="exam"] .exam-log-item .exam-log-actions {
+  display: flex;
+  gap: var(--s-3);
+  margin-top: 2px;
+}
+
+/* ── 4. 窄视口：只保证不溢出、不丢操作 ──────────────────────────────────── */
+@media (max-width: 1080px) {
+  [data-page="diagnostics"] .diag-compare-head,
+  [data-page="diagnostics"] .diag-compare-row {
+    grid-template-columns: minmax(0, 1fr) 88px 88px minmax(84px, auto);
+    gap: var(--s-2);
+  }
+  [data-page="stats"] .chart { --chart-plot: 112px; }
+}
+
+@media (max-width: 900px) {
+  [data-page="diagnostics"] .diag-evidence-row { grid-template-columns: 1fr 1fr; }
+  [data-page="diagnostics"] .diag-compare-head { display: none; }
+  [data-page="diagnostics"] .diag-compare-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px var(--s-3);
+    padding: var(--s-3) 0;
+  }
+  [data-page="diagnostics"] .diag-compare-row > span:nth-child(2) { grid-column: 1; grid-row: 2; font-size: var(--t-2xs); }
+  [data-page="diagnostics"] .diag-compare-row > span:nth-child(3) { grid-column: 2; grid-row: 1; text-align: right; }
+  [data-page="diagnostics"] .diag-compare-row b { grid-column: 2; grid-row: 2; font-size: var(--t-2xs); }
+  [data-page="diagnostics"] .diag-plan-row { flex-direction: column; gap: var(--s-2); }
+  [data-page="diagnostics"] .diag-plan-side { align-self: flex-end; }
+
+  [data-page="stats"] .chart { min-height: 168px; }
+  [data-page="stats"] .direction-stat strong { font-size: var(--t-xl); }
+
+  [data-page="exam"] .exam-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  [data-page="exam"] .exam-tabs { width: 100%; }
+  [data-page="exam"] .exam-nav .primary { margin-left: 0; width: 100%; }
+  [data-page="exam"] .exam-log-head time { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-page="stats"] .bar-col:hover .bar { filter: none; }
+}

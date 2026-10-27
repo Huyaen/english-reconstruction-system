@@ -1,0 +1,1082 @@
+/* ============================================================================
+   Phase 15h · 句子训练（Sentence Lab）+ 语法知识图谱（Grammar Graph）
+   等级 B：精确、主动、短反馈。句子与结构是主体，界面只做托底；
+   一次只让一个东西成为焦点：题面 → 选项 → 判定 → 下一步。
+
+   范围（页面名由 ui/motion.ts → applyPageChrome 写在 <html> 上）：
+     [data-page="sentence"]  句子训练入口（句源、句库、粘贴真实句子）
+     [data-page="lab"]       拆句运行 / 结果（sentencePage 的执行态）
+     [data-page="grammar"]   图谱 / 概念详情
+
+   动效：只有按压 / 选中 / 展开，时长取 --dur-1..--dur-3，只动 transform 与 opacity；
+         没有循环动画、没有扫描光带。减少动效由 tokens.css + system.css 统一退化，
+         本文件不另写 prefers-reduced-motion 分支。
+   约束：只用 tokens.css 变量与 color-mix 派生；无裸色值、无 !important、无 backdrop-filter；
+         panel / button / chip / table / empty-state 沿用 system.css，这里只写增量布局。
+   ========================================================================== */
+
+/* ── 0. 作用域尺度 ──────────────────────────────────────────────────────── */
+:is([data-page="sentence"], [data-page="lab"]) {
+  --stem-size: clamp(19px, 1.7vw, 24px);
+  --stem-measure: 66ch;
+  --lab-measure: 880px;
+  --opt-rail: var(--line-strong);
+}
+[data-page="grammar"] { --graph-card-min: 268px; }
+
+/* ── 1. 句子训练入口：句源、句库、粘贴表单 ─────────────────────────────── */
+[data-page="sentence"] #sentence-page .metrics { margin-bottom: var(--s-5); }
+
+/* 句库表：句子是内容，操作是附属；中文释义退到第二层 */
+[data-page="sentence"] #sentence-page tbody td { vertical-align: top; }
+[data-page="sentence"] #sentence-page tbody td b {
+  display: inline-block;
+  max-width: 58ch;
+  margin-top: 3px;
+  font-family: var(--font-reading);
+  font-size: var(--t-md);
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.002em;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+[data-page="sentence"] #sentence-page td small { max-width: 52ch; }
+
+/* 粘贴真实句子：输入在前，动作在后，说明最后 */
+[data-page="sentence"] #user-sentence-form {
+  display: grid;
+  gap: var(--s-4);
+  margin-top: var(--s-4);
+}
+[data-page="sentence"] #user-sentence-form > .actions {
+  margin-top: 0;
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line);
+}
+
+/* ── 2. 拆句：题面 ──────────────────────────────────────────────────────── */
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-panel {
+  max-width: var(--lab-measure);
+  padding: var(--s-6) var(--s-6) var(--s-5);
+}
+
+/* 原句：整页唯一的长文本块，阅读字体 + 一条左侧承重条 */
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-sentence {
+  position: relative;
+  margin: 0 0 var(--s-4);
+  padding: var(--s-5) var(--s-5) var(--s-5) var(--s-6);
+  max-width: var(--stem-measure);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background:
+    linear-gradient(180deg, var(--mat-matte-wash), transparent 58%),
+    var(--surface-sunken);
+  box-shadow: inset 0 1px 0 var(--edge-soft);
+  font-family: var(--font-reading);
+  font-size: var(--stem-size);
+  line-height: 1.52;
+  font-weight: 500;
+  letter-spacing: 0.002em;
+  color: var(--ink);
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+}
+:is([data-page="sentence"], [data-page="lab"]) .lab-sentence::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: var(--s-4);
+  bottom: var(--s-4);
+  width: 3px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(180deg, var(--metal-hi), var(--metal-mid));
+}
+
+/* 步骤条：三段元信息，用竖线分隔，不做百分比进度 */
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  margin: 0 0 var(--s-5);
+  padding: 7px var(--s-3) 7px var(--s-4);
+  border: 1px solid var(--line);
+  border-left: 1px solid color-mix(in srgb, var(--metal-mid) 62%, var(--line-strong));
+  border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+  font-size: var(--t-xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-progress > span:first-child {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-progress > span:not(.badge) + span:not(.badge) {
+  padding-left: var(--s-3);
+  border-left: 1px solid var(--line-strong);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-progress > .badge {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+/* 问题：一步只问一件事 */
+[data-page="lab"] #lab-question {
+  margin: var(--s-4) 0 var(--s-3);
+  max-width: 44ch;
+  font-family: var(--font-display);
+  font-size: var(--t-lg);
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: -0.008em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+/* ── 3. 拆句：选项（选中 = 左侧实心轨 + 右上折角）──────────────────────── */
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-options {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-4);
+}
+
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-option {
+  --opt-rail: var(--line-strong);
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3px;
+  align-items: start;
+  justify-items: start;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 11px var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background:
+    linear-gradient(180deg, var(--mat-matte-wash), transparent 70%),
+    var(--surface-raised);
+  color: var(--ink);
+  font-size: var(--t-md);
+  font-weight: 450;
+  line-height: 1.45;
+  text-align: left;
+  box-shadow: none;
+  transition:
+    transform var(--dur-1) var(--ease-std),
+    border-color var(--dur-2) linear,
+    background-color var(--dur-2) linear,
+    box-shadow var(--dur-1) var(--ease-std);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-option::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: var(--s-2);
+  bottom: var(--s-2);
+  width: 2px;
+  border-radius: var(--r-pill);
+  background: var(--opt-rail);
+  opacity: 0.55;
+  transition: opacity var(--dur-2) linear;
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-option b {
+  font-family: var(--font-reading);
+  font-size: var(--t-md);
+  font-weight: 600;
+  letter-spacing: 0.002em;
+  color: var(--ink);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-option small {
+  font-size: var(--t-xs);
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-option:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  background:
+    linear-gradient(180deg, var(--mat-glass-t2), transparent 66%),
+    var(--surface-raised);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-option:hover:not(:disabled)::before { opacity: 0.8; }
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-option:active:not(:disabled) {
+  transform: translate3d(0, 1px, 0);
+  box-shadow: inset 0 2px 5px var(--mat-glass-inner);
+}
+
+/* 已选：轨变实心金属 + 右上折角，形状本身可辨，不依赖颜色 */
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-option.picked {
+  --opt-rail: var(--metal-mid);
+  border-color: color-mix(in srgb, var(--accent-ink) 52%, var(--line-strong));
+  background:
+    linear-gradient(90deg, var(--accent-wash), transparent 64%),
+    var(--surface-raised);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-ink) 18%, transparent);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-option.picked::before {
+  width: 3px;
+  opacity: 1;
+  background: linear-gradient(180deg, var(--metal-hi), var(--metal-mid));
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-option.picked::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-width: 0 10px 10px 0;
+  border-style: solid;
+  border-color: transparent var(--accent-ink) transparent transparent;
+}
+
+/* 判分后：被选的保持满强度，其余退成可读的灰，不做整排变暗 */
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-option:disabled {
+  opacity: 1;
+  cursor: default;
+  box-shadow: none;
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-option:disabled:not(.picked) {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--ink-muted);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-option:disabled:not(.picked) b {
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-option:disabled:not(.picked)::before { opacity: 0.3; }
+
+/* ── 4. 拆句：提示披露（虚线 = 可撤回的辅助，不是错误）─────────────────── */
+[data-level] :is([data-page="sentence"], [data-page="lab"]) #lab-hint {
+  min-height: 34px;
+  border-style: dashed;
+  border-color: var(--line-strong);
+  color: var(--ink-soft);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) #lab-hint:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent-ink) 45%, var(--line-strong));
+  color: var(--ink);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) #lab-level {
+  align-self: center;
+  margin: 0;
+  max-width: 34ch;
+  font-size: var(--t-xs);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+/* 提示正文：紧跟在提示按钮组之后（#lab-hint 只此一组） */
+[data-page="lab"] .lab-panel > .actions + p.hint {
+  margin: var(--s-3) 0 0;
+  padding: var(--s-3) var(--s-4);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+  line-height: 1.6;
+}
+
+/* ── 5. 拆句：判定反馈（对 = 实心条 + 实线标签；错 = 断续条 + 虚线标签）── */
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-feedback {
+  position: relative;
+  margin: var(--s-4) 0 0;
+  padding: var(--s-4) var(--s-4) var(--s-4) var(--s-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+  line-height: 1.62;
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-feedback::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  bottom: -1px;
+  width: 4px;
+  border-radius: var(--r-xs) 0 0 var(--r-xs);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-feedback.ok {
+  border-color: color-mix(in srgb, var(--ok) 26%, var(--line));
+  background:
+    linear-gradient(90deg, var(--ok-wash), transparent 46%),
+    var(--surface);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-feedback.ok::before { background: var(--ok); }
+
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-feedback.bad {
+  border-color: color-mix(in srgb, var(--danger) 26%, var(--line));
+  background:
+    linear-gradient(90deg, var(--danger-wash), transparent 46%),
+    var(--surface);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-feedback.bad::before {
+  background: repeating-linear-gradient(180deg, var(--danger) 0 6px, transparent 6px 11px);
+}
+
+/* 判定标签：同一行里先给结论，再给理由 */
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-feedback > p:first-child b {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 9px;
+  margin-right: 4px;
+  border-radius: var(--r-pill);
+  font-size: var(--t-2xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-feedback.ok > p:first-child b {
+  border: 1px solid color-mix(in srgb, var(--ok) 55%, transparent);
+  background: var(--ok-wash);
+  color: var(--ok);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-feedback.bad > p:first-child b {
+  border: 1px dashed color-mix(in srgb, var(--danger) 62%, transparent);
+  background: var(--danger-wash);
+  color: var(--danger);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-feedback p { margin: 0 0 var(--s-2); }
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-feedback p:last-child { margin-bottom: 0; }
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-feedback .hint {
+  margin: 0;
+  padding-top: var(--s-2);
+  border-top: 1px dashed var(--line);
+  font-size: var(--t-xs);
+  color: var(--ink-muted);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-feedback .hint.warn {
+  border-top-color: color-mix(in srgb, var(--warn) 40%, var(--line));
+  color: var(--warn);
+}
+
+/* 下一步：动作与说明分离，主行动只有一个 */
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-feedback .actions {
+  margin-top: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line);
+}
+[data-level] [data-page="lab"] #lab-next { min-width: 132px; }
+
+/* 页脚元信息：句子来源 / 结构来源，一行等宽数字，不抢注意力 */
+[data-page="lab"] #lab-page > p.hint,
+[data-page="sentence"] #sentence-page > p.hint,
+[data-page="grammar"] #grammar-page > p.hint {
+  max-width: 84ch;
+  font-size: var(--t-xs);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 6. 结果视图：结构与证据分离展示 ────────────────────────────────────── */
+[data-page="lab"] #lab-results .metrics { margin-bottom: var(--s-5); }
+[data-page="lab"] #lab-results > .actions { margin-top: var(--s-5); }
+
+/* 整句意思：只在结果页出现，读一次就够 */
+[data-level] [data-page="lab"] .meaning-reveal {
+  margin: var(--s-3) 0 var(--s-2);
+  padding: var(--s-4) var(--s-4) var(--s-4) var(--s-5);
+  border: 1px solid var(--line);
+  border-left: 1px solid color-mix(in srgb, var(--accent-ink) 42%, var(--line-strong));
+  border-radius: var(--r-md);
+  background: var(--surface-sunken);
+  font-family: var(--font-reading);
+  font-size: var(--t-lg);
+  line-height: 1.6;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+/* 结构树：每个子句是一块可展开的区段，不是一段缩进文本 */
+[data-page="lab"] #lab-tree {
+  display: grid;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+[data-page="lab"] #lab-tree > p.hint { margin: 0 0 var(--s-1); max-width: 70ch; }
+
+[data-level] [data-page="lab"] .tree-clause {
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background:
+    linear-gradient(180deg, var(--mat-matte-wash), transparent 64%),
+    var(--surface-sunken);
+  overflow: hidden;
+  transition: border-color var(--dur-2) linear;
+}
+[data-level] [data-page="lab"] .tree-clause[open] {
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+[data-level] [data-page="lab"] .tree-clause summary {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 9px var(--s-3);
+  border-bottom: 1px solid transparent;
+  color: var(--ink-muted);
+  font-size: var(--t-xs);
+  list-style: none;
+  cursor: pointer;
+}
+[data-level] [data-page="lab"] .tree-clause summary::-webkit-details-marker { display: none; }
+[data-level] [data-page="lab"] .tree-clause[open] summary { border-bottom-color: var(--line); }
+[data-level] [data-page="lab"] .tree-clause summary::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  margin-right: 2px;
+  border-right: 1px solid var(--ink-muted);
+  border-bottom: 1px solid var(--ink-muted);
+  transform: rotate(-45deg);
+  transition: transform var(--dur-2) var(--ease-out);
+}
+[data-level] [data-page="lab"] .tree-clause[open] summary::before { transform: rotate(45deg); }
+[data-level] [data-page="lab"] .tree-clause summary b {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+[data-level] [data-page="lab"] .tree-clause summary small {
+  margin-left: auto;
+  font-size: var(--t-2xs);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* 子句类型：方形标签 = 语法术语，不与状态胶囊混用 */
+[data-level] [data-page="lab"] .clause-kind {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-xs);
+  background: var(--surface-raised);
+  color: var(--ink-muted);
+  font-size: var(--t-2xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* 词块：左侧角色条 + 角色名，颜色之外还有文字与描边层级 */
+[data-level] [data-page="lab"] .tree-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: var(--s-3);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .token {
+  --role: var(--ink-faint);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 4px 9px 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--role) 38%, var(--line));
+  border-left: 1px solid color-mix(in srgb, var(--role) 78%, transparent);
+  border-radius: var(--r-xs);
+  background: color-mix(in srgb, var(--role) 7%, var(--surface-sunken));
+  color: var(--ink);
+  font-family: var(--font-reading);
+  font-size: var(--t-md);
+  line-height: 1.25;
+  transition: background-color var(--dur-2) linear, border-color var(--dur-2) linear;
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .token b { font-weight: 600; }
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .token small {
+  font-family: var(--font-ui);
+  font-size: var(--t-2xs);
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--role) 62%, var(--ink-muted));
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .token:hover {
+  background: color-mix(in srgb, var(--role) 12%, var(--surface-raised));
+  border-color: color-mix(in srgb, var(--role) 58%, var(--line-strong));
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .token.role-subject { --role: var(--m-normal); }
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .token.role-predicate { --role: var(--ok); }
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .token.role-object { --role: var(--m-vague); }
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .token.role-complement { --role: var(--accent); }
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .token.role-modifier { --role: var(--ink-faint); }
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .token.role-subordinator,
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .token.role-relative { --role: var(--danger); }
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .token.role-nonfinite { --role: var(--m-fluent); }
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .token.role-conjunction { --role: var(--ink-muted); }
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .token.role-adverbial { --role: var(--warn); }
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .token.role-other { --role: var(--m-new); }
+
+/* 预教词：虚线框 = 词义提示，与结构词块区分 */
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .pret.teach {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px var(--s-2);
+  margin: 0 0 var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+  font-size: var(--t-xs);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .pret.teach > .hint {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: var(--t-2xs);
+  color: var(--ink-faint);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .pret.teach .token {
+  --role: var(--ink-faint);
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 7px;
+  border-style: dashed;
+  background: var(--surface-raised);
+  font-family: var(--font-ui);
+  font-size: var(--t-xs);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"]) .pret.teach .token small { font-size: var(--t-2xs); }
+
+/* ── 7. 语法图谱：薄弱项、类别筛选、概念网格 ────────────────────────────── */
+[data-page="grammar"] #grammar-page .metrics { margin-bottom: var(--s-5); }
+[data-page="grammar"] #grammar-page > .panel { margin-bottom: var(--s-4); }
+
+/* 薄弱概念：一行一条，动作靠右，不整行铺满按钮 */
+[data-level] [data-page="grammar"] .weak-grammar {
+  display: grid;
+  gap: 1px;
+  margin: var(--s-3) 0 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--line);
+}
+[data-level] [data-page="grammar"] .weak-grammar > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border: 0;
+  background: var(--surface-raised);
+}
+[data-level] [data-page="grammar"] .weak-grammar > li > b {
+  flex: 0 0 auto;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+[data-level] [data-page="grammar"] .weak-grammar > li > .badge { flex: 0 0 auto; }
+[data-level] [data-page="grammar"] .weak-grammar > li > small {
+  flex: 1 1 14ch;
+  min-width: 0;
+  font-size: var(--t-xs);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+[data-level] [data-page="grammar"] .weak-grammar > li > .row-actions { margin-left: auto; }
+
+/* 类别筛选：选中态用金属面，与「先修链接」的方形标签区分 */
+[data-level] [data-page="grammar"] .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--s-3);
+}
+[data-level] [data-page="grammar"] .chips > .chip {
+  height: 28px;
+  padding: 0 13px;
+  font-size: var(--t-xs);
+  letter-spacing: 0.01em;
+}
+[data-level] [data-page="grammar"] .chips > .chip:hover:not(.active) {
+  transform: none;
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+[data-level] [data-page="grammar"] .chips > .chip.active {
+  border-color: transparent;
+  background: linear-gradient(172deg, var(--metal-hi), var(--metal-mid));
+  color: var(--metal-ink);
+  box-shadow: inset 0 1px 0 var(--mat-metal-spec-soft), var(--contact-light);
+}
+
+/* 类别区段：类别是标签，不是又一层大标题 */
+[data-level] [data-page="grammar"] .grammar-group {
+  margin-top: 0;
+  margin-bottom: var(--s-5);
+  padding: var(--s-5) var(--s-5) var(--s-4);
+}
+[data-page="grammar"] .grammar-group > h2 {
+  margin: 0 0 var(--s-4);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--ink-faint);
+}
+
+/* 概念卡：等宽网格，卡片自带层级（标题 → 说明 → 先修 → 数据 → 动作） */
+[data-page="grammar"] .concept-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--graph-card-min, 268px), 1fr));
+  gap: var(--s-3);
+  margin-top: 0;
+}
+[data-level] [data-page="grammar"] .concept-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background:
+    radial-gradient(120% 90% at 12% -20%, var(--mat-glass-t1), transparent 62%),
+    linear-gradient(180deg, var(--surface-raised), color-mix(in srgb, var(--surface) 92%, var(--canvas)));
+  box-shadow: inset 0 1px 0 var(--edge-soft), var(--e-1);
+  isolation: isolate;
+  transition: border-color var(--dur-2) linear, box-shadow var(--dur-2) var(--ease-std);
+}
+[data-level] [data-page="grammar"] .concept-card:hover { border-color: var(--line-strong); }
+[data-level] [data-page="grammar"] .concept-card:focus-within {
+  border-color: color-mix(in srgb, var(--accent-ink) 52%, var(--line-strong));
+  box-shadow: var(--ring);
+}
+/* 薄弱：左侧警示条是形状，不只是描边颜色 */
+[data-level] [data-page="grammar"] .concept-card.weak {
+  border-color: color-mix(in srgb, var(--warn) 30%, var(--line));
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--warn) 72%, transparent), var(--e-1);
+}
+
+[data-level] [data-page="grammar"] .concept-card > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+[data-level] [data-page="grammar"] .concept-card > header > .badge {
+  flex: 0 0 auto;
+  align-self: flex-start;
+}
+
+[data-level] [data-page="grammar"] .concept-link {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--t-md);
+  font-weight: 600;
+  letter-spacing: -0.004em;
+  line-height: 1.35;
+  text-align: left;
+  transition: color var(--dur-2) linear, border-color var(--dur-2) linear;
+}
+[data-level] [data-page="grammar"] .concept-link:hover {
+  color: var(--accent-ink);
+  border-bottom-color: color-mix(in srgb, var(--accent-ink) 45%, transparent);
+}
+
+[data-level] [data-page="grammar"] .concept-card > p.hint {
+  margin: 0;
+  font-size: var(--t-sm);
+  line-height: 1.55;
+  color: var(--ink-muted);
+  text-wrap: pretty;
+}
+/* 薄弱概念的主要错误：一条细警示条 + 短文本 */
+[data-level] [data-page="grammar"] .concept-card > p.hint.warn {
+  padding-left: 9px;
+  border-left: 1px solid color-mix(in srgb, var(--warn) 55%, transparent);
+  color: var(--warn);
+  font-size: var(--t-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 先修链接：左侧导轨表示依赖方向，方形标签表示「概念」而不是筛选 */
+[data-level] [data-page="grammar"] .concept-prereq {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: var(--s-2) 0 0;
+  padding: 6px 0 0 var(--s-4);
+  border-top: 1px dashed var(--line);
+}
+[data-level] [data-page="grammar"] .concept-prereq::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 9px;
+  bottom: 2px;
+  width: 1px;
+  background: linear-gradient(180deg, var(--line-strong), transparent);
+}
+[data-level] [data-page="grammar"] .concept-prereq > .subtle {
+  flex: 0 0 auto;
+  font-size: var(--t-2xs);
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+[data-level] [data-page="grammar"] .concept-prereq > .hint {
+  margin: 0;
+  font-size: var(--t-2xs);
+  color: var(--ink-faint);
+}
+[data-level] [data-page="grammar"] .concept-prereq .chip.small {
+  position: relative;
+  height: 22px;
+  padding: 0 9px 0 15px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-xs);
+  background: var(--surface-sunken);
+  box-shadow: none;
+  color: var(--ink-muted);
+  font-size: var(--t-2xs);
+  letter-spacing: 0.01em;
+  transition: color var(--dur-2) linear, border-color var(--dur-2) linear, background-color var(--dur-2) linear;
+}
+[data-level] [data-page="grammar"] .concept-prereq .chip.small::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border: 1px solid currentColor;
+  border-radius: 1px;
+  transform: translateY(-50%) rotate(45deg);
+  opacity: 0.6;
+}
+[data-level] [data-page="grammar"] .concept-prereq .chip.small:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--accent-ink) 45%, var(--line-strong));
+  background: var(--surface-raised);
+  color: var(--accent-ink);
+}
+
+/* 概念数据：四格数据面，标签在上、数值在下 */
+[data-level] [data-page="grammar"] .concept-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin: var(--s-2) 0 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  background: var(--line);
+  color: var(--ink-faint);
+  font-size: var(--t-2xs);
+  font-variant-numeric: tabular-nums;
+}
+[data-level] [data-page="grammar"] .concept-metrics > span {
+  display: grid;
+  gap: 2px;
+  padding: 6px 8px;
+  background: var(--surface-sunken);
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+[data-level] [data-page="grammar"] .concept-metrics b {
+  font-family: var(--font-num);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 卡片动作：贴底对齐，高度一致但不撑高整行 */
+[data-level] [data-page="grammar"] .concept-card > .row-actions {
+  margin-top: auto;
+  padding-top: var(--s-2);
+}
+
+/* ── 8. 概念详情：掌握状态、知识卡、真实句、最近证据 ────────────────────── */
+[data-page="grammar"] #concept-detail > .page-title { border-bottom-color: var(--line-strong); }
+[data-page="grammar"] #concept-detail > .actions { margin: 0 0 var(--s-5); }
+[data-page="grammar"] #concept-detail .two-col { align-items: start; gap: var(--s-4); }
+
+[data-level] [data-page="grammar"] .metrics.compact { margin-bottom: var(--s-4); }
+[data-level] [data-page="grammar"] .metrics.compact .metric { padding: var(--s-3) var(--s-4); }
+[data-level] [data-page="grammar"] .metrics.compact .metric strong {
+  font-size: var(--t-xl);
+  letter-spacing: -0.02em;
+}
+[data-level] [data-page="grammar"] .metrics.compact .metric small { font-size: var(--t-2xs); }
+
+/* 知识卡：规则 / 为什么 / 例 / 常见错误 / 迁移，五段同宽 */
+[data-level] [data-page="grammar"] .grammar-card {
+  margin-top: var(--s-3);
+  padding: var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background:
+    linear-gradient(180deg, var(--mat-matte-wash), transparent 56%),
+    var(--surface-sunken);
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+  line-height: 1.68;
+}
+[data-level] [data-page="grammar"] .grammar-card > p { margin: 0 0 var(--s-3); }
+[data-level] [data-page="grammar"] .grammar-card > p:last-child { margin-bottom: 0; }
+[data-level] [data-page="grammar"] .grammar-card > p > b {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-xs);
+  background: var(--surface-raised);
+  color: var(--ink-faint);
+  font-size: var(--t-2xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  vertical-align: 1px;
+}
+[data-level] [data-page="grammar"] .grammar-card blockquote {
+  margin: var(--s-3) 0;
+  padding: var(--s-3) var(--s-4);
+  border: 0;
+  border-left: 1px solid color-mix(in srgb, var(--accent-ink) 45%, var(--line-strong));
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-family: var(--font-reading);
+  font-size: var(--t-md);
+  line-height: 1.55;
+}
+[data-level] [data-page="grammar"] .grammar-card blockquote small {
+  font-family: var(--font-ui);
+  font-size: var(--t-xs);
+  color: var(--ink-muted);
+}
+/* 错误例句：删除线是形状差异，不只靠颜色 */
+[data-level] [data-page="grammar"] .grammar-card .bad-line {
+  color: var(--danger);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--danger) 55%, transparent);
+  text-decoration-thickness: 1px;
+}
+[data-level] [data-page="grammar"] .grammar-card .plain-list {
+  display: grid;
+  gap: 2px;
+  margin: var(--s-1) 0 var(--s-3);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  list-style: none;
+}
+[data-level] [data-page="grammar"] .grammar-card .plain-list > li {
+  position: relative;
+  padding: 2px 0 2px var(--s-4);
+  border: 0;
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
+}
+[data-level] [data-page="grammar"] .grammar-card .plain-list > li::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 50%;
+  width: 5px;
+  height: 1px;
+  background: var(--ink-faint);
+}
+
+/* 先修状态与证据行：标签、数值、说明同一行，数字等宽 */
+[data-level] [data-page="grammar"] #concept-detail .plain-list {
+  margin: var(--s-2) 0 var(--s-3);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  list-style: none;
+  overflow: hidden;
+}
+[data-level] [data-page="grammar"] #concept-detail .plain-list > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px var(--s-2);
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--data-line);
+  font-size: var(--t-sm);
+  line-height: 1.55;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  transition: background-color var(--dur-2) linear;
+}
+[data-level] [data-page="grammar"] #concept-detail .plain-list > li:last-child { border-bottom: 0; }
+[data-level] [data-page="grammar"] #concept-detail .plain-list > li:hover { background: var(--mat-matte-wash); }
+[data-level] [data-page="grammar"] #concept-detail .plain-list > li > .badge { flex: 0 0 auto; }
+[data-level] [data-page="grammar"] #concept-detail .plain-list > li > small {
+  margin-left: 2px;
+  font-size: var(--t-2xs);
+  color: var(--warn);
+}
+
+/* 真实训练句：句库在这里是「可选素材」，一条一行，动作靠右 */
+[data-level] [data-page="grammar"] .sentence-mini {
+  display: grid;
+  gap: 1px;
+  margin: var(--s-3) 0 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--line);
+  list-style: none;
+}
+[data-level] [data-page="grammar"] .sentence-mini > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border: 0;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-family: var(--font-reading);
+  font-size: var(--t-md);
+  line-height: 1.5;
+}
+[data-level] [data-page="grammar"] .sentence-mini > li > .src-badge {
+  flex: 0 0 auto;
+  font-family: var(--font-ui);
+}
+[data-level] [data-page="grammar"] .sentence-mini > li > button {
+  flex: 0 0 auto;
+  margin-left: auto;
+  align-self: center;
+}
+
+/* ── 9. 共享片段：句源标签、句库小字、空/载入/错误 ─────────────────────── */
+/* 句源标签：方形、带点、六类来源各自可辨（颜色之外仍有文字标签） */
+[data-level] :is([data-page="sentence"], [data-page="lab"], [data-page="grammar"]) .src-badge {
+  --src: var(--ink-faint);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--src) 40%, var(--line));
+  border-radius: var(--r-xs);
+  background: color-mix(in srgb, var(--src) 10%, var(--surface-sunken));
+  color: color-mix(in srgb, var(--src) 72%, var(--ink-soft));
+  font-size: var(--t-2xs);
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: none;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"], [data-page="grammar"]) .src-badge::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.75;
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"], [data-page="grammar"]) .src-badge.src-curated { --src: var(--accent); }
+[data-level] :is([data-page="sentence"], [data-page="lab"], [data-page="grammar"]) .src-badge.src-user { --src: var(--ok); }
+[data-level] :is([data-page="sentence"], [data-page="lab"], [data-page="grammar"]) .src-badge.src-ai { --src: var(--warn); }
+[data-level] :is([data-page="sentence"], [data-page="lab"], [data-page="grammar"]) .src-badge.src-real-material { --src: var(--m-normal); }
+[data-level] :is([data-page="sentence"], [data-page="lab"], [data-page="grammar"]) .src-badge.src-reading { --src: var(--m-normal); }
+[data-level] :is([data-page="sentence"], [data-page="lab"], [data-page="grammar"]) .src-badge.src-saved { --src: var(--m-fluent); }
+
+/* 句库中文行：句子下方的第二层信息 */
+[data-level] [data-page="sentence"] .zh-line {
+  display: block;
+  max-width: 52ch;
+  margin-top: 3px;
+  font-size: var(--t-xs);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+/* 小按钮：句库/卡片内的行内动作，不该占 38px 高度 */
+[data-level] :is([data-page="sentence"], [data-page="lab"], [data-page="grammar"]) button.small {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  font-size: var(--t-xs);
+}
+
+/* 空态：给方向；表格空行不铺满整屏留白 */
+[data-level] :is([data-page="sentence"], [data-page="lab"], [data-page="grammar"]) .empty-state {
+  padding: var(--s-5);
+  border-style: dashed;
+  border-radius: var(--r-md);
+  background: var(--surface-sunken);
+}
+[data-level] :is([data-page="sentence"], [data-page="lab"], [data-page="grammar"]) .empty-cell {
+  padding: var(--s-7) var(--s-4);
+  background: linear-gradient(180deg, var(--mat-matte-wash), transparent 70%);
+  color: var(--ink-muted);
+  font-size: var(--t-sm);
+  line-height: 1.6;
+}
+
+/* 载入：只有文案与占位，动画沿用 system.css 的单一标记 */
+[data-level] :is([data-page="sentence"], [data-page="lab"], [data-page="grammar"]) .d-loading {
+  padding: 14vh 0;
+  color: var(--ink-muted);
+  font-size: var(--t-sm);
+  letter-spacing: 0.01em;
+}
+
+/* 错误：左侧实心条 + 明确措辞 */
+[data-level] :is([data-page="sentence"], [data-page="lab"], [data-page="grammar"]) .error {
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid color-mix(in srgb, var(--danger) 34%, var(--line));
+  border-left: 1px solid var(--danger);
+  border-radius: var(--r-sm);
+  background: var(--danger-wash);
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+  line-height: 1.6;
+}
+
+/* ── 10. 窄视口：只保证不溢出、动作不丢 ─────────────────────────────────── */
+@media (max-width: 900px) {
+  :is([data-page="sentence"], [data-page="lab"]) .lab-panel {
+    max-width: none;
+    padding: var(--s-5) var(--s-5) var(--s-4);
+  }
+  [data-level] :is([data-page="sentence"], [data-page="lab"]) .lab-sentence {
+    padding: var(--s-4) var(--s-4) var(--s-4) var(--s-5);
+  }
+  [data-level] [data-page="grammar"] .concept-grid { grid-template-columns: 1fr; }
+  [data-level] [data-page="grammar"] .concept-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  [data-level] [data-page="grammar"] .metrics.compact .metric strong { font-size: var(--t-lg); }
+  [data-level] [data-page="grammar"] .weak-grammar > li > .row-actions { margin-left: 0; }
+}
+
