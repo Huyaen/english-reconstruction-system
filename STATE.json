@@ -2,20 +2,14 @@
   "project": "English Reconstruction System V2",
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
-  "current_phase": "phase_15h1_semantics",
-  "phase_status": "in_progress（15a–15h.1 已实现；15h.1 只做语义标记与状态收尾，未达用户视觉验收，不标 completed）",
-  "last_updated": "2026-10-28T19:39:48+0800",
-  "last_verified_commit": "14c46eb",
+  "current_phase": "phase_15h2_visual_qa",
+  "phase_status": "in_progress（15a–15h.2 已实现；15h.2 修 P0 取证结论与三处 P1 缺陷，未达用户视觉验收，不标 completed）",
+  "last_updated": "2026-10-28",
+  "last_verified_commit": "9dd7a77",
   "baseline_tag": "phase15h1-semantics",
   "database_version": 7,
   "build_status": "pass (tsc 0 error, vite production build, PWA manifest/SW, 生产包无测试钩子)",
-  "test_status": {
-    "unit": "386/386 pass",
-    "browser": "phase15h1 live-a11y 11/11 (headless Edge, 0 exceptions) · 0 console errors · phase14 11/11, pwa-a-b 7/7, offline-actions 4/4, phase13 20/20, offline 8/8, phase12-full 18/18, phase12 17/17, phase11 16/16, phase10 16/16, phase9 20/20, phase8 34/34, interest 19/19, phase7 33/33, phase6 31/31, phase5.1 26/26, phase5 44/44, phase4 36/36, phase3 21/21",
-    "tsc": "0 error",
-    "build": "pass, 生产包无测试钩子",
-    "performance": "synthetic benchmark: A 123ms, C 248ms, D 1180ms ready median; accelerated 80-cycle heap +0.16MB (not 4h field test); see docs/PERFORMANCE_BASELINE.md"
-  },
+  "test_status": "390/390 unit; tsc 0; live-a11y 11/11 (0 exceptions, 0 console errors); contrast proto=d 225/0 dark+light; mobile 10/10 x2; reduced-motion pass; nav-probe 42/42",
   "tasks": {
     "phase0_audit_001": {
       "status": "passed",
@@ -714,11 +708,11 @@
   "source_format_convention": "src/*.ts 与 tests/*.ts 由 docs/format-source.mjs 整理为紧凑格式；编辑后保持一致或重跑该脚本",
   "notes": "Phase 14 已实现并本地验收：origin 数据地址隔离与迁移提示、replaceData 事务回滚、28 域备份压力、D1/D7/D30 与 FSRS、PWA 构建指纹与 A→B、离线真实动作；DB 仍 v7。未完成项（4h 真实使用、真实配额、断电、真实手机/读屏、离线输出草稿）已在 docs/PHASE14_LONG_TERM_SAFETY.md 明确标注。下一步等待用户指定 Phase 15。",
   "remote_sync": {
-    "last_local_commit": "514110a",
-    "last_known_remote_commit": "514110a",
-    "verified_at": "2026-10-24T11:32:10+08:00",
-    "method": "git ls-remote + GitHub API Actions（feature 514110a / pin 51175a1）",
-    "notes": "Phase 14 功能与 tag：514110a / phase14-long-term-safety；feature CI 40058298365 success；状态 pin 提交 51175a1、cba7125 均为 docs-only；远端 main 含这些 pin，代码功能点仍是 514110a"
+    "last_local_commit": "9dd7a77",
+    "last_known_remote_commit": "9dd7a77",
+    "verified_at": "2026-10-28T00:00:00+08:00",
+    "method": "git rev-parse HEAD vs origin/phase15h2-visual-qa + GitHub API Actions dispatch",
+    "notes": "分支 phase15h2-visual-qa；main 仍 9de8acd（不含 15 系列）；tag phase15h-full-ui 停在 764e854 未移动"
   },
   "document_review": {
     "date": "2026-10-19",
@@ -836,7 +830,43 @@
         }
       },
       "ci": "40682596505 success (Node 22 & 24)"
+    },
+    {
+      "phase": "phase15h2",
+      "branch": "phase15h2-visual-qa",
+      "commit": "9dd7a77",
+      "tag": "phase15h2-visual-qa",
+      "remote": "verified (local==remote==9dd7a77)",
+      "status": "delivered, awaiting user visual acceptance",
+      "evidence": {
+        "unit_tests": 390,
+        "new_tests": 4,
+        "nav_probe": {
+          "navigations": 42,
+          "empty_ms": 0,
+          "loading_ms": 0,
+          "invisible_ms": "17-102",
+          "first_good_ms": "156-294"
+        },
+        "recordings": {
+          "count": 15,
+          "gaps": 0,
+          "legacy_gaps_max_ms": 5852
+        },
+        "screenshots": {
+          "still": 84,
+          "phase15h2": 28,
+          "interaction": 7
+        },
+        "videos": 7,
+        "p1_fixed": [
+          "exam radio width 893px->15px",
+          "exam row .selected on change",
+          "answered options opacity .72->1 (2.72->12.57-17.98:1)"
+        ],
+        "dead_css_rules": 177
+      }
     }
   ],
-  "backlog_note": "docs/PHASE15H_MARKUP_BACKLOG.md 口径：原始 39 → 去重 25（3 已修 + 14 本轮已修 + 2 部分 + 6 未修）"
+  "backlog_note": "docs/PHASE15H_MARKUP_BACKLOG.md 口径：原始 39 → 去重 25；15h.2 追加一节：177 条 [data-level]…[data-page] 规则 0 命中（P0 待决，本轮不启用）"
 }

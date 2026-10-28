@@ -1,20 +1,17 @@
-# HANDOFF — 当前状态（Phase 15h.1）
+# HANDOFF — 当前状态（Phase 15h.2）
 
-> **2026-10-28 更新（15h.1）**：语义标记与视觉状态收尾，分支 `phase15h1-semantics`（起点 `764e854`），
-> tag `phase15h1-semantics`。`main` 仍不含任何 15 系列提交，**未合并**。功能层（DB v7 / FSRS /
-> Planner / Diagnostics 算法）零改动，不升级 IndexedDB。
+> **2026-10-28 更新（15h.2）**：独立视觉验收的 P0/P1 收口，分支 `phase15h2-visual-qa`（起点 `b4e4b2d`），
+> 提交 `9dd7a77`，tag `phase15h2-visual-qa`。`main` 仍 `9de8acd`，**未合并**；`phase15h-full-ui` tag
+> 仍停在 `764e854`，未移动。DB v7 / FSRS / Planner / Diagnostics 算法零改动。
 >
-> 本轮只做三件事：给真实业务状态补语义钩子（`aria-pressed`、`role=status`、
-> `data-verdict`、`data-quality`、`data-src`、`data-reported`、`data-state`、`data-band`…），
-> 用**线型形状**而不是颜色表达证据强度，并用状态变化测试证明它们真的会变。
+> 本轮结论：**视频里的"主内容消失"是录制链路缺陷，不是应用缺陷**——42 次导航逐帧采样
+> `#main` 空壳 0ms；旧片是 CDP screencast 静止期停推、编码器重复转场中间态那一帧（最长 5.85s）。
+> 采集脚本已加"停帧补采"，重录 15 段后帧空洞 0。同时修了三处真实 UI 缺陷：考试单选被全局
+> `input{width:100%}` 撑到 893px、判题后选项被 `button[disabled]{opacity:.72}` 压到 2.72:1、
+> 点选单选不出现整行选中态。诊断页"偏暗"是截图时机，截图脚本已改为稳定态门控。
 >
-> 口径：`docs/PHASE15H_MARKUP_BACKLOG.md` 原始 39 条 → 去重 25 条 = 3 已修 + 14 本轮 + 2 部分 + 6 未修。
-> 未修的每条都写明"为什么停"（要改业务流程 / 只有整篇 provenance / tabindex 属独立任务）。
->
-> 验证：`tsc` 0 · `npm test` **386/386** · 真实浏览器 live-a11y **11/11**（0 异常、0 控制台错误）·
-> 对比度 225/0 · 移动端 10/10×2 · CI run `40682596505` **success** · 86 张截图（42 张重拍）+ 4 张状态特写。
->
-> **Phase 15 仍未标 completed**：用户尚未做视觉验收。
+> 另发现（本轮不修）：177 条页面级 CSS 规则因 `data-page` 在 `<html>` 上而从未命中，
+> 启用等于视觉系统变更，需单独一轮。详见 `docs/PHASE15H2_FORENSICS.md` §4。
 
 # HANDOFF — 当前状态（Phase 15h）
 
