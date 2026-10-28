@@ -1405,3 +1405,31 @@
 /* 高度已由内联 height:0 决定（不再需要 !important）；这里只换视觉 */
 [data-page="stats"] .chart .bar-col .bar.is-zero { border-top: 1px dashed var(--line-strong); background: none; }
 [data-page="stats"] .chart .bar-col .bar.is-zero::before { content: none; }
+
+/* ── 15h.1 语义状态（每条都从真实业务字段派生，见 src/diagnosticsView.ts / examView.ts）──
+   诊断证据质量：可核对=实线，行为=中段，自评=虚线，推断=点线。形状本身就说明可信度，
+   不依赖颜色（浅色主题下也不失真）。 */
+[data-page="diagnostics"] .diag-metric[data-quality="verified"] .diag-metric-label { border-left: 2px solid var(--ink); padding-left: 8px; }
+[data-page="diagnostics"] .diag-metric[data-quality="task-behavior"] .diag-metric-label { border-left: 2px dashed var(--line-strong); padding-left: 8px; }
+[data-page="diagnostics"] .diag-metric[data-quality="self-report"] .diag-metric-label { border-left: 2px dashed var(--ink-faint); padding-left: 8px; }
+/* DiagnosticQuality = verified | task-behavior | mixed | self-report | none */
+[data-page="diagnostics"] .diag-metric[data-quality="mixed"] .diag-metric-label { border-left: 2px dotted var(--line-strong); padding-left: 8px; }
+[data-page="diagnostics"] .diag-metric[data-quality="none"] .diag-metric-label { border-left: 2px dotted var(--ink-faint); padding-left: 8px; }
+[data-page="diagnostics"] .diag-metric[data-evaluability="insufficient"] strong { color: var(--ink-muted); }
+
+/* 证据条为空时不该留一条"假装有数据"的实心槽 */
+[data-page="diagnostics"] .diag-evidence-bar[data-total="0"] { border: 1px dashed var(--line-strong); background: none; }
+
+/* 考试错因：用户自报与系统推断必须看得出区别（data-reported 来自 e.userReported） */
+[data-page="exam"] .exam-error[data-reported="1"] { border-left: 2px dashed var(--ink-faint); padding-left: 14px; }
+/* 文案里已经有"用户自报"，不再用伪元素重复一遍 */
+[data-page="exam"] .exam-error[data-reported="0"] { border-left: 2px solid var(--line-strong); padding-left: 14px; }
+
+/* 考试题目来源：官方改编用实线，自建/生成用虚线；核对状态已在文案里，这里只给可扫读的形 */
+/* ItemProvenance = official | licensed | user_supplied | authored | ai_generated | unknown */
+[data-page="exam"] .exam-item-meta[data-src="official"],
+[data-page="exam"] .exam-item-meta[data-src="licensed"] { border-left: 2px solid var(--ink); padding-left: 10px; }
+[data-page="exam"] .exam-item-meta[data-src="authored"] { border-left: 2px dashed var(--line-strong); padding-left: 10px; }
+[data-page="exam"] .exam-item-meta[data-src="user_supplied"] { border-left: 2px dashed var(--ink-faint); padding-left: 10px; }
+[data-page="exam"] .exam-item-meta[data-src="ai_generated"],
+[data-page="exam"] .exam-item-meta[data-src="unknown"] { border-left: 2px dotted var(--ink-faint); padding-left: 10px; }

@@ -54,7 +54,7 @@ export function outputHubPage(input: OutputHubInput): string {
     ${input.note ? `<div class="notice">${esc(input.note)}</div>` : ''}
     <section class="panel output-start">
       <div class="section-title"><h2>今天写什么</h2><span class="subtle">${esc(input.minutes)} 分钟 · 状态 ${esc(input.energy)}</span></div>
-      <div class="output-types">${OUTPUT_TASK_ORDER.map(t => `<button class="chip ${input.selectedType === t ? 'active' : ''}" data-out-type="${t}">${esc(OUTPUT_TASK_TYPES[t].zh)}</button>`).join('')}</div>
+      <div class="output-types">${OUTPUT_TASK_ORDER.map(t => `<button class="chip ${input.selectedType === t ? 'active' : ''}" aria-pressed="${input.selectedType === t}" data-out-type="${t}">${esc(OUTPUT_TASK_TYPES[t].zh)}</button>`).join('')}</div>
       <div class="form-grid">
         <label>想表达的主题（可选）<input id="out-topic" value="${esc(input.topicDraft)}" placeholder="例如：今天的比赛 / 我最近的一个决定"></label>
       </div>
@@ -92,7 +92,7 @@ export function outputSessionPage(input: SessionInput): string {
         <div class="section-title"><h2>${esc(task.topic)}</h2><span class="subtle">${esc(srcLabel(task.sourceType))} · 建议 ${task.minWords}–${task.maxWords} 词</span></div>
         <p class="hint">先写你的意思。不会的词可以绕开；写一句也可以提交。</p>
         <textarea id="out-editor" rows="10" ${a.status === 'completed' ? 'readonly' : ''} placeholder="Start with one simple sentence...">${esc(text)}</textarea>
-        <div class="row spread"><small class="muted" id="out-count">${countWords(text)} words</small><small class="muted" id="out-save-state">${input.saving ? '保存中…' : '自动保存到本地'}</small></div>
+        <div class="row spread"><small class="muted" id="out-count">${countWords(text)} words</small><small class="muted" id="out-save-state" role="status" aria-live="polite">${input.saving ? '保存中…' : '自动保存到本地'}</small></div>
         <div class="actions">
           <button class="secondary" data-out-support="1">关键词</button>
           <button class="secondary" data-out-support="2">句型骨架</button>

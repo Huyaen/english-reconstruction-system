@@ -1014,3 +1014,16 @@
   background: linear-gradient(180deg, transparent, var(--surface) 42%);
 }
 [data-page="reading"] .read-import-bar .primary { order: -1; }
+
+/* ── 15h.1 语义状态 ── */
+/* 侧栏标记复用正文的四种判读形状（mark-row 的类来自 m.judgment） */
+[data-page="reading"] #read-marks .mark-row { border-left: 2px solid var(--line-strong); padding-left: 10px; }
+[data-page="reading"] #read-marks .mark-row.mark-known { border-left-style: solid; border-left-color: var(--m-fluent); }
+[data-page="reading"] #read-marks .mark-row.mark-vague { border-left-style: dashed; border-left-color: var(--m-vague); }
+[data-page="reading"] #read-marks .mark-row.mark-unknown { border-left-style: dotted; border-left-color: var(--m-unknown); }
+[data-page="reading"] #read-marks .mark-row.mark-guessed { border-left-style: double; border-left-color: var(--m-new); }
+
+/* 阅读库行状态（data-state 来自 r.unfinished / r.completed） */
+[data-page="reading"] #reading-page tbody tr[data-state="unfinished"] td:first-child b { font-weight: 600; }
+[data-page="reading"] #reading-page tbody tr[data-state="read"] td:first-child b { color: var(--ink-muted); }
+[data-page="reading"] #reading-page tbody tr[data-state="unread"] td:first-child b { color: var(--ink); }

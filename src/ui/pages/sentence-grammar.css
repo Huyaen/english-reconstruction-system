@@ -1099,3 +1099,29 @@
 #main .concept-card.weak {
   box-shadow: inset 2px 0 0 color-mix(in srgb, var(--warn) 62%, transparent);
 }
+
+/* ── 15h.1 语义状态 ── */
+/* 句子作答：答完后正确项与误选项各有形状，不只靠颜色（data-verdict 来自 evaluation + step.correctId） */
+[data-page="sentence"] .lab-option[data-verdict="correct"],
+[data-page="lab"] .lab-option[data-verdict="correct"] { border-left: 3px solid var(--m-fluent); }
+[data-page="sentence"] .lab-option[data-verdict="wrong"],
+[data-page="lab"] .lab-option[data-verdict="wrong"] { border-left: 3px dashed var(--m-unknown); }
+/* 文案不写进伪元素：.picked::after 已经用作选中三角，这里只给形状；
+   "正确项 / 你选的"由 .lab-feedback 的真实文案承担。 */
+
+/* 步骤条段位：data-step / data-total 来自 cur.stepIndex 与 total */
+[data-page="sentence"] .lab-progress { position: relative; }
+[data-page="lab"] .lab-progress { position: relative; }
+
+/* 概念卡掌握度分档：data-band 来自 conceptStates 的 band，不再只靠 badge 文字 */
+[data-page="grammar"] .concept-card[data-band="unknown"] { border-color: var(--line-strong); }
+[data-page="grammar"] .concept-card[data-band="unknown"] > header { color: var(--ink); }
+[data-page="grammar"] .concept-card[data-band="likely-mastered"] { opacity: .82; }
+[data-page="grammar"] .concept-card[data-band="likely-mastered"]:hover,
+[data-page="grammar"] .concept-card[data-band="likely-mastered"]:focus-within { opacity: 1; }
+
+/* 句树：主句加重、非 gold 来源整块虚线提示（data-provenance 来自 structure.provenance） */
+[data-page="sentence"] .tree[data-provenance="heuristic"] .tree-clause,
+[data-page="sentence"] .tree[data-provenance="none"] .tree-clause { border-style: dashed; }
+[data-page="sentence"] .tree-clause[data-root="1"] > summary { font-weight: 600; }
+[data-page="sentence"] .tree-clause[data-root="1"] { border-left-width: 3px; }

@@ -43,7 +43,7 @@ function sampleText(m: MetricValue): string {
     return `样本 ${m.sample}`;
 }
 function metricCard(m: MetricValue): string {
-    return `<div class="diag-metric ${m.evaluability !== 'evaluable' ? 'is-empty' : ''}">
+    return `<div class="diag-metric ${m.evaluability !== 'evaluable' ? 'is-empty' : ''}" data-quality="${esc(m.quality)}" data-evaluability="${esc(m.evaluability)}">
       <span class="diag-metric-label">${esc(m.label)}</span>
       <strong>${esc(valueText(m))}</strong>
       <small>${esc(sampleText(m))} · ${esc(QUALITY_LABEL[m.quality])}</small>
@@ -63,7 +63,8 @@ function domainCard(domain: MetricValue['domain'], metrics: MetricValue[]): stri
 function evidenceBar(mix: DiagnosticEvidenceMix): string {
     const total = Math.max(1, mix.verified + mix.taskBehavior + mix.selfReport + mix.inferred);
     const seg = (n: number, cls: string, label: string) => n > 0 ? `<i class="${cls}" style="width:${(n / total * 100).toFixed(1)}%" title="${label} ${n}"></i>` : '';
-    return `<div class="diag-evidence-bar" role="img" aria-label="证据构成：可核对 ${mix.verified}，行为 ${mix.taskBehavior}，自评 ${mix.selfReport}，推断 ${mix.inferred}">
+    const mixTotal = mix.verified + mix.taskBehavior + mix.selfReport + mix.inferred;
+    return `<div class="diag-evidence-bar" data-total="${mixTotal}" role="img" aria-label="证据构成：可核对 ${mix.verified}，行为 ${mix.taskBehavior}，自评 ${mix.selfReport}，推断 ${mix.inferred}">
       ${seg(mix.verified, 'verified', '可核对')}${seg(mix.taskBehavior, 'behavior', '行为')}${seg(mix.selfReport, 'self', '自评')}${seg(mix.inferred, 'inferred', '推断')}
     </div>`;
 }

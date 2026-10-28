@@ -589,3 +589,12 @@
     transition: none;
   }
 }
+
+/* ── 15h.1 语义状态 ── */
+/* 字幕时间码独立成列（cue-time / cue-text），不再用 text-indent 近似对齐 */
+[data-page="input"] .transcript-cues li { display: grid; grid-template-columns: 12.6ch 1fr auto; gap: 10px; align-items: baseline; }
+[data-page="input"] .transcript-cues .cue-time { font-variant-numeric: tabular-nums; color: var(--ink-muted); font-size: 12px; letter-spacing: .02em; }
+[data-page="input"] .transcript-cues .cue-text { color: var(--ink-soft); }
+
+/* 自动保存是 live region：保存中给出可感知但不闪的态 */
+[data-page="output"] #out-save-state { min-width: 9ch; }

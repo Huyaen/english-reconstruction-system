@@ -2538,7 +2538,7 @@ function grammarPage(): void {
     const taxonomy = validateTaxonomy();
     const metrics = `<div class="metrics">${metric('概念总数', String(GRAMMAR_TAXONOMY.length), '6 个类别 · 显式先修边')}${metric('有证据概念', String(states.filter(s => s.attempts > 0).length), `共 ${states.reduce((n, s) => n + s.attempts, 0)} 条真实拆句证据`)}${metric('薄弱概念', String(weak.length), '按最近错误与掌握后验判定')}${metric('证据较充分', String(states.filter(s => s.band === 'likely-mastered').length), '多证据支持，仍不是保证')}</div>`;
     const cats: Array<GrammarCategory | ''> = ['', ...GRAMMAR_ORDER];
-    const filters = cats.map(c => `<button class="chip ${grammarCategoryFilter === c ? 'active' : ''}" data-gcat="${c}">${c ? GRAMMAR_CATEGORY_LABELS[c] : '全部'}</button>`).join('');
+    const filters = cats.map(c => `<button class="chip ${grammarCategoryFilter === c ? 'active' : ''}" aria-pressed="${grammarCategoryFilter === c}" data-gcat="${c}">${c ? GRAMMAR_CATEGORY_LABELS[c] : '全部'}</button>`).join('');
     const evidenced = states.filter(s => s.attempts > 0);
     const attemptsTotal = states.reduce((n, s) => n + s.attempts, 0);
     const weakPanel = weak.length ? `<section class="panel"><h2>需要优先处理</h2><p class="hint">排序依据：掌握后验 p 低 + 最近出现重复错误 + 先修是否具备。</p><ul class="weak-grammar">${weak.slice(0, 6).map(s => { const def = conceptById(s.conceptId); return `<li><b>${esc(def?.name ?? s.conceptId)}</b> <span class="badge ${bandClassOf(s.band)}">${pct(s.p)}</span><small>${esc(errorSummary(s))} · ${s.attempts} 次证据</small><span class="row-actions"><button class="secondary small" data-concept="${s.conceptId}">看详情</button><button class="primary small" data-concept-practice="${s.conceptId}">去练习</button></span></li>`; }).join('')}</ul></section>` : `<section class="panel"><h2>还没有足够的语法证据</h2><p class="hint">${evidenced.length ? `已有 ${evidenced.length} 个概念拿到 ${attemptsTotal} 条真实证据，但还没达到"弱项"的判定门槛（≥${GRAMMAR_CONFIG.weak.minAttempts} 次证据且后验 p<${pct(GRAMMAR_CONFIG.weak.threshold)}）；证据不够时不会给你贴标签。` : '完成一次句子拆解后，这里会按概念显示真实掌握情况。初始值为先验 25%，不代表你已经会或不会。'}</p></section>`;
@@ -2552,7 +2552,7 @@ function grammarPage(): void {
             const prereqChips = d.prerequisiteIds.length
                 ? d.prerequisiteIds.map(id => `<button class="chip small" data-concept="${id}">${esc(conceptById(id)?.name ?? id)}</button>`).join('')
                 : '<span class="hint">无（根概念）</span>';
-            return `<article class="concept-card ${st.weak ? 'weak' : ''}"><header><button class="concept-link" data-concept="${d.id}">${esc(d.name)}</button><span class="badge ${bandClassOf(st.band)}">${GRAMMAR_BAND_LABELS[st.band]}</span></header><p class="hint">${esc(d.description)}</p><p class="concept-prereq"><span class="subtle">先修</span>${prereqChips}</p><div class="concept-metrics"><span>估算 <b>${pct(st.p)}</b></span><span>证据 <b>${st.attempts}</b></span><span>独立正确 <b>${st.independentCorrect}</b></span><span>相关句 <b>${sentences}</b></span></div>${st.weak ? `<p class="hint warn">${esc(errorSummary(st))}</p>` : ''}<div class="row-actions"><button class="secondary small" data-concept-practice="${d.id}">去练习</button></div></article>`;
+            return `<article class="concept-card ${st.weak ? 'weak' : ''}" data-band="${st.band}"><header><button class="concept-link" data-concept="${d.id}">${esc(d.name)}</button><span class="badge ${bandClassOf(st.band)}">${GRAMMAR_BAND_LABELS[st.band]}</span></header><p class="hint">${esc(d.description)}</p><p class="concept-prereq"><span class="subtle">先修</span>${prereqChips}</p><div class="concept-metrics"><span>估算 <b>${pct(st.p)}</b></span><span>证据 <b>${st.attempts}</b></span><span>独立正确 <b>${st.independentCorrect}</b></span><span>相关句 <b>${sentences}</b></span></div>${st.weak ? `<p class="hint warn">${esc(errorSummary(st))}</p>` : ''}<div class="row-actions"><button class="secondary small" data-concept-practice="${d.id}">去练习</button></div></article>`;
         }).join('')}</div></section>`;
     }).join('');
     $('#main').innerHTML = `<div id="grammar-page">` + title('GRAMMAR MAP', '语法图谱', '概念之间按先修关系连接：先有主干，再认从句，再想非谓语。掌握度是估算，不是承诺。')
@@ -2730,9 +2730,15 @@ function labPage(): void {
     const step = cur.plan.steps[cur.stepIndex];
     const total = cur.plan.steps.length;
     const level = supportHint(step, cur.supportLevel);
-    const progress = `<div class="lab-progress"><span>第 ${cur.stepIndex + 1} / ${total} 步</span><span>${STEP_LABELS[step.kind]}</span><span class="badge ${cur.supportLevel === 0 ? 'fluent' : cur.supportLevel >= 3 ? 'vague' : 'normal'}">${SUPPORT_LABELS[cur.supportLevel]}</span></div>`;
+    const progress = `<div class="lab-progress" data-step="${cur.stepIndex + 1}" data-total="${total}"><span>第 ${cur.stepIndex + 1} / ${total} 步</span><span>${STEP_LABELS[step.kind]}</span><span class="badge ${cur.supportLevel === 0 ? 'fluent' : cur.supportLevel >= 3 ? 'vague' : 'normal'}">${SUPPORT_LABELS[cur.supportLevel]}</span></div>`;
     // 作答前只给候选成分，不给"它是主句主语"这类解析——那等于把答案写在选项上
-    const options = step.options.map(o => `<button class="lab-option ${cur.answered === o.id ? 'picked' : ''}" data-lab-option="${o.id}" ${cur.answered ? 'disabled' : ''}><b>${esc(o.label)}</b>${cur.answered && o.detail ? `<small>${esc(o.detail)}</small>` : ''}</button>`).join('');
+    const options = step.options.map(o => {
+        const verdict = !cur.answered ? 'pending'
+            : o.id === step.correctId ? 'correct'
+                : o.id === cur.answered ? 'wrong'
+                    : 'neutral';
+        return `<button class="lab-option ${cur.answered === o.id ? 'picked' : ''}" data-verdict="${verdict}" data-lab-option="${o.id}" ${cur.answered ? 'disabled' : ''}><b>${esc(o.label)}</b>${cur.answered && o.detail ? `<small>${esc(o.detail)}</small>` : ''}</button>`;
+    }).join('');
     const feedback = cur.evaluation ? `<div class="lab-feedback ${cur.evaluation.correct ? 'ok' : 'bad'}"><p><b>${cur.evaluation.correct ? '正确' : cur.evaluation.partial ? '部分正确' : '还不准确'}</b> · ${cur.evaluation.correct ? '' : `错误类型：${ERROR_LABELS[cur.evaluation.errorType] ?? cur.evaluation.errorType}`}</p><p>${esc(cur.evaluation.feedback)}</p><p class="hint">${esc(cur.evaluation.nextFocus)}</p><div class="actions">${cur.evaluation.correct ? '' : (step.conceptIds[0] ?? 'structure.core') ? `<button class="secondary" data-jit="${step.conceptIds[0] ?? 'structure.core'}">看 30 秒知识卡</button>` : ''}<button class="primary" id="lab-next">${cur.stepIndex + 1 < total ? '下一步' : '完成这句'}</button></div>${cur.supportLevel >= 3 ? '<p class="hint warn">这句你已看过答案／完整解释：会计入接触次数，但不会算作掌握证据。</p>' : ''}${session.ungraded ? '<p class="hint warn">这句来自阅读材料，结构是自动分析的（没有人工审校）：本次只记接触，不推进语法掌握度。</p>' : ''}</div>` : '';
     $('#main').innerHTML = `<div id="lab-page">` + title('SENTENCE LAB', `拆句 · ${cur.stepIndex + 1}/${total}`, '先找主干，再看修饰；不确定时可以要提示，但提示会降低这次证据的可信度。')
         + `<div class="actions"><button class="secondary" data-lab-back="1">${session.returnTo ? '← 回到阅读' : '← 回到句库'}</button><button class="danger-text" id="lab-skip">跳过这句</button></div>`
@@ -2910,9 +2916,9 @@ function preTeachHTML(rec: SentenceRecord): string {
 function structureTreeHTML(rec: SentenceRecord, structure: SentenceStructure): string {
     const rows = structureRows(structure);
     const clauses = [...structure.clauses].sort((a, b) => a.start - b.start);
-    const body = clauses.map(c => `<details class="tree-clause" open><summary><span class="clause-kind">${CLAUSE_LABELS[c.kind]}</span> <b>${esc(c.label)}</b> <small>词 ${c.start + 1}–${c.end + 1}</small></summary><div class="tree-tokens">${rows.filter(r => r.clauseId === c.id).map(r => `<span class="token role-${r.role}" title="依存：${esc(r.headText)}${r.note ? ` · ${esc(r.note)}` : ''}"><b>${esc(r.text)}</b><small>${r.roleLabel}</small></span>`).join('')}</div></details>`).join('');
+    const body = clauses.map(c => `<details class="tree-clause" data-clause-id="${esc(c.id)}" data-clause-kind="${esc(c.kind)}" data-root="${c.kind === 'main' ? '1' : '0'}" open><summary><span class="clause-kind">${CLAUSE_LABELS[c.kind]}</span> <b>${esc(c.label)}</b> <small>词 ${c.start + 1}–${c.end + 1}</small></summary><div class="tree-tokens">${rows.filter(r => r.clauseId === c.id).map(r => `<span class="token role-${r.role}" data-clause-id="${esc(r.clauseId)}" title="依存：${esc(r.headText)}${r.note ? ` · ${esc(r.note)}` : ''}"><b>${esc(r.text)}</b><small>${r.roleLabel}</small></span>`).join('')}</div></details>`).join('');
     const warn = structure.provenance === 'gold' ? '' : `<p class="hint warn">结构来源是 ${structure.provenance}（confidence ${structure.confidence}）：这不是可靠的完整句法分析，只用于引导你注意成分位置。</p>`;
-    return `<div id="lab-tree" class="tree"><p class="hint">先看主句骨架，再看从句／非谓语如何补足（组内保持原词序）。</p>${body}</div>${warn}<p class="hint">${esc(structure.note)}</p>`;
+    return `<div id="lab-tree" class="tree" data-provenance="${esc(structure.provenance)}"><p class="hint">先看主句骨架，再看从句／非谓语如何补足（组内保持原词序）。</p>${body}</div>${warn}<p class="hint">${esc(structure.note)}</p>`;
 }
 async function finishLabSession(): Promise<void> {
     const session = labSession;
@@ -3486,7 +3492,7 @@ function readingLibrary(): void {
     const rows = queryLibrary(data.passages, data.readingSessions, readLibraryQuery);
     const trend = computeReadingTrend(data.readingSessions);
     const open = latestOpenSession(data.readingSessions);
-    const list = rows.slice(0, 30).map(r => `<tr>
+    const list = rows.slice(0, 30).map(r => `<tr data-state="${r.unfinished ? 'unfinished' : r.completed ? 'read' : 'unread'}">
       <td><b>${resc(r.passage.title)}</b><br><small class="hint">${resc(sourceLabel(r.passage))} · ${resc(r.passage.topic)} · ${r.passage.wordCount} 词${r.completed ? ` · 已读 ${r.completed} 次` : ''}${r.unfinished ? ` · <span class="badge vague">未完成 ${sessionProgress(r.unfinished).percent}%</span>` : ''}</small></td>
       <td>${r.passage.estimatedDifficulty ? r.passage.estimatedDifficulty.toFixed(1) : '—'}</td>
       <td><button class="primary small" data-read-open="${r.passage.id}">${r.unfinished ? '继续阅读' : r.completed ? '再读一次' : '开始阅读'}</button></td>
@@ -4344,7 +4350,7 @@ async function retestExam(s: ExamSession): Promise<void> {
     toast('已用一道未做过的新题做迁移复测');
 }
 function examTabsHtml(): string {
-    return `<div class="exam-tabs">${([['overview', '考试概览'], ['practice', '练习'], ['weekly', '周测'], ['logs', '学校记录'], ['specs', '规格审计']] as const).map(([id, label]) => `<button data-exam-tab="${id}" class="${examTab === id ? 'active' : ''}">${label}</button>`).join('')}</div>`;
+    return `<div class="exam-tabs">${([['overview', '考试概览'], ['practice', '练习'], ['weekly', '周测'], ['logs', '学校记录'], ['specs', '规格审计']] as const).map(([id, label]) => `<button data-exam-tab="${id}" class="${examTab === id ? 'active' : ''}" aria-pressed="${examTab === id}">${label}</button>`).join('')}</div>`;
 }
 function examPageApp(): void {
     const specs = examSpecList();

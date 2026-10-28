@@ -170,7 +170,7 @@ export function inputSessionPage(input: SessionPageInput): string {
              <button class="secondary" data-transcript-reading>送入 Reading Lab</button>
              <button class="text-button" data-transcript-sentences>查看难句候选</button>
            </div>
-           ${input.candidates.length ? `<ul class="transcript-cues">${input.candidates.map((c, i) => `<li>${formatTimestamp(c.startMs)} ${esc(c.text)} <button class="text-button" data-sentence-pick="${i}">送入句法练习</button></li>`).join('')}</ul>` : ''}`
+           ${input.candidates.length ? `<ul class="transcript-cues">${input.candidates.map((c, i) => `<li><span class="cue-time">${formatTimestamp(c.startMs)}</span><span class="cue-text">${esc(c.text)}</span> <button class="text-button" data-sentence-pick="${i}">送入句法练习</button></li>`).join('')}</ul>` : ''}`
         : `<p class="muted">支持 SRT / VTT / TXT。没有字幕也可以只做复盘；我们不会假装自动抓取平台字幕。</p>`}
       <label class="file-box">选择字幕文件<input id="transcript-file" type="file" accept=".srt,.vtt,.txt"></label>
       <label>或粘贴字幕<textarea id="transcript-raw" rows="4" placeholder="1&#10;00:00:01,000 --> 00:00:03,000&#10;The aqueducts carried water..."></textarea></label>

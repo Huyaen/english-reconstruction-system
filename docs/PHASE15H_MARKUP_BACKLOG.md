@@ -1,62 +1,76 @@
-# Phase 15h · 标记层缺口清单（供下一轮）
+# Phase 15h · 标记层缺口清单（15h.1 收尾后）
 
-这四个页面样式模块在编写时，因为**不允许改 `app.ts`**，遇到一批"样式需要、但标记没给钩子"的地方。
-这里按页面记下来，附 `file:line` 与建议钩子。已在 15h 收尾时修掉的，标注 ✅。
+## 口径
+
+原始材料是四个页面样式模块编写时留下的 `markup_gaps`，**共 39 条**（阅读 7、句子/语法 14、输入/表达 6、诊断/统计/考试 12）。
+去重合并后是 **25 条**（同一元素在多处被重复提过）。上一版文档只数到 22 行、回执写"20 项"，两边都不准，以本文件的 25 条为准。
+
+| 分类 | 数量 |
+|---|---|
+| 15h 收尾时已修 | 3 |
+| 15h.1 本轮已修 | 14 |
+| 15h.1 本轮部分修 | 2 |
+| 未修（需改业务流程，或已有等价实现） | 6 |
+| **合计** | **25** |
 
 ---
 
-## 已修（本轮）
+## 一、已修（15h 收尾）
 
 | 位置 | 问题 | 处理 |
 |---|---|---|
-| `examView.ts:141` | 规格审计把 `s.totalScore ?? 'null'` 直接打印成字符串 **"null"**——用户真的会看到 null | 改为 `—` ✅ |
-| `app.ts:1810` `drawTrend` | 零作答日渲染内联 `height:2px` 的柱子，视觉上像"有 2 次"，且内联高度无法被样式覆盖 | 输出 `is-zero` + `height:0`，样式给基线上的虚线刻度 ✅ |
-| `app.ts:2739` `#lab-sentence` | 英文原句缺 `lang="en"`，断行与朗读语音受影响 | 补 `lang="en"` ✅ |
+| `examView.ts:141` | 规格审计把 `s.totalScore ?? 'null'` 打印成字符串 **"null"** | 改 `—` |
+| `app.ts` `drawTrend` | 零作答日渲染 `height:2px` 柱子，像"有 2 次" | `is-zero` + `height:0`，基线虚线刻度 |
+| `app.ts` `#lab-sentence` | 英文原句缺 `lang="en"` | 补 `lang="en"` |
 
-## 待处理（按页面）
+## 二、已修（15h.1，14 条）
 
-### 阅读（`reading.css`）
+每条 `data-*` / ARIA 都从真实业务字段派生，并配了**状态变化测试**（`tests/a11yState.test.ts` + `scripts/phase15h1-live-a11y.mjs`）。
 
-| 位置 | 需要什么钩子 | 为什么 |
+| 位置 | 钩子 | 业务来源 |
 |---|---|---|
-| `readingView.ts:100` | 难句 `<span class="rsent">` 加 `is-difficult` 或 `data-difficult="1"` | 正文里现在无法给难句任何精确提示 |
-| `readingView.ts:170` | `#read-marks` 的 `<li>` 加 `mark-${judgment}` | 侧栏清单无法复用正文四种下划线形状 |
-| `readingView.ts:155` | `#read-idea-box` 提交后加 `.is-recorded` | 已记录的段意无法变成只读摘要 |
-| `readingView.ts:147` | `.reader-main` 加 `data-last="true"` | 末段无法提示"读完即进入重读" |
-| `app.ts:3453` | 阅读库 `<tr>` 加 `data-state="unread\|unfinished\|read"` | 行级入口状态目前只能靠颜色 |
-| `app.ts:291` | `.reader-main` 加 `aria-busy` 或 `.is-loading` | 只能落回全局 `.d-loading` |
+| `app.ts:2505` 语法类别筛选 | `aria-pressed` | `grammarCategoryFilter` |
+| `app.ts:2519` 概念卡 | `data-band` | `conceptStates[id].band`（五档） |
+| `app.ts:2697` 句法步骤条 | `data-step` / `data-total` | `cur.stepIndex + 1` / `total` |
+| `app.ts:2699` 句法选项 | `data-verdict="pending\|correct\|wrong\|neutral"` | `cur.answered` + `step.correctId` |
+| `app.ts:2877` 句树块 | `data-clause-id` / `data-clause-kind` / `data-root` | `structure.clauses[].id/kind` |
+| `app.ts:3453` 阅读库行 | `data-state="unread\|unfinished\|read"` | `r.unfinished` / `r.completed` |
+| `readingView.ts:170` 侧栏标记行 | `mark-row mark-${judgment}` | `mark.judgment` |
+| `inputView.ts:173` 字幕 | `.cue-time` / `.cue-text` 分列 | `c.startMs` |
+| `outputView.ts:95` 自动保存 | `role="status" aria-live="polite"` | `input.saving` |
+| `diagnosticsView.ts:46` 诊断指标 | `data-quality` / `data-evaluability` | `m.quality` / `m.evaluability` |
+| `diagnosticsView.ts:66` 证据条 | `data-total` | 四类证据求和 |
+| `examView.ts:56` 考试元信息 | `data-src` / `data-verified` | `item.provenance` / `item.verifiedStatus` |
+| `examView.ts:65` 错因卡 | `data-reported="1\|0"` | `e.userReported` |
+| `app.ts` 考试页签 | `aria-pressed` | `examTab` |
 
-### 句子 / 语法（`sentence-grammar.css`）
+## 三、部分修（2）
 
-| 位置 | 需要什么钩子 | 为什么 |
+| 位置 | 已做 | 缺什么、为什么停 |
 |---|---|---|
-| `app.ts:2699` | `.lab-option` 加 `data-verdict="correct\|partial\|wrong"` | 作答后无法在原位标出正确边界（quiz 已有 `.answer.is-correct`） |
-| `app.ts:2697` | `.lab-progress` 加 `data-step` / `data-total` | 步骤条只能静态分隔，显示不了 1/4 |
-| `app.ts:2877` | `.tree-clause` 加 `data-clause-id` / `data-root` / `data-provenance` | 主句强调、按层缩进、逐块标注"未审校"都做不到 |
-| `app.ts:2877` | `.token` 加 `data-clause-id` + 可聚焦 | 词块无法与所属子句联动，键盘/读屏拿不到依存信息 |
-| `app.ts:2519` | `.concept-card` 加 `data-band` | 只能靠 badge 表达五档掌握度，卡片本身无层级 |
-| `app.ts:2505` | `.chip.active` 补 `aria-pressed` | 键盘与读屏拿不到选中状态 |
-| `app.ts:2553` | 最近证据行拆成 `ev-outcome` / `ev-support` / `ev-kind` | 正确/错误无法加左侧条与标签 |
+| `app.ts:2877` 句树来源 | 容器带 `data-provenance`，块带 `data-root` | **逐块** provenance 做不到：`structure.provenance` 是整篇一个值（`gold`/`heuristic`/`none`），没有逐块字段。伪造"每块来源"就是造假，故只标容器。 |
+| `app.ts:2877` 词块 | `data-clause-id` | 未加 `tabindex`：词块是 `<span title>`，全站几十个，逐个进 tab 序会把键盘用户困在句树里。要可聚焦得先设计 roving tabindex，属独立无障碍任务。 |
 
-### 输入 / 表达（`io.css`）
+## 四、未修（6），附原因
 
-| 位置 | 需要什么钩子 | 为什么 |
+| 位置 | 缺什么 | 为什么本轮不做 |
 |---|---|---|
-| input 字幕 | 时间码独立成 `.cue-time` span（现在与正文同一文本节点） | 只能用 `text-indent` 近似对齐 |
-| output 提示 | L1–L3 提示包进 `<details>` | 无法收起，长文写作时占屏 |
-| output 保存 | `#out-save-state` 加 `aria-live` | 保存确认无法被读屏播报 |
+| `readingView.ts:100` | 正文难句 `is-difficult` | `sentenceHTML()` 拿不到"哪些句被标为难句"的集合（难句在 session 侧），要改渲染函数签名与数据流，属学习数据流改动。 |
+| `readingView.ts:155` | `#read-idea-box` 的 `is-recorded` | "记录我的说法"目前只做即时反馈，**没有存储段意的业务状态**。加 `is-recorded` 等于凭空造状态。 |
+| `readingView.ts:147` | `.reader-main` 的 `data-last` | 需要"当前段落是否末段"的视图状态；现在只在按钮文案里区分，属分页逻辑改动。 |
+| `app.ts:291` | 阅读加载态 `aria-busy` | 阅读器是同步渲染，没有真实 loading 阶段；挂一个永远 false 的 `aria-busy` 是装饰。 |
+| `app.ts:2553` | 掌握证据行拆成 `ev-outcome` / `ev-support` / `ev-kind` | 一行是拼接文本（日期 · 对错 · 独立/辅助 · 迁移 · 延迟 · 错型）。拆分要重排信息密度，属视觉重设计。 |
+| `io` output 提示 | L1–L3 提示包进 `<details>` | 会改变"提示默认可见"的教学策略（写作时提示必须可见），属产品决策。 |
 
-### 诊断 / 统计 / 考试（`data.css`）
+另有 2 条判定为**已有等价实现**，不加标记：
 
-| 位置 | 需要什么钩子 | 为什么 |
-|---|---|---|
-| `diagnosticsView.ts:46` | `.diag-metric` 加 `data-quality` | 证据质量只存在文本里，自评/推断无法与可核对分开 |
-| `diagnosticsView.ts:66` | 证据条加 `data-total="0"` | 四类全 0 时只能靠 `:not(:has(> i))` 兜底 |
-| `app.ts:1785` | `.direction-stat` / `.metric` 加 `data-empty` / `data-kind` | 空值与"活动量 vs 能力估算"无法在样式上区分 |
-| `examView.ts:56` | 题型/分值/来源 span 加 `data-src` | "官方改编"与"自建"只能同样式 |
-| `examView.ts:65` | 错误归因行加 `data-reported="1"` | 用户自报与系统推断无法区分 |
-| `examView.ts:27` | 开关加 `data-on` | 开/关两态只能靠文本 |
+| 位置 | 现有等价 |
+|---|---|
+| `app.ts:1785` `.direction-stat` / `.metric` | 空值已用 `—` 文本表达；"活动量 vs 能力估算"需重新划分指标分类，属产品语义，不是样式缺钩子 |
+| `examView.ts:27` 考试开关 | 原生 `<input type="checkbox">`，`:checked` 已能表达开/关；再加 `data-on` 是同一事实两份来源 |
 
----
+## 五、测试如何证明这些状态是真的
 
-这些都不影响当前功能，只影响"能不能把状态画准"。下一轮做视觉精修时按表补钩子即可。
+- `tests/a11yState.test.ts`（7 项，jsdom）：先操作再断言变化。例如"未作答时所有选项 `pending`，答后恰有一个 `correct`，误选项数与反馈对错一致"。
+- `scripts/phase15h1-live-a11y.mjs`（11 项，headless Edge + 真实 IndexedDB）：同一批断言在真实浏览器重跑，并要求 0 页面异常 / 0 控制台错误。
+- 只断言"属性存在"的检查被删过一次：阅读库那条最初写成 `n >= 0`（恒真，等于没测），改成"导入文章 → 回库 → 行状态必须是 unread"。

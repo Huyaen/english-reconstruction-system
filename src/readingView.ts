@@ -167,7 +167,7 @@ export function readerHTML(input: {
       <button class="chip" data-mark-undo="1">撤销</button>
     </div>
     <div id="read-marks">${marksOfChunk.length
-        ? `<ul class="plain-list">${marksOfChunk.map(m => `<li><b>${esc(m.surface)}</b> · ${MARK_LABELS[m.judgment]}<button class="text-button" data-unmark="${m.id}">撤销</button></li>`).join('')}</ul>`
+        ? `<ul class="plain-list">${marksOfChunk.map(m => `<li class="mark-row mark-${esc(m.judgment)}"><b>${esc(m.surface)}</b> · ${MARK_LABELS[m.judgment]}<button class="text-button" data-unmark="${m.id}">撤销</button></li>`).join('')}</ul>`
         : '<p class="hint">还没有标记。</p>'}</div>
     <div class="section-title"><b>难句</b></div>
     <div class="actions" id="read-difficult-tools">
