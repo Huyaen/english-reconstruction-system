@@ -5,8 +5,8 @@
   "current_phase": "phase_15h1_semantics",
   "phase_status": "in_progress（15a–15h.1 已实现；15h.1 只做语义标记与状态收尾，未达用户视觉验收，不标 completed）",
   "last_updated": "2026-10-28T19:39:48+0800",
-  "last_verified_commit": "514110a（功能基线；15d/15e 为 phase15 分支上的 UI 提交，未合并 main）",
-  "baseline_tag": "v1.0.0-mvp-baseline",
+  "last_verified_commit": "14c46eb",
+  "baseline_tag": "phase15h1-semantics",
   "database_version": 7,
   "build_status": "pass (tsc 0 error, vite production build, PWA manifest/SW, 生产包无测试钩子)",
   "test_status": {
@@ -703,7 +703,7 @@
     "专用考试记录导入只接受本应用导出的 erv2-exam-logs；完整学习数据仍走全局备份。"
   ],
   "blocked": [],
-  "next_task_id": "await_user_visual_acceptance_phase15h",
+  "next_task_id": "await_user_visual_acceptance_phase15",
   "environment": {
     "node": "v26.7.0",
     "npm": "11.19.0",
@@ -816,9 +816,9 @@
     {
       "phase": "phase15h1",
       "branch": "phase15h1-semantics",
-      "commit": "PENDING",
+      "commit": "14c46eb",
       "tag": "phase15h1-semantics",
-      "remote": "PENDING",
+      "remote": "verified (local==remote==14c46eb)",
       "status": "delivered, awaiting user visual acceptance",
       "evidence": {
         "unit_tests": 386,
@@ -834,7 +834,8 @@
           "partial": 2,
           "not_fixed": 6
         }
-      }
+      },
+      "ci": "40682596505 success (Node 22 & 24)"
     }
   ],
   "backlog_note": "docs/PHASE15H_MARKUP_BACKLOG.md 口径：原始 39 → 去重 25（3 已修 + 14 本轮已修 + 2 部分 + 6 未修）"

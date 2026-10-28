@@ -1,3 +1,21 @@
+# HANDOFF — 当前状态（Phase 15h.1）
+
+> **2026-10-28 更新（15h.1）**：语义标记与视觉状态收尾，分支 `phase15h1-semantics`（起点 `764e854`），
+> tag `phase15h1-semantics`。`main` 仍不含任何 15 系列提交，**未合并**。功能层（DB v7 / FSRS /
+> Planner / Diagnostics 算法）零改动，不升级 IndexedDB。
+>
+> 本轮只做三件事：给真实业务状态补语义钩子（`aria-pressed`、`role=status`、
+> `data-verdict`、`data-quality`、`data-src`、`data-reported`、`data-state`、`data-band`…），
+> 用**线型形状**而不是颜色表达证据强度，并用状态变化测试证明它们真的会变。
+>
+> 口径：`docs/PHASE15H_MARKUP_BACKLOG.md` 原始 39 条 → 去重 25 条 = 3 已修 + 14 本轮 + 2 部分 + 6 未修。
+> 未修的每条都写明"为什么停"（要改业务流程 / 只有整篇 provenance / tabindex 属独立任务）。
+>
+> 验证：`tsc` 0 · `npm test` **386/386** · 真实浏览器 live-a11y **11/11**（0 异常、0 控制台错误）·
+> 对比度 225/0 · 移动端 10/10×2 · CI run `40682596505` **success** · 86 张截图（42 张重拍）+ 4 张状态特写。
+>
+> **Phase 15 仍未标 completed**：用户尚未做视觉验收。
+
 # HANDOFF — 当前状态（Phase 15h）
 
 > **2026-10-27 更新（15h）**：UI 工作全在 `phase15h-full-ui-migration` 分支（起点 `6a550fe`），

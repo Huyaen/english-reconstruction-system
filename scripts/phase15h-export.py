@@ -10,6 +10,7 @@ from datetime import datetime
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = os.path.join(ROOT, "screenshots", "phase15h")
+SHOTS_A11Y = os.path.join(ROOT, "screenshots", "phase15h1")
 VIDEOS = os.path.join(SHOTS, "recording")
 DOCS = os.path.join(ROOT, "docs")
 OUT_DIR = os.path.join(ROOT, "review-export")
@@ -129,6 +130,9 @@ def main() -> int:
                 z.write(os.path.join(SHOTS, f), f"screenshots/{f}")
         if os.path.exists(manifest_path):
             z.write(manifest_path, "screenshots/capture-manifest.json")
+        for f in sorted(os.listdir(SHOTS_A11Y)) if os.path.isdir(SHOTS_A11Y) else []:
+            if f.endswith(".png") or f.endswith(".json"):
+                z.write(os.path.join(SHOTS_A11Y, f), f"screenshots/phase15h1/{f}")
         for f in sorted(os.listdir(VIDEOS)) if os.path.isdir(VIDEOS) else []:
             if f.endswith(".mp4"):
                 z.write(os.path.join(VIDEOS, f), f"videos/{f}")
