@@ -68,7 +68,19 @@ try {
             if (!busy) break;
             await sleep(150);
         }
-        await sleep(400);
+        // 15h.2：主题切换有颜色过渡，固定 400ms 会把"深色文字 + 深色底"的中间帧
+        // 当成真实缺陷（曾报 1.05:1 的 hero 标题）。这里等颜色不再变化。
+        await evaluate(`(async () => {
+          const sig = () => { const s = getComputedStyle(document.body); return s.color + '|' + s.backgroundColor }
+          let prev = sig(), same = 0
+          for (let i = 0; i < 40; i++) {
+            await new Promise(r => setTimeout(r, 80))
+            const now = sig()
+            if (now === prev) { if (++same >= 2) return true } else { same = 0; prev = now }
+          }
+          return false
+        })()`);
+        await sleep(120);
         // 主题翻转会让带 transition 的卡片做 220ms 颜色过渡；等颜色真正稳定再采样，
         // 否则会把中间色当成最终色（曾把深色行卡读成 rgba(176,178,180,.886)）。
         let prev = '', stable = 0;
@@ -91,15 +103,18 @@ try {
         const layers = [];
         let n = el;
         let base = null;
+        let gradient = false;
         while (n && n !== document.documentElement) {
           const s = getComputedStyle(n);
           const c = parse(s.backgroundColor);
+          if ((!c || c.a === 0) && s.backgroundImage && s.backgroundImage !== 'none') gradient = true;
           if (c && c.a > 0) {
             if (c.a >= 0.999) { base = c; break; }
             layers.push(c);
           }
           n = n.parentElement;
         }
+        if (!base && gradient) return { gradient: true };
         if (!base) {
           const bc = parse(getComputedStyle(document.body).backgroundColor);
           if (bc && bc.a >= 0.999) base = bc;
@@ -143,12 +158,17 @@ try {
         }
         // 不可用控件按 WCAG 1.4.3 豁免（用例：0 个新词时"预览新词（0）"是 disabled）
         if (el.matches(':disabled') || el.getAttribute('aria-disabled') === 'true' || el.closest('[aria-disabled="true"]')) { skipped++; return; }
+        // 渐变裁切文字（background-clip:text + transparent）无法用"纯色对比"衡量，
+        // 硬量会得到 fg 0,0,0 的假缺陷。记为不可测，不记失败也不记通过。
+        if (s.backgroundClip === 'text' || s.webkitBackgroundClip === 'text' || s.color === 'rgba(0, 0, 0, 0)') { skipped++; return; }
         const fg = parse(s.color);
         if (!fg) return;
         const size = parseFloat(s.fontSize);
         const weight = +s.fontWeight || 400;
         const large = size >= 24 || (size >= 18.66 && weight >= 700);
-        const cr = ratio(fg, bgOf(el));
+        const bg = bgOf(el);
+        if (!bg || bg.gradient) { skipped++; return; }
+        const cr = ratio(fg, bg);
         const need = large ? 3 : 4.5;
         if (cr < need) {
           const key = txt.slice(0, 24) + '|' + Math.round(size) + '|' + cr;

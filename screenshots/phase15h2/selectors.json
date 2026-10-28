@@ -1,0 +1,80 @@
+{
+  "where": [
+    "html#[home]"
+  ],
+  "whereLevel": [
+    "html[a]"
+  ],
+  "perPage": {
+    "home": {
+      "rulesWithPrefix": 177,
+      "matchedRules": 0,
+      "mainNodes": 171
+    },
+    "books": {
+      "rulesWithPrefix": 177,
+      "matchedRules": 0,
+      "mainNodes": 655
+    },
+    "weak": {
+      "rulesWithPrefix": 177,
+      "matchedRules": 0,
+      "mainNodes": 181
+    },
+    "sentence": {
+      "rulesWithPrefix": 177,
+      "matchedRules": 0,
+      "mainNodes": 228
+    },
+    "reading": {
+      "rulesWithPrefix": 177,
+      "matchedRules": 0,
+      "mainNodes": 102
+    },
+    "input": {
+      "rulesWithPrefix": 177,
+      "matchedRules": 0,
+      "mainNodes": 89
+    },
+    "output": {
+      "rulesWithPrefix": 177,
+      "matchedRules": 0,
+      "mainNodes": 49
+    },
+    "grammar": {
+      "rulesWithPrefix": 177,
+      "matchedRules": 0,
+      "mainNodes": 713
+    },
+    "unit": {
+      "rulesWithPrefix": 177,
+      "matchedRules": 0,
+      "mainNodes": 36
+    },
+    "diagnostics": {
+      "rulesWithPrefix": 177,
+      "matchedRules": 0,
+      "mainNodes": 316
+    },
+    "exam": {
+      "rulesWithPrefix": 177,
+      "matchedRules": 0,
+      "mainNodes": 117
+    },
+    "stats": {
+      "rulesWithPrefix": 177,
+      "matchedRules": 0,
+      "mainNodes": 122
+    },
+    "ai": {
+      "rulesWithPrefix": 177,
+      "matchedRules": 0,
+      "mainNodes": 16
+    },
+    "settings": {
+      "rulesWithPrefix": 177,
+      "matchedRules": 0,
+      "mainNodes": 80
+    }
+  }
+}

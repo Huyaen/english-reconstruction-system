@@ -446,15 +446,30 @@ for (const size of SIZES) {
       await sleep(520);
     }
     for (const page of PAGES) {
+      // 稳定态门控（15h.2）：固定 sleep 会在重页面上拍到半渲染/入场中间态
+      // （diagnostics 曾因此只剩一张"暂不下结论"的空卡）。这里等到
+      // 文本非空 + 无 .d-loading + 无运行中的动画 + 文本在 150ms 内不再变化。
       const head = await js(`(async () => {
         const b = document.querySelector('[data-nav="${page}"]');
         if (!b) return 'no-nav';
         b.click();
-        await new Promise(r => setTimeout(r, 760));
+        const t0 = performance.now();
+        let last = -1, stableSince = 0;
+        while (performance.now() - t0 < 6000) {
+          const h = document.querySelector('#main');
+          const txt = (h?.textContent || '').replace(/\s+/g, '');
+          const loading = !!document.querySelector('#main .d-loading, #main .loading-state');
+          const running = document.getAnimations().filter(a => a.playState === 'running' && a.effect?.getTiming?.().iterations !== Infinity).length;
+          if (txt.length > 20 && !loading && running === 0) {
+            if (txt.length === last) { if (performance.now() - stableSince > 150) break; }
+            else { last = txt.length; stableSince = performance.now(); }
+          } else { last = -1; }
+          await new Promise(r => setTimeout(r, 60));
+        }
         const h = document.querySelector('#main');
         return (h?.querySelector('h1')?.textContent || h?.textContent || '').trim().slice(0, 42);
       })()`);
-      await sleep(180);
+      await sleep(120);
       const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
       const name = `${page}-${theme}-${size[0]}x${size[1]}.png`;
       writeFileSync(join(OUT, name), Buffer.from(shot.data, 'base64'));

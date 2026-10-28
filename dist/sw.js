@@ -1,7 +1,7 @@
 // 词间 PWA service worker：只缓存同源静态资源，不缓存 AI 请求/用户材料。
 // 更新策略：安装后等待新 worker 接管；导航请求 network-first，断网时回退已缓存的应用外壳。
 // 每次发布更新 CACHE 版本号：activate 会删除旧版本外壳，避免过期 hashed 资源长期堆积。
-const CACHE = 'erv2-shell-v2-724c207287';
+const CACHE = 'erv2-shell-v2-65bac53600';
 const CORE = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
 self.addEventListener('install', event => {
     event.waitUntil((async () => {

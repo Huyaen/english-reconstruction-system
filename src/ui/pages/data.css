@@ -1433,3 +1433,27 @@
 [data-page="exam"] .exam-item-meta[data-src="user_supplied"] { border-left: 2px dashed var(--ink-faint); padding-left: 10px; }
 [data-page="exam"] .exam-item-meta[data-src="ai_generated"],
 [data-page="exam"] .exam-item-meta[data-src="unknown"] { border-left: 2px dotted var(--ink-faint); padding-left: 10px; }
+
+/* ── 15h.2 · 考试单选布局（P1）────────────────────────────────────────────
+   实测几何（1440×900，真实浏览器）：一行 1016px，而 <input type=radio> 的 rect 宽 893px。
+   原因：全局 `input { width: 100% }` 也作用到了 radio，把选项标识与正文挤到行最右，
+   视觉上就是"圆点在行中部、答案在右侧、中间一大片空白"。
+   这里把 radio 收回固定尺寸，正文吃掉剩余宽度；不改题目数据、不改评分。 */
+[data-page="exam"] .exam-option input[type="radio"] {
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+  margin: 4px 0 0;
+}
+[data-page="exam"] .exam-option > span:last-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+[data-page="exam"] .exam-option:focus-within {
+  border-color: var(--line-strong);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 18%, transparent);
+}
+[data-page="exam"] .exam-option input[type="radio"]:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+}

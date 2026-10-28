@@ -4472,6 +4472,17 @@ function examPageApp(): void {
         if (cur)
             await submitExamFlow(cur);
     });
+    // 15h.2：单选选中态必须立刻落在整行上。模板里已按 draft 输出 .selected，
+    // 但点选 radio 不会触发重渲染（草稿只在「下一题 / 保存 / 提交」时落盘），
+    // 于是行高亮永远不出现，只剩原生 3px 圆点。这里只同步视图类，不写业务状态。
+    document.querySelectorAll<HTMLElement>('.exam-option input[type="radio"]').forEach(input => {
+        input.addEventListener('change', () => {
+            document.querySelectorAll<HTMLElement>('.exam-option').forEach(row => {
+                const own = row.querySelector<HTMLInputElement>('input[type="radio"]');
+                row.classList.toggle('selected', !!own?.checked);
+            });
+        });
+    });
     on('#exam-complete', 'click', async () => {
         const cur = currentExam();
         if (cur)

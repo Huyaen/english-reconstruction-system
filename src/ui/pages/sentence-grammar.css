@@ -1125,3 +1125,48 @@
 [data-page="sentence"] .tree[data-provenance="none"] .tree-clause { border-style: dashed; }
 [data-page="sentence"] .tree-clause[data-root="1"] > summary { font-weight: 600; }
 [data-page="sentence"] .tree-clause[data-root="1"] { border-left-width: 3px; }
+
+/* ── 15h.2 · 判题后必须还能读（P1）────────────────────────────────────────
+   根因不在本文件：system.css 的通用禁用态 `[data-level] button[disabled]` 给了
+   opacity: .72，而 .lab-option 作答后就是 disabled。实测（真实浏览器，累乘祖先 opacity）：
+     作答前 5.43:1 → 作答后 2.72 / 3.19:1，解释小字 3.25–3.78:1，全部低于 4.5。
+   做法：判题态不吃"禁用压暗"，用文字色 + 左轨线型区分对错。
+
+   注意选择器形态：data-page / data-level 都在 <html> 上，所以不能用
+   `[data-level] :is([data-page="sentence"])`（要求 data-page 在 data-level 的后代上，
+   这种写法在本项目里永远不命中）。这里直接用 `[data-page="sentence"] …` 的祖先形态。 */
+[data-page="sentence"] .lab-option[data-verdict]:disabled,
+[data-page="lab"] .lab-option[data-verdict]:disabled {
+  opacity: 1;
+}
+[data-page="sentence"] .lab-option[data-verdict="correct"],
+[data-page="lab"] .lab-option[data-verdict="correct"] {
+  border-left: 3px solid var(--m-fluent);
+  color: var(--ink);
+}
+[data-page="sentence"] .lab-option[data-verdict="correct"] b,
+[data-page="lab"] .lab-option[data-verdict="correct"] b {
+  color: var(--ink);
+  font-weight: 600;
+}
+[data-page="sentence"] .lab-option[data-verdict="wrong"],
+[data-page="lab"] .lab-option[data-verdict="wrong"] {
+  border-left: 3px dashed var(--m-unknown);
+  color: var(--ink-soft);
+}
+[data-page="sentence"] .lab-option[data-verdict="wrong"] b,
+[data-page="lab"] .lab-option[data-verdict="wrong"] b {
+  color: var(--ink);
+}
+[data-page="sentence"] .lab-option[data-verdict="neutral"],
+[data-page="lab"] .lab-option[data-verdict="neutral"] {
+  color: var(--ink-muted);
+}
+[data-page="sentence"] .lab-option[data-verdict="neutral"] b,
+[data-page="lab"] .lab-option[data-verdict="neutral"] b {
+  color: var(--ink-soft);
+}
+[data-page="sentence"] .lab-option[data-verdict] small,
+[data-page="lab"] .lab-option[data-verdict] small {
+  color: var(--ink-muted);
+}

@@ -20,7 +20,8 @@ TARGET_FPS = 60
 
 def encode(frames_dir: str) -> int:
     meta = json.load(open(os.path.join(frames_dir, "meta.json"), encoding="utf-8"))
-    frames = [f for f in meta["frames"] if os.path.exists(os.path.join(frames_dir, "%04d.jpg" % f["i"]))]
+    frames = [f for f in meta["frames"]
+              if os.path.exists(os.path.join(frames_dir, "%04d.%s" % (f["i"], f.get("ext", "jpg"))))]
     if not frames:
         print("NO-FRAMES", frames_dir)
         return 1
@@ -45,7 +46,7 @@ def encode(frames_dir: str) -> int:
     os.makedirs(seq, exist_ok=True)
 
     for i, f in enumerate(picks):
-        src = os.path.join(frames_dir, "%04d.jpg" % f["i"])
+        src = os.path.join(frames_dir, "%04d.%s" % (f["i"], f.get("ext", "jpg")))
         dst = os.path.join(seq, "%04d.jpg" % i)
         if f.get("visible"):
             img = Image.open(src).convert("RGB")

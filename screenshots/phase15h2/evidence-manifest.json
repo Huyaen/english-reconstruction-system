@@ -1,0 +1,286 @@
+{
+  "stills": [
+    {
+      "page": "home",
+      "theme": "dark",
+      "name": "home-dark-1440x900.png",
+      "readyMs": 851,
+      "textLen": 695
+    },
+    {
+      "page": "books",
+      "theme": "dark",
+      "name": "books-dark-1440x900.png",
+      "readyMs": 886,
+      "textLen": 1453
+    },
+    {
+      "page": "weak",
+      "theme": "dark",
+      "name": "weak-dark-1440x900.png",
+      "readyMs": 717,
+      "textLen": 505
+    },
+    {
+      "page": "sentence",
+      "theme": "dark",
+      "name": "sentence-dark-1440x900.png",
+      "readyMs": 715,
+      "textLen": 1817
+    },
+    {
+      "page": "reading",
+      "theme": "dark",
+      "name": "reading-dark-1440x900.png",
+      "readyMs": 658,
+      "textLen": 606
+    },
+    {
+      "page": "input",
+      "theme": "dark",
+      "name": "input-dark-1440x900.png",
+      "readyMs": 723,
+      "textLen": 562
+    },
+    {
+      "page": "output",
+      "theme": "dark",
+      "name": "output-dark-1440x900.png",
+      "readyMs": 781,
+      "textLen": 464
+    },
+    {
+      "page": "grammar",
+      "theme": "dark",
+      "name": "grammar-dark-1440x900.png",
+      "readyMs": 706,
+      "textLen": 2493
+    },
+    {
+      "page": "unit",
+      "theme": "dark",
+      "name": "unit-dark-1440x900.png",
+      "readyMs": 735,
+      "textLen": 529
+    },
+    {
+      "page": "diagnostics",
+      "theme": "dark",
+      "name": "diagnostics-dark-1440x900.png",
+      "readyMs": 802,
+      "textLen": 2947
+    },
+    {
+      "page": "exam",
+      "theme": "dark",
+      "name": "exam-dark-1440x900.png",
+      "readyMs": 789,
+      "textLen": 867
+    },
+    {
+      "page": "stats",
+      "theme": "dark",
+      "name": "stats-dark-1440x900.png",
+      "readyMs": 769,
+      "textLen": 337
+    },
+    {
+      "page": "ai",
+      "theme": "dark",
+      "name": "ai-dark-1440x900.png",
+      "readyMs": 710,
+      "textLen": 181
+    },
+    {
+      "page": "settings",
+      "theme": "dark",
+      "name": "settings-dark-1440x900.png",
+      "readyMs": 722,
+      "textLen": 743
+    },
+    {
+      "page": "home",
+      "theme": "light",
+      "name": "home-light-1440x900.png",
+      "readyMs": 775,
+      "textLen": 695
+    },
+    {
+      "page": "books",
+      "theme": "light",
+      "name": "books-light-1440x900.png",
+      "readyMs": 825,
+      "textLen": 1453
+    },
+    {
+      "page": "weak",
+      "theme": "light",
+      "name": "weak-light-1440x900.png",
+      "readyMs": 705,
+      "textLen": 505
+    },
+    {
+      "page": "sentence",
+      "theme": "light",
+      "name": "sentence-light-1440x900.png",
+      "readyMs": 653,
+      "textLen": 1817
+    },
+    {
+      "page": "reading",
+      "theme": "light",
+      "name": "reading-light-1440x900.png",
+      "readyMs": 636,
+      "textLen": 606
+    },
+    {
+      "page": "input",
+      "theme": "light",
+      "name": "input-light-1440x900.png",
+      "readyMs": 706,
+      "textLen": 562
+    },
+    {
+      "page": "output",
+      "theme": "light",
+      "name": "output-light-1440x900.png",
+      "readyMs": 764,
+      "textLen": 464
+    },
+    {
+      "page": "grammar",
+      "theme": "light",
+      "name": "grammar-light-1440x900.png",
+      "readyMs": 668,
+      "textLen": 2493
+    },
+    {
+      "page": "unit",
+      "theme": "light",
+      "name": "unit-light-1440x900.png",
+      "readyMs": 764,
+      "textLen": 529
+    },
+    {
+      "page": "diagnostics",
+      "theme": "light",
+      "name": "diagnostics-light-1440x900.png",
+      "readyMs": 775,
+      "textLen": 2947
+    },
+    {
+      "page": "exam",
+      "theme": "light",
+      "name": "exam-light-1440x900.png",
+      "readyMs": 757,
+      "textLen": 867
+    },
+    {
+      "page": "stats",
+      "theme": "light",
+      "name": "stats-light-1440x900.png",
+      "readyMs": 760,
+      "textLen": 337
+    },
+    {
+      "page": "ai",
+      "theme": "light",
+      "name": "ai-light-1440x900.png",
+      "readyMs": 719,
+      "textLen": 181
+    },
+    {
+      "page": "settings",
+      "theme": "light",
+      "name": "settings-light-1440x900.png",
+      "readyMs": 721,
+      "textLen": 743
+    }
+  ],
+  "interaction": [
+    "exam-question-dark-1440x900.png",
+    "exam-answered-dark-1440x900.png",
+    "sentence-before-dark-1440x900.png",
+    "sentence-after-dark-1440x900.png",
+    "output-typing-dark-1440x900.png",
+    "reading-article-dark-1440x900.png",
+    "reading-panel-dark-1440x900.png"
+  ],
+  "readyMs": {
+    "home-dark": 851,
+    "books-dark": 886,
+    "weak-dark": 717,
+    "sentence-dark": 715,
+    "reading-dark": 658,
+    "input-dark": 723,
+    "output-dark": 781,
+    "grammar-dark": 706,
+    "unit-dark": 735,
+    "diagnostics-dark": 802,
+    "exam-dark": 789,
+    "stats-dark": 769,
+    "ai-dark": 710,
+    "settings-dark": 722,
+    "home-light": 775,
+    "books-light": 825,
+    "weak-light": 705,
+    "sentence-light": 653,
+    "reading-light": 636,
+    "input-light": 706,
+    "output-light": 764,
+    "grammar-light": 668,
+    "unit-light": 764,
+    "diagnostics-light": 775,
+    "exam-light": 757,
+    "stats-light": 760,
+    "ai-light": 719,
+    "settings-light": 721
+  },
+  "problems": [],
+  "examAnswered": {
+    "selected": true,
+    "checked": true,
+    "rows": 4
+  },
+  "verdict": [
+    {
+      "v": "wrong",
+      "op": 1
+    },
+    {
+      "v": "neutral",
+      "op": 1
+    },
+    {
+      "v": "correct",
+      "op": 1
+    },
+    {
+      "v": "neutral",
+      "op": 1
+    }
+  ],
+  "output": {
+    "role": "status",
+    "live": "polite",
+    "seen": [
+      "保存中…",
+      "已保存到本地"
+    ],
+    "words": "16 words"
+  },
+  "readingSeed": {
+    "toast": "已保存《The Slow Repair of a Water System》（109 词 / 6 句）",
+    "preview": true
+  },
+  "readingOpen": {
+    "reading": true,
+    "textLen": 543,
+    "where": "reading"
+  },
+  "readingPanel": {
+    "expanded": "true",
+    "sideVisible": true,
+    "sideWidth": 322
+  }
+}

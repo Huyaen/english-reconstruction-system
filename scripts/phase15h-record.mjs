@@ -64,15 +64,61 @@ for (let i = 0; i < 4; i++) {
 await sleep(400);
 
 const frames = [];
+let lastScreencastAt = 0;
 const pointer = { x: 12, y: 12, down: false, visible: false };
 const log = [];
 ws.addEventListener('message', e => {
   const m = JSON.parse(e.data);
   if (m.method !== 'Page.screencastFrame') return;
-  frames.push({ t: Date.now(), p: { ...pointer }, d: m.params.data });
+  lastScreencastAt = Date.now();
+  frames.push({ t: lastScreencastAt, p: { ...pointer }, d: m.params.data, ext: 'jpg', kind: 'screencast' });
   send('Page.screencastFrameAck', { sessionId: m.params.sessionId });
 });
+let pumpOn = false;
+const startFramePump = () => {
+  pumpOn = true;
+  (async () => {
+    while (pumpOn) {
+      await sleep(140);
+      if (Date.now() - lastScreencastAt < 220) continue; // 正在动，screencast 自己在推
+      try {
+        const shot = await send('Page.captureScreenshot', { format: 'jpeg', quality: 88 });
+        const data = shot?.result?.data;
+        if (data) frames.push({ t: Date.now(), p: { ...pointer }, d: data, ext: 'jpg', kind: 'still' });
+      } catch { /* 截图失败不该中断录制 */ }
+    }
+  })();
+};
+
+
 await send('Page.startScreencast', { format: 'jpeg', quality: 90, everyNthFrame: 1 });
+startFramePump();
+
+const DOM_PROBE = process.env.DOM_PROBE !== '0';
+// 注意：这是 Node 进程，document 只在页面里。采样必须注入到页面执行，再从 CDP 取回。
+const startDomProbe = () => ev(`(() => {
+  window.__domSamples = [];
+  const t0 = Date.now();
+  window.__domTimer = setInterval(() => {
+    const m = document.querySelector('#main');
+    const first = m && m.firstElementChild;
+    const cs = first ? getComputedStyle(first) : null;
+    window.__domSamples.push({
+      t: Date.now() - t0,
+      page: document.documentElement.dataset.page,
+      children: m ? m.children.length : -1,
+      textLen: (m && m.textContent ? m.textContent : '').replace(/\s+/g, '').length,
+      firstOpacity: cs ? Number(cs.opacity) : -1,
+      loading: !!document.querySelector('#main .d-loading, #main .loading-state'),
+      revealPending: document.querySelectorAll('#main [data-reveal]:not(.is-shown)').length,
+    });
+  }, 100);
+  return true;
+})()`);
+const stopDomProbe = async () => {
+  const rows = await ev(`(() => { clearInterval(window.__domTimer); return window.__domSamples || []; })()`);
+  return Array.isArray(rows) ? rows : [];
+};
 
 const move = async (x, y) => {
   pointer.x = Math.round(x); pointer.y = Math.round(y); pointer.visible = true;
@@ -99,6 +145,7 @@ const tap = async (sel, ms = 850) => {
 const nav = async (p) => { await ev(`document.querySelector('[data-nav="${p}"]').click()`); await sleep(900); };
 
 const started = Date.now();
+if (DOM_PROBE) await startDomProbe();
 await move(10, 10); await sleep(600);
 
 if (FLOW === 'vocab') {
@@ -117,6 +164,29 @@ if (FLOW === 'vocab') {
   await tap('.answer, [data-choice]'); await sleep(1000);
   await nav('grammar'); await sleep(900);
   await tap('.concept-card, [data-concept]'); await sleep(900);
+} else if (FLOW === 'reading-real') {
+  // 真的导入一篇 → 进入阅读器 → 打开辅助面板 → 标一个卡点词。
+  // 15h 的 reading 视频停在导入页，不能算覆盖了阅读流程。
+  await nav('reading'); await sleep(900);
+  await ev(`(async () => {
+    const t = document.querySelector('#read-title'); const p = document.querySelector('#read-paste')
+    if (!t || !p) return false
+    t.value = 'The Slow Repair of a Water System'; t.dispatchEvent(new Event('input', { bubbles: true }))
+    p.value = 'The aqueducts carried water across the valley for four centuries. Engineers measured the slope with simple tools, and the city grew around that steady supply. When the pipes failed, the repair took months, because every stone had to be replaced by hand. Workers climbed the arches at dawn, carrying buckets and rope, while the council argued about the cost. In the end the water returned, but the city had learned something about maintenance: a system that nobody watches will fail quietly, long before anyone notices the silence.'; p.dispatchEvent(new Event('input', { bubbles: true }))
+    await new Promise(r => setTimeout(r, 400))
+    document.querySelector('[data-read-save="paste"]')?.click()
+    await new Promise(r => setTimeout(r, 1500))
+    return true
+  })()`); await sleep(900);
+  await tap('[data-read-start]'); await sleep(1600);
+  await tap('[data-read-cold-submit]'); await sleep(1400);
+  await tap('.reader-side-toggle, [data-read-side]'); await sleep(1100);
+  await tap('.reader-text span:nth-child(3), .reader-text word'); await sleep(900);
+} else if (FLOW === 'nav-all') {
+  // 全站导航关键路径：14 页依次切换，每页停 700ms
+  for (const p of ['books', 'weak', 'sentence', 'reading', 'input', 'output', 'grammar', 'unit', 'diagnostics', 'exam', 'stats', 'ai', 'settings', 'home']) {
+    await nav(p); await sleep(700);
+  }
 } else if (FLOW === 'reading') {
   await nav('reading'); await sleep(900);
   await tap('[data-read], .read-entry, button.primary'); await sleep(1600);
@@ -143,7 +213,10 @@ if (FLOW === 'vocab') {
 }
 
 await sleep(1200);
+pumpOn = false;
+await sleep(200);
 await send('Page.stopScreencast');
+const domSamples = DOM_PROBE ? await stopDomProbe() : [];
 await sleep(400);
 
 /* 时间轴以「开始录制」为零点：screencast 只在画面变化时推帧，静止段会没有帧。
@@ -152,14 +225,15 @@ const total = Date.now() - started;
 const list = frames.map(f => ({ ...f, tAbs: Math.round(f.t - started) }));
 if (list.length && list[0].tAbs > 300) list.unshift({ ...list[0], tAbs: 0 });
 if (list.length && total - list[list.length - 1].tAbs > 300) list.push({ ...list[list.length - 1], tAbs: total });
-list.forEach((f, i) => writeFileSync(join(FRAMES, `${String(i).padStart(4, '0')}.jpg`), Buffer.from(f.d, 'base64')));
+list.forEach((f, i) => writeFileSync(join(FRAMES, `${String(i).padStart(4, '0')}.${f.ext || 'jpg'}`), Buffer.from(f.d, 'base64')));
 writeFileSync(join(FRAMES, 'meta.json'), JSON.stringify({
   clip: FLOW, theme: THEME,
   frames: list.map((f, i) => ({
-    i, t: f.tAbs,
+    i, t: f.tAbs, ext: f.ext || 'jpg', kind: f.kind || 'screencast',
     visible: !!f.p.visible, px: f.p.x, py: f.p.y, down: !!f.p.down,
   })),
   pointer: log.map(l => ({ k: l.k, x: l.x, y: l.y, t: Math.round(l.t - started) })),
+  dom: DOM_PROBE ? domSamples : [],
 }, null, 0));
 
 const state = await ev(`({ theme: document.documentElement.dataset.theme, page: document.documentElement.dataset.page, errs: [] })`);

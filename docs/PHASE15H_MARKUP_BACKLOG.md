@@ -74,3 +74,13 @@
 - `tests/a11yState.test.ts`（7 项，jsdom）：先操作再断言变化。例如"未作答时所有选项 `pending`，答后恰有一个 `correct`，误选项数与反馈对错一致"。
 - `scripts/phase15h1-live-a11y.mjs`（11 项，headless Edge + 真实 IndexedDB）：同一批断言在真实浏览器重跑，并要求 0 页面异常 / 0 控制台错误。
 - 只断言"属性存在"的检查被删过一次：阅读库那条最初写成 `n >= 0`（恒真，等于没测），改成"导入文章 → 回库 → 行状态必须是 unread"。
+
+## 六、Phase 15h.2 新增的待决项（不是语义标记，是样式层缺陷）
+
+| 严重度 | 位置 | 问题 | 为什么本轮不做 |
+|---|---|---|---|
+| **P0** | `src/ui/pages/sentence-grammar.css`（140 处）、`quiz.css`（16）、`io.css`（14）、`mgmt.css`（2） | 选择器写成 `[data-level] :is([data-page="…"], …) …`，要求 `data-page` 落在 `data-level` 的后代上；实际两者都在 `<html>`，浏览器实测 **177 条规则 0 命中**。句子页、输入页、表达页、管理页的"页面级"样式整层是死代码。 | 启用等于同时上线 177 条从未生效的样式，属视觉系统变更，需单独一轮逐文件打开并重跑对比度 / 移动端 / 视觉复核。 |
+| 已确认不修 | `src/ui/pages/*.css` 里的 15h.1 状态样式 | 用的是 `[data-page="…"] .x` 形态，**未受影响**（对比度、线型、行状态均在真实浏览器验证过） | — |
+| 已修 | `sentence-grammar.css` `.lab-option[data-verdict]` | 判题后被通用 `button[disabled]{opacity:.72}` 压到 2.72:1 | 本轮已修：判题态 `opacity:1` + 文字色/线型表意，实测 12.57–17.98:1 |
+| 已修 | `data.css` `.exam-option` | 全局 `input{width:100%}` 让 radio 撑到 893px，文字被顶到最右 | 本轮已修：`flex:0 0 14px` |
+| 已修 | `app.ts` 考试单选 | `.selected` 只随 `draft` 渲染，点选不重渲染 → 行高亮永不出现 | 本轮已修：只同步视图类的 change 监听 |
