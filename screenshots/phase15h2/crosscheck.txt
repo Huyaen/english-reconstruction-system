@@ -1,0 +1,42 @@
+screenshots\phase15h2\rec\frames-data-dark  15106ms frames= 309 still=  0 domBlank=0 frameBlank=0 gaps=5
+   长间隔 1311 5482 4171 prevInk 0.0267
+   长间隔 5947 7365 1418 prevInk 0.024
+   长间隔 7365 8324 959 prevInk 0.0229
+   长间隔 8810 10640 1830 prevInk 0.0481
+   长间隔 11915 15106 3191 prevInk 0.0263
+screenshots\phase15h2\rec\frames-io-dark  12417ms frames= 367 still=  0 domBlank=0 frameBlank=0 gaps=4
+   长间隔 1124 3013 1889 prevInk 0.0301
+   长间隔 4042 5922 1880 prevInk 0.0423
+   长间隔 6358 8201 1843 prevInk 0.0416
+   长间隔 9401 12417 3016 prevInk 0.0253
+screenshots\phase15h2\rec\frames-mgmt-dark  12795ms frames= 215 still=  0 domBlank=0 frameBlank=0 gaps=3
+   长间隔 1168 2666 1498 prevInk 0.048
+   长间隔 3048 8900 5852 prevInk 0.018
+   长间隔 9792 12795 3003 prevInk 0.9967
+screenshots\phase15h2\rec\frames-sentence-dark  13829ms frames= 120 still= 36 domBlank=0 frameBlank=0 gaps=0
+screenshots\phase15h2\rec\frames-vocab-dark  23558ms frames= 855 still=  0 domBlank=0 frameBlank=0 gaps=6
+   长间隔 1187 2113 926 prevInk 0.0227
+   长间隔 4073 6207 2134 prevInk 0.0144
+   长间隔 7378 8487 1109 prevInk 0.011
+   长间隔 10254 11336 1082 prevInk 0.0129
+   长间隔 13232 14800 1568 prevInk 0.0153
+   长间隔 15794 19891 4097 prevInk 0.026
+screenshots\phase15h2\rec\r1\frames-data-dark  15247ms frames= 379 still= 32 domBlank=0 frameBlank=0 gaps=0
+screenshots\phase15h2\rec\r1\frames-io-dark  12509ms frames= 412 still= 24 domBlank=0 frameBlank=0 gaps=0
+screenshots\phase15h2\rec\r1\frames-mgmt-dark  13123ms frames= 274 still= 31 domBlank=0 frameBlank=0 gaps=0
+screenshots\phase15h2\rec\r1\frames-nav-all-dark  25508ms frames=1019 still= 45 domBlank=0 frameBlank=0 gaps=0
+screenshots\phase15h2\rec\r1\frames-reading-real-dark  19927ms frames= 525 still= 42 domBlank=0 frameBlank=0 gaps=0
+screenshots\phase15h2\rec\r1\frames-sentence-dark  13368ms frames= 195 still= 33 domBlank=0 frameBlank=0 gaps=0
+screenshots\phase15h2\rec\r1\frames-vocab-dark  23536ms frames= 951 still= 40 domBlank=0 frameBlank=0 gaps=0
+screenshots\phase15h2\rec\r2\frames-data-dark  15375ms frames= 362 still= 33 domBlank=0 frameBlank=0 gaps=1
+   长间隔 14656 15375 719 prevInk 0.0263
+screenshots\phase15h2\rec\r2\frames-io-dark  12568ms frames= 421 still= 25 domBlank=0 frameBlank=0 gaps=0
+screenshots\phase15h2\rec\r2\frames-mgmt-dark  12989ms frames= 284 still= 31 domBlank=0 frameBlank=0 gaps=0
+screenshots\phase15h2\rec\r2\frames-sentence-dark  13417ms frames= 209 still= 33 domBlank=0 frameBlank=0 gaps=0
+screenshots\phase15h2\rec\r2\frames-vocab-dark  23516ms frames= 939 still= 42 domBlank=0 frameBlank=0 gaps=0
+screenshots\phase15h2\rec\r3\frames-data-dark  15366ms frames= 371 still= 34 domBlank=0 frameBlank=0 gaps=0
+screenshots\phase15h2\rec\r3\frames-io-dark  12540ms frames= 419 still= 25 domBlank=0 frameBlank=0 gaps=1
+   长间隔 11837 12540 703 prevInk 0.0254
+screenshots\phase15h2\rec\r3\frames-mgmt-dark  12990ms frames= 286 still= 31 domBlank=0 frameBlank=0 gaps=0
+screenshots\phase15h2\rec\r3\frames-sentence-dark  13444ms frames= 201 still= 33 domBlank=0 frameBlank=0 gaps=0
+screenshots\phase15h2\rec\r3\frames-vocab-dark  23511ms frames= 938 still= 40 domBlank=0 frameBlank=0 gaps=0
