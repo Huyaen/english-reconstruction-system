@@ -1,0 +1,66 @@
+{
+  "checks": [
+    {
+      "name": "grammar: 初始只有一个 aria-pressed=true",
+      "ok": true,
+      "detail": "{\"n\":7,\"pressed\":[\"\"]}"
+    },
+    {
+      "name": "grammar: 点击类别后 pressed 转移且仍唯一",
+      "ok": true,
+      "detail": "{\"key\":\"sentence-structure\",\"pressed\":[\"sentence-structure\"]}"
+    },
+    {
+      "name": "exam: 页签默认唯一按下（overview）",
+      "ok": true,
+      "detail": "{\"n\":5,\"pressed\":[\"overview\"]}"
+    },
+    {
+      "name": "exam: 切到练习后旧页签释放",
+      "ok": true,
+      "detail": "{\"practice\":\"true\",\"overview\":\"false\"}"
+    },
+    {
+      "name": "sentence: 未作答时全部 pending",
+      "ok": true,
+      "detail": "{\"n\":4,\"verdicts\":[\"pending\",\"pending\",\"pending\",\"pending\"]}"
+    },
+    {
+      "name": "sentence: 答后恰一个 correct，wrong 与对错一致",
+      "ok": true,
+      "detail": "{\"verdicts\":[\"wrong\",\"neutral\",\"correct\",\"neutral\"],\"correct\":1,\"wrong\":1,\"ok\":false}"
+    },
+    {
+      "name": "output: 保存状态是 status/polite 且文本随保存变化",
+      "ok": true,
+      "detail": "{\"role\":\"status\",\"live\":\"polite\",\"seen\":[\"自动保存到本地\",\"保存中…\"]}"
+    },
+    {
+      "name": "diagnostics: data-quality 只取真实枚举值",
+      "ok": true,
+      "detail": "{\"n\":39,\"values\":[\"mixed\",\"task-behavior\",\"self-report\",\"verified\",\"none\"],\"evaluability\":true}"
+    },
+    {
+      "name": "reading: 导入后回到阅读库，行状态是 unread",
+      "ok": true,
+      "detail": "{\"impA\":{\"toast\":\"已保存《a11y 已开始阅读》（92 词 / 6 句）\",\"preview\":true},\"back\":{\"n\":1,\"states\":[\"unread\"]}}"
+    },
+    {
+      "name": "reading: 状态值属于 {unread,unfinished,read}",
+      "ok": true,
+      "detail": "[\"unread\"]"
+    },
+    {
+      "name": "exam: 进入单题后元信息带来源钩子",
+      "ok": true,
+      "detail": "{\"ok\":true,\"meta\":\"<div class=\\\"exam-item-meta\\\" data-src=\\\"authored\\\" data-verified=\\\"verified\\\"><span>cloze</span><span>2 分</span><span data-src=\\\"authored\\\">项目编写</span><span>已审核</span></div>\"}"
+    }
+  ],
+  "errors": [],
+  "consoleErrors": [],
+  "shots": [
+    "D:\\英语重构训练\\vocabulary-app\\screenshots\\phase15h1\\exam-item-dark-1440x900.png",
+    "D:\\英语重构训练\\vocabulary-app\\screenshots\\phase15h1\\diagnostics-metrics-dark-1440x900.png",
+    "D:\\英语重构训练\\vocabulary-app\\screenshots\\phase15h1\\sentence-verdict-dark-1440x900.png"
+  ]
+}
