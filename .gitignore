@@ -14,3 +14,4 @@ screenshots/phase15h/recording/frames-*/
 screenshots/phase15h/recording/*.mp4
 review-export/
 screenshots/phase15h2/rec/
+.p15h*-*/
