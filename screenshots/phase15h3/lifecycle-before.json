@@ -1,0 +1,121 @@
+{
+  "url": "http://127.0.0.1:4173/?test=1&proto=d",
+  "startedAt": "2026-10-29T13:10:02.533Z",
+  "steps": [
+    {
+      "label": "boot",
+      "windowPointerup": 1,
+      "windowPointermove": 1,
+      "windowResize": 0,
+      "documentListeners": {
+        "visibilitychange": 2,
+        "pointerleave": 2,
+        "pointerup": 0,
+        "keydown": 1
+      },
+      "resizeObservers": 1,
+      "intersectionObservers": 1,
+      "pendingRaf": 0,
+      "nodes": 230,
+      "page": "home"
+    },
+    {
+      "label": "after-1x",
+      "windowPointerup": 2,
+      "windowPointermove": 1,
+      "windowResize": 0,
+      "documentListeners": {
+        "visibilitychange": 2,
+        "pointerleave": 2,
+        "pointerup": 0,
+        "keydown": 1
+      },
+      "resizeObservers": 1,
+      "intersectionObservers": 1,
+      "pendingRaf": 0,
+      "nodes": 230,
+      "page": "home"
+    },
+    {
+      "label": "after-10x",
+      "windowPointerup": 11,
+      "windowPointermove": 1,
+      "windowResize": 0,
+      "documentListeners": {
+        "visibilitychange": 2,
+        "pointerleave": 2,
+        "pointerup": 0,
+        "keydown": 1
+      },
+      "resizeObservers": 1,
+      "intersectionObservers": 1,
+      "pendingRaf": 0,
+      "nodes": 230,
+      "page": "home"
+    },
+    {
+      "label": "after-30x",
+      "windowPointerup": 31,
+      "windowPointermove": 1,
+      "windowResize": 0,
+      "documentListeners": {
+        "visibilitychange": 2,
+        "pointerleave": 2,
+        "pointerup": 0,
+        "keydown": 1
+      },
+      "resizeObservers": 1,
+      "intersectionObservers": 1,
+      "pendingRaf": 0,
+      "nodes": 230,
+      "page": "home"
+    },
+    {
+      "label": "hidden",
+      "windowPointerup": 31,
+      "windowPointermove": 1,
+      "windowResize": 0,
+      "documentListeners": {
+        "visibilitychange": 2,
+        "pointerleave": 2,
+        "pointerup": 0,
+        "keydown": 1
+      },
+      "resizeObservers": 1,
+      "intersectionObservers": 1,
+      "pendingRaf": 0,
+      "nodes": 230,
+      "page": "home"
+    },
+    {
+      "label": "visible-again",
+      "windowPointerup": 31,
+      "windowPointermove": 1,
+      "windowResize": 0,
+      "documentListeners": {
+        "visibilitychange": 2,
+        "pointerleave": 2,
+        "pointerup": 0,
+        "keydown": 1
+      },
+      "resizeObservers": 1,
+      "intersectionObservers": 1,
+      "pendingRaf": 0,
+      "nodes": 230,
+      "page": "home"
+    }
+  ],
+  "injectId": "1",
+  "instrumented": "object",
+  "instrumentedAfterBoot": "object",
+  "nav": {
+    "hits": 390,
+    "misses": 0
+  },
+  "delta": {
+    "windowPointerup": 30,
+    "resizeObservers": 0,
+    "intersectionObservers": 0
+  },
+  "ok": false
+}

@@ -1,0 +1,220 @@
+{
+  "exam": [
+    {
+      "row": {
+        "x": 346,
+        "w": 1016
+      },
+      "display": "flex",
+      "justify": "normal",
+      "gap": "12px",
+      "parts": [
+        {
+          "tag": "input",
+          "cls": "",
+          "x": 363,
+          "w": 15
+        },
+        {
+          "tag": "span",
+          "cls": "exam-option-id",
+          "x": 390,
+          "w": 14
+        },
+        {
+          "tag": "span",
+          "cls": "",
+          "x": 416,
+          "w": 929
+        }
+      ]
+    },
+    {
+      "row": {
+        "x": 346,
+        "w": 1016
+      },
+      "display": "flex",
+      "justify": "normal",
+      "gap": "12px",
+      "parts": [
+        {
+          "tag": "input",
+          "cls": "",
+          "x": 363,
+          "w": 15
+        },
+        {
+          "tag": "span",
+          "cls": "exam-option-id",
+          "x": 390,
+          "w": 14
+        },
+        {
+          "tag": "span",
+          "cls": "",
+          "x": 416,
+          "w": 929
+        }
+      ]
+    },
+    {
+      "row": {
+        "x": 346,
+        "w": 1016
+      },
+      "display": "flex",
+      "justify": "normal",
+      "gap": "12px",
+      "parts": [
+        {
+          "tag": "input",
+          "cls": "",
+          "x": 363,
+          "w": 15
+        },
+        {
+          "tag": "span",
+          "cls": "exam-option-id",
+          "x": 390,
+          "w": 14
+        },
+        {
+          "tag": "span",
+          "cls": "",
+          "x": 416,
+          "w": 929
+        }
+      ]
+    },
+    {
+      "row": {
+        "x": 346,
+        "w": 1016
+      },
+      "display": "flex",
+      "justify": "normal",
+      "gap": "12px",
+      "parts": [
+        {
+          "tag": "input",
+          "cls": "",
+          "x": 363,
+          "w": 15
+        },
+        {
+          "tag": "span",
+          "cls": "exam-option-id",
+          "x": 390,
+          "w": 14
+        },
+        {
+          "tag": "span",
+          "cls": "",
+          "x": 416,
+          "w": 929
+        }
+      ]
+    }
+  ],
+  "labBeforeSettle": {
+    "op": 1,
+    "running": 0
+  },
+  "labBefore": [
+    {
+      "verdict": "pending",
+      "picked": false,
+      "disabled": false,
+      "opacity": 1,
+      "textRatio": 17.98,
+      "smallRatio": null,
+      "text": "continued"
+    },
+    {
+      "verdict": "pending",
+      "picked": false,
+      "disabled": false,
+      "opacity": 1,
+      "textRatio": 17.98,
+      "smallRatio": null,
+      "text": "the"
+    },
+    {
+      "verdict": "pending",
+      "picked": false,
+      "disabled": false,
+      "opacity": 1,
+      "textRatio": 17.98,
+      "smallRatio": null,
+      "text": "they"
+    },
+    {
+      "verdict": "pending",
+      "picked": false,
+      "disabled": false,
+      "opacity": 1,
+      "textRatio": 17.98,
+      "smallRatio": null,
+      "text": "it"
+    }
+  ],
+  "labAfterSettle": {
+    "op": 1,
+    "running": 0
+  },
+  "labAfter": [
+    {
+      "verdict": "wrong",
+      "picked": true,
+      "disabled": true,
+      "opacity": 1,
+      "textRatio": 17.98,
+      "smallRatio": 7.67,
+      "text": "continued主句里的谓语"
+    },
+    {
+      "verdict": "neutral",
+      "picked": false,
+      "disabled": true,
+      "opacity": 1,
+      "textRatio": 7.14,
+      "smallRatio": 7.14,
+      "text": "the主句里的修饰"
+    },
+    {
+      "verdict": "correct",
+      "picked": false,
+      "disabled": true,
+      "opacity": 1,
+      "textRatio": 7.14,
+      "smallRatio": 7.14,
+      "text": "they主句主语"
+    },
+    {
+      "verdict": "neutral",
+      "picked": false,
+      "disabled": true,
+      "opacity": 1,
+      "textRatio": 7.14,
+      "smallRatio": 7.14,
+      "text": "it从句里的主语"
+    }
+  ],
+  "labChain": [],
+  "diagnostics": {
+    "cards": 39,
+    "mainTextLen": 2947,
+    "mainOpacity": 1,
+    "sample": [
+      {
+        "label": "稳定词汇量（active",
+        "opacity": 1,
+        "valueRatio": 15.17,
+        "smallRatio": 4.91
+      },
+      {
+        "label": "主动词汇（active）",
+        "opacity": 1,
+        "valueRatio": 15.17,
+        "smal

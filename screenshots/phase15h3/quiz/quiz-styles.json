@@ -1,0 +1,28 @@
+{
+  "styles": {
+    "dark": {
+      "probe": {
+        "answer": null,
+        "kbd": null,
+        "prompt": null,
+        "options": 0,
+        "previewChips": 0
+      }
+    },
+    "light": {
+      "started": "home",
+      "probe": {
+        "page": "home",
+        "answer": null,
+        "kbd": null,
+        "prompt": null,
+        "options": 0,
+        "previewChips": 0
+      }
+    }
+  },
+  "shots": [
+    "quiz-dark.png",
+    "quiz-light.png"
+  ]
+}

@@ -148,7 +148,26 @@ const started = Date.now();
 if (DOM_PROBE) await startDomProbe();
 await move(10, 10); await sleep(600);
 
-if (FLOW === 'vocab') {
+if (FLOW === 'quiz-real') {
+  // 15h.3：quiz.css 修好之后第一次真正生效，必须进一次真实训练会话
+  await nav('books'); await sleep(800);
+  await tap('#preview-lib'); await sleep(1200);
+  // 把预览逐词走完（未预览的新词不会进入 Recall），走到出现 #recall-now
+  await ev(`(async () => {
+    for (let i = 0; i < 80; i++) {
+      if (document.querySelector('#recall-now')) return 'done'
+      const b = document.querySelector('[data-preview="familiar"]')
+      if (!b) break
+      b.click()
+      await new Promise(r => setTimeout(r, 110))
+    }
+    return document.querySelector('#recall-now') ? 'done' : 'stuck'
+  })()`); await sleep(800);
+  await tap('#recall-now'); await sleep(2000);
+  await tap('.answer'); await sleep(1400);
+  await ev(`document.querySelector('.answer')?.blur()`); await sleep(400);
+  await tap('#quit'); await sleep(900);
+} else if (FLOW === 'vocab') {
   await nav('books'); await sleep(700);
   await tap('#preview-lib'); await sleep(1400);
   await tap('[data-preview="familiar"]'); await sleep(900);

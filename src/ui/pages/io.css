@@ -307,7 +307,7 @@
   grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
   gap: var(--s-3);
 }
-[data-level] [data-page="output"] .handoff {
+[data-level][data-page="output"] .handoff {
   display: grid;
   justify-items: start;
   gap: 4px;
@@ -320,13 +320,13 @@
   text-align: left;
   box-shadow: var(--e-1);
 }
-[data-level] [data-page="output"] .handoff:hover:not(:disabled) {
+[data-level][data-page="output"] .handoff:hover:not(:disabled) {
   border-color: var(--line-strong);
   background: var(--surface-raised);
 }
-[data-level] [data-page="output"] .handoff b { font-size: var(--t-sm); font-weight: 600; }
-[data-level] [data-page="output"] .handoff small { font-size: var(--t-xs); line-height: 1.55; color: var(--ink-muted); }
-[data-level] [data-page="output"] .handoff span {
+[data-level][data-page="output"] .handoff b { font-size: var(--t-sm); font-weight: 600; }
+[data-level][data-page="output"] .handoff small { font-size: var(--t-xs); line-height: 1.55; color: var(--ink-muted); }
+[data-level][data-page="output"] .handoff span {
   margin-top: var(--s-1);
   font-size: var(--t-2xs);
   letter-spacing: 0.04em;
@@ -366,7 +366,7 @@
 
 /* 以前的表达：一行一条，靠 hover 报出可点，不常驻高亮 */
 [data-page="output"] .output-history { display: grid; gap: 0; margin-top: var(--s-2); }
-[data-level] [data-page="output"] .history-row {
+[data-level][data-page="output"] .history-row {
   display: grid;
   grid-template-columns: minmax(104px, max-content) minmax(0, 1fr) auto;
   align-items: baseline;
@@ -381,11 +381,11 @@
   color: var(--ink-soft);
   text-align: left;
 }
-[data-level] [data-page="output"] .history-row:last-child { border-bottom: 0; }
-[data-level] [data-page="output"] .history-row:hover:not(:disabled) { background: var(--mat-matte-wash); }
-[data-level] [data-page="output"] .history-row b { font-size: var(--t-sm); font-weight: 600; color: var(--ink); }
-[data-level] [data-page="output"] .history-row span { font-size: var(--t-xs); color: var(--ink-muted); }
-[data-level] [data-page="output"] .history-row small {
+[data-level][data-page="output"] .history-row:last-child { border-bottom: 0; }
+[data-level][data-page="output"] .history-row:hover:not(:disabled) { background: var(--mat-matte-wash); }
+[data-level][data-page="output"] .history-row b { font-size: var(--t-sm); font-weight: 600; color: var(--ink); }
+[data-level][data-page="output"] .history-row span { font-size: var(--t-xs); color: var(--ink-muted); }
+[data-level][data-page="output"] .history-row small {
   font-size: var(--t-2xs);
   color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
@@ -457,12 +457,12 @@
 
 /* 支架按钮：L1–L3 是次级动作；L4 完整示范用虚线标出"会降低证据等级" */
 [data-page="output"] .output-editor > .actions { margin-top: var(--s-4); }
-[data-level] [data-page="output"] .output-editor [data-out-support] {
+[data-level][data-page="output"] .output-editor [data-out-support] {
   min-height: 32px;
   padding: 0 var(--s-3);
   font-size: var(--t-xs);
 }
-[data-level] [data-page="output"] .output-editor [data-out-support="4"] {
+[data-level][data-page="output"] .output-editor [data-out-support="4"] {
   border-style: dashed;
   border-color: var(--line-strong);
   color: var(--ink-muted);
@@ -560,7 +560,7 @@
   font-size: var(--t-sm);
   line-height: 1.65;
 }
-[data-level] [data-page="output"] [data-out-transfer-start] { min-height: 34px; font-size: var(--t-xs); }
+[data-level][data-page="output"] [data-out-transfer-start] { min-height: 34px; font-size: var(--t-xs); }
 
 /* ── 11. 窄视口：只保证不溢出、动作不丢 ────────────────────────────────── */
 @media (max-width: 1080px) {
@@ -575,7 +575,7 @@
   [data-page="input"] .transcript-cues li { padding-left: var(--s-3); text-indent: 0; }
   [data-page="output"] .output-editor textarea { min-height: 40vh; padding: var(--s-4); font-size: var(--t-lg); }
   [data-page="output"] .output-side { grid-template-columns: minmax(0, 1fr); }
-  [data-level] [data-page="output"] .history-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  [data-level][data-page="output"] .history-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
 
 /* 减少动效：本文件没有循环动画，这里只把过渡收紧为瞬时 */

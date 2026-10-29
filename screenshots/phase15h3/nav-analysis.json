@@ -1,0 +1,1048 @@
+{
+  "thresholdMs": 100,
+  "generatedAt": "2026-10-29T13:42:30.518Z",
+  "channels": {
+    "screencast": {
+      "rows": [
+        {
+          "path": "data",
+          "round": 1,
+          "clickAt": 0,
+          "returnAt": 1747,
+          "samples": 179,
+          "invalidSamples": 0,
+          "firstReadableAt": 53,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "screencast",
+          "channelCount": 35,
+          "cadenceMs": 87,
+          "channelGap": {
+            "max": 1250,
+            "at": 645,
+            "window": [
+              645,
+              1895
+            ],
+            "activityDuringGap": true
+          },
+          "verdict": "CAPTURE_STALL"
+        },
+        {
+          "path": "data",
+          "round": 2,
+          "clickAt": 0,
+          "returnAt": 1720,
+          "samples": 181,
+          "invalidSamples": 0,
+          "firstReadableAt": 27,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "screencast",
+          "channelCount": 36,
+          "cadenceMs": 84,
+          "channelGap": {
+            "max": 1228,
+            "at": 622,
+            "window": [
+              622,
+              1850
+            ],
+            "activityDuringGap": true
+          },
+          "verdict": "CAPTURE_STALL"
+        },
+        {
+          "path": "data",
+          "round": 3,
+          "clickAt": 0,
+          "returnAt": 1719,
+          "samples": 181,
+          "invalidSamples": 0,
+          "firstReadableAt": 28,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "screencast",
+          "channelCount": 36,
+          "cadenceMs": 83,
+          "channelGap": {
+            "max": 1220,
+            "at": 649,
+            "window": [
+              649,
+              1869
+            ],
+            "activityDuringGap": true
+          },
+          "verdict": "CAPTURE_STALL"
+        },
+        {
+          "path": "mgmt",
+          "round": 1,
+          "clickAt": 0,
+          "returnAt": 1760,
+          "samples": 181,
+          "invalidSamples": 0,
+          "firstReadableAt": 70,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "screencast",
+          "channelCount": 34,
+          "cadenceMs": 89,
+          "channelGap": {
+            "max": 1212,
+            "at": 734,
+            "window": [
+              734,
+              1946
+            ],
+            "activityDuringGap": true
+          },
+          "verdict": "CAPTURE_STALL"
+        },
+        {
+          "path": "mgmt",
+          "round": 2,
+          "clickAt": 0,
+          "returnAt": 1747,
+          "samples": 182,
+          "invalidSamples": 0,
+          "firstReadableAt": 43,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "screencast",
+          "channelCount": 33,
+          "cadenceMs": 92,
+          "channelGap": {
+            "max": 1255,
+            "at": 619,
+            "window": [
+              619,
+              1874
+            ],
+            "activityDuringGap": true
+          },
+          "verdict": "CAPTURE_STALL"
+        },
+        {
+          "path": "mgmt",
+          "round": 3,
+          "clickAt": 0,
+          "returnAt": 1726,
+          "samples": 178,
+          "invalidSamples": 0,
+          "firstReadableAt": 31,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "screencast",
+          "channelCount": 36,
+          "cadenceMs": 83,
+          "channelGap": {
+            "max": 1244,
+            "at": 613,
+            "window": [
+              613,
+              1857
+            ],
+            "activityDuringGap": true
+          },
+          "verdict": "CAPTURE_STALL"
+        },
+        {
+          "path": "sentence",
+          "round": 1,
+          "clickAt": 0,
+          "returnAt": 1799,
+          "samples": 182,
+          "invalidSamples": 0,
+          "firstReadableAt": 103,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "screencast",
+          "channelCount": 39,
+          "cadenceMs": 79,
+          "channelGap": {
+            "max": 1356,
+            "at": 577,
+            "window": [
+              577,
+              1933
+            ],
+            "activityDuringGap": true
+          },
+          "verdict": "CAPTURE_STALL"
+        },
+        {
+          "path": "sentence",
+          "round": 2,
+          "clickAt": 0,
+          "returnAt": 1737,
+          "samples": 179,
+          "invalidSamples": 0,
+          "firstReadableAt": 49,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "screencast",
+          "channelCount": 36,
+          "cadenceMs": 84,
+          "channelGap": {
+            "max": 1326,
+            "at": 557,
+            "window": [
+              557,
+              1883
+            ],
+            "activityDuringGap": true
+          },
+          "verdict": "CAPTURE_STALL"
+        },
+        {
+          "path": "sentence",
+          "round": 3,
+          "clickAt": 0,
+          "returnAt": 1737,
+          "samples": 181,
+          "invalidSamples": 0,
+          "firstReadableAt": 43,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "screencast",
+          "channelCount": 41,
+          "cadenceMs": 73,
+          "channelGap": {
+            "max": 1348,
+            "at": 510,
+            "window": [
+              510,
+              1858
+            ],
+            "activityDuringGap": true
+          },
+          "verdict": "CAPTURE_STALL"
+        },
+        {
+          "path": "io",
+          "round": 1,
+          "clickAt": 0,
+          "returnAt": 1738,
+          "samples": 181,
+          "invalidSamples": 0,
+          "firstReadableAt": 44,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "screencast",
+          "channelCount": 36,
+          "cadenceMs": 84,
+          "channelGap": {
+            "max": 1260,
+            "at": 611,
+            "window": [
+              611,
+              1871
+            ],
+            "activityDuringGap": true
+          },
+          "verdict": "CAPTURE_STALL"
+        },
+        {
+          "path": "io",
+          "round": 2,
+          "clickAt": 0,
+          "returnAt": 1714,
+          "samples": 183,
+          "invalidSamples": 0,
+          "firstReadableAt": 25,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "screencast",
+          "channelCount": 40,
+          "cadenceMs": 75,
+          "channelGap": {
+            "max": 1115,
+            "at": 712,
+            "window": [
+              712,
+              1827
+            ],
+            "activityDuringGap": true
+          },
+          "verdict": "CAPTURE_STALL"
+        },
+        {
+          "path": "io",
+          "round": 3,
+          "clickAt": 0,
+          "returnAt": 1711,
+          "samples": 181,
+          "invalidSamples": 0,
+          "firstReadableAt": 25,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "screencast",
+          "channelCount": 36,
+          "cadenceMs": 83,
+          "channelGap": {
+            "max": 1196,
+            "at": 660,
+            "window": [
+              660,
+              1856
+            ],
+            "activityDuringGap": true
+          },
+          "verdict": "CAPTURE_STALL"
+        },
+        {
+          "path": "vocab",
+          "round": 1,
+          "clickAt": 0,
+          "returnAt": 1727,
+          "samples": 181,
+          "invalidSamples": 0,
+          "firstReadableAt": 32,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "screencast",
+          "channelCount": 34,
+          "cadenceMs": 89,
+          "channelGap": {
+            "max": 1199,
+            "at": 652,
+            "window": [
+              652,
+              1851
+            ],
+            "activityDuringGap": true
+          },
+          "verdict": "CAPTURE_STALL"
+        },
+        {
+          "path": "vocab",
+          "round": 2,
+          "clickAt": 0,
+          "returnAt": 1723,
+          "samples": 183,
+          "invalidSamples": 0,
+          "firstReadableAt": 28,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "screencast",
+          "channelCount": 34,
+          "cadenceMs": 89,
+          "channelGap": {
+            "max": 1163,
+            "at": 686,
+            "window": [
+              686,
+              1849
+            ],
+            "activityDuringGap": true
+          },
+          "verdict": "CAPTURE_STALL"
+        },
+        {
+          "path": "vocab",
+          "round": 3,
+          "clickAt": 0,
+          "returnAt": 1725,
+          "samples": 181,
+          "invalidSamples": 0,
+          "firstReadableAt": 25,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "screencast",
+          "channelCount": 33,
+          "cadenceMs": 91,
+          "channelGap": {
+            "max": 1189,
+            "at": 669,
+            "window": [
+              669,
+              1858
+            ],
+            "activityDuringGap": true
+          },
+          "verdict": "CAPTURE_STALL"
+        }
+      ],
+      "summary": {
+        "data": {
+          "rounds": 3,
+          "maxBlank": 0,
+          "maxReturnBlank": 0,
+          "firstReadable": {
+            "min": 27,
+            "max": 53
+          },
+          "channelGapMax": 1250,
+          "cadence": {
+            "min": 83,
+            "max": 87
+          },
+          "verdicts": [
+            "CAPTURE_STALL",
+            "CAPTURE_STALL",
+            "CAPTURE_STALL"
+          ]
+        },
+        "mgmt": {
+          "rounds": 3,
+          "maxBlank": 0,
+          "maxReturnBlank": 0,
+          "firstReadable": {
+            "min": 31,
+            "max": 70
+          },
+          "channelGapMax": 1255,
+          "cadence": {
+            "min": 83,
+            "max": 92
+          },
+          "verdicts": [
+            "CAPTURE_STALL",
+            "CAPTURE_STALL",
+            "CAPTURE_STALL"
+          ]
+        },
+        "sentence": {
+          "rounds": 3,
+          "maxBlank": 0,
+          "maxReturnBlank": 0,
+          "firstReadable": {
+            "min": 43,
+            "max": 103
+          },
+          "channelGapMax": 1356,
+          "cadence": {
+            "min": 73,
+            "max": 84
+          },
+          "verdicts": [
+            "CAPTURE_STALL",
+            "CAPTURE_STALL",
+            "CAPTURE_STALL"
+          ]
+        },
+        "io": {
+          "rounds": 3,
+          "maxBlank": 0,
+          "maxReturnBlank": 0,
+          "firstReadable": {
+            "min": 25,
+            "max": 44
+          },
+          "channelGapMax": 1260,
+          "cadence": {
+            "min": 75,
+            "max": 84
+          },
+          "verdicts": [
+            "CAPTURE_STALL",
+            "CAPTURE_STALL",
+            "CAPTURE_STALL"
+          ]
+        },
+        "vocab": {
+          "rounds": 3,
+          "maxBlank": 0,
+          "maxReturnBlank": 0,
+          "firstReadable": {
+            "min": 25,
+            "max": 32
+          },
+          "channelGapMax": 1199,
+          "cadence": {
+            "min": 89,
+            "max": 91
+          },
+          "verdicts": [
+            "CAPTURE_STALL",
+            "CAPTURE_STALL",
+            "CAPTURE_STALL"
+          ]
+        }
+      }
+    },
+    "shots": {
+      "rows": [
+        {
+          "path": "data",
+          "round": 1,
+          "clickAt": 0,
+          "returnAt": 1818,
+          "samples": 186,
+          "invalidSamples": 0,
+          "firstReadableAt": 49,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "shots",
+          "channelCount": 13,
+          "cadenceMs": 138,
+          "channelGap": {
+            "max": 195,
+            "at": 4,
+            "medianTook": 97
+          },
+          "verdict": "OK"
+        },
+        {
+          "path": "data",
+          "round": 2,
+          "clickAt": 0,
+          "returnAt": 1784,
+          "samples": 185,
+          "invalidSamples": 0,
+          "firstReadableAt": 29,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "shots",
+          "channelCount": 13,
+          "cadenceMs": 138,
+          "channelGap": {
+            "max": 186,
+            "at": 175,
+            "medianTook": 96
+          },
+          "verdict": "OK"
+        },
+        {
+          "path": "data",
+          "round": 3,
+          "clickAt": 0,
+          "returnAt": 1713,
+          "samples": 181,
+          "invalidSamples": 0,
+          "firstReadableAt": 27,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "shots",
+          "channelCount": 12,
+          "cadenceMs": 143,
+          "channelGap": {
+            "max": 219,
+            "at": 1,
+            "medianTook": 97
+          },
+          "verdict": "OK"
+        },
+        {
+          "path": "mgmt",
+          "round": 1,
+          "clickAt": 0,
+          "returnAt": 1859,
+          "samples": 189,
+          "invalidSamples": 0,
+          "firstReadableAt": 66,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "shots",
+          "channelCount": 13,
+          "cadenceMs": 140,
+          "channelGap": {
+            "max": 210,
+            "at": 4,
+            "medianTook": 97
+          },
+          "verdict": "OK"
+        },
+        {
+          "path": "mgmt",
+          "round": 2,
+          "clickAt": 0,
+          "returnAt": 1730,
+          "samples": 182,
+          "invalidSamples": 0,
+          "firstReadableAt": 34,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "shots",
+          "channelCount": 11,
+          "cadenceMs": 159,
+          "channelGap": {
+            "max": 281,
+            "at": 5,
+            "medianTook": 99
+          },
+          "verdict": "OK"
+        },
+        {
+          "path": "mgmt",
+          "round": 3,
+          "clickAt": 0,
+          "returnAt": 1787,
+          "samples": 185,
+          "invalidSamples": 0,
+          "firstReadableAt": 30,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "shots",
+          "channelCount": 12,
+          "cadenceMs": 150,
+          "channelGap": {
+            "max": 250,
+            "at": 2,
+            "medianTook": 108
+          },
+          "verdict": "OK"
+        },
+        {
+          "path": "sentence",
+          "round": 1,
+          "clickAt": 0,
+          "returnAt": 1851,
+          "samples": 188,
+          "invalidSamples": 0,
+          "firstReadableAt": 92,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "shots",
+          "channelCount": 13,
+          "cadenceMs": 137,
+          "channelGap": {
+            "max": 224,
+            "at": 7,
+            "medianTook": 98
+          },
+          "verdict": "OK"
+        },
+        {
+          "path": "sentence",
+          "round": 2,
+          "clickAt": 0,
+          "returnAt": 1818,
+          "samples": 188,
+          "invalidSamples": 0,
+          "firstReadableAt": 32,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "shots",
+          "channelCount": 13,
+          "cadenceMs": 140,
+          "channelGap": {
+            "max": 200,
+            "at": 0,
+            "medianTook": 102
+          },
+          "verdict": "OK"
+        },
+        {
+          "path": "sentence",
+          "round": 3,
+          "clickAt": 0,
+          "returnAt": 1802,
+          "samples": 186,
+          "invalidSamples": 0,
+          "firstReadableAt": 36,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "shots",
+          "channelCount": 13,
+          "cadenceMs": 138,
+          "channelGap": {
+            "max": 196,
+            "at": 0,
+            "medianTook": 110
+          },
+          "verdict": "OK"
+        },
+        {
+          "path": "io",
+          "round": 1,
+          "clickAt": 0,
+          "returnAt": 1802,
+          "samples": 186,
+          "invalidSamples": 0,
+          "firstReadableAt": 41,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "shots",
+          "channelCount": 12,
+          "cadenceMs": 149,
+          "channelGap": {
+            "max": 252,
+            "at": 3,
+            "medianTook": 112
+          },
+          "verdict": "OK"
+        },
+        {
+          "path": "io",
+          "round": 2,
+          "clickAt": 0,
+          "returnAt": 1828,
+          "samples": 188,
+          "invalidSamples": 0,
+          "firstReadableAt": 25,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "shots",
+          "channelCount": 12,
+          "cadenceMs": 154,
+          "channelGap": {
+            "max": 237,
+            "at": 0,
+            "medianTook": 118
+          },
+          "verdict": "OK"
+        },
+        {
+          "path": "io",
+          "round": 3,
+          "clickAt": 0,
+          "returnAt": 1818,
+          "samples": 188,
+          "invalidSamples": 0,
+          "firstReadableAt": 24,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "shots",
+          "channelCount": 13,
+          "cadenceMs": 140,
+          "channelGap": {
+            "max": 235,
+            "at": 179,
+            "medianTook": 113
+          },
+          "verdict": "OK"
+        },
+        {
+          "path": "vocab",
+          "round": 1,
+          "clickAt": 0,
+          "returnAt": 1778,
+          "samples": 182,
+          "invalidSamples": 0,
+          "firstReadableAt": 30,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "shots",
+          "channelCount": 12,
+          "cadenceMs": 149,
+          "channelGap": {
+            "max": 200,
+            "at": 1,
+            "medianTook": 122
+          },
+          "verdict": "OK"
+        },
+        {
+          "path": "vocab",
+          "round": 2,
+          "clickAt": 0,
+          "returnAt": 1831,
+          "samples": 188,
+          "invalidSamples": 0,
+          "firstReadableAt": 24,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "shots",
+          "channelCount": 13,
+          "cadenceMs": 141,
+          "channelGap": {
+            "max": 206,
+            "at": 2,
+            "medianTook": 110
+          },
+          "verdict": "OK"
+        },
+        {
+          "path": "vocab",
+          "round": 3,
+          "clickAt": 0,
+          "returnAt": 1786,
+          "samples": 186,
+          "invalidSamples": 0,
+          "firstReadableAt": 25,
+          "blankGap": {
+            "max": 0,
+            "at": null,
+            "count": 0,
+            "samples": []
+          },
+          "returnBlankGap": 0,
+          "loadingMs": 0,
+          "channel": "shots",
+          "channelCount": 12,
+          "cadenceMs": 150,
+          "channelGap": {
+            "max": 251,
+            "at": 3,
+            "medianTook": 110
+          },
+          "verdict": "OK"
+        }
+      ],
+      "summary": {
+        "data": {
+          "rounds": 3,
+          "maxBlank": 0,
+          "maxReturnBlank": 0,
+          "firstReadable": {
+            "min": 27,
+            "max": 49
+          },
+          "channelGapMax": 219,
+          "cadence": {
+            "min": 138,
+            "max": 143
+          },
+          "verdicts": [
+            "OK",
+            "OK",
+            "OK"
+          ]
+        },
+        "mgmt": {
+          "rounds": 3,
+          "maxBlank": 0,
+          "maxReturnBlank": 0,
+          "firstReadable": {
+            "min": 30,
+            "max": 66
+          },
+          "channelGapMax": 281,
+          "cadence": {
+            "min": 140,
+            "max": 159
+          },
+          "verdicts": [
+            "OK",
+            "OK",
+            "OK"
+          ]
+        },
+        "sentence": {
+          "rounds": 3,
+          "maxBlank": 0,
+          "maxReturnBlank": 0,
+          "firstReadable": {
+            "min": 32,
+            "max": 92
+          },
+          "channelGapMax": 224,
+          "cadence": {
+            "min": 137,
+            "max": 140
+          },
+          "verdicts": [
+            "OK",
+            "OK",
+            "OK"
+          ]
+        },
+        "io": {
+          "rounds": 3,
+          "maxBlank": 0,
+          "maxReturnBlank": 0,
+          "firstReadable": {
+            "min": 24,
+            "max": 41
+          },
+          "channelGapMax": 252,
+          "cadence": {
+            "min": 140,
+            "max": 154
+          },
+          "verdicts": [
+            "OK",
+            "OK",
+            "OK"
+          ]
+        },
+        "vocab": {
+          "rounds": 3,
+          "maxBlank": 0,
+          "maxReturnBlank": 0,
+          "firstReadable": {
+            "min": 24,
+            "max": 30
+          },
+          "channelGapMax": 251,
+          "cadence": {
+            "min": 141,
+            "max": 150
+          },
+          "verdicts": [
+            "OK",
+            "OK",
+            "OK"
+          ]
+        }
+      }
+    }
+  }
+}

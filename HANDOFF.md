@@ -1,3 +1,26 @@
+# HANDOFF — 当前状态（Phase 15h.3）
+
+> **2026-10-29 更新（15h.3）**：CSS 作用域完整性 + 转场连续性收口。分支 `phase15h3-css-integrity`
+> （起点 `phase15h2-visual-qa` @ `3ad4cc6`），tag `phase15h3-css-integrity`。`main` 仍 `9de8acd`，
+> **未合并**；`phase15h-full-ui` tag 仍停在 `764e854`，未移动。DB v7 / FSRS / Planner / 算法零改动。
+>
+> 本轮三件事：
+> 1. **177 条作用域写错的 CSS 规则**（182 个选择器）全部按文件批量合并作用域，修好并做视觉对照。
+>    口径对账：176（Codex，仅页面层）= 144+16+15+1；177 = 176 + system.css 的深色按钮接触阴影；
+>    顶层 170 / 嵌套 7。分类 A 55 / B 58 / C 0 / D 64（D 保留原因写在文档里）。
+> 2. **转场"主内容消失"找到应用侧成分并修掉**：`p15-enter`（动 `<main>`）与 `p15-arrive`
+>    （动子块）首帧都是 `opacity:0`，普通导航又不建旧页底板 → 主内容区裸露背景 141–270ms。
+>    两条关键帧首帧改 `opacity:.72` 后，30 次运行（screencast + 独立截图各 15）空白 **0ms**。
+>    旧录屏的 1.4s 空白仍是 CDP 停帧（本轮再次复现，1.1–1.4s 通道空洞，同期页面连续可读）。
+> 3. **`living.ts` 真实监听器泄漏**：`bindTouchGlow` 每个元素挂一个 `window pointerup` 且从不移除，
+>    30 次往返后从 1 涨到 31。改为全局单一监听 + 按下登记，修后 1/10/30 次往返恒为 1。
+>
+> 门禁：`tsc` 0、`npm test` **395/395**（+5 条真实 CSS/DOM 回归，已用 stash 验证"改回旧 CSS 会全红"）、
+> `build` 0、对比度 225/0 ×2、移动 10/10 ×2、live-a11y 11/11、Reduced Motion OK。
+> 未完成：quiz 训练态缺自动化截图；77 条已修规则在深层状态缺视觉证据；headful 独立窗口序列未补。
+> 视觉验收仍未获得用户确认 —— **不得自行宣布 Phase 15 审美目标达成**。
+> 文档：`docs/PHASE15H3_CSS_RULE_AUDIT.md`、`docs/PHASE15H3_NAVIGATION_EVIDENCE.md`、`docs/PHASE15H3_TEST_REPORT.md`。
+
 # HANDOFF — 当前状态（Phase 15h.2）
 
 > **2026-10-28 更新（15h.2）**：独立视觉验收的 P0/P1 收口，分支 `phase15h2-visual-qa`（起点 `b4e4b2d`），

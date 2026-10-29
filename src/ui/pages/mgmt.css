@@ -203,8 +203,8 @@
 }
 [data-page="settings"] .danger-panel h2,
 [data-page="settings"] .panel:has(.danger) h2 { color: var(--danger); }
-[data-level] [data-page="settings"] button.danger,
-[data-level] [data-page="settings"] .danger {
+[data-level][data-page="settings"] button.danger,
+[data-level][data-page="settings"] .danger {
   min-height: 40px;
   font-weight: 600;
   letter-spacing: 0.01em;

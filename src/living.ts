@@ -38,6 +38,13 @@ interface Field {
 
 let field: Field | null = null;
 let bound = false;
+/** 正在"按下"状态的释放回调；全局只有一个 pointerup 监听，按下时登记、松开/导航时清空 */
+const pressReleases = new Set<() => void>();
+const flushPress = (): void => {
+    for (const fn of pressReleases)
+        fn();
+    pressReleases.clear();
+};
 let resizeObserver: ResizeObserver | null = null;
 let stageObserver: IntersectionObserver | null = null;
 
@@ -168,6 +175,7 @@ function bindSpring(el: HTMLElement): void {
     };
     const down = (ev?: PointerEvent): void => {
         st.downAt = performance.now();
+        pressReleases.add(up);
         st.target = 0.955;
         el.classList.add('is-pressed');
         // 不用 pointer capture：capture 会让「拖出后松开」在按钮上合成 click，
@@ -176,6 +184,7 @@ function bindSpring(el: HTMLElement): void {
         run();
     };
     const up = (): void => {
+        pressReleases.delete(up);
         if (!st.downAt)
             return;
         st.downAt = 0;
@@ -187,7 +196,9 @@ function bindSpring(el: HTMLElement): void {
     el.addEventListener('pointerdown', ev => down(ev), { passive: true });
     el.addEventListener('pointerup', up, { passive: true });
     el.addEventListener('pointercancel', up, { passive: true });
-    window.addEventListener('pointerup', up, { passive: true });
+    // Phase 15h.3：原来每个绑定元素都往 window 上挂一个 pointerup，永不移除；
+    // 每次重渲染都会再加一批（30 次进出后数百个）。改成按下时登记、松开即注销，
+    // 全局只有一个 pointerup 监听。
     el.addEventListener('pointerleave', ev => {
         if (ev.buttons === 0)
             up();
@@ -418,6 +429,7 @@ export function startLiving(root: ParentNode = document): void {
         // 会在下一次回调里把呼吸判成「离屏」并永久暂停（15f 的空闲呼吸时有时无就是这个）。
         if (stageObserver) { stageObserver.disconnect(); stageObserver = null; }
         if (resizeObserver) { resizeObserver.disconnect(); resizeObserver = null; }
+        pressReleases.clear();   // 旧舞台的按下状态不该跨页保留
         field = {
             stage,
             page,
@@ -438,6 +450,7 @@ export function startLiving(root: ParentNode = document): void {
 
     if (!bound) {
         bound = true;
+        window.addEventListener('pointerup', flushPress, { passive: true });
         window.addEventListener('pointermove', onPointerMove, { passive: true });
         document.addEventListener('pointerleave', onPointerLeave, { passive: true });
         const sync = (): void => {

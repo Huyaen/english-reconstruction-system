@@ -706,7 +706,7 @@ body:has(.reading-surface) .aside-foot{opacity:.7}
 .reader-sheet-close{display:none}
 
 /* —— 10. §Motion：八类动效（全部可达静态）—— */
-@keyframes p15-enter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes p15-enter{from{opacity:.72;transform:translateY(12px)}to{opacity:1;transform:none}}
 @keyframes p15-conic{0%{opacity:0;transform:rotate(-6deg) scale(.97)}30%{opacity:.85}100%{opacity:0;transform:rotate(5deg) scale(1.01)}}
 @keyframes p15-sheet{from{transform:translateY(100%)}to{transform:none}}
 @keyframes p15-press{from{transform:scale(1)}to{transform:scale(var(--press-scale))}}

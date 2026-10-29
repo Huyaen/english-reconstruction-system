@@ -15,3 +15,7 @@ screenshots/phase15h/recording/*.mp4
 review-export/
 screenshots/phase15h2/rec/
 .p15h*-*/
+
+# Phase 15h.3 采集中间产物
+.p15h3-*/
+screenshots/phase15h3/rec/

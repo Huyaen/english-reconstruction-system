@@ -66,8 +66,11 @@
 #main.p15-enter > *:nth-child(2) { animation-delay: 40ms; }
 #main.p15-enter > *:nth-child(3) { animation-delay: 80ms; }
 #main.p15-enter > *:nth-child(n+4) { animation-delay: 110ms; }
+/* Phase 15h.3：原本 from{opacity:0} 配合"旧页同步移除"会让主内容区在导航后
+   裸露纯背景 ~200–270ms（三路取证实测），这就是审查看到的"主内容消失"的
+   应用侧成分。改为从 0.72 起步：内容第一帧就可读，"抵达"动作仍然保留。 */
 @keyframes p15-arrive {
-  from { opacity: 0; transform: translate3d(0, 6px, 0); }
+  from { opacity: 0.72; transform: translate3d(0, 6px, 0); }
   to { opacity: 1; transform: none; }
 }
 
@@ -253,8 +256,10 @@
     border-color var(--dur-2) linear;
   -webkit-tap-highlight-color: transparent;
 }
-[data-theme="dark"] [data-level] button,
-[data-theme="dark"] [data-level] .button { box-shadow: var(--contact); }
+/* Phase 15h.3：这条规则此前因作用域写法从不生效；修正后它会在深色主题下
+   覆盖所有按钮的 box-shadow，把组件自己的阴影（含 Today 主按钮的辉光）打掉。
+   用 :where() 把特异性降到 0,1,0，让它只当"没有别的阴影时的默认接触阴影"。 */
+[data-theme="dark"] :where([data-level] button, [data-level] .button) { box-shadow: var(--contact); }
 
 [data-level] button:hover:not(:disabled),
 [data-level] .button:hover:not(:disabled) {

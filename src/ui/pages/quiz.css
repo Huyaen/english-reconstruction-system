@@ -119,7 +119,7 @@
 }
 [data-page="preview"] .preview-actions { grid-template-columns: repeat(4, 1fr); }
 
-[data-level] :is([data-page="quiz"], [data-page="preview"]) .answer {
+:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer {
   position: relative;
   display: flex;
   align-items: center;
@@ -144,9 +144,9 @@
     background-color var(--dur-2) linear,
     filter var(--dur-1) linear;
 }
-[data-theme="dark"] [data-level] :is([data-page="quiz"], [data-page="preview"]) .answer { box-shadow: var(--contact); }
+:is([data-theme="dark"][data-level][data-page="quiz"], [data-theme="dark"][data-level][data-page="preview"]) .answer { box-shadow: var(--contact); }
 
-[data-level] :is([data-page="quiz"], [data-page="preview"]) .answer kbd {
+:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer kbd {
   display: grid;
   place-items: center;
   width: 26px;
@@ -161,50 +161,50 @@
   font-variant-numeric: tabular-nums;
   box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.25);
 }
-[data-level] :is([data-page="quiz"], [data-page="preview"]) .answer:hover:not(:disabled) {
+:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer:hover:not(:disabled) {
   border-color: var(--line-strong);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.075), transparent 62%),
     var(--surface-raised);
   transform: translateY(-1px);
 }
-[data-level] :is([data-page="quiz"], [data-page="preview"]) .answer:hover:not(:disabled) kbd {
+:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer:hover:not(:disabled) kbd {
   color: var(--ink-soft);
   border-color: var(--metal-mid);
 }
-[data-level] :is([data-page="quiz"], [data-page="preview"]) .answer:active:not(:disabled),
-[data-level] :is([data-page="quiz"], [data-page="preview"]) .answer.is-pressed:not(:disabled) {
+:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer:active:not(:disabled),
+:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer.is-pressed:not(:disabled) {
   transform: translateY(1px);
   filter: brightness(0.96);
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 /* 判分后：选中的键位下沉，未选中的退后 */
-[data-level] :is([data-page="quiz"], [data-page="preview"]) .answer.is-correct {
+:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer.is-correct {
   border-color: color-mix(in srgb, var(--ok) 62%, transparent);
   background: linear-gradient(90deg, var(--ok-wash), transparent 62%), var(--surface-raised);
 }
-[data-level] :is([data-page="quiz"], [data-page="preview"]) .answer.is-correct::after {
+:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer.is-correct::after {
   content: "✓";
   margin-left: auto;
   color: var(--ok);
   font-size: var(--t-md);
 }
-[data-level] :is([data-page="quiz"], [data-page="preview"]) .answer.is-wrong {
+:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer.is-wrong {
   border-color: color-mix(in srgb, var(--danger) 60%, transparent);
   background: linear-gradient(90deg, var(--danger-wash), transparent 62%), var(--surface-raised);
 }
-[data-level] :is([data-page="quiz"], [data-page="preview"]) .answer.is-wrong::after {
+:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer.is-wrong::after {
   content: "✕";
   margin-left: auto;
   color: var(--danger);
   font-size: var(--t-md);
 }
-[data-level] :is([data-page="quiz"], [data-page="preview"]) .answer:disabled { opacity: 0.5; cursor: default; }
-[data-level] :is([data-page="quiz"], [data-page="preview"]) .answer.is-correct:disabled,
-[data-level] :is([data-page="quiz"], [data-page="preview"]) .answer.is-wrong:disabled { opacity: 1; }
+:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer:disabled { opacity: 0.5; cursor: default; }
+:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer.is-correct:disabled,
+:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer.is-wrong:disabled { opacity: 1; }
 
 /* 「不知道」：明确的第三条路，比选项更轻 */
-[data-level] [data-page="quiz"] .unknown {
+[data-level][data-page="quiz"] .unknown {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -219,8 +219,8 @@
   font-size: var(--t-sm);
   box-shadow: none;
 }
-[data-level] [data-page="quiz"] .unknown:hover { color: var(--ink); border-color: var(--ink-faint); }
-[data-level] [data-page="quiz"] .unknown kbd {
+[data-level][data-page="quiz"] .unknown:hover { color: var(--ink); border-color: var(--ink-faint); }
+[data-level][data-page="quiz"] .unknown kbd {
   padding: 1px 6px;
   border-radius: 4px;
   border: 1px solid var(--line-strong);
@@ -316,5 +316,5 @@
   [data-page="preview"] .preview-actions { grid-template-columns: repeat(2, 1fr); }
   :is([data-page="quiz"], [data-page="preview"]) .quiz-card { padding: 22px 18px; border-radius: var(--r-xl); }
   :is([data-page="quiz"], [data-page="preview"]) .question { font-size: clamp(30px, 8vw, 40px); }
-  [data-level] :is([data-page="quiz"], [data-page="preview"]) .answer { min-height: 54px; padding: 0 14px; }
+  :is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer { min-height: 54px; padding: 0 14px; }
 }
