@@ -902,8 +902,11 @@
           "mobile": "10/10 + 10/10",
           "live_a11y": "11/11",
           "reduced_motion": "ok"
-        }
-      }
+        },
+        "ci": "40887008199 (success @ 6a42f67)"
+      },
+      "commit": "6a42f67",
+      "remote": "verified after final push"
     }
   ],
   "backlog_note": "docs/PHASE15H_MARKUP_BACKLOG.md 口径：原始 39 → 去重 25；15h.2 追加一节：177 条 [data-level]…[data-page] 规则 0 命中（P0 待决，本轮不启用）"
