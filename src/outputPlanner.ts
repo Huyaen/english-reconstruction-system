@@ -37,14 +37,14 @@ export function planOutputTask(task: OutputTaskSpec | null, input: {
 }
 function taskLabel(type: OutputTaskSpec['taskType']): string {
     switch (type) {
-        case 'one_sentence': return '真实表达：一句话';
-        case 'short_summary': return '真实表达：3–5 句总结';
-        case 'paragraph_summary': return '真实表达：短段落';
-        case 'retelling': return '真实表达：复述';
-        case 'opinion': return '真实表达：观点';
-        case 'free_expression': return '真实表达：自由表达';
-        case 'transformation': return '真实表达：句式迁移';
-        case 'repair': return '真实表达：绕开不会的词';
-        default: return '真实表达';
+        case 'one_sentence': return '写作：写一句';
+        case 'short_summary': return '写作：3–5 句总结';
+        case 'paragraph_summary': return '写作：一小段';
+        case 'retelling': return '写作：复述';
+        case 'opinion': return '写作：说观点';
+        case 'free_expression': return '写作：随便写';
+        case 'transformation': return '写作：换个句式';
+        case 'repair': return '写作：绕开不会的词';
+        default: return '写作';
     }
 }

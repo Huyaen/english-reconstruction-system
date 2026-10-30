@@ -1,11 +1,11 @@
-// —— Phase 7：Mini Unit 视图（只产出 HTML，不碰 IO）——
+// —— Phase 7：单元 视图（只产出 HTML，不碰 IO）——
 import type { Data, InterestProfile, MiniUnit, UnitEvidenceSummary } from './types.ts';
 import type { ThemeRecommendation } from './miniUnitSelection.ts';
 import type { DayPlanSpec } from './miniUnitProgression.ts';
 import { completedDays, dayKind, dayLabel, nextDay, plannedDays, readiness, stageOf, UNIT_RULES } from './miniUnit.ts';
 import { esc } from './ui.ts';
 const STAGE_LABEL: Record<string, string> = {
-    draft: '草稿（还没有真实 Anchor）',
+    draft: '草稿（还没有你自己的材料）',
     ready: '已就绪',
     active: '进行中',
     paused: '已暂停',
@@ -52,7 +52,7 @@ export function unitCreatePage(input: {
         <span class="pill ${r.exploration ? 'warn' : ''}">${esc(r.reasonZh)} · ${esc(r.reasonTag)}</span>
       </div>
       <p>${esc(r.whyRecommended)}</p>
-      <p class="muted">${r.repeat ? '⚠ 刚完成过同主题单元：这条推荐已降权，避免重复相似内容。' : ''}${r.insufficientEvidence ? ' 学情证据有限。' : ''} · 约 ${r.estimatedLearningDays} 天</p>
+      <p class="muted">${r.repeat ? '⚠ 刚完成过同主题单元：这条推荐已降权，避免重复相似内容。' : ''}${r.insufficientEvidence ? ' 练习记录还少。' : ''} · 约 ${r.estimatedLearningDays} 天</p>
       <div class="ai-targets">
         <span class="muted">目标词 ${r.targetWords.length} 个：</span>
         ${r.targetWords.slice(0, 8).map(w => `<span class="chip">${esc(w.word)}</span>`).join('') || '<span class="muted">（词库尚未覆盖材料中的生词）</span>'}
@@ -68,19 +68,19 @@ export function unitCreatePage(input: {
       </div>
       <div class="unit-preview" id="unit-preview-${i}" hidden>
         <ul>${r.targetWords.map(w => `<li><b>${esc(w.word)}</b> — ${esc(w.reason)}</li>`).join('') || '<li>没有来自你词库的目标词</li>'}</ul>
-        <p class="muted">目标语法证据：${r.targetGrammar.map(g => esc(`${g.name}（${g.evidence}）`)).join('；') || '无'}</p>
+        <p class="muted">要练的语法点：${r.targetGrammar.map(g => esc(`${g.name}（${g.evidence}）`)).join('；') || '无'}</p>
       </div>
     </article>`).join('');
     return `
     <div class="page-head">
-      <h1>Mini Unit · 主题学习单元</h1>
-      <p class="muted">围绕一份真实材料，连续 2–4 个学习日：建立理解 → 强化 → 脱离辅助 → 迁移 → 评估。不是一张三日任务表。</p>
+      <h1>主题单元</h1>
+      <p class="muted">围绕你的一份材料，连着 2–4 天：先读懂，再练熟，然后不看提示做一遍，最后换个场景用一次。</p>
     </div>
     ${input.note ? `<div class="callout">${esc(input.note)}</div>` : ''}
     ${input.recommendations.length ? cards : `
       <section class="panel">
         <div class="section-title">还没有可用的主题</div>
-        <p>阅读库里没有真实英文材料，系统不会凭空推荐，也不会用 AI 文章冒充 Anchor。</p>
+        <p>阅读库里还没有真实英文材料。这里不会凭空推荐，也不会拿 AI 写的文章当材料。</p>
         <ol class="unit-steps">
           <li>去「阅读」页粘贴一段真实英文，或上传文件 / 截图 OCR / 添加真实 URL</li>
           <li>材料进入阅读库后，这里会出现基于真实材料的主题推荐</li>
@@ -88,7 +88,7 @@ export function unitCreatePage(input: {
         <button class="primary" data-unit-open-reading>去阅读库添加材料</button>
       </section>`}
     <section class="panel">
-      <div class="section-title">兴趣画像 · Dynamic Interest</div>
+      <div class="section-title">兴趣</div>
       <p class="muted">兴趣只决定“先给你看什么”，不代表英语能力。默认分类只是建议，不是白名单：你可以添加、改名、删除任何主题，也可以随时选与画像无关的材料。</p>
       <div class="ai-targets" id="interest-list">
         ${input.interest.profile.topics.length
@@ -104,17 +104,17 @@ export function unitCreatePage(input: {
         <span class="muted">建议（点一下加入，也可以完全不用）：</span>
         ${(input.suggested ?? []).filter(x => !input.interest.profile.topics.some(t => t.label === x.label)).map(x => `<span class="chip" data-interest-suggest="${esc(x.label)}">${esc(x.label)}</span>`).join('') || '<span class="muted">已全部加入</span>'}
       </div>
-      <p class="muted">行为证据：${input.interest.sampleSize} 条（近 30 天真实阅读/导入/单元）。${input.interest.sufficient ? '近期行为可以参与排序，但不会永久改变你的显式偏好。' : '不足 3 条，推荐不会声称精准个性化。'} · 探索比例 ${Math.round(input.interest.profile.exploration * 100)}%</p>
+      <p class="muted">最近 30 天有 ${input.interest.sampleSize} 条真实记录（阅读、导入、单元）。${input.interest.sufficient ? '近期行为可以参与排序，但不会永久改变你的显式偏好。' : '不足 3 条，推荐不会声称精准个性化。'} · 探索比例 ${Math.round(input.interest.profile.exploration * 100)}%</p>
       <p class="muted">${input.interest.profile.resets ? `已重置 ${input.interest.profile.resets} 次。` : ''}兴趣 ≠ 能力：它不会改变难度估计、掌握度或计划时长。</p>
     </section>
     <section class="panel">
       <div class="section-title">自定义主题</div>
-      <p class="muted">自定义主题仍然必须绑定一份真实 Anchor 材料；没有材料时只会创建草稿，不会开始学习日。</p>
+      <p class="muted">自定义主题也要有一份真实材料；没有材料时只建草稿，不会开始。</p>
       <div class="row">
         <input id="unit-custom-topic" placeholder="例如：机器学习发展史 / 竞技游戏解说 / 城市与河流" value="${esc(input.customTopic)}">
         <button data-unit-custom>创建草稿</button>
       </div>
-      <p class="muted">当前阅读库：真实材料 ${authentic.length} 篇${input.data.passages.length - authentic.length ? ` · AI 生成 ${input.data.passages.length - authentic.length} 篇（不会作为 Anchor）` : ''}</p>
+      <p class="muted">当前阅读库：真实材料 ${authentic.length} 篇${input.data.passages.length - authentic.length ? ` · AI 生成 ${input.data.passages.length - authentic.length} 篇（不能当你的材料）` : ''}</p>
     </section>`;
 }
 /** 有单元：主界面 */
@@ -139,24 +139,24 @@ export function unitPage(input: {
     const ready = readiness(unit);
     const actionBar = (() => {
         if (stage === 'completed' || stage === 'abandoned')
-            return `<button data-unit-new>开始新的 Unit</button>`;
+            return `<button data-unit-new>开始新单元</button>`;
         if (stage === 'paused')
             return `<button class="primary" data-unit-resume>继续</button><button data-unit-abandon>放弃</button>`;
         if (stage === 'draft')
-            return `<button class="primary" data-unit-pick-anchor>选择真实 Anchor</button><button data-unit-abandon>放弃草稿</button>`;
+            return `<button class="primary" data-unit-pick-anchor>选一份材料</button><button data-unit-abandon>放弃草稿</button>`;
         const finishLabel = done.length >= UNIT_RULES.plannedDays ? '结束并评估' : '提前结束并评估';
         return `
           <button class="primary" data-unit-start>${done.includes(day) ? '查看今日安排' : `进入 ${esc(dayLabel(day))}`}</button>
-          <button data-unit-complete="${day}" ${done.includes(day) ? 'disabled' : ''}>完成今天（Day ${day}）</button>
+          <button data-unit-complete="${day}" ${done.includes(day) ? 'disabled' : ''}>完成今天（第 ${day} 天）</button>
           <button data-unit-finish>${finishLabel}</button>
           <button data-unit-pause>暂停</button>
-          ${done.length >= UNIT_RULES.plannedDays && planned < UNIT_RULES.maxDays ? '<button data-unit-extend>延长 Day 4</button>' : ''}
+          ${done.length >= UNIT_RULES.plannedDays && planned < UNIT_RULES.maxDays ? '<button data-unit-extend>再加一天</button>' : ''}
           <button data-unit-abandon>放弃</button>`;
     })();
     const history = (unit.dayHistory ?? []).map(d => `
-      <li><b>Day ${d.day} · ${esc(d.kind)}</b> <span class="muted">${esc(d.calendarDate)} · 辅助 ${esc(SUPPORT_LABEL[d.supportLevel])}</span>
+      <li><b>第 ${d.day} 天 · ${esc(d.kind)}</b> <span class="muted">${esc(d.calendarDate)} · 辅助 ${esc(SUPPORT_LABEL[d.supportLevel])}</span>
         <div>${esc(d.summary || '（无摘要）')}</div>
-        <div class="muted">目标词覆盖：${d.targetWordsCovered.length ? esc(d.targetWordsCovered.join('、')) : '无'} · 证据 ${d.evidenceIds.length} 条</div>
+        <div class="muted">目标词：${d.targetWordsCovered.length ? esc(d.targetWordsCovered.join('、')) : '无'} · 记录 ${d.evidenceIds.length} 条</div>
       </li>`).join('');
     const focusHtml = spec ? `
       <section class="panel">
@@ -164,10 +164,10 @@ export function unitPage(input: {
         <p class="muted">辅助级别：${esc(SUPPORT_LABEL[spec.supportLevel])} · 中文${spec.translationAllowed ? '可用（但避免逐句翻译）' : '关闭：先独立理解'}</p>
         ${spec.warnings.map(w => `<div class="callout warn">${esc(w)}</div>`).join('')}
         <ul class="unit-focus">${spec.focus.map(f => `<li><b>${esc(f.title)}</b><span class="muted"> · ${f.minutes} 分钟</span><div class="muted">${esc(f.why)}</div></li>`).join('')}</ul>
-        <p><b>今天用这份材料：</b>${spec.material.title ? `${esc(spec.material.title)}（${spec.material.kind === 'anchor' ? 'Anchor' : spec.material.kind === 'transfer' ? '新迁移材料' : '强化材料'}）— ${esc(spec.material.note)}` : '没有可用材料'}</p>
-        ${evidence.mediaSessions?.length ? `<p class="muted">媒体输入只作为真实曝光记录（${evidence.mediaSessions.length} 次，${evidence.mediaMinutes ?? 0} 分钟自报），不计入迁移或掌握证据。</p>` : ''}
-        ${evidence.outputAttempts?.length ? `<p class="muted">本单元已有 ${evidence.outputAttempts.length} 次真实表达（其中 ${evidence.outputIndependent ?? 0} 次含独立证据）；表达不会自动算完成学习日。</p>` : ''}
-      <p class="muted">完成标准：${spec.evidenceGoal.map(g => esc(g)).join('；')}。只有真实作答才算完成，打开页面不算。</p>
+        <p><b>今天用这份材料：</b>${spec.material.title ? `${esc(spec.material.title)}（${spec.material.kind === 'anchor' ? '你的材料' : spec.material.kind === 'transfer' ? '新场景材料' : '练习材料'}）— ${esc(spec.material.note)}` : '没有可用材料'}</p>
+        ${evidence.mediaSessions?.length ? `<p class="muted">媒体输入只作为看过的记录（${evidence.mediaSessions.length} 次，${evidence.mediaMinutes ?? 0} 分钟自报），不算换场景练习，也不算掌握。</p>` : ''}
+        ${evidence.outputAttempts?.length ? `<p class="muted">本单元已有 ${evidence.outputAttempts.length} 次写作（其中 ${evidence.outputIndependent ?? 0} 次是自己写的）；写作不会自动算完成学习日。</p>` : ''}
+      <p class="muted">做到这些就算完成：${spec.evidenceGoal.map(g => esc(g)).join('；')}。打开页面不算。</p>
         ${spec.material.passageId ? `<button data-unit-open-reading="${esc(spec.material.passageId)}">打开这份材料</button>` : ''}
         ${spec.aiOptional ? `<button data-unit-ai="${esc(spec.aiOptional.kind)}">${spec.aiOptional.kind === 'sentence' ? 'AI 补充例句（可选）' : 'AI 强化短文（可选）'}</button><span class="muted"> · ${esc(spec.aiOptional.reason)}</span>` : ''}
       </section>` : '';
@@ -175,15 +175,15 @@ export function unitPage(input: {
     const evalHtml = evaluation ? `
       <section class="panel">
         <div class="section-title">完成评价 · ${esc(evaluation.decision)}</div>
-        <p class="muted">置信度：${esc(evaluation.confidence)} · ${new Date(evaluation.at).toLocaleString('zh-CN')}</p>
+        <p class="muted">可信度：${esc(evaluation.confidence)} · ${new Date(evaluation.at).toLocaleString('zh-CN')}</p>
         <ul>${evaluation.reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>
         <p><b>建议下一步：</b>${evaluation.nextActions.map(a => esc(a)).join('；') || '无'}</p>
         <div class="metrics">
-          ${metric('目标词覆盖', `${evaluation.metrics.targetWordsCovered}/${evaluation.metrics.targetWordTotal}`)}
-          ${metric('独立回忆', String(evaluation.metrics.independentRecallEvidence))}
-          ${metric('语法证据', String(evaluation.metrics.grammarEvidence))}
+          ${metric('目标词', `${evaluation.metrics.targetWordsCovered}/${evaluation.metrics.targetWordTotal}`)}
+          ${metric('自己想起来的', String(evaluation.metrics.independentRecallEvidence))}
+          ${metric('语法练习', String(evaluation.metrics.grammarEvidence))}
           ${metric('学习日', String(evaluation.metrics.completedLearningDays))}
-          ${metric('迁移结果', evaluation.metrics.transferResult === null ? '无' : `${Math.round(evaluation.metrics.transferResult * 100)}%`)}
+          ${metric('换场景结果', evaluation.metrics.transferResult === null ? '无' : `${Math.round(evaluation.metrics.transferResult * 100)}%`)}
         </div>
       </section>` : '';
     return `
@@ -194,12 +194,12 @@ export function unitPage(input: {
     <section class="panel">
       <div class="unit-progress">
         <div class="unit-dots">${dots}</div>
-        <div class="muted">有效学习日 ${done.length}/${planned}${done.length ? ` · 已完成：${done.join('、')}` : ''}</div>
+        <div class="muted">完成的学习日 ${done.length}/${planned}${done.length ? ` · 已完成：${done.join('、')}` : ''}</div>
       </div>
       <div class="row">${actionBar}</div>
       <div id="unit-day-summary" hidden class="unit-summary">
         <input id="unit-summary-input" placeholder="今天读懂了什么？（可选，会写进这个学习日的记录）">
-        <span class="muted">只有真实作答/精读/阅读会话才会被算作完成；写摘要本身不算证据。</span>
+        <span class="muted">只有真的作答、精读或读完一整段才算完成；写一句摘要本身不算。</span>
       </div>
       ${!ready.ok && stage !== 'completed' && stage !== 'abandoned' ? `<div class="callout warn">还不能开始：${esc(ready.missing.join('；'))}</div>` : ''}
     </section>
@@ -208,32 +208,32 @@ export function unitPage(input: {
       ${anchor ? `<p><b>${esc(anchor.title)}</b> · ${anchor.wordCount} 词 · ${esc(PROVENANCE_LABEL[unit.anchorProvenance ?? 'unknown'] ?? '')}</p>
         <p class="muted">${esc(anchor.topic || '')} ${anchor.difficulty ? `· 难度：${esc(anchor.difficulty)}` : ''} ${unit.anchorSnapshotRef ? `· 快照 ${esc(unit.anchorSnapshotRef)}` : ''}</p>
         <button data-unit-open-reading="${esc(anchor.id)}">打开 Anchor</button>`
-        : '<p>还没有绑定真实材料。AI 生成文章不能作为 Anchor。</p>'}
+        : '<p>还没有绑定材料。AI 写的文章不能当材料。</p>'}
     </section>
     <section class="panel">
-      <div class="section-title">目标词汇与语法</div>
+      <div class="section-title">要学的词和语法</div>
       <div class="ai-targets"><span class="muted">目标词（${unit.targetWords.length}）：</span>${unit.targetWords.map(w => `<span class="chip ${evidence.wordsIndependent.includes(w) ? 'ok' : evidence.wordsCovered.includes(w) ? '' : 'warn'}">${esc(w)}</span>`).join('') || '<span class="muted">无</span>'}</div>
       <ul class="unit-grammar">${(unit.grammarTargets ?? unit.targetGrammar.map(id => ({ conceptId: id, name: id, status: 'candidate' as const, evidence: '' }))).map(g => `<li><b>${esc(g.name)}</b> <span class="pill ${g.status === 'candidate' ? 'warn' : ''}">${g.status === 'verified' ? '材料中已核验' : '候选'}</span><div class="muted">${esc(g.evidence)}</div></li>`).join('') || '<li class="muted">无</li>'}</ul>
     </section>
     ${focusHtml}
     <section class="panel">
       <div class="section-title">已完成的学习日</div>
-      ${history ? `<ul class="unit-history">${history}</ul>` : '<p class="muted">还没有完成任何学习日。完成一天需要至少一条真实活动证据。</p>'}
+      ${history ? `<ul class="unit-history">${history}</ul>` : '<p class="muted">还没有完成任何一天。完成一天至少要有一条真实练习记录。</p>'}
     </section>
     <section class="panel">
-      <div class="section-title">当前状态（来自真实记录）</div>
+      <div class="section-title">现在的进度</div>
       <div class="metrics">
-        ${metric('目标词覆盖', `${evidence.wordsCovered.length}/${unit.targetWords.length}`)}
-        ${metric('独立回忆', String(evidence.independentRecall))}
+        ${metric('目标词', `${evidence.wordsCovered.length}/${unit.targetWords.length}`)}
+        ${metric('自己想起来的', String(evidence.independentRecall))}
         ${metric('句子作答', String(evidence.sentenceAttempts))}
         ${metric('阅读会话', String(evidence.anchorSessions.length + evidence.transferSessions.length))}
         ${metric('AI 材料', String(evidence.generations.length))}
-        ${metric('真实媒体（曝光）', evidence.mediaSessions?.length ? `${evidence.mediaSessions.length} 次 · ${evidence.mediaMinutes ?? 0} 分钟` : '0')}
-        ${metric('真实表达', evidence.outputAttempts?.length ? `${evidence.outputAttempts.length} 次` : '0')}
+        ${metric('看过的材料', evidence.mediaSessions?.length ? `${evidence.mediaSessions.length} 次 · ${evidence.mediaMinutes ?? 0} 分钟` : '0')}
+        ${metric('写作', evidence.outputAttempts?.length ? `${evidence.outputAttempts.length} 次` : '0')}
       </div>
       ${evidence.obstacles.length ? `<p><b>未解决：</b>${evidence.obstacles.map(o => esc(o)).join('；')}</p>` : '<p class="muted">暂无记录的未解决障碍</p>'}
       ${unit.baseline ? `<p class="muted">冷测基线：${new Date(unit.baseline.at).toLocaleString('zh-CN')} · 来源 ${unit.baseline.source === 'cold_test' ? '真实冷测' : '估计'}${unit.baseline.comprehension === null ? '' : ` · 理解 ${Math.round(unit.baseline.comprehension * 100)}%`}</p>` : '<p class="muted">还没有冷测基线：Day 1 的冷测必须在详细预教之前完成。</p>'}
-      ${unit.transfer ? `<p class="muted">迁移记录：${unit.transfer.materialKind === 'authentic' ? '真实新材料' : 'AI 强化材料'} · ${unit.transfer.independent ? '独立完成' : '有辅助'} · 材料 ${esc(input.data.passages.find(p => p.id === unit.transfer?.passageId)?.title ?? '已删除')}</p>` : ''}
+      ${unit.transfer ? `<p class="muted">换场景记录：${unit.transfer.materialKind === 'authentic' ? '真实新材料' : 'AI 练习材料'} · ${unit.transfer.independent ? '独立完成' : '有辅助'} · 材料 ${esc(input.data.passages.find(p => p.id === unit.transfer?.passageId)?.title ?? '已删除')}</p>` : ''}
     </section>
     ${evalHtml}`;
 }
@@ -249,11 +249,11 @@ export function anchorPicker(input: {
         .filter(p => p.sourceType !== 'ai' && p.sourceType !== 'ai_reinforcement')
         .sort((a, b) => b.createdAt - a.createdAt)
         .slice(0, 20);
-    return `<h2>选择真实 Anchor 材料</h2>
+    return `<h2>选一份真实材料</h2>
     <p class="muted">只列出阅读库中的真实材料；AI 生成文章不会出现在这里。</p>
     ${rows.length ? `<ul class="unit-anchors">${rows.map(p => `<li>
         <div><b>${esc(p.title)}</b><div class="muted">${p.wordCount} 词 · ${esc(p.topic || '未标主题')} · ${esc(PROVENANCE_LABEL[provenanceLabelKey(p.sourceType)] ?? '')}</div></div>
-        <button data-unit-anchor="${esc(p.id)}">用它作为 Anchor</button></li>`).join('')}</ul>`
+        <button data-unit-anchor="${esc(p.id)}">用这份材料</button></li>`).join('')}</ul>`
         : '<p>阅读库还没有真实材料。先去「阅读」页导入一篇。</p>'}`;
 }
 function provenanceLabelKey(sourceType: string): string {

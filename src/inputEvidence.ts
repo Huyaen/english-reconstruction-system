@@ -99,6 +99,6 @@ export function inputAnalytics(data: Data, now = Date.now()) {
         captions, difficultyReasons: reasons, comprehensionSeries, modeDistribution, unitMinutes, recentTopics,
         transcriptReading,
         evidenceCount: (data.inputEvidence ?? []).length,
-        note: '全部时长与理解度均为用户自报；观看与自评不构成掌握证据。',
+        note: '时长和理解度都是你自己填的；看过、自评过，都不算掌握。',
     };
 }

@@ -28,7 +28,7 @@ export function planExamTask(args: {
     return {
         minutes: Math.min(10, Math.max(5, pick.estimatedTimeMinutes)),
         itemId: pick.id,
-        label: '考试迁移练习 · 1 题',
+        label: '考试练习 · 1 题',
         reasons: ['exam-fresh-item', args.preferredSkill ? `exam-focus-${args.preferredSkill}` : 'exam-mixed', 'exam-optional'],
     };
 }

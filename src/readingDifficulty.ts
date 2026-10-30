@@ -96,7 +96,7 @@ export function estimateReadingDifficulty(input: {
     if (unknown + uncertain > 0)
         reasons.push(`可能陌生约 ${Math.round(estimatedUnknownRate * 100)}%（其中已确认不会 ${unknown} 词）`);
     if (noEvidenceRate > 0)
-        reasons.push(`另有 ${Math.round(noEvidenceRate * 100)}% 的词不在词库里——这不等于你不会，只是还没有证据`);
+        reasons.push(`另有 ${Math.round(noEvidenceRate * 100)}% 的词不在词库里——这不等于你不会，只是还没学过`);
     reasons.push(`平均句长 ${avgSentenceLength.toFixed(1)} 词，从句密度 ${depthAvg.toFixed(1)}`);
     if (grammarWeak > 0)
         reasons.push(`当前有 ${grammarWeak} 个语法概念被标记为薄弱，可能放大长句难度`);
@@ -107,7 +107,7 @@ export function estimateReadingDifficulty(input: {
     else if (vocabSize >= 150 && evidenceDensity >= 0.5)
         confidence = 'medium';
     if (confidence === 'low')
-        reasons.push('词库证据还很稀疏，难度只是粗略估计（首次使用尤其明显）');
+        reasons.push('词库里的记录还很少，难度只是粗略估计（第一次用尤其明显）');
     let classification: ReadingDifficultyReport['classification'] = 'too-hard';
     if (knownCoverage >= 0.9)
         classification = 'comfort';

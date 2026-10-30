@@ -29,13 +29,13 @@ export function inputHubPage(input: HubInput): string {
     const returnBanner = active
         ? `<section class="panel today-return"><div><b>继续上次输入</b><p class="muted">${esc(active.title)} · ${esc(active.topic)} · ${active.status === 'paused' ? '已暂停' : '进行中'}</p></div><button class="primary" data-input-open="${esc(active.id)}">继续</button></section>`
         : input.recent[0]
-            ? `<section class="panel today-return"><div><b>今日回归</b><p class="muted">上次完成：${esc(input.recent[0].title)}（${date(input.recent[0].completedAt ?? 0)}）。想再来一次，或换一个真实材料？</p></div><button data-input-open="${esc(input.recent[0].id)}">查看记录</button></section>`
+            ? `<section class="panel today-return"><div><b>今天还有一段没填完</b><p class="muted">上次完成：${esc(input.recent[0].title)}（${date(input.recent[0].completedAt ?? 0)}）。想再来一次，或换一个真实材料？</p></div><button data-input-open="${esc(input.recent[0].id)}">查看记录</button></section>`
             : '';
     const cards = input.candidates.length
         ? input.candidates.map(c => `
         <article class="panel input-card" data-candidate="${esc(c.sourceId)}">
           <b>${esc(c.title)}</b>
-          <div class="input-reason">${FACT_PILL(c.reasonZh + ' · ' + c.reasonTag, c.exploration ? 'warn' : '')}</div>
+          <div class="input-reason">${FACT_PILL(c.reasonZh, c.exploration ? 'warn' : '')}</div>
           <p class="muted">${c.facts.map(f => esc(f)).join(' · ')}</p>
           ${c.repeat ? '<p class="muted">⚠ 最近完成过这份材料：已降权，避免重复。</p>' : ''}
           <div class="actions">
@@ -44,7 +44,7 @@ export function inputHubPage(input: HubInput): string {
             <button class="text-button" data-input-library="${esc(c.sourceId)}">收藏</button>
           </div>
         </article>`).join('')
-        : `<section class="panel"><b>还没有真实材料</b><p class="muted">Input Hub 不生成假视频：先添加一个你真正想看的链接（任何主题都可以，不需要和兴趣一致）。</p></section>`;
+        : `<section class="panel"><b>还没有真实材料</b><p class="muted">这里不会给你塞视频。先加一个你真的想看的链接，什么主题都行，不用和兴趣一致。</p></section>`;
     const libRows = input.library.length
         ? input.library.map(i => `
         <div class="library-row" data-library-row="${esc(i.id)}">
@@ -56,18 +56,18 @@ export function inputHubPage(input: HubInput): string {
             <button class="text-button danger-text" data-library-delete="${esc(i.id)}">删除</button>
           </div>
         </div>`).join('')
-        : '<p class="muted">Library 还是空的。添加材料后会自动出现在这里。</p>';
+        : '<p class="muted">收藏夹还是空的。加过的材料会自动出现在这里。</p>';
     return `
-    <div class="page-title"><div><div class="eyebrow">REAL INPUT</div><h1>真实输入</h1><p>看你真正想看的英文内容，记录看得怎么样——不是每段视频都要做题。</p></div></div>
+    <div class="page-title"><div><div class="eyebrow">输入练习</div><h1>输入练习</h1><p>看你真正想看的英文内容，记录看得怎么样——不是每段视频都要做题。</p></div></div>
     ${returnBanner}
     <section class="panel">
-      <div class="section-title">推荐媒体 <small class="muted">目标：${esc(input.target)}｜兴趣只影响排序，不影响材料能否进入系统</small></div>
+      <div class="section-title">推荐媒体 <small class="muted">今天的目标：${esc(input.target)}｜兴趣只影响顺序，不影响能不能用</small></div>
       ${input.note ? `<p class="muted">${esc(input.note)}</p>` : ''}
       <div class="input-grid">${cards}</div>
       <p class="muted">兴趣画像：${input.interestLabels.length ? input.interestLabels.map(l => `<span class="chip">${esc(l)}</span>`).join('') : '未设置（推荐仍可用，只是不做个性化）'} <button class="text-button" data-input-goto-interest>管理兴趣</button></p>
     </section>
     <section class="panel">
-      <div class="section-title">添加真实材料</div>
+      <div class="section-title">添加材料</div>
       <div class="form-grid">
         <label>链接<input id="input-url" placeholder="https://www.youtube.com/watch?v=... / https://www.bilibili.com/video/BV..." autocomplete="off"></label>
         <label>标题<input id="input-title" placeholder="例如：Rome: Engineering an Empire" maxlength="200"></label>
@@ -77,7 +77,7 @@ export function inputHubPage(input: HubInput): string {
         <label>类型<select id="input-content-type">${[['', '自动判断'], ['youtube', 'YouTube'], ['bilibili', 'Bilibili'], ['online_video', '在线视频'], ['documentary', '纪录片'], ['esports', '电竞'], ['game_content', '游戏内容'], ['series_clip', '剧集片段'], ['article', '文章'], ['other', '其他']].map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select></label>
       </div>
       <p class="muted">只保存链接与你自己填写的信息：不抓取视频、不猜字幕/时长/语言。标题和时长都可以之后改。</p>
-      <button class="primary" data-input-add>加入 Input Hub</button>
+      <button class="primary" data-input-add>加入材料库</button>
     </section>
     <section class="panel">
       <div class="section-title">My English Library</div>
@@ -90,7 +90,7 @@ export function inputHubPage(input: HubInput): string {
       <div class="library-list">${libRows}</div>
     </section>
     <section class="panel">
-      <div class="section-title">输入统计 <small class="muted">全部时长与理解度均为用户自报</small></div>
+      <div class="section-title">输入情况 <small class="muted">时长和理解度都是你自己填的</small></div>
       <div class="stat-row">
         ${[['完成的输入', input.analytics.completedSessions], ['未完成', input.analytics.unfinishedSessions], ['自报时长', input.analytics.reportedMinutes + ' 分钟'], ['字幕阅读', input.analytics.transcriptReading]].map(([k, v]) => `<div class="stat"><span class="muted">${k}</span><b>${v}</b></div>`).join('')}
       </div>
@@ -114,8 +114,8 @@ export function inputSessionPage(input: SessionPageInput): string {
     const baseline = s.baseline;
     const stats = input.transcript ? transcriptStats(input.transcript) : null;
     return `
-    <div class="page-title"><div><div class="eyebrow">INPUT SESSION</div><h1>${esc(s.title)}</h1><p>${esc(s.topic)} · ${s.durationMinutes ? s.durationMinutes + ' 分钟' : '时长未知'} · 计划 ${s.plannedMinutes ?? '—'} 分钟 · 状态 ${status}</p></div>
-      <button class="secondary" data-input-back>返回 Input Hub</button></div>
+    <div class="page-title"><div><div class="eyebrow">这次输入</div><h1>${esc(s.title)}</h1><p>${esc(s.topic)} · ${s.durationMinutes ? s.durationMinutes + ' 分钟' : '时长未知'} · 计划 ${s.plannedMinutes ?? '—'} 分钟 · 状态 ${status}</p></div>
+      <button class="secondary" data-input-back>返回材料库</button></div>
     <section class="panel">
       <div class="actions">
         <a class="button primary" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer" data-input-external>在外部打开并观看</a>
@@ -123,12 +123,12 @@ export function inputSessionPage(input: SessionPageInput): string {
         ${status === 'active' ? '<button class="secondary" data-session-pause>暂停</button>' : status === 'paused' ? '<button class="secondary" data-session-resume>继续</button>' : ''}
         ${status !== 'completed' && status !== 'abandoned' ? '<button class="text-button danger-text" data-session-abandon>放弃这次</button>' : ''}
       </div>
-      <p class="muted">播放由平台负责；应用只记录你回来填写的内容。观看时长只有“用户自报”，不会伪装成平台进度。</p>
+      <p class="muted">播放器是平台的，这里只记你回来填的内容。观看时长由你自己填，不会假装是平台统计的。</p>
     </section>
     ${!baseline || (baseline.status !== 'recorded' && baseline.status !== 'skipped') ? `
     <section class="panel">
       <div class="section-title">冷测（第一次观看前，1–2 分钟）</div>
-      <p class="muted">先看 1–2 分钟真实视频，再填写。允许跳过；跳过会记 no_baseline，不会用正式观看后的自评反填。</p>
+      <p class="muted">先看 1–2 分钟真实视频，再填写。可以跳过；跳过就记为“没有基线”，不会拿看完之后的感受倒填。</p>
       <div class="form-grid">
         <label>字幕模式<select id="baseline-caption">${captionOptions(baseline?.captionMode ?? 'none')}</select></label>
         <label>大概听懂（%）<input id="baseline-comprehension" type="number" min="0" max="100" value="40"></label>
@@ -153,21 +153,21 @@ export function inputSessionPage(input: SessionPageInput): string {
       ${s.mode === 'standard' ? `<label>英文总结（3–5 句，保存原文；不做内容事实评分）<textarea id="refl-summary" rows="4">${esc(refl?.summary ?? '')}</textarea></label>` : ''}
       ${s.mode === 'deep' ? `
         <label>Main Idea<input id="refl-main" value="${esc(refl?.mainIdea ?? '')}"></label>
-        <label>Three Key Points（每行一个）<textarea id="refl-points" rows="4">${esc((refl?.keyPoints ?? []).join('\n'))}</textarea></label>
+        <label>三个要点（每行一个）<textarea id="refl-points" rows="4">${esc((refl?.keyPoints ?? []).join('\n'))}</textarea></label>
         <label>Personal Opinion<input id="refl-opinion" value="${esc(refl?.opinion ?? '')}"></label>
         <label>Short Retelling<textarea id="refl-retelling" rows="3">${esc(refl?.retelling ?? '')}</textarea></label>` : ''}
       <div class="actions">
         <button class="primary" data-refl-save>保存复盘</button>
         <button class="secondary" data-session-complete>完成这次输入</button>
       </div>
-      <p class="muted">Light 只产生有限自评证据；Standard/Deep 的总结属于产出记录，不是掌握证明。</p>
+      <p class="muted">轻量复盘只有你的自评；标准或深度模式里的总结算写作记录，不等于掌握。</p>
     </section>
     <section class="panel">
       <div class="section-title">字幕（可选） <small class="muted">只解析你自己提供的文件</small></div>
       ${input.transcript
         ? `<p class="muted">已导入 ${input.transcript.cues.length} 条字幕 · ${stats?.durationMinutes ?? 0} 分钟 · 时间轴 ${input.transcript.timed ? '有' : '无'} · 来源 ${esc(input.transcript.provenance)}</p>
            <div class="actions">
-             <button class="secondary" data-transcript-reading>送入 Reading Lab</button>
+             <button class="secondary" data-transcript-reading>送到阅读里练</button>
              <button class="text-button" data-transcript-sentences>查看难句候选</button>
            </div>
            ${input.candidates.length ? `<ul class="transcript-cues">${input.candidates.map((c, i) => `<li><span class="cue-time">${formatTimestamp(c.startMs)}</span><span class="cue-text">${esc(c.text)}</span> <button class="text-button" data-sentence-pick="${i}">送入句法练习</button></li>`).join('')}</ul>` : ''}`
@@ -180,8 +180,8 @@ export function inputSessionPage(input: SessionPageInput): string {
       </div>
       <button class="secondary" data-transcript-import>导入字幕</button>
     </section>
-    ${s.status === 'completed' ? `<section class="panel"><b>已完成</b><p class="muted">${date(s.completedAt ?? 0)} · 自报 ${s.reportedWatchedMinutes ?? 0} 分钟 · 模式 ${s.reflection?.mode ?? s.mode} · 完成度 ${Math.round((s.reflection?.completion ?? 0) * 100)}%</p><p class="muted">证据：观看曝光（低置信度）+ 自评${s.reflection?.summary ? ' + 产出' : ''}。不会自动提高听力或词汇掌握。</p></section>` : ''}
-    ${s.miniUnitId ? `<section class="panel"><b>关联 Mini Unit</b><p class="muted">这次输入已计入 ${esc(s.miniUnitId)} 的输入记录，但不构成 verified transfer。</p></section>` : ''}`;
+    ${s.status === 'completed' ? `<section class="panel"><b>已完成</b><p class="muted">${date(s.completedAt ?? 0)} · 自报 ${s.reportedWatchedMinutes ?? 0} 分钟 · 模式 ${s.reflection?.mode ?? s.mode} · 完成度 ${Math.round((s.reflection?.completion ?? 0) * 100)}%</p><p class="muted">记下的只有：看过的记录 + 你的自评${s.reflection?.summary ? ' + 写下的总结' : ''}。这不会自动提高听力或词汇掌握。</p></section>` : ''}
+    ${s.miniUnitId ? `<section class="panel"><b>关联 单元</b><p class="muted">这次输入记到了 ${esc(s.miniUnitId)} 的单元里，但只算参与，不算已经会迁移。</p></section>` : ''}`;
 }
 function captionOptions(current: string): string {
     return [['none', '无字幕'], ['en', '英文字幕'], ['zh', '中文字幕'], ['other', '其他语言']].map(([v, t]) => `<option value="${v}" ${current === v ? 'selected' : ''}>${t}</option>`).join('');

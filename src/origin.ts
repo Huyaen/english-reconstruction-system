@@ -33,6 +33,6 @@ export function originNotice(currentOrigin: string = typeof location === 'undefi
     }
     const message = same
         ? `当前已使用推荐地址 ${target}。学习数据保存在这个地址下。`
-        : `当前地址是 ${current}，推荐固定使用 ${target}。浏览器把不同协议、主机名或端口视为不同存储空间；从 ${current} 打开看不到 ${target} 下的数据，反过来也一样。不要在两个地址之间来回切换，也不要在未导出备份时直接清空或迁移。`;
+        : `当前地址是 ${current}，推荐固定使用 ${target}。浏览器把不同协议、主机名或端口视为不同存储空间；从 ${current} 打开看不到 ${target} 下的数据，反过来也一样。别在两个地址之间来回切换，也别在还没导出备份的时候清空数据或换地址。`;
     return { current, canonical: target, same, hostDifferent, message };
 }

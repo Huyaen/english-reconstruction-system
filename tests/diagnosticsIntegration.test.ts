@@ -74,5 +74,5 @@ test('payload 里没有单一英语总分字段', () => {
     assert.equal((payload as unknown as {
         score?: number;
     }).score, undefined);
-    assert.ok(payload.disclaimer.includes('不构成'));
+    assert.ok(payload.disclaimer.includes('英语总分'));
 });

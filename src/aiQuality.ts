@@ -140,7 +140,7 @@ export function checkReadingQuality(v: ReadingTarget, ctx: ReadingQualityContext
     });
     // 题目证据必须逐字来自正文（validator 已查一遍，这里再作为独立检查留痕）
     const badEvidence = v.exercises.filter(e => !normalizeForCompare(v.passage).includes(normalizeForCompare(e.evidenceQuote)));
-    checks.push({ id: 'attribution', label: '题目证据可回溯', blocking: true, ok: badEvidence.length === 0, detail: badEvidence.length ? `${badEvidence.length} 题证据不在正文里` : `${v.exercises.length} 题证据全部逐字来自正文` });
+    checks.push({ id: 'attribution', label: '题目都能对上原文', blocking: true, ok: badEvidence.length === 0, detail: badEvidence.length ? `${badEvidence.length} 题对不上正文` : `${v.exercises.length} 题都能在正文里找到原句` });
     const badAnswers = v.exercises.filter(e => !Number.isInteger(e.answerIndex) || e.answerIndex < 0 || e.answerIndex > 3 || new Set(e.options.map(o => o.toLowerCase())).size !== 4);
     checks.push({ id: 'schema', label: '答案键一致', blocking: true, ok: badAnswers.length === 0, detail: badAnswers.length ? `${badAnswers.length} 题答案/选项有问题` : '答案键与选项一致' });
     const band = bandOfSentence(v.passage.slice(0, 400));

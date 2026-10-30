@@ -2,14 +2,14 @@
   "project": "English Reconstruction System V2",
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
-  "current_phase": "phase_15h4_quiz_state_hotfix",
+  "current_phase": "phase16_ux_writing",
   "phase_status": "delivered on branch, awaiting final visual acceptance",
-  "last_updated": "2026-10-29",
-  "last_verified_commit": "6ada55b",
+  "last_updated": "2026-10-30",
+  "last_verified_commit": "HEAD",
   "baseline_tag": "phase15h1-semantics",
   "database_version": 7,
   "build_status": "tsc 0 / build 0 / build:test 0",
-  "test_status": "398/398 pass (395 baseline + 3 real integration regressions)",
+  "test_status": "398/398 pass",
   "tasks": {
     "phase0_audit_001": {
       "status": "passed",
@@ -680,6 +680,35 @@
         "phase3-13 回归全绿",
         "生产包 hooks grep 0",
         "long-session 80 cycles heap +0.16MB（加速观测，非 4h）"
+      ]
+    },
+    "phase16_ux_writing_004": {
+      "status": "delivered",
+      "description": "Phase 16 全站界面文案重写：建立文案清单与真实界面抓取双证据源，写文案规范与替换台账，改完 14 个页面 + 5 个训练态 + 对话框的标题/按钮/说明/空状态/错误/toast/表单标签/aria-label/placeholder；不改学习材料、算法与视觉系统。",
+      "files": [
+        "docs/PHASE16_UX_WRITING_GUIDE.md",
+        "docs/PHASE16_COPY_CHANGELOG.md",
+        "docs/PHASE16_TEST_REPORT.md",
+        "scripts/phase16-copy-audit.mjs",
+        "scripts/phase16-capture-copy.mjs",
+        "scripts/phase16-copy-diff.mjs",
+        "scripts/phase16-prod-accept.mjs",
+        "scripts/phase16-forbidden-scan.mjs",
+        "screenshots/phase16/copy-inventory.json",
+        "screenshots/phase16/copy-live-dark.json",
+        "screenshots/phase16/copy-after-dark.json",
+        "screenshots/phase16/copy-after-light.json",
+        "screenshots/phase16/copy-diff.json",
+        "screenshots/phase16/prod/prod-accept.json"
+      ],
+      "tests": [
+        "npx tsc --noEmit = 0",
+        "npm test 398/398 pass",
+        "npm run build / build:test = 0",
+        "静态禁用词扫描 112 文件 0 命中；真实 DOM dark/light 0 命中",
+        "prod-accept：84 视图（14 页 × 3 宽度 × 2 主题），横向溢出 0，控制台报错 0，真实导入 32 词",
+        "contrast PROTO=d 225/0 dark + 225/0 light",
+        "phase15h1-live-a11y 11/11；mobile-audit PASS；reduced-motion OK"
       ]
     }
   },

@@ -50,7 +50,7 @@ export function buildTransferTask(original: OutputTaskSpec, input: {
     return {
         task,
         strength: sameTopic ? 'weak' : 'strong',
-        notes: sameTopic ? ['语境与主题过于接近：这次迁移证据只能算弱证据。'] : ['不同语境 + 不同内容：独立完成才算强迁移证据。'],
+        notes: sameTopic ? ['场景和主题太像：这次只能算弱一点的检验。'] : ['换了场景和内容：自己写完才算真的会用。'],
     };
 }
 /** 延迟产出：D1/D7 再表达一次相关但不同的意思；不展示原答案 */

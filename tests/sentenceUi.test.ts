@@ -94,7 +94,7 @@ test('Phase 4 UI：句子训练全流程（拆句 → 反馈/JIT → 独立证�
         click(w, '[data-nav="sentence"]');
         await until(w, () => !!w.document.querySelector('#sentence-page'), 'sentence page');
         const page = w.document.querySelector('#sentence-page')!.textContent!;
-        assert.ok(page.includes('人工教学句'), '句源必须明示 authored 教学句');
+        assert.ok(page.includes('练习句'), '句源必须明示 authored 教学句');
         assert.ok(page.includes('不会伪造'), 'AI 未配置时不得声称有 AI 句');
         assert.equal(w.document.querySelectorAll('[data-sentence-start]').length >= 12, true, '句库应有 12 条教学句');
         // 1) 独立完成：定语从句句
@@ -107,7 +107,7 @@ test('Phase 4 UI：句子训练全流程（拆句 → 反馈/JIT → 独立证�
         assert.equal(w.document.querySelector('#main')!.textContent!.includes('我读的那本书'), false);
         await answerSentence(w, 'sen.curated.relative-01');
         const result = w.document.querySelector('#main')!.textContent!;
-        assert.ok(result.includes('独立完成') && result.includes('计入掌握估算'));
+        assert.ok(result.includes('自己答对') && result.includes('会算进掌握'));
         assert.ok(result.includes('结构树'));
         const tokens = [...w.document.querySelectorAll('#lab-tree .token b')].map(e => e.textContent);
         // 结构树按"主句骨架 → 从句"分组（就是拆句顺序），组内保持原词序
@@ -136,10 +136,10 @@ test('Phase 4 UI：句子训练全流程（拆句 → 反馈/JIT → 独立证�
         await until(w, () => !!w.document.querySelector('#lab-sentence'), 'transfer sentence');
         const transferText = w.document.querySelector('#lab-sentence')!.textContent!;
         assert.ok(transferText.length > 5 && !transferText.includes('The report'));
-        assert.ok(w.document.querySelector('#main')!.textContent!.includes('迁移'));
+        assert.ok(w.document.querySelector('#main')!.textContent!.includes('这句结构一样'));
         const transferId = POOL.find(p => transferText.includes(p.text))!.id;
         await answerSentence(w, transferId);
-        assert.ok(w.document.querySelector('#main')!.textContent!.includes('迁移正确'));
+        assert.ok(w.document.querySelector('#main')!.textContent!.includes('换一句也答对'));
         const attempts2 = await idbRows(w, 'sentenceAttempts');
         assert.equal(attempts2.length, 2);
         assert.equal(attempts2[1].transferOf, 'sen.curated.relative-01', '迁移复测必须记录来源句');
@@ -150,8 +150,8 @@ test('Phase 4 UI：句子训练全流程（拆句 → 反馈/JIT → 独立证�
         await until(w, () => !!w.document.querySelector('#lab-sentence'), 'third sentence');
         await answerSentence(w, 'sen.curated.adverbial-01', { wrongStep: 0 });
         const wrongResult = w.document.querySelector('#main')!.textContent!;
-        assert.ok(wrongResult.includes('独立作答错误'), '答错必须如实分级');
-        assert.ok(wrongResult.includes('计入掌握估算'), '独立错误应作为负证据影响估算');
+        assert.ok(wrongResult.includes('自己答错了'), '答错必须如实分级');
+        assert.ok(wrongResult.includes('会算进掌握'), '独立错误应作为负证据影响估算');
         const attempts3 = await idbRows(w, 'sentenceAttempts');
         assert.equal(attempts3.length, 3);
         assert.equal(attempts3[2].structureCorrect, false);
@@ -164,8 +164,8 @@ test('Phase 4 UI：句子训练全流程（拆句 → 反馈/JIT → 独立证�
         await until(w, () => !!w.document.querySelector('#lab-sentence'), 'fourth sentence');
         await answerSentence(w, 'sen.curated.passive-01', { hints: 3 });
         const hinted = w.document.querySelector('#main')!.textContent!;
-        assert.ok(hinted.includes('不计入掌握'), '看答案必须明确不计入掌握');
-        assert.ok(hinted.includes('已接触'));
+        assert.ok(hinted.includes('不算掌握'), '看答案必须明确不计入掌握');
+        assert.ok(hinted.includes('看过解释'));
         const afterAll = await idbRows(w, 'grammarConcepts');
         const touched = beforeAll.filter(b => afterAll.find(a => a.id === b.id)!.attempts > b.attempts);
         assert.ok(touched.length >= 1, '接触次数仍应记录');
@@ -178,8 +178,8 @@ test('Phase 4 UI：句子训练全流程（拆句 → 反馈/JIT → 独立证�
         await until(w, () => !!w.document.querySelector('#grammar-page'), 'grammar page');
         assert.ok(w.document.querySelectorAll('[data-concept]').length >= 30);
         const grammarText = w.document.querySelector('#grammar-page')!.textContent!;
-        assert.ok(grammarText.includes('语法图谱'));
-        assert.ok(grammarText.includes('图谱自检：通过'), '图谱必须自检通过（无环、无缺失先修）');
+        assert.ok(grammarText.includes('把句子拆开看'));
+        assert.ok(grammarText.includes('概念之间的关系检查通过'), '图谱必须自检通过（无环、无缺失先修）');
         assert.ok(grammarText.includes('需要优先处理'), '有错误的概念必须进入优先处理列表');
         click(w, '[data-concept="clause.relative"]');
         await until(w, () => !!w.document.querySelector('#concept-detail'), 'concept detail');
@@ -187,7 +187,7 @@ test('Phase 4 UI：句子训练全流程（拆句 → 反馈/JIT → 独立证�
         assert.ok(detail.includes('定语从句'));
         assert.ok(detail.includes('先修'));
         assert.ok(detail.includes('知识卡'));
-        assert.ok(detail.includes('最近证据'));
+        assert.ok(detail.includes('最近练过'));
         assert.ok(detail.includes('真实训练句'));
         assert.ok(w.document.querySelectorAll('[data-sentence-start]').length >= 1, '概念页应能跳到真实训练句');
     }

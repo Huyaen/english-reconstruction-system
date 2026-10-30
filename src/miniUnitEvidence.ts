@@ -1,4 +1,4 @@
-// —— Phase 7：Mini Unit 证据汇总（只读真实记录，不做推断式“加分”）——
+// —— Phase 7：单元 证据汇总（只读真实记录，不做推断式“加分”）——
 // 证据口径：
 //  - 只统计 unit.startedAt 之后、且与单元目标/材料真实关联的记录；
 //  - 生成材料、预览、纯阅读曝光都不算独立掌握证据；
@@ -116,7 +116,7 @@ export function collectUnitEvidence(data: Data, unit: MiniUnit): UnitEvidenceSum
     const outputAttempts = unitOutputs.map(a => a.id);
     const outputIndependent = unitOutputs.filter(a => (a.productiveEvidence ?? []).some(e => e.independent && !e.copied)).length;
     for (const a of unitOutputs)
-        refs.push({ kind: 'output', id: a.id, at: a.completedAt ?? a.createdAt, note: '真实表达记录（不自动算完成学习日）' });
+        refs.push({ kind: 'output', id: a.id, at: a.completedAt ?? a.createdAt, note: '写作记录（不自动算完成学习日）' });
     const mediaMinutes = Math.round(media.reduce((n, s) => n + (s.reportedWatchedMinutes ?? 0), 0));
     const supportReduction = unit.dayHistory?.length
         ? 1 - (['high', 'medium', 'low'].indexOf(unit.dayHistory[unit.dayHistory.length - 1].supportLevel) / 2)

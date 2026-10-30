@@ -8,12 +8,12 @@ import type { SentenceRecord, SentenceSourceType } from './types.ts';
 import { STRUCTURE_VERSION, heuristicStructure, tokenize, type ClauseKind, type SentenceStructure, type StructureClause, type StructureRole, type StructureToken } from './sentenceStructure.ts';
 export const CURATED_ATTRIBUTION = '本应用作者撰写的教学句（authored）· 非外部语料，不代表任何文章原句';
 export const SOURCE_LABELS: Record<SentenceSourceType, string> = {
-    curated: '人工教学句（authored）',
-    user: '你自己输入的真实句',
-    saved: '你保存的难句',
-    'real-material': '真实材料句',
-    reading: '阅读模块交接句',
-    ai: 'AI 定制句（未上线）',
+    curated: '练习句（为练语法写的）',
+    user: '你自己加的句子',
+    saved: '你收藏的难句',
+    'real-material': '真实材料里的句子',
+    reading: '从阅读带过来的句子',
+    ai: 'AI 生成的句子（还没上线）',
 };
 export const TARGET_SOURCE_MIX = { ai: 0.4, user: 0.4, real: 0.2 } as const;
 // —— gold 结构构造器：以紧凑声明生成可校验结构，避免手工维护 token 表 ——

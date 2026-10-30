@@ -1,9 +1,9 @@
-// —— Phase 7：Mini Unit 状态机与推进规则（纯函数，无 IO / 无 DOM）——
+// —— Phase 7：单元 状态机与推进规则（纯函数，无 IO / 无 DOM）——
 // 设计约束：
 // 1) 旧字段 status（active/completed/extended/abandoned）保持不变，备份兼容；
 //    stage 只做细粒度表达，写入时两者保持一致。
 // 2) 所有转换都有前置条件；重复事件幂等（不重复写 dayLog/证据）。
-// 3) 完成判定必须基于真实证据；缺证据时只能降级为 limited_evidence。
+// 3) 完成判定必须基于真实记录；缺证据时只能降级为 limited_evidence。
 import type { AnchorProvenance, MiniUnit, MiniUnitDayRecord, MiniUnitStage, Passage, UnitCompletionEvaluation, UnitCompletionMetrics, UnitDayKind, UnitEvidenceSummary, UnitSupportLevel } from './types.ts';
 export const UNIT_RULES = {
     plannedDays: 3,
@@ -141,16 +141,16 @@ export function nextDay(unit: MiniUnit): number {
 export function plannedDays(unit: MiniUnit): number {
     return unit.plannedDays ?? UNIT_RULES.plannedDays;
 }
-/** Ready 的硬条件：真实 Anchor + 目标词 + 目标语法（没有这些就不是可执行的 Unit） */
+/** Ready 的硬条件：你自己的材料 + 目标词 + 目标语法（没有这些就不是可执行的 Unit） */
 export function readiness(unit: MiniUnit): {
     ok: boolean;
     missing: string[];
 } {
     const missing: string[] = [];
     if (!unit.anchorMaterialId)
-        missing.push('缺少真实 Anchor 材料');
+        missing.push('缺少你自己的材料 材料');
     if (unit.anchorProvenance === 'ai_generated')
-        missing.push('AI 生成材料不能作为 Anchor');
+        missing.push('AI 生成材料不能作为 材料');
     if (!unit.targetWords.length)
         missing.push('缺少目标词汇');
     if (!(unit.grammarTargets?.length ?? unit.targetGrammar.length))
@@ -181,7 +181,7 @@ export function applyUnitEvent(unit: MiniUnit, event: UnitEvent): UnitTransition
     switch (event.type) {
         case 'attach-anchor': {
             if (event.provenance === 'ai_generated')
-                return { ok: false, error: 'missing-evidence', detail: 'AI 生成材料只能作为强化材料，不能作为 Anchor' };
+                return { ok: false, error: 'missing-evidence', detail: 'AI 生成材料只能作为强化材料，不能作为 材料' };
             const next = clone(unit);
             next.anchorMaterialId = event.passageId;
             next.anchorProvenance = event.provenance;
@@ -190,7 +190,7 @@ export function applyUnitEvent(unit: MiniUnit, event: UnitEvent): UnitTransition
             next.linkedPassageIds = [...new Set([...(next.linkedPassageIds ?? []), event.passageId])];
             next.stage = readiness(next).ok ? 'ready' : 'draft';
             next.status = 'active';
-            return { ok: true, unit: bump(next, event.now), kind: 'applied', note: '已绑定真实 Anchor' };
+            return { ok: true, unit: bump(next, event.now), kind: 'applied', note: '已绑定你自己的材料' };
         }
         case 'set-targets': {
             const next = clone(unit);
@@ -297,14 +297,14 @@ export function applyUnitEvent(unit: MiniUnit, event: UnitEvent): UnitTransition
                 confidence: 'low',
                 reasons: [event.reason || '用户放弃'],
                 evidenceRefs: [],
-                nextActions: ['可以从阅读库重新选择材料，开启新的 Mini Unit'],
+                nextActions: ['可以从阅读库重新选择材料，开启新的 单元'],
                 metrics: emptyMetrics(unit),
             };
             return { ok: true, unit: bump(next, event.now), kind: 'applied', note: '已放弃' };
         }
     }
 }
-/** 完成判定闸门：把“证据不足”的 verified 降级，绝不伪造掌握 */
+/** 完成判定闸门：把“记录不够”的 verified 降级，绝不伪造掌握 */
 export function guardDecision(unit: MiniUnit, evaluation: UnitCompletionEvaluation): UnitCompletionEvaluation {
     if (evaluation.decision !== 'completed_verified')
         return evaluation;
@@ -316,7 +316,7 @@ export function guardDecision(unit: MiniUnit, evaluation: UnitCompletionEvaluati
         ...evaluation,
         decision: 'completed_limited_evidence',
         confidence: 'low',
-        reasons: [...evaluation.reasons, '缺少真实新材料的独立迁移证据：只标为证据有限的完成，不算验证通过'],
+        reasons: [...evaluation.reasons, '缺少真实新材料的换场景练习的记录：只标为记录有限的完成，不算验证通过'],
         nextActions: [...evaluation.nextActions, '补一篇同主题真实文章做一次独立迁移，再重新评估'],
     };
 }
@@ -336,7 +336,7 @@ function emptyMetrics(unit: MiniUnit): UnitCompletionMetrics {
         completedLearningDays: completedDays(unit).length,
     };
 }
-/** Day 2 提前完成：必须有独立迁移证据，否则只是“想结束” */
+/** Day 2 提前完成：必须有换场景练习的记录，否则只是“想结束” */
 export function earlyCompletionCheck(unit: MiniUnit, ev: UnitEvidenceSummary): {
     allowed: boolean;
     reasons: string[];
@@ -344,20 +344,20 @@ export function earlyCompletionCheck(unit: MiniUnit, ev: UnitEvidenceSummary): {
     const reasons: string[] = [];
     const r = UNIT_RULES.earlyCompletion;
     if (ev.independentRecall < r.minIndependentRecall)
-        reasons.push(`独立回忆证据不足（${ev.independentRecall}/${r.minIndependentRecall} 个目标词）`);
+        reasons.push(`自己想起来的记录不足（${ev.independentRecall}/${r.minIndependentRecall} 个目标词）`);
     if (ev.grammar.filter(g => g.independent).length < r.minGrammarEvidence)
-        reasons.push('目标语法缺少独立作答证据');
+        reasons.push('目标语法缺少自己作答的记录');
     const comprehension = ev.supported?.comprehension ?? null;
     if (comprehension === null || comprehension < r.minComprehension)
         reasons.push(`支持后理解度未达标（${comprehension === null ? '无记录' : Math.round(comprehension * 100) + '%'}）`);
     const t = unit.transfer;
     if (!t || !t.independent)
-        reasons.push('还没有独立迁移证据');
+        reasons.push('还没有换场景练习的记录');
     if (t && t.materialKind !== 'authentic')
         reasons.push('迁移材料是 AI 强化材料，不能作为真实迁移依据');
     return { allowed: reasons.length === 0, reasons };
 }
-/** 完成评价：只根据真实证据算；缺证据 → confidence=low，不臆测 */
+/** 完成评价：只根据真实记录算；缺证据 → confidence=low，不臆测 */
 export function evaluateUnit(unit: MiniUnit, ev: UnitEvidenceSummary, now: number): UnitCompletionEvaluation {
     const targetTotal = unit.targetWords.length || ev.targetWordTotal;
     const covered = ev.wordsCovered.length;
@@ -387,7 +387,7 @@ export function evaluateUnit(unit: MiniUnit, ev: UnitEvidenceSummary, now: numbe
     let verifiedOk = true;
     if (independent < v.minIndependentRecall) {
         verifiedOk = false;
-        reasons.push(`独立回忆证据偏少（${independent} 个目标词）`);
+        reasons.push(`自己想起来的记录偏少（${independent} 个目标词）`);
         nextActions.push('对剩余目标词做一次独立回忆（不借助中文释义）');
     }
     if (ratio < v.minWordsCoveredRatio) {
@@ -398,7 +398,7 @@ export function evaluateUnit(unit: MiniUnit, ev: UnitEvidenceSummary, now: numbe
     const authenticTransfer = !!unit.transfer && unit.transfer.independent && unit.transfer.materialKind === 'authentic';
     if (!authenticTransfer) {
         verifiedOk = false;
-        reasons.push('缺少真实新材料的独立迁移证据');
+        reasons.push('缺少真实新材料的换场景练习的记录');
         nextActions.push('用同主题的另一篇真实文章做一次独立理解');
     }
     if (ev.translationDependence > v.maxTranslationDependence) {
@@ -411,7 +411,7 @@ export function evaluateUnit(unit: MiniUnit, ev: UnitEvidenceSummary, now: numbe
         nextActions.push('针对这些障碍安排一次针对性练习');
     }
     if (verifiedOk) {
-        reasons.push('目标词有独立回忆证据，目标语法有独立作答，真实新材料迁移完成');
+        reasons.push('目标词有自己想起来的记录，目标语法有独立作答，真实新材料迁移完成');
         nextActions.push('进入下一个主题，或把本单元标为已完成');
     }
     const decision = verifiedOk ? 'completed_verified' : 'completed_limited_evidence';
@@ -422,7 +422,7 @@ export function evaluateUnit(unit: MiniUnit, ev: UnitEvidenceSummary, now: numbe
         confidence = 'medium';
     return { at: now, decision, confidence, reasons, evidenceRefs: ev.refs.map(r => r.id), nextActions, metrics };
 }
-/** Anchor 是否适合本单元：真实材料 + 长度/难度可控；AI 材料只允许作为强化材料 */
+/** 材料 是否适合本单元：真实材料 + 长度/难度可控；AI 材料只允许作为强化材料 */
 export function anchorSuitability(passage: Passage, report: {
     difficulty: number;
     knownCoverage: number;
@@ -438,7 +438,7 @@ export function anchorSuitability(passage: Passage, report: {
     const reasons: string[] = [];
     const provenance = provenanceOf(passage);
     if (provenance === 'ai_generated')
-        return { ok: false, provenance, reasons: ['AI 生成材料不能作为 Anchor，只能作为强化材料'], recommendedDays: 0 };
+        return { ok: false, provenance, reasons: ['AI 生成材料不能作为 材料，只能作为强化材料'], recommendedDays: 0 };
     if (passage.wordCount > 1200) {
         reasons.push(`材料偏长（${passage.wordCount} 词），建议拆分或改用更短的一篇`);
     }

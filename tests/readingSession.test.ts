@@ -143,7 +143,7 @@ test('首读前不显示全文与译文，解释默认隐藏、需主动请求',
     assert.equal(preview.includes('memorising'), false, '预览不得泄露正文');
     assert.equal(preview.includes('阅读方法'), false, '预览阶段不得给出正文内容');
     assert.match(preview, /先猜一下/, '预览必须要求先做无辅助猜测');
-    assert.match(coldTestHTML(), /自评/, '冷读必须先要自评');
+    assert.match(coldTestHTML(), /我觉得理解了大概多少/, '冷读必须先要自评');
     const first = passage.sentences![0];
     const tokens = tokenizeSentence(passage.text, first);
     const hidden = readerHTML({ passage, session: s, tokens, helpText: '主干是 Learning is not a matter', showHelp: false });
@@ -276,12 +276,12 @@ test('首读与重读的速度/理解度分开统计，绝不混算', () => {
     assert.equal(computeReadingTrend([partial]).completed, 1);
     const trend = computeReadingTrend([t]);
     assert.equal(trend.completed, 0, '未收尾的会话不算完成样本');
-    assert.match(trend.sampleNote, /样本不可靠|还不可靠|只有 0 篇/);
+    assert.match(trend.sampleNote, /样本不可靠|还不可靠|只有 0 篇|还看不出趋势/);
     const done = completeReadingSession(t, { now: NOW + 10 * MIN });
     const trend2 = computeReadingTrend([done]);
     assert.equal(trend2.completed, 1);
     assert.ok(trend2.avgFirstWpm! > 0);
-    assert.match(trend2.sampleNote, /只有 1 篇/);
+    assert.match(trend2.sampleNote, /只读完 1 篇|只有 1 篇/);
     assert.equal(targetDifficultyBand([]).band, 'growth');
     assert.equal(targetDifficultyBand([{ comprehension: 40 }]).band, 'comfort');
     assert.equal(targetDifficultyBand([{ comprehension: 90 }]).band, 'growth');

@@ -118,8 +118,8 @@ export function readingAttemptEvidence(input: {
         klass: capped,
         countsTowardMastery: capped !== 'exposed',
         note: capped === input.klass
-            ? '句子结构经过人工审校，按实际作答分级计入证据'
-            : '这句的结构是自动分析的（没有人工审校），本次只记录接触，不计入语法掌握证据',
+            ? '这句的结构经过人工审校，按你实际作答的情况分级记录'
+            : '这句的结构是程序自动拆的（没有人工核对），这次只记“见过”，不算语法掌握',
     };
 }
 export function contextWindow(passage: Passage, difficult: {

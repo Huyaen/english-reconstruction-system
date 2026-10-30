@@ -128,7 +128,7 @@ export function reflectionLabel(mode: InputMode): string {
 /** 中文字幕下理解更多 ≠ 听力提升：这是一个必须显式说明的口径 */
 export function captionCaveat(mode: CaptionMode): string {
     return mode === 'zh' || mode === 'other'
-        ? '当前使用中文字幕/其他语言字幕：理解自评不能当作英语听力能力证据。'
+        ? '当前使用中文字幕/其他语言字幕：理解自评不能当作英语听力能力证明。'
         : mode === 'en'
             ? '英文字幕下理解更多仍属于辅助理解，不等于独立听力。'
             : '无字幕观看的理解自评才更接近独立听力，但仍然是自报数据。';

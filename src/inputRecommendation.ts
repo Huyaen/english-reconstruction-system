@@ -1,5 +1,5 @@
-// —— Phase 8：真实输入推荐 ——
-// 与 Phase 7 的 Mini Unit 推荐共用同一套兴趣画像与四类理由；这里只处理“真实输入材料”。
+// —— Phase 8：输入练习推荐 ——
+// 与 Phase 7 的 单元 推荐共用同一套兴趣画像与四类理由；这里只处理“输入练习材料”。
 // 三件事必须分离（禁止合成一个不可解释的黑箱分数）：
 //   兴趣 → 排序偏好；能力/难度 → 适配；时间/能量 → 任务规模。
 import type { Data, EnergyState, InputSource, InterestProfile } from './types.ts';
@@ -152,7 +152,7 @@ export function recommendInputs(input: RecommendationInput): {
     if (!candidates.length)
         return { candidates, note: '还没有真实材料：先添加一个你真正想看的链接（任何主题都可以），再开始输入。', sufficient: false, target };
     const personalized = profile.topics.length > 0 || signals.sufficient;
-    const note = personalized ? '' : '兴趣画像与行为证据都还很少：这些是按材料本身与可用时间排的，不算精准个性化。';
+    const note = personalized ? '' : '兴趣画像与做题记录都还很少：这些是按材料本身与可用时间排的，不算精准个性化。';
     return { candidates, note, sufficient: personalized, target };
 }
 /** 推荐目标与真实理解度的差（只用于解释，不当作能力分数） */

@@ -1,0 +1,8713 @@
+{
+ "base": "http://127.0.0.1:4173/?test=1&proto=d",
+ "theme": "light",
+ "seed": "unified",
+ "states": {
+  "page:home": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "今天"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "—"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "分钟可用"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "还没有任务"
+    },
+    {
+     "tag": "h1",
+     "cls": "d-next-title",
+     "text": "先给今天留一段时间。"
+    },
+    {
+     "tag": "p",
+     "cls": "d-next-reason",
+     "text": "计划只在你给的时间之内，安排现在确实做得起来的任务；没有真东西可练时，不会塞空任务。"
+    },
+    {
+     "tag": "span",
+     "cls": "d2-now-hint",
+     "text": "先在上面选好今天能空出来的时间，再生成计划"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "今天的计划"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "生成后显示"
+    },
+    {
+     "tag": "a",
+     "cls": "",
+     "text": "A · Obsidian"
+    },
+    {
+     "tag": "a",
+     "cls": "",
+     "text": "B · Studio"
+    },
+    {
+     "tag": "a",
+     "cls": "",
+     "text": "D · Cinematic"
+    },
+    {
+     "tag": "a",
+     "cls": "",
+     "text": "15b 基线"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "今天的计划"
+    },
+    {
+     "tag": "span",
+     "cls": "subtle",
+     "text": "按你给的时间排"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "选一段今天能空出来的时间，再选一下状态。计划只排这几件事：昨天学的词、今天该复习的词、新词，以及收尾时再回忆一次。"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "20 分钟"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "30 分钟"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "45 分钟"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "60 分钟"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "自定义"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "状态差"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "正常"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "状态好"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "生成今天的计划"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "六个方向都有可以练的内容。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "自己再练一轮"
+    },
+    {
+     "tag": "span",
+     "cls": "subtle",
+     "text": "24 个词 · 1 本词书"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "全部词书"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "统一验收词书"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "50 词"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "100 词"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "300 词"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "500 词"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "1000 词"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "双向各 50%"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "英→中 70%"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "中→英 70%"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "只看英文（英→中）"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "只看中文（中→英）"
+    },
+    {
+     "tag": "span",
+     "cls": "mode-symbol",
+     "text": "↗"
+    },
+    {
+     "tag": "h3",
+     "cls": "",
+     "text": "快速刷词"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "快速过一遍，找出不熟的词"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "→"
+    },
+    {
+     "tag": "span",
+     "cls": "mode-symbol",
+     "text": "◷"
+    },
+    {
+     "tag": "em",
+     "cls": "",
+     "text": "12"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "先过一遍今天到期的词"
+    },
+    {
+     "tag": "span",
+     "cls": "mode-symbol",
+     "text": "◎"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "专攻不会和模糊的词"
+    },
+    {
+     "tag": "span",
+     "cls": "mode-symbol",
+     "text": "⤨"
+    },
+    {
+     "tag": "h3",
+     "cls": "",
+     "text": "随机抽查"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "看看学过的词还记得多少"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "今天的新词"
+    },
+    {
+     "tag": "span",
+     "cls": "subtle",
+     "text": "建议 18 个"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "来自 基础词表 12 · 当前单元 0 · 阅读中遇到 0（某个来源没有词，已从别的来源补上） · 按 30 分钟估算"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "预览新词（12）"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "掌握情况"
+    },
+    {
+     "tag": "span",
+     "cls": "subtle",
+     "text": "全部单词"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "熟练"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "0"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "正常"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "模糊"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "12"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "不会"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "未测试"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "“熟练”要两个方向都答对，还要隔几天再答对。短时间内反复答对不算。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "薄弱词的变化"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "0"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "今天新出现"
+    },
+    {
+     "tag": "strong",
+     "cls": "green",
+     "text": "0"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "今天补上了"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "答错、或自己选了“模糊”，就会进薄弱词；过几天再答对才会离开。"
+    },
+    {
+     "tag": "div",
+     "cls": "d-page",
+     "text": "—分钟可用 —还没有任务 还没有计划 先给今天留一段时间。 计划只在你给的时间之内，安排现在确实做得起来的任务；没有真东西可练时，不会塞空任务。 导入词书 先在上面选好今天能空出来的时间，再生成计划 今天的计划生成后显示"
+    },
+    {
+     "tag": "nav",
+     "cls": "proto-switch",
+     "text": "A · Obsidian B · Studio D · Cinematic 15b 基线"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    },
+    {
+     "a": "aria-label",
+     "v": "今天可用时间",
+     "tag": "div",
+     "cls": "d2-spine"
+    },
+    {
+     "a": "aria-label",
+     "v": "原型切换",
+     "tag": "nav",
+     "cls": "proto-switch"
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 2259,
+    "clientH": 809
+   },
+   "page": "home",
+   "level": "a"
+  },
+  "page:books": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "词库"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "h1",
+     "cls": "",
+     "text": "你的词库"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "词库"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "把要学的词导进来。所有记录只存在这台设备上。"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "＋ 导入词书"
+    },
+    {
+     "tag": "button",
+     "cls": "selected",
+     "text": "全部词书"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "24"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "全部状态"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "未测试"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "不会"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "模糊"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "正常"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "熟练"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "先练不会的"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "字母排序"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "先练该复习的"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "练这些词"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "导出"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "预览新词"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "单词 / 释义"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "掌握状态"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "先练哪个"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "答对 / 作答"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "平均用时"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "下次复习"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak19"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义19"
+    },
+    {
+     "tag": "span",
+     "cls": "badge vague",
+     "text": "模糊"
+    },
+    {
+     "tag": "small",
+     "cls": "lifecycle",
+     "text": "学习中"
+    },
+    {
+     "tag": "b",
+     "cls": "priority-S",
+     "text": "S"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "1 / 4"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "0.00 秒"
+    },
+    {
+     "tag": "span",
+     "cls": "due-text",
+     "text": "该复习了"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak15"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义15"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak18"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义18"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak13"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义13"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak22"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义22"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak21"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义21"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak14"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义14"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak20"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义20"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak23"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义23"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak16"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义16"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak17"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义17"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak12"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义12"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew7"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义7"
+    },
+    {
+     "tag": "span",
+     "cls": "badge new",
+     "text": "未测试"
+    },
+    {
+     "tag": "small",
+     "cls": "lifecycle",
+     "text": "未预览"
+    },
+    {
+     "tag": "b",
+     "cls": "priority-B",
+     "text": "B"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "0 / 0"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "—"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "未测试"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew0"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义0"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew10"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义10"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew2"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义2"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew5"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义5"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew9"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义9"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew8"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义8"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew11"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义11"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew6"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义6"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew3"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义3"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew4"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义4"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew1"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义1"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "共 24 个词 · 每页 50 个"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "上一页"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "1 / 1"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "下一页"
+    },
+    {
+     "tag": "div",
+     "cls": "page-title",
+     "text": "你的词库词库把要学的词导进来。所有记录只存在这台设备上。＋ 导入词书"
+    },
+    {
+     "tag": "div",
+     "cls": "book-tabs",
+     "text": "全部词书统一验收词书 24"
+    },
+    {
+     "tag": "div",
+     "cls": "toolbar",
+     "text": "全部状态未测试不会模糊正常熟练先练不会的字母排序先练该复习的练这些词导出预览新词"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    },
+    {
+     "a": "aria-label",
+     "v": "搜索词库",
+     "tag": "input",
+     "cls": ""
+    },
+    {
+     "a": "placeholder",
+     "v": "搜索单词、释义或标签",
+     "tag": "input",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "掌握筛选",
+     "tag": "select",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "排序",
+     "tag": "select",
+     "cls": ""
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 2177,
+    "clientH": 809
+   },
+   "page": "books",
+   "level": "b"
+  },
+  "page:weak": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "薄弱词"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "h1",
+     "cls": "",
+     "text": "把没记住的词练熟"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "薄弱词"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "答错和选“模糊”的词，按先练哪个排好。"
+    },
+    {
+     "tag": "span",
+     "cls": "review-kicker",
+     "text": "只做一件事"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "12 个词等着再练一次"
+    },
+    {
+     "tag": "span",
+     "cls": "subtle",
+     "text": "按先练哪个排好了；这一轮答错的词会再出现。"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "开始复习"
+    },
+    {
+     "tag": "summary",
+     "cls": "",
+     "text": "查看这 12 个词的明细"
+    },
+    {
+     "tag": "button",
+     "cls": "selected",
+     "text": "全部词书"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "24"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "全部状态"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "不会"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "模糊"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "先练不会的"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "字母排序"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "先练该复习的"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "导入词书"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "练这些词"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "导出"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "预览新词"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "单词 / 释义"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "掌握状态"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "先练哪个"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "答对 / 作答"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "平均用时"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "下次复习"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak19"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义19"
+    },
+    {
+     "tag": "span",
+     "cls": "badge vague",
+     "text": "模糊"
+    },
+    {
+     "tag": "small",
+     "cls": "lifecycle",
+     "text": "学习中"
+    },
+    {
+     "tag": "b",
+     "cls": "priority-S",
+     "text": "S"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "1 / 4"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "0.00 秒"
+    },
+    {
+     "tag": "span",
+     "cls": "due-text",
+     "text": "该复习了"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak15"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义15"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak18"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义18"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak13"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义13"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak22"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义22"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak21"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义21"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak14"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义14"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak20"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义20"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak23"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义23"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak16"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义16"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak17"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义17"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak12"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义12"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "共 12 个词 · 每页 50 个"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "上一页"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "1 / 1"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "下一页"
+    },
+    {
+     "tag": "div",
+     "cls": "page-title",
+     "text": "把没记住的词练熟薄弱词答错和选“模糊”的词，按先练哪个排好。"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    },
+    {
+     "a": "aria-label",
+     "v": "搜索词库",
+     "tag": "input",
+     "cls": ""
+    },
+    {
+     "a": "placeholder",
+     "v": "搜索单词、释义或标签",
+     "tag": "input",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "掌握筛选",
+     "tag": "select",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "排序",
+     "tag": "select",
+     "cls": ""
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 809,
+    "clientH": 809
+   },
+   "page": "weak",
+   "level": "b"
+  },
+  "page:sentence": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "句子"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "h1",
+     "cls": "",
+     "text": "一句一句拆开"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "句子"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "不背规则，直接动手拆：先找主干，再认修饰，最后看从句和非谓语。默认不给完整翻译。"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "句库"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "12"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "下面能看到来源"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "做过拆句"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "0"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次都会记录"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "自己拆对"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "没看提示，一次就判断对"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "句子来源"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "用别的来源补上"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "3 个来源暂时没有句子"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "句源与能力"
+    },
+    {
+     "tag": "span",
+     "cls": "src-badge src-curated",
+     "text": "练习句（为练语法写的）"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "12"
+    },
+    {
+     "tag": "span",
+     "cls": "src-badge src-user",
+     "text": "你自己加的句子"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "0"
+    },
+    {
+     "tag": "span",
+     "cls": "src-badge src-saved",
+     "text": "你收藏的难句"
+    },
+    {
+     "tag": "span",
+     "cls": "src-badge src-real-material",
+     "text": "真实材料里的句子"
+    },
+    {
+     "tag": "span",
+     "cls": "src-badge src-reading",
+     "text": "从阅读带过来的句子"
+    },
+    {
+     "tag": "span",
+     "cls": "src-badge src-ai",
+     "text": "AI 生成的句子（还没上线）"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "计划比例：AI 生成 40%、你遇到的句子 40%、真实材料 20%。现在是：练习句（为练语法写的） 60.0% · 你自己加的句子 40.0%。原因：ai-unavailable-reallocated；real-material-source-empty；reading-handoff-not-registered"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "AI 生句（Phase 6）尚未上线，且未配置 AI 服务：不会伪造任何 AI 句子。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "AI 定向句"
+    },
+    {
+     "tag": "span",
+     "cls": "chip",
+     "text": "AI 生成 · 结构未验证"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "用你当前的真实薄弱词与语法点造一句练习句。AI 只负责出句子，不会让你“自动学会”：只有你自己独立答对，掌握度才会变。"
+    },
+    {
+     "tag": "span",
+     "cls": "chip",
+     "text": "unifiedweak19"
+    },
+    {
+     "tag": "span",
+     "cls": "chip",
+     "text": "unifiedweak15"
+    },
+    {
+     "tag": "span",
+     "cls": "chip",
+     "text": "unifiedweak18"
+    },
+    {
+     "tag": "em",
+     "cls": "",
+     "text": "无"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "生成定向句"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "取消"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "还没有配置 AI Endpoint。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "添加你遇到的真实句子"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "保存到句库"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "按当前薄弱点开始训练"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "自己加进来的句子没有标准答案：程序会先给一个初稿，标出不确定的地方，你可以改。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "句库（12）"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "句子"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "目标语法"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "结构"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "操作"
+    },
+    {
+     "tag": "span",
+     "cls": "src-badge src-curated",
+     "text": "curated"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "The report that he wrote about the flood is missing."
+    },
+    {
+     "tag": "small",
+     "cls": "zh-line",
+     "text": "他写的关于那次洪水的报告不见了。"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "先行词定位（定语从句）、定语从句、介词短语"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "gold 结构"
+    },
+    {
+     "tag": "button",
+     "cls": "primary small",
+     "text": "开始拆句"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "I think that the plan will work."
+    },
+    {
+     "tag": "small",
+     "cls": "zh-line",
+     "text": "我认为这个计划会奏效。"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "主句、宾语从句、修饰成分"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "Although it rained they continued the work."
+    },
+    {
+     "tag": "small",
+     "cls": "zh-line",
+     "text": "尽管下雨，他们还是继续了工作。"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "状语从句、主句、逻辑连接"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "The book written in 1900 still sells well."
+    },
+    {
+     "tag": "small",
+     "cls": "zh-line",
+     "text": "这本 1900 年写成的书至今仍很畅销。"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "分词 doing / done、非谓语在句中担当的成分、句子主干（主 + 谓）"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "She is good at solving hard problems."
+    },
+    {
+     "tag": "small",
+     "cls": "zh-line",
+     "text": "她很擅长解决难题。"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "动名词 doing、介词短语、介词 + doing"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "He left early to catch the train."
+    },
+    {
+     "tag": "small",
+     "cls": "zh-line",
+     "text": "他早早出发去赶火车。"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "不定式 to do、非谓语在句中担当的成分、修饰成分"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "The bridge was built in 1900 by local workers."
+    },
+    {
+     "tag": "small",
+     "cls": "zh-line",
+     "text": "这座桥是 1900 年由当地工人建造的。"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "介词短语、修饰成分、宾语"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "The book that I read says that the plan will fail."
+    },
+    {
+     "tag": "small",
+     "cls": "zh-line",
+     "text": "我读的那本书说这个计划会失败。"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "主句、从句嵌套、宾语从句"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "She sings and dances every evening."
+    },
+    {
+     "tag": "small",
+     "cls": "zh-line",
+     "text": "她每天晚上又唱又跳。"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "逻辑连接、并列结构、谓语"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "The more you practise the more confident you become."
+    },
+    {
+     "tag": "small",
+     "cls": "zh-line",
+     "text": "你练得越多，就越自信。"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "比较结构、补语、谓语"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "I do not think that this approach works."
+    },
+    {
+     "tag": "small",
+     "cls": "zh-line",
+     "text": "我认为这个方法行不通。"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "宾语从句、否定与否定转移、修饰成分"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "What he said surprised the whole team."
+    },
+    {
+     "tag": "small",
+     "cls": "zh-line",
+     "text": "他说的话让整个团队都很意外。"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "主语从句、句子主干（主 + 谓）、修饰成分"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "标着 auto 的句子是为练习写的，不是从文章里摘的。"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    },
+    {
+     "a": "placeholder",
+     "v": "例如：修一座旧桥",
+     "tag": "input",
+     "cls": ""
+    },
+    {
+     "a": "placeholder",
+     "v": "粘贴你在文章、视频或对话里遇到的那一句",
+     "tag": "textarea",
+     "cls": ""
+    },
+    {
+     "a": "placeholder",
+     "v": "不填也可以，训练时会先让你自己判断",
+     "tag": "input",
+     "cls": ""
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 2447,
+    "clientH": 809
+   },
+   "page": "sentence",
+   "level": "b"
+  },
+  "page:reading": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "阅读"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "h1",
+     "cls": "",
+     "text": "先自己读一遍"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "阅读"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "先直接读英文，卡住了再要辅助。读懂一篇文章，不会自动让单词变成“熟练”。"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "阅读库"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "1"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "你导入的文章"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "完成阅读"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "只读完 1 篇，还看不出趋势"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "首读速度"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "5.3"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "词/分钟（估算）"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "生词标记率"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "0%"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "只统计你标记过的词"
+    },
+    {
+     "tag": "div",
+     "cls": "section-title",
+     "text": "导入阅读材料"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "这里只收你自己的材料：粘贴正文、上传 TXT/MD/HTML，或者从截图里识别文字（识别后请核对一遍）。现在还不支持 PDF、DOCX，也不会去抓需要登录或付费的页面。"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "0 词 · 0 段 · 0 句"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "预览并保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "选一个文件"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "从网址导入"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "截图取字"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "网页能不能抓下来，取决于站点和浏览器的跨域限制。抓不到会告诉你原因，不会假装成功。"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "尝试抓取"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "文字识别全程在你自己的浏览器里跑，图片不会上传到任何服务器。第一次用要下载约 3MB 的英文识别模型。"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "开始识别文字"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "取消"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "手动录入文字"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "用这段文字创建阅读材料"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "AI 强化阅读"
+    },
+    {
+     "tag": "span",
+     "cls": "chip",
+     "text": "AI 生成 · 不是真实语料"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "针对你真实遇到的阅读障碍生成一篇略高于当前水平的短文，练完再回到真实材料验证。"
+    },
+    {
+     "tag": "span",
+     "cls": "chip",
+     "text": "unifiedweak19"
+    },
+    {
+     "tag": "span",
+     "cls": "chip",
+     "text": "unifiedweak15"
+    },
+    {
+     "tag": "span",
+     "cls": "chip",
+     "text": "unifiedweak18"
+    },
+    {
+     "tag": "em",
+     "cls": "",
+     "text": "无"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "生成强化文章"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "还没有配置 AI Endpoint。"
+    },
+    {
+     "tag": "div",
+     "cls": "section-title",
+     "text": "阅读库"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "全部"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "未读"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "未完成"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "已读"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "文章"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "难度"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "操作"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "Attention and Learning"
+    },
+    {
+     "tag": "small",
+     "cls": "hint",
+     "text": "import · learning · 53 词 · 已读 1 次"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "—"
+    },
+    {
+     "tag": "button",
+     "cls": "primary small",
+     "text": "再读一次"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    },
+    {
+     "a": "placeholder",
+     "v": "例：The Cost of Convenience",
+     "tag": "input",
+     "cls": ""
+    },
+    {
+     "a": "placeholder",
+     "v": "例：环境 / 科技 / 教育",
+     "tag": "input",
+     "cls": ""
+    },
+    {
+     "a": "placeholder",
+     "v": "把英文文章正文粘贴到这里……",
+     "tag": "textarea",
+     "cls": ""
+    },
+    {
+     "a": "alt",
+     "v": "待识别的截图",
+     "tag": "img",
+     "cls": ""
+    },
+    {
+     "a": "placeholder",
+     "v": "例如：river engineering",
+     "tag": "input",
+     "cls": ""
+    },
+    {
+     "a": "placeholder",
+     "v": "搜索标题或正文",
+     "tag": "input",
+     "cls": ""
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 1844,
+    "clientH": 809
+   },
+   "page": "reading",
+   "level": "c"
+  },
+  "page:input": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "输入练习"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "输入练习"
+    },
+    {
+     "tag": "h1",
+     "cls": "",
+     "text": "输入练习"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "看你真正想看的英文内容，记录看得怎么样——不是每段视频都要做题。"
+    },
+    {
+     "tag": "small",
+     "cls": "muted",
+     "text": "今天的目标：comfort｜兴趣只影响顺序，不影响能不能用"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "A real talk about attention"
+    },
+    {
+     "tag": "span",
+     "cls": "pill ",
+     "text": "基于你近期的记录"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "网页 · online_video · 主题：attention · 时长：18 分钟 · 字幕：无 / 未知（不能假装有字幕） · 可用性：仅保存链接，未验证播放 · 还没有完成过这次输入 · 难度：无 transcript 依据，不做估计"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "开始输入"
+    },
+    {
+     "tag": "a",
+     "cls": "button secondary",
+     "text": "打开链接"
+    },
+    {
+     "tag": "button",
+     "cls": "text-button",
+     "text": "收藏"
+    },
+    {
+     "tag": "button",
+     "cls": "text-button",
+     "text": "管理兴趣"
+    },
+    {
+     "tag": "div",
+     "cls": "section-title",
+     "text": "添加材料"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "英语"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "中文"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "其他"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "自动判断"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "YouTube"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "Bilibili"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "在线视频"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "纪录片"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "电竞"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "游戏内容"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "剧集片段"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "文章"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "只保存链接与你自己填写的信息：不抓取视频、不猜字幕/时长/语言。标题和时长都可以之后改。"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "加入材料库"
+    },
+    {
+     "tag": "div",
+     "cls": "section-title",
+     "text": "My English Library"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "全部状态"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "saved"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "used"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "archived"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "全部字幕状态"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "有字幕"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "明确无字幕"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "未知"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "全部类型"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "youtube"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "bilibili"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "article"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "documentary"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "esports"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "game_content"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "series_clip"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "online_video"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "other"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "attention · online_video · 18 分钟 · saved"
+    },
+    {
+     "tag": "a",
+     "cls": "button secondary",
+     "text": "打开"
+    },
+    {
+     "tag": "button",
+     "cls": "text-button",
+     "text": "开始"
+    },
+    {
+     "tag": "button",
+     "cls": "text-button",
+     "text": "归档"
+    },
+    {
+     "tag": "button",
+     "cls": "text-button danger-text",
+     "text": "删除"
+    },
+    {
+     "tag": "small",
+     "cls": "muted",
+     "text": "时长和理解度都是你自己填的"
+    },
+    {
+     "tag": "span",
+     "cls": "muted",
+     "text": "完成的输入"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "0"
+    },
+    {
+     "tag": "span",
+     "cls": "muted",
+     "text": "未完成"
+    },
+    {
+     "tag": "span",
+     "cls": "muted",
+     "text": "自报时长"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "0 分钟"
+    },
+    {
+     "tag": "span",
+     "cls": "muted",
+     "text": "字幕阅读"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "时长和理解度都是你自己填的；看过、自评过，都不算掌握。"
+    },
+    {
+     "tag": "div",
+     "cls": "page-title",
+     "text": "输入练习输入练习看你真正想看的英文内容，记录看得怎么样——不是每段视频都要做题。"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    },
+    {
+     "a": "placeholder",
+     "v": "例如：Rome: Engineering an Empire",
+     "tag": "input",
+     "cls": ""
+    },
+    {
+     "a": "placeholder",
+     "v": "例如：罗马史 / CS2 / 天文 / 分形几何",
+     "tag": "input",
+     "cls": ""
+    },
+    {
+     "a": "placeholder",
+     "v": "搜索标题/主题/备注",
+     "tag": "input",
+     "cls": ""
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 1627,
+    "clientH": 809
+   },
+   "page": "input",
+   "level": "b"
+  },
+  "page:output": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "写作练习"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "写作练习"
+    },
+    {
+     "tag": "h1",
+     "cls": "",
+     "text": "写作练习"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "先把意思写出来，再让它更准确。写一句也算完成。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "今天写什么"
+    },
+    {
+     "tag": "span",
+     "cls": "subtle",
+     "text": "30 分钟 · 状态 正常"
+    },
+    {
+     "tag": "button",
+     "cls": "chip ",
+     "text": "一句话"
+    },
+    {
+     "tag": "button",
+     "cls": "chip ",
+     "text": "3–5 句总结"
+    },
+    {
+     "tag": "button",
+     "cls": "chip ",
+     "text": "短段落"
+    },
+    {
+     "tag": "button",
+     "cls": "chip ",
+     "text": "复述"
+    },
+    {
+     "tag": "button",
+     "cls": "chip ",
+     "text": "观点"
+    },
+    {
+     "tag": "button",
+     "cls": "chip ",
+     "text": "自由表达"
+    },
+    {
+     "tag": "button",
+     "cls": "chip ",
+     "text": "换个句式、换个词"
+    },
+    {
+     "tag": "button",
+     "cls": "chip ",
+     "text": "绕开不会的词"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "建议：观点 · learning"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "用英语概括这篇文章的主要意思，或用一句话说明你是否同意作者"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "最近读过：Attention and Learning · 约 12 分钟 · 建议 35–140 词"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "用这个任务开始"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "从刚才的材料继续"
+    },
+    {
+     "tag": "span",
+     "cls": "subtle",
+     "text": "原文会直接带入，不用重写"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "阅读：Attention and Learning"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "用一句或三句话概括这篇文章的意思"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "带进写作练习 →"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "可选任务"
+    },
+    {
+     "tag": "span",
+     "cls": "subtle",
+     "text": "来自你真实的阅读 / 输入 / 单元"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "观点 · learning"
+    },
+    {
+     "tag": "span",
+     "cls": "pill",
+     "text": "来自阅读"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "用英语概括这篇文章的主要意思，或用一句话说明你是否同意作者"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "最近读过：Attention and Learning · 约 12 分钟 · 35–140 词"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "开始写"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "换个句式、换个词 · your own example"
+    },
+    {
+     "tag": "span",
+     "cls": "pill",
+     "text": "薄弱词"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "用 unifiedweak19 / unifiedweak15 / unifiedweak18 各写一句和你自己生活有关的句子"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "薄弱词：unifiedweak19, unifiedweak15, unifiedweak18 · 约 8 分钟 · 8–60 词"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "自由表达 · 今天发生的一件小事"
+    },
+    {
+     "tag": "span",
+     "cls": "pill",
+     "text": "自由表达"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "用英语说说今天发生的一件小事"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "自由表达：不需要材料，先写你自己的意思 · 约 10 分钟 · 20–160 词"
+    },
+    {
+     "tag": "div",
+     "cls": "page-title",
+     "text": "写作练习写作练习先把意思写出来，再让它更准确。写一句也算完成。"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    },
+    {
+     "a": "placeholder",
+     "v": "例如：今天的比赛 / 我最近的一个决定",
+     "tag": "input",
+     "cls": ""
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 1383,
+    "clientH": 809
+   },
+   "page": "output",
+   "level": "b"
+  },
+  "page:grammar": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "语法"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "h1",
+     "cls": "",
+     "text": "把句子拆开看"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "语法"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "先找主干，再认从句和非谓语。这里显示的是练习记录，不是承诺你已掌握。"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "语法点"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "34"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "6 个类别，按先后关系排"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "练过的"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "0"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "一共拆过 0 次"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "还需要练"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "按最近答错的情况排"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "练得比较稳"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "答对过多次，仍不保证"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "还没有足够的练习记录"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "拆过一个句子后，这里会按语法点显示你的练习情况。没练过时显示 25%，只是个起点，不代表你会或不会。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "按类别看"
+    },
+    {
+     "tag": "button",
+     "cls": "chip active",
+     "text": "全部"
+    },
+    {
+     "tag": "button",
+     "cls": "chip ",
+     "text": "句子成分与基本句型"
+    },
+    {
+     "tag": "button",
+     "cls": "chip ",
+     "text": "从句系统"
+    },
+    {
+     "tag": "button",
+     "cls": "chip ",
+     "text": "非谓语动词"
+    },
+    {
+     "tag": "button",
+     "cls": "chip ",
+     "text": "时态 · 语态 · 情态"
+    },
+    {
+     "tag": "button",
+     "cls": "chip ",
+     "text": "短语结构"
+    },
+    {
+     "tag": "button",
+     "cls": "chip ",
+     "text": "逻辑与衔接"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "句子成分与基本句型"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "句子主干（主 + 谓）"
+    },
+    {
+     "tag": "span",
+     "cls": "badge unknown",
+     "text": "还没练过"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "任何完整句子至少有一个主语与一个限定谓语；先找主干，再处理修饰。"
+    },
+    {
+     "tag": "span",
+     "cls": "subtle",
+     "text": "前置"
+    },
+    {
+     "tag": "span",
+     "cls": "hint",
+     "text": "没有（最基础）"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "25.0%"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "0"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "3"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary small",
+     "text": "去练习"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "主语"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "句子谈论的对象；可以是名词、代词、从句或非谓语结构。"
+    },
+    {
+     "tag": "button",
+     "cls": "chip small",
+     "text": "句子主干（主 + 谓）"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "12"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "谓语"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "限定动词短语，携带时态、语态、情态信息。"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "宾语"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "动作的承受者；可为人/物/从句/非谓语。"
+    },
+    {
+     "tag": "button",
+     "cls": "chip small",
+     "text": "谓语"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "7"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "补语"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "说明主语或宾语身份/状态（be、become、make 等之后）。"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "修饰成分"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "定语、状语等附加信息；删掉后主干仍完整。"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "10"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "主谓宾（SVO）"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "最常见句型：主语 + 及物谓语 + 宾语。"
+    },
+    {
+     "tag": "button",
+     "cls": "chip small",
+     "text": "主语"
+    },
+    {
+     "tag": "button",
+     "cls": "chip small",
+     "text": "宾语"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "主系表（SVC）"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "主语 + 系动词 + 主语补语。"
+    },
+    {
+     "tag": "button",
+     "cls": "chip small",
+     "text": "补语"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "2"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "主谓双宾（SVOO）"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "主语 + 谓语 + 间接宾语 + 直接宾语。"
+    },
+    {
+     "tag": "button",
+     "cls": "chip small",
+     "text": "主谓宾（SVO）"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "主谓宾补（SVOC）"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "主语 + 谓语 + 宾语 + 宾语补语。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "从句系统"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "主句"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "可以独立成句的句子；一个句子只有一个主句。"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "宾语从句"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "that/whether/what/who 等引导，整体充当动词宾语。"
+    },
+    {
+     "tag": "button",
+     "cls": "chip small",
+     "text": "主句"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "定语从句"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "修饰前面的名词（先行词）；who/which/that/whose/where 等引导。"
+    },
+    {
+     "tag": "button",
+     "cls": "chip small",
+     "text": "修饰成分"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "先行词定位（定语从句）"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "确定定语从句修饰哪个名词；这是读懂长句的第一步。"
+    },
+    {
+     "tag": "button",
+     "cls": "chip small",
+     "text": "定语从句"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "1"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "状语从句"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "时间/原因/条件/让步/结果等；由 when/because/if/although/so that 等引导。"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "主语从句"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "整个从句作主语，谓语通常是单数。"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "表语从句"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "系动词之后的从句，说明主语内容。"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "从句嵌套"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "从句里再套从句；必须能分层切分。"
+    },
+    {
+     "tag": "button",
+     "cls": "chip small",
+     "text": "宾语从句"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "非谓语动词"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "动名词 doing"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "doing 作名词性子句成分（主语、宾语、介词宾语）。"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "分词 doing / done"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "分词作定语或状语；-ing 主动进行，-ed 被动完成。"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "不定式 to do"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "to do 表目的、结果或名词性成分。"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "非谓语在句中担当的成分"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "综合判断 doing/done/to do 是定语、状语还是名词性成分。"
+    },
+    {
+     "tag": "button",
+     "cls": "chip small",
+     "text": "动名词 doing"
+    },
+    {
+     "tag": "button",
+     "cls": "chip small",
+     "text": "分词 doing / done"
+    },
+    {
+     "tag": "button",
+     "cls": "chip small",
+     "text": "不定式 to do"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "时态 · 语态 · 情态"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "时态"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "现在/过去/将来；与时间状语配合。"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "体（进行 / 完成 / 完成进行）"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "进行体强调过程，完成体强调结果与关联。"
+    },
+    {
+     "tag": "button",
+     "cls": "chip small",
+     "text": "时态"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "被动语态"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "be + done；主语是动作承受者。"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "情态动词"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "can/may/must/should 等表达可能性、义务、推测。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "短语结构"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "介词短语"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "介词 + 名词性成分；常作定语或状语。"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "介词 + doing"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "介词后面必须接名词性成分，动词要变成 doing。"
+    },
+    {
+     "tag": "button",
+     "cls": "chip small",
+     "text": "介词短语"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "名词短语"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "限定词 + 修饰语 + 名词；整体充当一个成分。"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "并列结构"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "and/or/but 连接同级成分；两侧必须同性质。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "逻辑与衔接"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "比较结构"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "比较级、最高级、as…as、the more…the more。"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "否定与否定转移"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "not/never/hardly/no longer 等；否定范围常小于字面。"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "指代关系"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "it/they/this/that/one 等指回前文；必须能定位。"
+    },
+    {
+     "tag": "button",
+     "cls": "concept-link",
+     "text": "逻辑连接"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "however/therefore/moreover/instead 等标记句间关系。"
+    },
+    {
+     "tag": "button",
+     "cls": "chip small",
+     "text": "状语从句"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "概念之间的关系检查通过"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 5894,
+    "clientH": 809
+   },
+   "page": "grammar",
+   "level": "b"
+  },
+  "page:unit": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "单元"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "h1",
+     "cls": "",
+     "text": "主题单元"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "围绕你的一份材料，连着 2–4 天：先读懂，再练熟，然后不看提示做一遍，最后换个场景用一次。"
+    },
+    {
+     "tag": "div",
+     "cls": "callout",
+     "text": "当前只有 1 个主题有真实材料支撑，不凑数。"
+    },
+    {
+     "tag": "div",
+     "cls": "section-title",
+     "text": "Learning"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "learning"
+    },
+    {
+     "tag": "span",
+     "cls": "pill ",
+     "text": "基于你近期的记录 · 基于你近期的记录"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "阅读库里有 1 篇关于「learning」的真实材料（Attention and Learning）；基于你近期的输入练习（1 次阅读 / 1 次导入）；材料里暂未出现你标记的薄弱词；能练到 10 个可观察的语法结构"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "· 约 3 天"
+    },
+    {
+     "tag": "span",
+     "cls": "muted",
+     "text": "目标词 0 个："
+    },
+    {
+     "tag": "span",
+     "cls": "muted",
+     "text": "（词库尚未覆盖材料中的生词）"
+    },
+    {
+     "tag": "span",
+     "cls": "muted",
+     "text": "目标语法："
+    },
+    {
+     "tag": "span",
+     "cls": "chip ",
+     "text": "情态动词"
+    },
+    {
+     "tag": "span",
+     "cls": "chip ",
+     "text": "介词短语"
+    },
+    {
+     "tag": "span",
+     "cls": "chip ",
+     "text": "时态"
+    },
+    {
+     "tag": "li",
+     "cls": "",
+     "text": "Attention and Learning · 53 词 · 你导入的真实材料"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "用这个主题开始"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "查看目标词来源"
+    },
+    {
+     "tag": "li",
+     "cls": "",
+     "text": "没有来自你词库的目标词"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "要练的语法点：情态动词（材料中出现 3 次（如“erial. A short walk can restore focus, a”））；介词短语（材料中出现 3 次（如“ability. It changes with sleep, interest”））；时态（材料中出现 2 次（如“Attention is not a single ability. It ch”））"
+    },
+    {
+     "tag": "div",
+     "cls": "section-title",
+     "text": "兴趣"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "兴趣只决定“先给你看什么”，不代表英语能力。默认分类只是建议，不是白名单：你可以添加、改名、删除任何主题，也可以随时选与画像无关的材料。"
+    },
+    {
+     "tag": "span",
+     "cls": "muted",
+     "text": "还没有设置兴趣：推荐只依据材料与真实行为。"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "添加"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "重置画像"
+    },
+    {
+     "tag": "span",
+     "cls": "muted",
+     "text": "建议（点一下加入，也可以完全不用）："
+    },
+    {
+     "tag": "span",
+     "cls": "chip",
+     "text": "历史 / 人文"
+    },
+    {
+     "tag": "span",
+     "cls": "chip",
+     "text": "CS / 电竞"
+    },
+    {
+     "tag": "span",
+     "cls": "chip",
+     "text": "游戏"
+    },
+    {
+     "tag": "span",
+     "cls": "chip",
+     "text": "AI / 科技"
+    },
+    {
+     "tag": "span",
+     "cls": "chip",
+     "text": "剧集 / 真实媒体"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "最近 30 天有 3 条真实记录（阅读、导入、单元）。近期行为可以参与排序，但不会永久改变你的显式偏好。 · 探索比例 34%"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "兴趣 ≠ 能力：它不会改变难度估计、掌握度或计划时长。"
+    },
+    {
+     "tag": "div",
+     "cls": "section-title",
+     "text": "自定义主题"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "自定义主题也要有一份真实材料；没有材料时只建草稿，不会开始。"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "创建草稿"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "当前阅读库：真实材料 1 篇"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    },
+    {
+     "a": "placeholder",
+     "v": "添加任意兴趣（例如：中世纪城市 / 独立游戏 / 机器学习史）",
+     "tag": "input",
+     "cls": ""
+    },
+    {
+     "a": "placeholder",
+     "v": "例如：机器学习发展史 / 竞技游戏解说 / 城市与河流",
+     "tag": "input",
+     "cls": ""
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 1455,
+    "clientH": 809
+   },
+   "page": "unit",
+   "level": "a"
+  },
+  "page:diagnostics": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "学习报告"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "学习报告"
+    },
+    {
+     "tag": "h1",
+     "cls": "",
+     "text": "学习报告"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "看最近 7 天 · 只看你做了什么，不给英语总分"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "保存今天的报告"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "生成本周报告"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "最近 7 天"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "最近 14 天"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "最近 30 天"
+    },
+    {
+     "tag": "span",
+     "cls": "muted",
+     "text": "实时预览，不另存报告"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "这段时间的结论"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "暂不下结论"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "做题记录 1；来源单一，不能据此下强结论。"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "记录太少时不下结论，也不做比较。多练几次，这里就有东西可看。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "记录从哪来"
+    },
+    {
+     "tag": "span",
+     "cls": "pill",
+     "text": "做题记录"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "0"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "1"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "1 类"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "还记得多少"
+    },
+    {
+     "tag": "span",
+     "cls": "subtle",
+     "text": "1 天 / 7 天 / 30 天"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "第 1 天 记录不够 · 第 7 天 记录不够 · 第 30 天 记录不够"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "D1"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "样本不足"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "0/0"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "D7"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "D30"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "只算第一天学过之后第 1、7、30 天前后那一次复习；错过的不补算，也不估算。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "词汇"
+    },
+    {
+     "tag": "span",
+     "cls": "pill",
+     "text": "3/9 项能看"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "稳定记住的词"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "0"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "记录 24 条 · 混合记录"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "已经到“想得起、用得出”这一步的词数。按实际作答算，不是自己估的。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "想得起的词"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "看英文能认，并且中→英主动想起至少 3 次、都答对了。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "用得出的词"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "在写作里自己用过至少 3 次、而且写得对；只写一次不算。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "想起来的快慢"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "记录还不够"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "没有可计算的值。 · 做题记录"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "单词题用时的中位数。快不一定就好，要和正确率一起看。"
+    },
+    {
+     "tag": "summary",
+     "cls": "",
+     "text": "查看其余 5 项指标"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "复习了几次"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "样本 0 < 最少 1，不展示为结论。 · 做题记录"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "这段时间做完的单词题数量。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "见过几次"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "样本 0 < 最少 1，不展示为结论。 · 混合记录"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "真的看过、算得上的次数。见过不等于记住。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "D1 还记得多少"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "样本 0 < 5，不计算 D1。 · 做题记录"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "第一次学过之后第 1 天那次复习的正确率；答得太少就留空。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "D7 还记得多少"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "样本 0 < 5，不计算 D7。 · 做题记录"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "第一次学过之后第 7 天那次复习的正确率；答得太少就留空。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "D30 还记得多少"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "样本 0 < 5，不计算 D30。 · 做题记录"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "第一次学过之后第 30 天那次复习的正确率；答得太少就留空。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "语法"
+    },
+    {
+     "tag": "span",
+     "cls": "pill",
+     "text": "0/4 项能看"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "语法题答对率"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "语法题答对的比例（看过提示的也算在内）。看了提示才答对，不算自己会。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "自己答对的比例"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "没看提示就答对的占比；算比例时仍然按全部语法题算。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "拆句正确率"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "能判断对错的那几次尝试。看提示或照抄的不算自己拆的。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "读不懂的地方标了几处"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "样本 0 < 最少 1，不展示为结论。 · 自评"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "读文章时你自己标出来的语法或词汇障碍有几处。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "阅读"
+    },
+    {
+     "tag": "span",
+     "cls": "pill",
+     "text": "2/7 项能看"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "读完的文章"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "1"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "记录 1 条 · 做题记录"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "这段时间开始或读完的阅读数量。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "生词比例"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "没有可计算的值。 · 自评"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "你标成“不认识”或“猜的”词，占全部标记词的比例。没标就留空，不猜。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "模糊词比例"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "标成“模糊”的词，占全部标记词的比例。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "有标准答案的题答对率"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "没有可计算的值。 · 能对上原文"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "有标准答案的题，60 分以上算过；自评的不算。"
+    },
+    {
+     "tag": "summary",
+     "cls": "",
+     "text": "查看其余 3 项指标"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "自评读懂的比例"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "你说理解度在 60 以上的会话占比。只是你的感觉。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "阅读速度（词/分钟）"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "5.30"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "词数 ÷ 真正读的分钟数（只算读了 60 秒以上的）。材料难度不同，不要直接比。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "重读后感觉好多少"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "同一篇“重读后的自评减去第一次的自评”。只是感觉，不同文章之间也不能比。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "输入练习"
+    },
+    {
+     "tag": "span",
+     "cls": "pill",
+     "text": "0/5 项能看"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "看完的材料"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "这段时间标成“完成”的输入记录。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "看了多久（分钟）"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "样本 0 < 最少 3，不展示为结论。 · 自评"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "你自己填的分钟数之和。不是平台的真实播放进度，也不代表记住了。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "平均听懂程度（0–100）"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "每次完成后你自报的理解度平均。这里没有所谓“听力分数”。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "有字幕时听得懂多少"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "开了英文或中文字幕那些次的平均自评。"
+    },
+    {
+     "tag": "summary",
+     "cls": "",
+     "text": "查看其余 1 项指标"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "没字幕时听得懂多少"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "完全没开字幕那些次的平均自评。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "写作练习"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "写完的段落"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "这段时间写出最终稿的；只写一句也算完成。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "自己写的比例"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "照抄的 0 条已排除。 · 混合记录"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "没用完整示范、也没照抄的，占全部写作的比例。看过完整示范后写对的，不算自己写。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "用过提示的比例"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "用过至少一级提示的占比。记下来是为了看清过程，不会因此扣作文分。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "自己改过的段落"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "你写完又自己改过的次数。照抄建议再改，不算自己改的。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "换场景写作次数"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "换了新场景、新内容再写的次数；照着原题重写不算。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "要不要先翻译"
+    },
+    {
+     "tag": "span",
+     "cls": "pill",
+     "text": "0/2 项能看"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "要先翻译的程度（0 = 直接懂，4 = 基本没懂）"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "阅读时自报的翻译依赖等级平均。只说明依赖程度，不是能力分数。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "不用翻译就懂的比例"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "评为 A 或 B 的次数，占全部有记录次数的比例。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "考试"
+    },
+    {
+     "tag": "span",
+     "cls": "pill",
+     "text": "0/7 项能看"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "考试客观题正确率"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "本窗口没有已提交的客观题。 · 没有记录"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "窗口内已提交测评中，有可靠答案的选择/填空题的正确比例；开放题不计入。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "无辅助完成的测评占比"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "本窗口没有完成的测评。 · 做题记录"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "完成的测评中，全程没有使用提示/示范的比例；只表示这次是否独立，不等于掌握。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "换题重测的次数"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "这段时间还没换题重测过。 · 做题记录"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "换了题、换了语境之后再测的次数；0 次只是还没测过，不代表你做不到。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "接近时限完成的占比"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "本窗口没有计时测评。 · 做题记录"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "用时达到时限 90% 的已完成测评比例；只提示时间压力，不判断能力。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "错因不确定占比"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "本窗口没有错因记录。 · 做题记录"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "已记录的错因里，因为信息不够只能标成“不确定”的比例。比例高，说明复盘还要再细一点。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "自报考试记录"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "本窗口没有自报考试记录。 · 做题记录"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "窗口内用户自报的校内/月考/模拟/自定义考试条数；只作事实线索，不参与错因或能力计算。"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-metric-label",
+     "text": "官方分数预测"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "不适用"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "记录 0 条 · 没有记录"
+    },
+    {
+     "tag": "span",
+     "cls": "diag-def",
+     "text": "不提供官方分数预测。分项记录不够以映射到 150 分制，任何预测都会制造虚假精度。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "和上一段时间比"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "目前没有可比的变化。只有同一个指标、同样长的时间段、两边记录都够，才会做比较；记录不够或时间段不同就不比，变化为 0 也不占地方。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "接下来可以做什么"
+    },
+    {
+     "tag": "span",
+     "cls": "subtle",
+     "text": "只是建议，不会自动改计划"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "先积累一周真实记录"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "现在还没有足够记录看出短板；先各做几次阅读、拆句和写作，再来看。"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "15 分钟"
+    },
+    {
+     "tag": "button",
+     "cls": "text-button",
+     "text": "去完成"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "这些都是建议；真正排进今天还要看你有多少时间，这里不会偷偷加量。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "边界"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "每个数字只说一件事，加起来也不是一个“英语总分”；材料不同、用过的提示不同，就别互相比较高低。"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "这一页的结论都来自你本地的记录，不联网也能看。AI 写的解释会标成“未核实”，不算你已经掌握。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "历史快照"
+    },
+    {
+     "tag": "span",
+     "cls": "subtle",
+     "text": "同一天重复生成会覆盖"
+    },
+    {
+     "tag": "p",
+     "cls": "muted",
+     "text": "还没有快照。"
+    },
+    {
+     "tag": "div",
+     "cls": "page-title",
+     "text": "学习报告学习报告看最近 7 天 · 只看你做了什么，不给英语总分保存今天的报告生成本周报告"
+    },
+    {
+     "tag": "div",
+     "cls": "diag-range",
+     "text": "看最近最近 7 天最近 14 天最近 30 天 实时预览，不另存报告"
+    },
+    {
+     "tag": "section",
+     "cls": "panel diag-evidence",
+     "text": "记录从哪来做题记录 做题记录 1；来源单一，不能据此下强结论。 可核对0行为1自评0推断0来源1 类"
+    },
+    {
+     "tag": "section",
+     "cls": "panel",
+     "text": "历史快照同一天重复生成会覆盖 还没有快照。"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    },
+    {
+     "a": "aria-label",
+     "v": "记录来源：能对上原文 0，做题 1，自评 0，推断 0",
+     "tag": "div",
+     "cls": "diag-evidence-bar"
+    },
+    {
+     "a": "title",
+     "v": "行为 1",
+     "tag": "i",
+     "cls": "behavior"
+    },
+    {
+     "a": "title",
+     "v": "有标准答案或可核对条目",
+     "tag": "span",
+     "cls": ""
+    },
+    {
+     "a": "title",
+     "v": "真实做题/阅读/表达行为留下的记录",
+     "tag": "span",
+     "cls": ""
+    },
+    {
+     "a": "title",
+     "v": "用户自报的理解度、标记或评价",
+     "tag": "span",
+     "cls": ""
+    },
+    {
+     "a": "title",
+     "v": "系统推测，仅供参考",
+     "tag": "span",
+     "cls": ""
+    },
+    {
+     "a": "title",
+     "v": "记录来源的种类数",
+     "tag": "span",
+     "cls": ""
+    },
+    {
+     "a": "title",
+     "v": "已经到“想得起、用得出”这一步的词数。按实际作答算，不是自己估的。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "看英文能认，并且中→英主动想起至少 3 次、都答对了。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "在写作里自己用过至少 3 次、而且写得对；只写一次不算。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "单词题用时的中位数。快不一定就好，要和正确率一起看。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "这段时间做完的单词题数量。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "真的看过、算得上的次数。见过不等于记住。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "第一次学过之后第 1 天那次复习的正确率；答得太少就留空。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "第一次学过之后第 7 天那次复习的正确率；答得太少就留空。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "第一次学过之后第 30 天那次复习的正确率；答得太少就留空。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "语法题答对的比例（看过提示的也算在内）。看了提示才答对，不算自己会。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "没看提示就答对的占比；算比例时仍然按全部语法题算。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "能判断对错的那几次尝试。看提示或照抄的不算自己拆的。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "读文章时你自己标出来的语法或词汇障碍有几处。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "这段时间开始或读完的阅读数量。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "你标成“不认识”或“猜的”词，占全部标记词的比例。没标就留空，不猜。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "标成“模糊”的词，占全部标记词的比例。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "有标准答案的题，60 分以上算过；自评的不算。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "你说理解度在 60 以上的会话占比。只是你的感觉。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "词数 ÷ 真正读的分钟数（只算读了 60 秒以上的）。材料难度不同，不要直接比。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "同一篇“重读后的自评减去第一次的自评”。只是感觉，不同文章之间也不能比。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "这段时间标成“完成”的输入记录。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "你自己填的分钟数之和。不是平台的真实播放进度，也不代表记住了。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "每次完成后你自报的理解度平均。这里没有所谓“听力分数”。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "开了英文或中文字幕那些次的平均自评。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "完全没开字幕那些次的平均自评。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "这段时间写出最终稿的；只写一句也算完成。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "没用完整示范、也没照抄的，占全部写作的比例。看过完整示范后写对的，不算自己写。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "用过至少一级提示的占比。记下来是为了看清过程，不会因此扣作文分。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "你写完又自己改过的次数。照抄建议再改，不算自己改的。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "换了新场景、新内容再写的次数；照着原题重写不算。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "阅读时自报的翻译依赖等级平均。只说明依赖程度，不是能力分数。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "评为 A 或 B 的次数，占全部有记录次数的比例。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "窗口内已提交测评中，有可靠答案的选择/填空题的正确比例；开放题不计入。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "完成的测评中，全程没有使用提示/示范的比例；只表示这次是否独立，不等于掌握。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "换了题、换了语境之后再测的次数；0 次只是还没测过，不代表你做不到。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "用时达到时限 90% 的已完成测评比例；只提示时间压力，不判断能力。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "已记录的错因里，因为信息不够只能标成“不确定”的比例。比例高，说明复盘还要再细一点。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "窗口内用户自报的校内/月考/模拟/自定义考试条数；只作事实线索，不参与错因或能力计算。",
+     "tag": "span",
+     "cls": "diag-def"
+    },
+    {
+     "a": "title",
+     "v": "不提供官方分数预测。分项记录不够以映射到 150 分制，任何预测都会制造虚假精度。",
+     "tag": "span",
+     "cls": "diag-def"
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 4007,
+    "clientH": 809
+   },
+   "page": "diagnostics",
+   "level": "a"
+  },
+  "page:exam": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "考试"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "h1",
+     "cls": "",
+     "text": "用考试题检验自己"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "考试"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "换新题、换语境、看错因。这里不给官方分数，也不预测高考成绩。"
+    },
+    {
+     "tag": "button",
+     "cls": "active",
+     "text": "考试概览"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "练习"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "周测"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "学校记录"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "规格审计"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "考试练习"
+    },
+    {
+     "tag": "span",
+     "cls": "subtle",
+     "text": "本地 · 不联网评分"
+    },
+    {
+     "tag": "p",
+     "cls": "lede",
+     "text": "换新题、看错因、隔几天再测。不预测高考分数，答对一次也不算掌握。"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "2028 规则尚未公布。"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "开始混合练习"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "生成本周周测"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "未做过"
+    },
+    {
+     "tag": "span",
+     "cls": "eyebrow",
+     "text": "上海高中学业水平合格考外语"
+    },
+    {
+     "tag": "h3",
+     "cls": "",
+     "text": "2026 · 暂定/待确认"
+    },
+    {
+     "tag": "span",
+     "cls": "badge provisional",
+     "text": "100 分"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "80+20 来自用户线索，未取得官方页面，标记 provisional；使用前必须核对。"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "来源"
+    },
+    {
+     "tag": "dt",
+     "cls": "",
+     "text": "笔试"
+    },
+    {
+     "tag": "dd",
+     "cls": "",
+     "text": "80 分"
+    },
+    {
+     "tag": "dt",
+     "cls": "",
+     "text": "听说"
+    },
+    {
+     "tag": "dd",
+     "cls": "",
+     "text": "20 分"
+    },
+    {
+     "tag": "dt",
+     "cls": "",
+     "text": "时长"
+    },
+    {
+     "tag": "dd",
+     "cls": "",
+     "text": "待确认"
+    },
+    {
+     "tag": "dt",
+     "cls": "",
+     "text": "题库"
+    },
+    {
+     "tag": "dd",
+     "cls": "",
+     "text": "0 题"
+    },
+    {
+     "tag": "summary",
+     "cls": "",
+     "text": "来源与核验"
+    },
+    {
+     "tag": "li",
+     "cls": "",
+     "text": "暂无官方来源；不能声称已确认。"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "核验时间：10/23 · 置信度：low"
+    },
+    {
+     "tag": "span",
+     "cls": "eyebrow",
+     "text": "上海春考外语（一考）"
+    },
+    {
+     "tag": "h3",
+     "cls": "",
+     "text": "2026 · 官方已确认"
+    },
+    {
+     "tag": "span",
+     "cls": "badge official_confirmed",
+     "text": "150 分"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "这是 2026 年已公布规则，不能直接当作 2028 年规则。"
+    },
+    {
+     "tag": "dd",
+     "cls": "",
+     "text": "115 分"
+    },
+    {
+     "tag": "dd",
+     "cls": "",
+     "text": "35 分"
+    },
+    {
+     "tag": "dd",
+     "cls": "",
+     "text": "105 分钟"
+    },
+    {
+     "tag": "a",
+     "cls": "",
+     "text": "2026年上海市普通高校春季考试招生实施办法"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "上海市教育考试院 · 2025-11-18 · official"
+    },
+    {
+     "tag": "a",
+     "cls": "",
+     "text": "专家点评2026年上海春考英语暨“外语一考”（笔试）试卷"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "上海市教育考试院 · 2026-01-04 · official_commentary"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "核验时间：10/23 · 置信度：high"
+    },
+    {
+     "tag": "span",
+     "cls": "eyebrow",
+     "text": "上海普通高考外语一考"
+    },
+    {
+     "tag": "h3",
+     "cls": "",
+     "text": "2028 · 暂定/待确认"
+    },
+    {
+     "tag": "span",
+     "cls": "badge provisional",
+     "text": "总分待确认"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "2028 官方规则尚未发布；本规格只用于占位与版本升级，所有分值/时长保持未知。"
+    },
+    {
+     "tag": "a",
+     "cls": "",
+     "text": "2026年普通高等学校招生全国统一考试外语听说测试在线模拟练习系统上线说明"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "上海市教育考试院 · 2026-05-08 · official"
+    },
+    {
+     "tag": "div",
+     "cls": "page-title",
+     "text": "用考试题检验自己考试换新题、换语境、看错因。这里不给官方分数，也不预测高考成绩。"
+    },
+    {
+     "tag": "div",
+     "cls": "exam-tabs",
+     "text": "考试概览练习周测学校记录规格审计"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 1084,
+    "clientH": 809
+   },
+   "page": "exam",
+   "level": "b"
+  },
+  "page:stats": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "统计"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "h1",
+     "cls": "",
+     "text": "看自己记住了多少"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "统计"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "数字都来自你自己的作答；没学的日子留空。"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "累计作答"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "0"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "全部历史"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "练过的词"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "12"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "至少答过一次"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "稳定记住"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "还没到复习时间的熟练词"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "该复习"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每个词单独算"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "两个方向"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "英文 → 中文"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "—"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "0 次 · 0.00 秒"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "中文 → 英文"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "两个方向都是选择题，所以中→英答对，不代表能独立拼写。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "掌握情况"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "熟练"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "0"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "正常"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "模糊"
+    },
+    {
+     "tag": "b",
+     "cls": "",
+     "text": "12"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "不会"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "未测试"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "最近的变化"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "最近 7 天"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "最近 30 天"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "10-24"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "10-25"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "10-26"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "10-27"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "10-28"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "10-29"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "10-30"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "日期"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "作答"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "正确率"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "平均用时"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "变熟练的次数"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "该复习时答错"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "这段时间还没有记录"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "“稳定记住”是估算：要两个方向都答对，还要隔几天再答对。它不是词汇量测试成绩。"
+    },
+    {
+     "tag": "div",
+     "cls": "page-title",
+     "text": "看自己记住了多少统计数字都来自你自己的作答；没学的日子留空。"
+    },
+    {
+     "tag": "div",
+     "cls": "metrics",
+     "text": "累计作答0全部历史练过的词12至少答过一次稳定记住0还没到复习时间的熟练词该复习12每个词单独算"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    },
+    {
+     "a": "aria-label",
+     "v": "趋势时间",
+     "tag": "select",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "每日作答次数",
+     "tag": "div",
+     "cls": "chart"
+    },
+    {
+     "a": "title",
+     "v": "2026-10-24：0次",
+     "tag": "div",
+     "cls": "bar is-zero"
+    },
+    {
+     "a": "title",
+     "v": "2026-10-25：0次",
+     "tag": "div",
+     "cls": "bar is-zero"
+    },
+    {
+     "a": "title",
+     "v": "2026-10-26：0次",
+     "tag": "div",
+     "cls": "bar is-zero"
+    },
+    {
+     "a": "title",
+     "v": "2026-10-27：0次",
+     "tag": "div",
+     "cls": "bar is-zero"
+    },
+    {
+     "a": "title",
+     "v": "2026-10-28：0次",
+     "tag": "div",
+     "cls": "bar is-zero"
+    },
+    {
+     "a": "title",
+     "v": "2026-10-29：0次",
+     "tag": "div",
+     "cls": "bar is-zero"
+    },
+    {
+     "a": "title",
+     "v": "2026-10-30：0次",
+     "tag": "div",
+     "cls": "bar is-zero"
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 1284,
+    "clientH": 809
+   },
+   "page": "stats",
+   "level": "a"
+  },
+  "page:ai": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "AI 建议"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "h1",
+     "cls": "",
+     "text": "让 AI 看看你的记录"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "可选"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "AI 分析可以不用；不联网也能正常学习和复习。"
+    },
+    {
+     "tag": "div",
+     "cls": "ai-mark",
+     "text": "✦"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "让 AI 看看你的记录"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "只会发汇总数字、最近 30 天的趋势，以及最多 60 个薄弱词和常混的词。不会发整本词书，也不会发每一道题。"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "报告只是建议，不会自动改你的设置。调用你自己的 API，费用由服务商按规则收取。"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "生成分析报告"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "查看将发送的数据"
+    },
+    {
+     "tag": "button",
+     "cls": "text-button",
+     "text": "先配置 API"
+    },
+    {
+     "tag": "div",
+     "cls": "empty-note",
+     "text": "还没有报告。先练一轮，再让 AI 看。"
+    },
+    {
+     "tag": "div",
+     "cls": "page-title",
+     "text": "让 AI 看看你的记录可选AI 分析可以不用；不联网也能正常学习和复习。"
+    },
+    {
+     "tag": "div",
+     "cls": "",
+     "text": "还没有报告。先练一轮，再让 AI 看。"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 809,
+    "clientH": 809
+   },
+   "page": "ai",
+   "level": "c"
+  },
+  "page:settings": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "设置"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "h1",
+     "cls": "",
+     "text": "按你的节奏来"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "设置"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "答题快慢、题目难度和备份，都在这里改。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "测试与节奏"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "简单（4 个选项）"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "普通（4 个选项）"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "困难（6 个选项）"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "立即下一题"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "停留 0.5 秒"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "停留 1 秒"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "手动继续"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "默认（FSRS）"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "旧算法（回滚用）"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "答对立即下一题。正常上限至超时之间为模糊。切换标签页会自动暂停计时。"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "AI 服务（可选）"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "不填也能正常学，只是用不了 AI 生成和批改。"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "自动（先要结构化的，不支持就用普通文本）"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "仅 JSON Mode"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "仅 JSON Schema"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "仅纯文本抽取"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "不勾“在这台设备保存密钥”，关掉页面就清了。勾了以后密钥会明文存在这台电脑的浏览器里，导出的完整备份不会带上它。浏览器直连要求服务商支持 CORS。用量按 token 计，这里不换算成钱。"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "保存设置"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "数据地址"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "当前地址是 http://127.0.0.1:4173，推荐固定使用 http://localhost:4173。浏览器把不同协议、主机名或端口视为不同存储空间；从 http://127.0.0.1:4173 打开看不到 http://localhost:4173 下的数据，反过来也一样。别在两个地址之间来回切换，也别在还没导出备份的时候清空数据或换地址。"
+    },
+    {
+     "tag": "p",
+     "cls": "hint warn",
+     "text": "不同地址的学习数据不会自动合并；换地址之前，先在现在的地址导出完整备份，再到推荐地址导入。应用不会自动跳转或搬动数据。"
+    },
+    {
+     "tag": "a",
+     "cls": "button secondary",
+     "text": "在推荐地址打开"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "备份与换地址"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "导出全部学习数据"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "申请持久存储"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "检查数据完整性"
+    },
+    {
+     "tag": "button",
+     "cls": "danger-text",
+     "text": "清空本地数据"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "学习数据按浏览器和站点地址保存。请一直使用相同的 localhost:4173 地址。"
+    },
+    {
+     "tag": "div",
+     "cls": "page-title",
+     "text": "按你的节奏来设置答题快慢、题目难度和备份，都在这里改。"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    },
+    {
+     "a": "placeholder",
+     "v": "https://你的服务地址/v1",
+     "tag": "input",
+     "cls": ""
+    },
+    {
+     "a": "placeholder",
+     "v": "填写供应商提供的模型名称",
+     "tag": "input",
+     "cls": ""
+    },
+    {
+     "a": "placeholder",
+     "v": "仅用于你配置的地址",
+     "tag": "input",
+     "cls": ""
+    },
+    {
+     "a": "placeholder",
+     "v": "留空 = 不限",
+     "tag": "input",
+     "cls": ""
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 1970,
+    "clientH": 809
+   },
+   "page": "settings",
+   "level": "c"
+  },
+  "session:preview": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "专注训练"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "button",
+     "cls": "text-button",
+     "text": "← 结束预览"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "1 / 12"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "新词预览"
+    },
+    {
+     "tag": "div",
+     "cls": "question",
+     "text": "unifiednew0"
+    },
+    {
+     "tag": "h3",
+     "cls": "",
+     "text": "统一验收释义0"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "先看一眼，有个印象就好。等会儿马上会测一遍，现在不用背。"
+    },
+    {
+     "tag": "kbd",
+     "cls": "",
+     "text": "1"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "已经会"
+    },
+    {
+     "tag": "kbd",
+     "cls": "",
+     "text": "2"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "熟悉"
+    },
+    {
+     "tag": "kbd",
+     "cls": "",
+     "text": "3"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "陌生"
+    },
+    {
+     "tag": "kbd",
+     "cls": "",
+     "text": "4"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "跳过"
+    },
+    {
+     "tag": "div",
+     "cls": "quiz-top",
+     "text": "← 结束预览1 / 12"
+    },
+    {
+     "tag": "section",
+     "cls": "quiz-card preview-card",
+     "text": "新词预览unifiednew0 统一验收释义0先看一眼，有个印象就好。等会儿马上会测一遍，现在不用背。1已经会2熟悉3陌生4跳过"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 809,
+    "clientH": 809
+   },
+   "page": "preview",
+   "level": "b"
+  },
+  "session:preview-done": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "专注训练"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "h1",
+     "cls": "",
+     "text": "新词过完了"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "预览完成"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "看了 12 个词，0 个留到下次。"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "开始回忆测试（12 词）"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "返回首页"
+    },
+    {
+     "tag": "p",
+     "cls": "hint",
+     "text": "预览只是先认识一下，回忆测试才算真的记住了。没看过的新词不会进测试。"
+    },
+    {
+     "tag": "div",
+     "cls": "page-title",
+     "text": "新词过完了预览完成看了 12 个词，0 个留到下次。"
+    },
+    {
+     "tag": "div",
+     "cls": "actions",
+     "text": "开始回忆测试（12 词）返回首页"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 809,
+    "clientH": 809
+   },
+   "page": "preview-done",
+   "level": "b"
+  },
+  "session:quiz": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "专注训练"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "button",
+     "cls": "text-button",
+     "text": "← 保存并退出"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "1 / 12"
+    },
+    {
+     "tag": "button",
+     "cls": "text-button",
+     "text": "暂停"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "英文 → 中文"
+    },
+    {
+     "tag": "div",
+     "cls": "question",
+     "text": "unifiednew0"
+    },
+    {
+     "tag": "p",
+     "cls": "subtle",
+     "text": "选出对应的中文释义"
+    },
+    {
+     "tag": "kbd",
+     "cls": "",
+     "text": "1"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "统一验收释义0"
+    },
+    {
+     "tag": "kbd",
+     "cls": "",
+     "text": "2"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "统一验收释义5"
+    },
+    {
+     "tag": "kbd",
+     "cls": "",
+     "text": "3"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "统一验收释义9"
+    },
+    {
+     "tag": "kbd",
+     "cls": "",
+     "text": "4"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "统一验收释义2"
+    },
+    {
+     "tag": "kbd",
+     "cls": "",
+     "text": "空格"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "已暂停"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "暂停的时间不算答题用时"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "继续答题"
+    },
+    {
+     "tag": "div",
+     "cls": "quiz-hint",
+     "text": "数字键选 · 空格算不知道 · 回车看下一题"
+    },
+    {
+     "tag": "div",
+     "cls": "quiz-top",
+     "text": "← 保存并退出1 / 12暂停"
+    },
+    {
+     "tag": "section",
+     "cls": "quiz-card",
+     "text": "英文 → 中文unifiednew0选出对应的中文释义1统一验收释义02统一验收释义53统一验收释义94统一验收释义2不知道 空格已暂停暂停的时间不算答题用时继续答题"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 819,
+    "clientH": 809
+   },
+   "page": "quiz",
+   "level": "b"
+  },
+  "session:quiz-answered": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "专注训练"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "button",
+     "cls": "text-button",
+     "text": "← 保存并退出"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "2 / 12"
+    },
+    {
+     "tag": "button",
+     "cls": "text-button",
+     "text": "暂停"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "英文 → 中文"
+    },
+    {
+     "tag": "div",
+     "cls": "question",
+     "text": "unifiednew2"
+    },
+    {
+     "tag": "p",
+     "cls": "subtle",
+     "text": "选出对应的中文释义"
+    },
+    {
+     "tag": "kbd",
+     "cls": "",
+     "text": "1"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "统一验收释义2"
+    },
+    {
+     "tag": "kbd",
+     "cls": "",
+     "text": "2"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "统一验收释义5"
+    },
+    {
+     "tag": "kbd",
+     "cls": "",
+     "text": "3"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "统一验收释义4"
+    },
+    {
+     "tag": "kbd",
+     "cls": "",
+     "text": "4"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "统一验收释义1"
+    },
+    {
+     "tag": "kbd",
+     "cls": "",
+     "text": "空格"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "已暂停"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "暂停的时间不算答题用时"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "继续答题"
+    },
+    {
+     "tag": "div",
+     "cls": "quiz-hint",
+     "text": "数字键选 · 空格算不知道 · 回车看下一题"
+    },
+    {
+     "tag": "div",
+     "cls": "quiz-top",
+     "text": "← 保存并退出2 / 12暂停"
+    },
+    {
+     "tag": "section",
+     "cls": "quiz-card",
+     "text": "英文 → 中文unifiednew2选出对应的中文释义1统一验收释义22统一验收释义53统一验收释义44统一验收释义1不知道 空格已暂停暂停的时间不算答题用时继续答题"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 819,
+    "clientH": 809
+   },
+   "page": "quiz",
+   "level": "b"
+  },
+  "session:results": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "专注训练"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "h1",
+     "cls": "",
+     "text": "这一轮，记住了多少？"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "本轮结束"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "答错的词记下了，过几天会再问你一遍。"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "本轮作答"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "17"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "含重复作答"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "正确率"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "58.8%"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "本轮 12 个词"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "平均用时"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "0.18 秒"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "只算答题时间"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "待复习"
+    },
+    {
+     "tag": "strong",
+     "cls": "",
+     "text": "12"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "按这轮结束时的掌握情况"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "再练一遍待复习的词"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "导出待复习词"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "返回首页"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "不会"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "unifiednew5"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "unifiednew8"
+    },
+    {
+     "tag": "h2",
+     "cls": "",
+     "text": "模糊"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "unifiednew7"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "unifiednew0"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "unifiednew10"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "unifiednew2"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "unifiednew9"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "unifiednew11"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "unifiednew6"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "unifiednew3"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "unifiednew4"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "unifiednew1"
+    },
+    {
+     "tag": "summary",
+     "cls": "",
+     "text": "正常和熟练 · 0 个"
+    },
+    {
+     "tag": "p",
+     "cls": "subtle",
+     "text": "这一轮没有"
+    },
+    {
+     "tag": "div",
+     "cls": "page-title",
+     "text": "这一轮，记住了多少？本轮结束答错的词记下了，过几天会再问你一遍。"
+    },
+    {
+     "tag": "div",
+     "cls": "metrics",
+     "text": "本轮作答17含重复作答正确率58.8%本轮 12 个词平均用时0.18 秒只算答题时间待复习12按这轮结束时的掌握情况"
+    },
+    {
+     "tag": "div",
+     "cls": "actions",
+     "text": "再练一遍待复习的词导出待复习词返回首页"
+    },
+    {
+     "tag": "details",
+     "cls": "panel",
+     "text": "正常和熟练 · 0 个这一轮没有"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 984,
+    "clientH": 809
+   },
+   "page": "results",
+   "level": "b"
+  },
+  "dialog:import": {
+   "blocks": [
+    {
+     "tag": "span",
+     "cls": "brand-icon",
+     "text": "词"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "把词留在记忆里"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◫"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▤"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❝"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "❖"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▶"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✎︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◈"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◐"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "◮"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⌘"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "▥"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "✧︎"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "⚙︎"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "每次作答自动保存"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "词库"
+    },
+    {
+     "tag": "span",
+     "cls": "date-label",
+     "text": "10 月 30 日 · 星期五"
+    },
+    {
+     "tag": "button",
+     "cls": "icon-button",
+     "text": "☾"
+    },
+    {
+     "tag": "h1",
+     "cls": "",
+     "text": "你的词库"
+    },
+    {
+     "tag": "div",
+     "cls": "eyebrow",
+     "text": "词库"
+    },
+    {
+     "tag": "p",
+     "cls": "",
+     "text": "把要学的词导进来。所有记录只存在这台设备上。"
+    },
+    {
+     "tag": "button",
+     "cls": "primary",
+     "text": "＋ 导入词书"
+    },
+    {
+     "tag": "button",
+     "cls": "selected",
+     "text": "全部词书"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "24"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "全部状态"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "未测试"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "不会"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "模糊"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "正常"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "熟练"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "先练不会的"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "字母排序"
+    },
+    {
+     "tag": "option",
+     "cls": "",
+     "text": "先练该复习的"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "练这些词"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "导出"
+    },
+    {
+     "tag": "button",
+     "cls": "secondary",
+     "text": "预览新词"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "单词 / 释义"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "掌握状态"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "先练哪个"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "答对 / 作答"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "平均用时"
+    },
+    {
+     "tag": "th",
+     "cls": "",
+     "text": "下次复习"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew8"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义8"
+    },
+    {
+     "tag": "span",
+     "cls": "badge unknown",
+     "text": "不会"
+    },
+    {
+     "tag": "small",
+     "cls": "lifecycle",
+     "text": "学习中"
+    },
+    {
+     "tag": "b",
+     "cls": "priority-S",
+     "text": "S"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "0 / 2"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "0.07 秒"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "10月30日 23:13"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew5"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义5"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak19"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义19"
+    },
+    {
+     "tag": "span",
+     "cls": "badge vague",
+     "text": "模糊"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "1 / 4"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "0.00 秒"
+    },
+    {
+     "tag": "span",
+     "cls": "due-text",
+     "text": "该复习了"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak15"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义15"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak18"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义18"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak13"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义13"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak22"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义22"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak21"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义21"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak14"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义14"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak20"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义20"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak23"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义23"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak16"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义16"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak17"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义17"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiedweak12"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义12"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew7"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义7"
+    },
+    {
+     "tag": "b",
+     "cls": "priority-A",
+     "text": "A"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "1 / 2"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "10月30日 23:22"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew9"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义9"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew6"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义6"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "0.08 秒"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew0"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义0"
+    },
+    {
+     "tag": "b",
+     "cls": "priority-B",
+     "text": "B"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "1 / 1"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "1.09 秒"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew2"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义2"
+    },
+    {
+     "tag": "td",
+     "cls": "",
+     "text": "0.90 秒"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew4"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义4"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew10"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义10"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew1"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义1"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew3"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义3"
+    },
+    {
+     "tag": "button",
+     "cls": "word-link",
+     "text": "unifiednew11"
+    },
+    {
+     "tag": "small",
+     "cls": "",
+     "text": "统一验收释义11"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "共 24 个词 · 每页 50 个"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "上一页"
+    },
+    {
+     "tag": "span",
+     "cls": "",
+     "text": "1 / 1"
+    },
+    {
+     "tag": "button",
+     "cls": "",
+     "text": "下一页"
+    },
+    {
+     "tag": "div",
+     "cls": "page-title",
+     "text": "你的词库词库把要学的词导进来。所有记录只存在这台设备上。＋ 导入词书"
+    },
+    {
+     "tag": "div",
+     "cls": "book-tabs",
+     "text": "全部词书统一验收词书 24"
+    },
+    {
+     "tag": "div",
+     "cls": "toolbar",
+     "text": "全部状态未测试不会模糊正常熟练先练不会的字母排序先练该复习的练这些词导出预览新词"
+    }
+   ],
+   "attrs": [
+    {
+     "a": "aria-label",
+     "v": "主导航",
+     "tag": "nav",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "切换深浅色",
+     "tag": "button",
+     "cls": "icon-button"
+    },
+    {
+     "a": "aria-label",
+     "v": "搜索词库",
+     "tag": "input",
+     "cls": ""
+    },
+    {
+     "a": "placeholder",
+     "v": "搜索单词、释义或标签",
+     "tag": "input",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "掌握筛选",
+     "tag": "select",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "排序",
+     "tag": "select",
+     "cls": ""
+    },
+    {
+     "a": "aria-label",
+     "v": "关闭",
+     "tag": "button",
+     "cls": "close"
+    },
+    {
+     "a": "placeholder",
+     "v": "例如：高中核心词汇",
+     "tag": "input",
+     "cls": ""
+    },
+    {
+     "a": "placeholder",
+     "v": "abandon 放弃\nadequate 充足的",
+     "tag": "textarea",
+     "cls": ""
+    }
+   ],
+   "overflow": {
+    "scrollW": 1376,
+    "clientW": 1376,
+    "scrollH": 2257,
+    "clientH": 809
+   },
+   "page": "books",
+   "level": "b"
+  }
+ }
+}

@@ -1,4 +1,4 @@
-// —— Phase 7：Mini Unit 动作层（应用侧编排；app.ts 只调用这里）——
+// —— Phase 7：单元 动作层（应用侧编排；app.ts 只调用这里）——
 // 约束：所有写入都经 miniUnitStore 的 revision 校验；重复点击不会重复晋级/重复写证据。
 import type { Data, MiniUnit, Passage, UnitCompletionEvaluation } from './types.ts';
 import { applyUnitEvent, dayKind, evaluateUnit, nextDay, provenanceOf, readiness, snapshotRef, stageOf, UNIT_RULES, type UnitEvent } from './miniUnit.ts';
@@ -71,7 +71,7 @@ export async function createFromTheme(input: {
     unit.status = 'active';
     try {
         const saved = await createUnit(unit);
-        return { ok: true, unit: saved, note: `已创建 ${saved.theme}（Anchor：${passage.title}）` };
+        return { ok: true, unit: saved, note: `已创建 ${saved.theme}（材料：${passage.title}）` };
     }
     catch (e) {
         return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -103,13 +103,13 @@ export async function createCustomDraft(input: {
     unit.stage = readiness(unit).ok ? 'ready' : 'draft';
     try {
         const saved = await createUnit(unit);
-        return { ok: true, unit: saved, note: readiness(saved).ok ? '草稿已就绪：已绑定真实材料与目标' : '草稿已创建：还需要真实 Anchor 材料' };
+        return { ok: true, unit: saved, note: readiness(saved).ok ? '草稿已就绪：已绑定真实材料与目标' : '草稿已创建：还需要你自己的材料 材料' };
     }
     catch (e) {
         return { ok: false, error: e instanceof Error ? e.message : String(e) };
     }
 }
-export async function attachAnchor(input: {
+export async function attach材料(input: {
     data: Data;
     unit: MiniUnit;
     passageId: string;
@@ -119,9 +119,9 @@ export async function attachAnchor(input: {
     if (!passage)
         return { ok: false, error: '材料不存在' };
     if (passage.sourceType === 'ai' || passage.sourceType === 'ai_reinforcement')
-        return { ok: false, error: 'AI 生成材料不能作为 Anchor，只能作为强化材料' };
+        return { ok: false, error: 'AI 生成材料不能作为 材料，只能作为强化材料' };
     const provenance = provenanceOf(passage);
-    // 绑定 Anchor 时同时给出目标词 / 语法（基于真实材料与你的词库）
+    // 绑定 材料 时同时给出目标词 / 语法（基于真实材料与你的词库）
     const words = selectTargetVocabulary({ passage, words: input.data.words, now: input.now, availableMinutes: 45 });
     const grammar = selectTargetGrammar({ passages: [passage], grammar: input.data.grammarConcepts });
     const t1 = applyUnitEvent(input.unit, { type: 'attach-anchor', passageId: passage.id, provenance, snapshotRef: snapshotRef(passage), title: passage.title, now: input.now });
@@ -187,9 +187,9 @@ export async function completeToday(input: {
             saved = await saveUnit(next, saved.revision ?? 0);
         }
     }
-    return { ok: true, unit: saved, note: `Day ${day} 完成：${evidenceIds.length} 条真实证据` };
+    return { ok: true, unit: saved, note: `Day ${day} 完成：${evidenceIds.length} 条真实记录` };
 }
-/** 真实冷测：必须来自 Anchor 的 cold-test 证据，且发生在辅助之前 */
+/** 真实冷测：必须来自 材料 的 cold-test 证据，且发生在辅助之前 */
 function coldSession(data: Data, unit: MiniUnit) {
     const rows = data.readingSessions
         .filter(s => s.passageId === unit.anchorMaterialId && s.at >= (unit.startedAt || 0))
@@ -211,7 +211,7 @@ function coldSession(data: Data, unit: MiniUnit) {
     }
     return null;
 }
-/** 迁移：必须是与 Anchor 不同的真实材料，且没有用过辅助 */
+/** 迁移：必须是与 材料 不同的真实材料，且没有用过辅助 */
 function transferFromSessions(data: Data, unit: MiniUnit) {
     const rows = data.readingSessions
         .filter(s => s.passageId !== unit.anchorMaterialId && s.at >= (unit.startedAt || 0))
@@ -260,7 +260,7 @@ function coveredWordsToday(data: Data, unit: MiniUnit, day: number): string[] {
 function buildSummary(unit: MiniUnit, day: number, covered: string[], evidence: number): string {
     const kind = dayKind(day);
     const head = kind === 'build' ? '建立理解' : kind === 'strengthen' ? '强化' : kind === 'transfer' ? '迁移' : '额外强化';
-    return `${head}：覆盖 ${covered.length}/${unit.targetWords.length} 个目标词，${evidence} 条证据`;
+    return `${head}：覆盖 ${covered.length}/${unit.targetWords.length} 个目标词，${evidence} 条记录`;
 }
 export function localDate(at: number): string {
     const d = new Date(at);
@@ -279,7 +279,7 @@ export async function extendUnit(unit: MiniUnit, reason: string, now: number): P
 export async function abandonUnit(unit: MiniUnit, reason: string, now: number): Promise<ActionResult> {
     return apply(unit, { type: 'abandon', reason, now });
 }
-/** 结束并评估：评估只看真实证据；缺真实迁移证据会自动降级为 limited_evidence */
+/** 结束并评估：评估只看真实记录；缺真实迁移证据会自动降级为 limited_evidence */
 export async function finishUnit(input: {
     data: Data;
     unit: MiniUnit;

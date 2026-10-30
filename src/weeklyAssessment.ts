@@ -134,7 +134,7 @@ export function buildWeeklyAssessment(d: Data, items: AssessmentItem[], sessions
             id: `wk-reading-${passage.id}-${now}`, examCategory: 'other', examYear: 2026, purpose: 'weekly',
             section: 'weekly', questionType: 'short_output', materialId: null,
             stem: `阅读下面这篇你尚未读过的文章，用 2–3 句英语写出主旨，并引用一个原文依据。\n\n${passage.title}\n${passage.text.slice(0, 4000)}`,
-            options: [], answerKey: null, answerEvidence: '开放作答；以文章本身为证据，系统不自动判分。',
+            options: [], answerKey: null, answerEvidence: '开放作答，以文章本身为准，系统不自动打分。',
             explanation: '周测阅读只检验“能否独立读懂并说明依据”，不做选择题猜测。',
             pointValue: 0, estimatedTimeMinutes: 6, difficulty: 'medium', difficultyBasis: '文章难度用阅读库已有标记，不在此重算。',
             targetSkills: ['reading.main-idea', 'reading.evidence-location'], targetWords: [], targetGrammar: [], source: 'imported',
@@ -162,7 +162,7 @@ export function buildWeeklyAssessment(d: Data, items: AssessmentItem[], sessions
         if (dropIndex === undefined)
             break;
         const [removed] = out.splice(dropIndex, 1);
-        unavailable.push({ section: '时间预算', reason: `为控制在 25 分钟内，移除了「${removed.stem.slice(0, 20)}…」。` });
+        unavailable.push({ section: '可用时间', reason: `为控制在 25 分钟内，移除了「${removed.stem.slice(0, 20)}…」。` });
         minutes = out.reduce((n, i) => n + i.estimatedTimeMinutes, 0);
     }
     return { items: out, minutes: Math.max(15, Math.min(25, minutes)), unavailable, readingPassageId: passage?.id ?? null };

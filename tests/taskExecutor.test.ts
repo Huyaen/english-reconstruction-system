@@ -17,12 +17,12 @@ test('任务模块归一化：未知 kind 绝不回退成词汇', () => {
     assert.equal(taskModule(task({ module: '', kind: 'exam-practice' })), 'exam');
     assert.equal(taskModule(task({ module: '', kind: 'closing-recall' })), 'closing');
     assert.equal(taskModule(task({ module: '', kind: 'mystery-task' })), 'unsupported');
-    assert.equal(taskUnavailableReason(task({ module: '', kind: 'mystery-task' }), data({}))?.includes('未知模块'), true);
+    assert.equal(taskUnavailableReason(task({ module: '', kind: 'mystery-task' }), data({}))?.includes('类型不认识'), true);
 });
 test('任务目标描述按模块区分，不把阅读/输入/考试说成“N 个词”', () => {
     assert.equal(taskTargetLabel(task({ module: 'reading', kind: 'reading-new', refs: ['p1'] })), '1 篇文章');
-    assert.equal(taskTargetLabel(task({ module: 'input', kind: 'input-session', refs: ['s1'] })), '1 份真实材料');
-    assert.equal(taskTargetLabel(task({ module: 'output', kind: 'output-task', refs: ['o1'] })), '1 个表达任务');
+    assert.equal(taskTargetLabel(task({ module: 'input', kind: 'input-session', refs: ['s1'] })), '1 份材料');
+    assert.equal(taskTargetLabel(task({ module: 'output', kind: 'output-task', refs: ['o1'] })), '写 1 段');
     assert.equal(taskTargetLabel(task({ module: 'exam', kind: 'exam-practice', refs: ['e1'] })), '1 道题');
     assert.equal(taskTargetLabel(task({ module: 'sentence', kind: 'sentence-basic-structure', refs: ['s1', 's2'] })), '2 句');
 });

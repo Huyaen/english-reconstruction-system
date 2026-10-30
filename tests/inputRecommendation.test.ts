@@ -52,7 +52,7 @@ test('推荐：显式兴趣决定排序并给出 Based on your interests', () =>
     p = addInterest(p, 'roman history', { keywords: ['roman'] }, NOW).profile;
     const r = rec(data({ inputSources: [a, b] }), p);
     assert.equal(r.candidates[0].topic, 'roman history');
-    assert.equal(r.candidates[0].reasonTag, 'Based on your interests');
+    assert.equal(r.candidates[0].reasonTag, '基于你的兴趣');
     assert.ok(r.candidates.some(c => c.exploration));
 });
 test('推荐：近期完成的输入产生 Based on your recent activity（而不是永久兴趣）', () => {
@@ -62,7 +62,7 @@ test('推荐：近期完成的输入产生 Based on your recent activity（而�
     assert.equal(r.candidates[0].reasonKind, 'recent');
     assert.equal(r.candidates[0].repeat, true, '刚完成过的材料应标记重复');
 });
-test('推荐：当前 Mini Unit 的主题标记 Related to your Mini Unit', () => {
+test('推荐：当前 Mini Unit 的主题标记 Related to your unit', () => {
     const a = source({ title: 'Roman Engineering', topic: 'roman history', url: 'https://www.youtube.com/watch?v=rome0001' });
     const d = data({
         inputSources: [a],
@@ -74,7 +74,7 @@ test('推荐：当前 Mini Unit 的主题标记 Related to your Mini Unit', () =
     });
     const r = rec(d);
     assert.equal(r.candidates[0].reasonKind, 'unit');
-    assert.equal(r.candidates[0].reasonTag, 'Related to your Mini Unit');
+    assert.equal(r.candidates[0].reasonTag, '和你正在做的单元相关');
 });
 test('推荐：没有真实材料时不伪造候选，只提示导入', () => {
     const r = rec(data());
@@ -220,7 +220,7 @@ test('统计：时长全部标注自报，未完成会话单独统计', () => {
     assert.equal(stats.unfinishedSessions, 1);
     assert.match(stats.minutesLabel, /自报/);
     assert.equal(stats.captions.en, 1);
-    assert.match(stats.note, /不构成掌握证据/);
+    assert.match(stats.note, /不算掌握/);
 });
 test('持久化：normalizeProfile 不会把行为信号写进画像', () => {
     const a = source();

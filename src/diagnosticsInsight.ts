@@ -6,7 +6,7 @@
 import type { Data, DiagnosticBottleneck, DiagnosticEvidenceMix, DiagnosticPayload, DiagnosticPlanAction, MetricComparison, MetricValue, RetentionPoint, SkillSnapshot, } from './types.ts';
 import { DAY_MS, compareMetric, dayStart, evidenceNote, inRange, qualityOf, recentRange, type Range, } from './diagnosticsModel.ts';
 import { collectDiagnostics, findMetric, isEvaluable } from './diagnosticsCollect.ts';
-const DISCLAIMER = '这些指标分别描述证据，不构成一个“英语总分”；不同材料、不同辅助级别之间不能直接比高低。';
+const DISCLAIMER = '每个数字只说一件事，加起来也不是一个“英语总分”；材料不同、用过的提示不同，就别互相比较高低。';
 export function evidenceMix(data: Data, range: Range): DiagnosticEvidenceMix {
     let verified = 0;
     let taskBehavior = 0;
@@ -119,18 +119,18 @@ export function detectBottleneck(metrics: MetricValue[], mix: DiagnosticEvidence
             order,
         });
     };
-    add('vocab.retention.d7', 'vocabulary', '词汇保持不足（D7）', m => `D7 保持率为 ${fmtPct(m.value)}（${m.numerator}/${m.denominator}），低于 65% 的经验线。`, m => severityOf(m.value!, 0.65, false, 0.65), 1);
-    add('grammar.independentAccuracy', 'grammar', '独立语法正确率偏低', m => `独立语法正确率 ${fmtPct(m.value)}（${m.numerator}/${m.denominator}），说明很多正确依赖提示。`, m => severityOf(m.value!, 0.6, false, 0.6), 2);
-    add('reading.unknownRate', 'reading', '阅读被未知词卡住', m => `显式未知词率 ${fmtPct(m.value)}（${m.numerator}/${m.denominator}），高于 15% 的舒适阅读线。`, m => severityOf(m.value!, 0.15, true, 0.85), 3);
-    add('reading.verifiedComprehension', 'reading', '可核对理解不足', m => `有标准答案的理解题通过率 ${fmtPct(m.value)}（${m.numerator}/${m.denominator}）。`, m => severityOf(m.value!, 0.6, false, 0.6), 4);
-    add('output.independentShare', 'output', '产出依赖辅助', m => `独立产出证据只占 ${fmtPct(m.value)}（${m.numerator}/${m.denominator}）；照抄/示范后的正确不算独立。`, m => severityOf(m.value!, 0.5, false, 0.5), 5);
-    add('translation.mean', 'translation', '仍靠翻译理解', m => `翻译依赖均值 ${m.value!.toFixed(2)}（0=直接理解，4=没有理解），高于 2.2。`, m => severityOf(m.value!, 2.2, true, 1.8), 6);
+    add('vocab.retention.d7', 'vocabulary', '第 7 天忘得比较多', m => `第 7 天还记得的比例是 ${fmtPct(m.value)}（${m.numerator}/${m.denominator}），低于 65% 这条经验线。`, m => severityOf(m.value!, 0.65, false, 0.65), 1);
+    add('grammar.independentAccuracy', 'grammar', '语法题太依赖提示', m => `没看提示就答对的比例是 ${fmtPct(m.value)}（${m.numerator}/${m.denominator}），不少是看了提示才答对的。`, m => severityOf(m.value!, 0.6, false, 0.6), 2);
+    add('reading.unknownRate', 'reading', '生词太多读不动', m => `标出来的生词占 ${fmtPct(m.value)}（${m.numerator}/${m.denominator}），高于 15% 这条“读得舒服”的线。`, m => severityOf(m.value!, 0.15, true, 0.85), 3);
+    add('reading.verifiedComprehension', 'reading', '有答案的题错得比较多', m => `有标准答案的理解题，通过率 ${fmtPct(m.value)}（${m.numerator}/${m.denominator}）。`, m => severityOf(m.value!, 0.6, false, 0.6), 4);
+    add('output.independentShare', 'output', '写作太依赖提示', m => `自己写的只占 ${fmtPct(m.value)}（${m.numerator}/${m.denominator}）；照抄或看过示范后写对的，不算自己写。`, m => severityOf(m.value!, 0.5, false, 0.5), 5);
+    add('translation.mean', 'translation', '还要先翻译才懂', m => `翻译依赖平均 ${m.value!.toFixed(2)}（0 = 直接懂，4 = 基本没懂），高于 2.2。`, m => severityOf(m.value!, 2.2, true, 1.8), 6);
     if (!candidates.length)
         return null;
     candidates.sort((a, b) => (b.severity - a.severity) || (a.order - b.order));
     const top = candidates[0];
     if (mix.quality === 'none' || mix.distinctSources === 0) {
-        return { ...top.bottleneck, confidence: 'low', reason: `${top.bottleneck.reason} 但证据来源不足，只能作为低置信提示。` };
+        return { ...top.bottleneck, confidence: 'low', reason: `${top.bottleneck.reason} 不过记录来源太单一，只能当弱提示。` };
     }
     return top.bottleneck;
 }
@@ -138,7 +138,7 @@ const fmtPct = (v: number | null) => (v === null ? '—' : `${Math.round(v * 100
 export function planFromBottleneck(bottleneck: DiagnosticBottleneck | null): DiagnosticPlanAction[] {
     if (!bottleneck) {
         return [{
-                id: 'plan-observe', title: '先积累一周真实记录', reason: '当前没有达到最少样本的短板指标；先把阅读/句子/表达各做几次，再诊断。',
+                id: 'plan-observe', title: '先积累一周真实记录', reason: '现在还没有足够记录看出短板；先各做几次阅读、拆句和写作，再来看。',
                 domain: 'vocabulary', minutes: 15, actionKind: 'open-diagnostics', targetId: null,
             }];
     }
@@ -147,7 +147,7 @@ export function planFromBottleneck(bottleneck: DiagnosticBottleneck | null): Dia
         case 'vocabulary':
             return [
                 base('plan-vocab-review', '复习到期词 + 主动提取', bottleneck.reason, 'vocabulary', 15, 'open-diagnostics'),
-                base('plan-vocab-output', '用 3 个到期词各写一句', '把识别转成提取；写完可自愿请求反馈，但反馈不算掌握。', 'output', 10, 'open-output'),
+                base('plan-vocab-output', '用 3 个到期词各写一句', '把“看得懂”变成“想得起、写得出”；写完可以要反馈，但反馈不算掌握。', 'output', 10, 'open-output'),
             ];
         case 'grammar':
             return [
@@ -162,12 +162,12 @@ export function planFromBottleneck(bottleneck: DiagnosticBottleneck | null): Dia
         case 'output':
             return [
                 base('plan-output', '做一个一句话/短摘要表达', bottleneck.reason, 'output', 15, 'open-output'),
-                base('plan-output-revise', '提交后自己重写一遍', '只有自己改或提示后自己重写，才算独立/半独立证据。', 'output', 10, 'open-output'),
+                base('plan-output-revise', '提交后自己重写一遍', '只有自己改，或看过提示后自己重写，才算自己写的。', 'output', 10, 'open-output'),
             ];
         case 'input':
-            return [base('plan-input', '完成一次有字幕的真实输入', bottleneck.reason, 'input', 20, 'open-input')];
+            return [base('plan-input', '看一段有字幕的材料', bottleneck.reason, 'input', 20, 'open-input')];
         case 'exam':
-            return [base('plan-exam', '做一道未做过的考试迁移题', bottleneck.reason, 'vocabulary', 10, 'open-diagnostics')];
+            return [base('plan-exam', '做一道没做过的考试题', bottleneck.reason, 'vocabulary', 10, 'open-diagnostics')];
         case 'translation':
             return [
                 base('plan-translation-read', '读一段并尝试用英文复述', bottleneck.reason, 'reading', 20, 'open-reading'),
@@ -211,13 +211,14 @@ export function weekStart(now: number): number {
 }
 export function weeklySummary(payload: DiagnosticPayload): string {
     if (!payload.bottleneck) {
-        return `本周证据不足或没有明显短板。${payload.evidence.note}`;
+        return `这一周记录还不够，或者没有明显短板。${payload.evidence.note}`;
     }
-    return `本周最值得先处理：${payload.bottleneck.label}。${payload.bottleneck.reason}（置信：${payload.bottleneck.confidence === 'medium' ? '中' : '低'}）`;
+    return `这一周最值得先处理：${payload.bottleneck.label}。${payload.bottleneck.reason}（可信度：${payload.bottleneck.confidence === 'medium' ? '中' : '低'}）`;
 }
 export function latestSnapshot(snapshots: SkillSnapshot[]): SkillSnapshot | undefined {
     return [...snapshots].sort((a, b) => b.createdAt - a.createdAt)[0];
 }
 export function retentionLine(points: RetentionPoint[]): string {
-    return points.map(p => `${p.label} ${p.evaluable ? fmtPct(p.rate) : '样本不足'}`).join(' · ');
+    const dayName = (l: string) => l === 'D1' ? '第 1 天' : l === 'D7' ? '第 7 天' : l === 'D30' ? '第 30 天' : l;
+    return points.map(p => `${dayName(p.label)} ${p.evaluable ? fmtPct(p.rate) : '记录不够'}`).join(' · ');
 }

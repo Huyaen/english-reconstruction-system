@@ -147,7 +147,7 @@ export interface TopicSignal {
     imports: number;
     unitActive: boolean;
     unitCompleted: number;
-    /** Phase 8：完成的真实输入 Session 数（比收藏更有证据价值） */
+    /** Phase 8：完成的输入练习 Session 数（比收藏更有证据价值） */
     inputs: number;
     /** Phase 8：开始过但未完成的输入（弱信号：打开 ≠ 看完） */
     inputStarted: number;
@@ -159,7 +159,7 @@ export interface TopicSignal {
 }
 export interface ActivitySignals {
     topics: TopicSignal[];
-    /** 是否有足够的真实行为证据（否则推荐不得声称精准个性化） */
+    /** 是否有足够的真实做题记录（否则推荐不得声称精准个性化） */
     sufficient: boolean;
     sampleSize: number;
 }
@@ -219,7 +219,7 @@ export function activitySignals(data: Data, now = Date.now(), opts: {
         bump(keyOf(p), { imports: 1, lastAt: at });
         sample++;
     }
-    // Phase 8：真实输入（完成 Session 权重大于收藏/开始；保存 ≠ 完成输入）
+    // Phase 8：输入练习（完成 Session 权重大于收藏/开始；保存 ≠ 完成输入）
     const sourceById = new Map((data.inputSources ?? []).map(x => [x.id, x]));
     for (const s of data.inputSessions ?? []) {
         const at = s.completedAt ?? s.startedAt ?? s.createdAt ?? 0;
@@ -259,9 +259,9 @@ export function interestFor(profile: InterestProfile, ...parts: (string | undefi
 }
 /** 界面文案：四类理由（保留英文标签，便于对照规格） */
 export const REASON_LABELS = {
-    interests: { tag: 'Based on your interests', zh: '基于你的兴趣' },
-    recent: { tag: 'Based on your recent activity', zh: '基于你的近期行为' },
-    unit: { tag: 'Related to your Mini Unit', zh: '与你当前单元相关' },
-    explore: { tag: 'Explore something new', zh: '换个新领域探索' },
+    interests: { tag: '基于你的兴趣', zh: '基于你的兴趣' },
+    recent: { tag: '基于你近期的记录', zh: '基于你近期的记录' },
+    unit: { tag: '和你正在做的单元相关', zh: '和你正在做的单元相关' },
+    explore: { tag: '换个新领域试试', zh: '换个新领域试试' },
 } as const;
 export type InterestReasonKind = keyof typeof REASON_LABELS;

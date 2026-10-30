@@ -82,7 +82,7 @@ export function recommendThemes(input: ThemeInput): {
 } {
     const authentic = input.passages.filter(isAuthenticAnchor);
     if (!authentic.length)
-        return { themes: [], note: '阅读库里还没有真实材料。先把一篇真实英文文章（粘贴/导入/OCR/URL）加入阅读库，才能开始 Mini Unit。' };
+        return { themes: [], note: '阅读库里还没有真实材料。先把一篇真实英文文章（粘贴/导入/OCR/URL）加入阅读库，才能开始 单元。' };
     const openUnits = input.units.filter(u => u.status === 'active');
     const recentThemes = input.units.filter(u => u.status !== 'abandoned').sort((a, b) => (b.updatedAt ?? b.startedAt) - (a.updatedAt ?? a.startedAt)).slice(0, 3).map(u => u.theme);
     const weak = new Set(input.words.filter(w => w.state.level === 'unknown' || w.state.level === 'vague').map(w => w.en.toLowerCase()));
@@ -136,15 +136,15 @@ export function recommendThemes(input: ThemeInput): {
         const why = [
             `阅读库里有 ${available.length} 篇关于「${key}」的真实材料（${available[0].title}${available.length > 1 ? ` 等` : ''}）`,
             interestHit ? `与你设置的兴趣「${interestHit.label}」匹配（显式偏好优先）` : '',
-            unitHit ? '与你当前进行中的 Mini Unit 同主题' : '',
-            !interestHit && !unitHit && (recentHit?.weight ?? 0) >= 0.25 ? `基于你近期的真实输入（${recentHit?.reads ?? 0} 次阅读 / ${recentHit?.imports ?? 0} 次导入）` : '',
+            unitHit ? '与你当前进行中的 单元 同主题' : '',
+            !interestHit && !unitHit && (recentHit?.weight ?? 0) >= 0.25 ? `基于你近期的输入练习（${recentHit?.reads ?? 0} 次阅读 / ${recentHit?.imports ?? 0} 次导入）` : '',
             reasonKind === 'explore' ? '这个主题不在你的兴趣列表里，也不是近期行为：作为探索推荐（有真实材料才出现）' : '',
             weakInMaterials.length ? `其中有 ${weakInMaterials.length} 个你最近的薄弱词：${weakInMaterials.slice(0, 5).join('、')}` : '材料里暂未出现你标记的薄弱词',
             grammarInMaterials.length ? `能练到 ${grammarInMaterials.length} 个可观察的语法结构` : '语法结构以基础主干为主',
         ].filter(Boolean);
         const insufficient = weakInMaterials.length === 0 && grammar.filter(g => g.status === 'verified').length === 0;
         if (insufficient)
-            why.push('学情证据有限：推荐主要基于材料主题与长度，学习目标需要你在开始前确认');
+            why.push('你的练习记录还少：推荐主要看材料主题和长度，学习目标请在开始前自己确认');
         scored.push({
             score,
             rec: {
@@ -188,9 +188,9 @@ export function recommendThemes(input: ThemeInput): {
     const personalized = !!(profile?.topics.length) || signals.sufficient;
     const insufficientOverall = !personalized;
     if (insufficientOverall && themes.length)
-        return { themes, note: '兴趣画像还是空的，行为证据也不足（少于 3 条真实输入）：以下推荐只依据材料本身，不算精准个性化。' };
+        return { themes, note: '还没设兴趣，最近记录也少（不到 3 次输入练习）：下面只按材料本身推荐，不算个性化。' };
     if (themes.length && themes[0].insufficientEvidence)
-        return { themes, note: '推荐依据有限：词库或语法证据还不充分，建议先完成几次真实练习再开新的 Unit。' };
+        return { themes, note: '依据有限：词库或语法练习还不够。先做几次真实练习，再开新单元。' };
     return { themes, note: themes.length < 3 ? `当前只有 ${themes.length} 个主题有真实材料支撑，不凑数。` : '' };
 }
 /** 单元主题与候选主题是否同一类（双向包含，避免 “rivers” 与 “rivers and records” 被当成两个） */

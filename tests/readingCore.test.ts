@@ -326,7 +326,7 @@ test('生词率区分 explicit 与 estimated，并携带分母/覆盖/置信度'
     assert.equal(explicit.numerator, 2);
     assert.equal(explicit.value, 1, '2/200 = 1%');
     assert.match(explicit.method, /unknown 标记数/);
-    assert.match(explicit.note, /未标记不等于认识/);
+    assert.match(explicit.note, /没标记不等于你认识/);
     assert.equal(explicit.source, 'explicit_marks');
     assert.ok(explicit.sampleCoverage > 0 && explicit.sampleCoverage < 0.2);
     assert.equal(explicit.confidence, 'low', '覆盖很低时置信度必须低');

@@ -1,3 +1,28 @@
+# HANDOFF — 当前状态（Phase 16）
+
+> **2026-10-30 更新（Phase 16）**：全站界面文案重写。分支 `phase16-ux-writing`
+> （起点 15h.4 `phase15h4-quiz-state-hotfix` @ `e293ef4`）。`main` 仍 `9de8acd`，**未合并**；
+> 15h.1–15h.4 的 tag 均未移动。
+>
+> 做了什么：把应用里所有用户能看到的字——页面标题、按钮、说明、空状态、错误、toast、对话框、
+> 表头、表单标签、`aria-label`、`placeholder`——按「像一个懂行的朋友在说话」重写。
+> 不去改学习材料（释义/例句/原文/题干）、学习算法、IndexedDB v7、题目与评分、整体视觉系统。
+>
+> 双证据源：`screenshots/phase16/copy-inventory.json`（静态全量 4,737 条）+
+> `copy-live-dark.json`（真实 DOM 20 个状态）。改后用同一套状态键重抓 dark/light，
+> `copy-diff.json` 逐状态列出：消失 376 条、新增 366 条。
+>
+> 机器门禁：tsc 0、**398/398**、build 0、静态禁用词 112 文件 0 命中、真实 DOM dark/light 0 命中、
+> 生产构建巡检 84 视图（14 页 × 3 宽度 × 2 主题）横向溢出 0 / 控制台报错 0、
+> 对比度 225/0 ×2、live-a11y 11/11、mobile PASS、reduced-motion OK。
+>
+> 顺手修掉三处非文案问题：开发用原型切换器不再出现在上线页（只在 `?proto=` 时渲染）、
+> 推荐理由徽标不再中英并排、对比度脚本改成等所有过渡结束后再采样（原先会把 `.d-quiet`
+> 的主题过渡中间色当最终色，误报 2.25:1）。
+>
+> 规范与台账：`docs/PHASE16_UX_WRITING_GUIDE.md`、`docs/PHASE16_COPY_CHANGELOG.md`、
+> `docs/PHASE16_TEST_REPORT.md`。
+
 # HANDOFF — 当前状态（Phase 15h.4）
 
 > **2026-10-30 更新（15h.4）**：Quiz 页面状态同步 Hotfix。分支 `phase15h4-quiz-state-hotfix`

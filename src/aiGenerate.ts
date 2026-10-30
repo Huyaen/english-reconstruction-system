@@ -2,7 +2,7 @@
 // 关键纪律：
 // * 校验失败不落库，只允许“有限次”修正重试（默认 ≤ 3 次，绝不无限循环）。
 // * AI 生成的句法结构一律 ai_unverified：可用于有提示的探索，不用于自动语法评分。
-// * 生成成功 ≠ 用户掌握：这里只产出材料与元数据，不写任何掌握证据。
+// * 生成成功 ≠ 用户掌握：这里只产出材料与元数据，不写任何掌握。
 import { AIError, chat, classifyThrown, privacySummary, type AIErrorInfo, type AIProviderConfig, type AIUsage } from './aiProvider.ts';
 import { parseModelJson } from './aiJson.ts';
 import { checkReadingQuality, checkSentenceQuality, summarize, type DifficultyBand, type QualityReport } from './aiQuality.ts';
@@ -240,7 +240,7 @@ export async function generateReading(input: ReadingPromptInput & {
     };
 }
 // 供 UI 展示“这条结果绝不会提升掌握”的说明
-export const EVIDENCE_NOTE = 'AI 生成只提供练习材料（generated material），不产生掌握证据：只有你自己完成的独立作答才会更新 BKT/FSRS。';
+export const EVIDENCE_NOTE = 'AI 只负责出句子，不会让你“自动学会”：只有你自己独立答对，掌握度才会变。';
 export function fenceForDisplay(text: string): string {
     return fence('ai_output', text);
 }

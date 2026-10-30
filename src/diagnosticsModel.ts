@@ -73,10 +73,10 @@ export function qualityOf(mix: Omit<DiagnosticEvidenceMix, 'quality' | 'note'>):
 }
 export function evidenceNote(mix: Omit<DiagnosticEvidenceMix, 'quality' | 'note'>): string {
     if (!mix.verified && !mix.taskBehavior && !mix.selfReport && !mix.inferred)
-        return '本窗口没有可用证据。';
+        return '这段时间还没有学习记录。';
     const parts = [
-        mix.verified ? `可核对 ${mix.verified}` : '',
-        mix.taskBehavior ? `行为证据 ${mix.taskBehavior}` : '',
+        mix.verified ? `能对上原文 ${mix.verified}` : '',
+        mix.taskBehavior ? `做题记录 ${mix.taskBehavior}` : '',
         mix.selfReport ? `自评 ${mix.selfReport}` : '',
         mix.inferred ? `系统推断 ${mix.inferred}` : '',
     ].filter(Boolean);
@@ -155,7 +155,7 @@ export function compareMetric(current: MetricValue | undefined, previous: Metric
     if (!sameWindow)
         reason = `窗口长度不同（${currentDays} 天 vs ${previousDays} 天），不可直接比较。`;
     else if (!bothEvaluable)
-        reason = '至少一侧证据不足。';
+        reason = '至少一侧记录不够。';
     else if (current.minSample !== previous.minSample)
         reason = '两次的样本门槛不同，不可比较。';
     return {

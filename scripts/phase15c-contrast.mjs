@@ -91,6 +91,15 @@ try {
             await sleep(60);
         }
         await sleep(120);
+        // Phase 16：主题翻转会给 .d-quiet 等元素单独的 color 过渡（160ms）。只等 body/.d-row
+        // 会在这几个按钮还在过渡时采样，把中间色（浅色主题的 #414B58）当成最终色，
+        // 误报 2.25:1。这里等页面上所有正在跑的动画/过渡都停下来再采样。
+        for (let i = 0; i < 60; i++) {
+            const running = await evaluate('document.getAnimations().filter(a => a.playState === "running").length');
+            if (!running) break;
+            await sleep(100);
+        }
+        await sleep(150);
     }
 
     const audit = await evaluate(`(() => {

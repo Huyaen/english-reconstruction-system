@@ -51,9 +51,9 @@ export function examMetrics(data: Data, range: Range): MetricValue[] {
             reasons: completed.length ? ['按会话 helpUsed=0 统计。'] : ['本窗口没有完成的测评。'],
         }),
         metric({
-            id: 'exam.transferRetests', domain: 'exam', label: '完成的迁移复测次数', kind: 'count', value: transfer.length || null,
-            sample: transfer.length, definition: '换题、换语境后完成的迁移复测次数；0 次表示没有进行迁移验证，不表示迁移失败。',
-            quality: 'task-behavior', reasons: transfer.length ? [] : ['本窗口没有完成的迁移复测。'],
+            id: 'exam.transferRetests', domain: 'exam', label: '换题重测的次数', kind: 'count', value: transfer.length || null,
+            sample: transfer.length, definition: '换了题、换了语境之后再测的次数；0 次只是还没测过，不代表你做不到。',
+            quality: 'task-behavior', reasons: transfer.length ? [] : ['这段时间还没换题重测过。'],
         }),
         rateMetric({
             id: 'exam.timePressureShare', domain: 'exam', label: '接近时限完成的占比', numerator: pressured.length, denominator: timed.length,
@@ -62,7 +62,7 @@ export function examMetrics(data: Data, range: Range): MetricValue[] {
         }),
         rateMetric({
             id: 'exam.uncertainErrorShare', domain: 'exam', label: '错因不确定占比', numerator: uncertain.length, denominator: errors.length,
-            sample: errors.length, definition: '已记录错因中证据不足、只能标 uncertain 的比例；比例高说明复盘证据还不够。',
+            sample: errors.length, definition: '已记录的错因里，因为信息不够只能标成“不确定”的比例。比例高，说明复盘还要再细一点。',
             quality: 'task-behavior', reasons: errors.length ? [] : ['本窗口没有错因记录。'],
         }),
     ];
@@ -74,7 +74,7 @@ export function examMetrics(data: Data, range: Range): MetricValue[] {
     // 明确不使用“考试总分/预测分”：仅有题目的来源与分值，不足以推断官方分数。
     out.push(metric({
         id: 'exam.officialScoreEstimate', domain: 'exam', label: '官方分数预测', kind: 'index', value: null, sample: 0,
-        notApplicable: true, definition: '不提供官方分数预测。分项证据不足以映射到 150 分制，任何预测都会制造虚假精度。',
+        notApplicable: true, definition: '不提供官方分数预测。分项记录不够以映射到 150 分制，任何预测都会制造虚假精度。',
         quality: 'none', reasons: ['按设计不可计算。'],
     }));
     return out;

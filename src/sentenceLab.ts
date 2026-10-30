@@ -7,7 +7,7 @@
 //   4) 辅助级别越高，证据权重越低（见 grammar.evidenceWeight）。
 import type { SentenceRecord, SentenceStepRecord, SentenceEvidenceClass } from './types.ts';
 import { CLAUSE_LABELS, ROLE_LABELS, clauseForToken, spanText, structureRows, type ClauseKind, type SentenceStructure, type StructureClause, type StructureRole, } from './sentenceStructure.ts';
-export const SUPPORT_LABELS = ['无提示独立分析', '提示关键成分', '提供部分结构框架', '指出语法关系', '完整解释与示范'] as const;
+export const SUPPORT_LABELS = ['不看提示自己拆', '提示关键成分', '给出部分框架', '直接指出关系', '完整解释和示范'] as const;
 export const MAX_SUPPORT_LEVEL = SUPPORT_LABELS.length - 1;
 export type StepKind = 'subject' | 'predicate' | 'object' | 'modifier' | 'clause' | 'nonfinite' | 'logic' | 'meaning';
 export const STEP_LABELS: Record<StepKind, string> = {
@@ -381,12 +381,12 @@ export function evidenceClass(input: {
     return 'independent';
 }
 export const EVIDENCE_LABELS: Record<SentenceEvidenceClass, string> = {
-    exposed: '已接触（看过解释，不算掌握）',
-    'hint-assisted': '提示后正确（证据较弱）',
-    independent: '独立完成（有效证据）',
-    transfer: '新句迁移正确（强证据）',
-    delayed: '延迟保持正确（强证据）',
-    error: '独立作答错误（有效负证据）',
+    exposed: '看过解释（不算掌握）',
+    'hint-assisted': '看了提示才答对（不算独立）',
+    independent: '自己答对',
+    transfer: '换一句也答对',
+    delayed: '隔几天还答对',
+    error: '自己答错了',
 };
 // 独立错误也是证据（推进后验下降）；提示后错误与"看过答案"不作为掌握证据
 export function countsTowardMastery(klass: SentenceEvidenceClass): boolean {

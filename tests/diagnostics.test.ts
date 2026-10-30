@@ -143,7 +143,7 @@ test('快照同日幂等；周诊断固定在周一且不产生总分', () => {
     assert.equal((week.diagnostics as {
         score?: number;
     }).score, undefined);
-    assert.ok(week.summary.includes('证据') || week.summary.includes('处理'));
+    assert.ok(week.summary.includes('记录') || week.summary.includes('处理'));
     assert.equal(new Date(weekStart(NOW)).getDay(), 1);
 });
 test('fast-check：比率永不超过 1，样本不足永不生成数值', () => {

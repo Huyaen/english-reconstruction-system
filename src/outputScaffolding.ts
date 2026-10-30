@@ -52,7 +52,7 @@ export function buildSupportHint(spec: OutputTaskSpec, level: OutputSupportLevel
             answerReveal: 0.6,
         };
     return {
-        level: 4, type: 'full_model', title: '完整示范（会降低证据等级）',
+        level: 4, type: 'full_model', title: '完整示范（用过就不算独立写）',
         content: `完整示范（照抄可以学会说法，但不算独立掌握）：\n"The material explains ${spec.topic} in a simple way. It shows why this matters, and it gives one clear example. I think the main point is easy to follow."\n目标词：${keywordLine}`,
         answerReveal: 1,
     };

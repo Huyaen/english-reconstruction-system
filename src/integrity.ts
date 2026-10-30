@@ -64,7 +64,7 @@ function idOf(x: unknown): string {
 }
 /**
  * 审计当前 Data。纯函数、无时钟：同一输入永远得到同一报告，便于测试与快照。
- * 不检查“掌握是否正确”这类无法从数据本身证明的语义；只检查引用、结构、时间与完成证据。
+ * 不检查“掌握是否正确”这类无法从数据本身证明的语义；只检查引用、结构、时间与完成。
  */
 export function checkDataIntegrity(data: Data): IntegrityReport {
     const issues: IntegrityIssue[] = [];
@@ -192,7 +192,7 @@ export function checkDataIntegrity(data: Data): IntegrityReport {
             if (!e?.key)
                 continue;
             if (keys.has(e.key))
-                add('error', 'readingSessions', 'DUPLICATE_EVIDENCE_KEY', s.id, `阅读证据 key 重复：${e.key}。`);
+                add('error', 'readingSessions', 'DUPLICATE_EVIDENCE_KEY', s.id, `阅读记录 key 重复：${e.key}。`);
             keys.add(e.key);
         }
     }

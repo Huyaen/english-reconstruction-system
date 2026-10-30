@@ -9,11 +9,11 @@ export const MODULE_LABELS: Record<TrainingModule, string> = {
     vocabulary: '词汇记忆',
     sentence: '句子与语法',
     reading: '阅读',
-    input: '真实输入',
-    output: '真实表达',
-    exam: '考试迁移',
+    input: '输入练习',
+    output: '写作练习',
+    exam: '考试',
     closing: '收尾回忆',
-    unsupported: '未知模块',
+    unsupported: '不认识的类型',
 };
 const VOCABULARY_KINDS = new Set([
     'yesterday-recall', 'due-review', 'new-preview', 'new-recall', 'weak-review',
@@ -52,9 +52,9 @@ export function taskTargetLabel(task: PlanItem): string {
     if (m === 'reading')
         return '1 篇文章';
     if (m === 'input')
-        return task.kind === 'input-continue' ? '继续未完成输入' : '1 份真实材料';
+        return task.kind === 'input-continue' ? '继续未完成输入' : '1 份材料';
     if (m === 'output')
-        return '1 个表达任务';
+        return '写 1 段';
     if (m === 'exam')
         return '1 道题';
     if (m === 'vocabulary' || m === 'closing')
@@ -69,7 +69,7 @@ export function taskUnavailableReason(task: PlanItem, data: Data): string | null
     const m = taskModule(task);
     const refs = task.refs ?? [];
     if (m === 'unsupported')
-        return '这个任务来自未知模块，应用不会把它当成词汇任务执行。请重新生成今日计划。';
+        return '这项任务的类型不认识，不能当作词汇练习执行。请重新生成今天的计划。';
     if (m === 'reading') {
         if (!refs[0] || !(data.passages ?? []).some(p => p.id === refs[0]))
             return '这篇文章已不在阅读库（可能被删除）。';
@@ -77,7 +77,7 @@ export function taskUnavailableReason(task: PlanItem, data: Data): string | null
     }
     if (m === 'input') {
         if (!refs[0] || !(data.inputSources ?? []).some(s => s.id === refs[0]))
-            return '这份输入材料已不在 Input Hub。';
+            return '这份材料已经不在材料库里了。';
         return null;
     }
     if (m === 'exam') {
@@ -137,15 +137,15 @@ export function taskEvidence(task: PlanItem, data: Data, exec: TaskEvidenceInput
     const fail = (reason: string): TaskEvidenceResult => ({ ok: false, reason, evidenceId: '', module: m });
     // 没有开始时间的旧任务无法证明证据属于“本次”；宁可拒绝，也不把历史记录算进来。
     if (!startedAt)
-        return fail('缺少本次任务开始时间，无法确认这是本次学习证据。');
+        return fail('这次没有开始时间，没法确认是不是刚刚练的。');
     if (m === 'vocabulary' || m === 'closing') {
         if (task.kind === 'new-preview') {
             const hit = (data.wordExposures ?? []).filter(e => e.at >= startedAt
                 && e.sourceType === 'preview'
                 && (!refs.length || refs.includes(e.wordId)));
             return hit.length
-                ? { ok: true, reason: `已记录 ${hit.length} 个词的 Preview 接触`, evidenceId: hit[hit.length - 1].id, module: m }
-                : fail('还没有本次 Preview 的真实接触记录。');
+                ? { ok: true, reason: `已记录 ${hit.length} 个词的预览`, evidenceId: hit[hit.length - 1].id, module: m }
+                : fail('这次预览还没有记录。');
         }
         const records = (data.records ?? []).filter(r => r.at >= startedAt
             && (!exec.sessionId || r.sessionId === exec.sessionId)
@@ -168,8 +168,8 @@ export function taskEvidence(task: PlanItem, data: Data, exec: TaskEvidenceInput
             return fail('这次阅读还没有真正完成。');
         const completedMoment = Math.max(s.at ?? 0, s.detail?.firstPassEndedAt ?? 0, s.detail?.rereadEndedAt ?? 0);
         if (completedMoment < startedAt)
-            return fail('找到的阅读会话早于本次任务开始时间，不能当作本次证据。');
-        return { ok: true, reason: '阅读会话已完成（只算接触与理解证据，不自动提高词汇掌握）', evidenceId: s.id, module: m };
+            return fail('这次阅读是在任务开始前做的，不能算作这一次。');
+        return { ok: true, reason: '阅读已完成（只算看过和读懂，不会自动让单词变熟）', evidenceId: s.id, module: m };
     }
     if (m === 'input') {
         const sessions = (data.inputSessions ?? []).filter(s => s.id === (exec.sessionId || task.targetSessionId || '')
@@ -189,9 +189,9 @@ export function taskEvidence(task: PlanItem, data: Data, exec: TaskEvidenceInput
         const attempt = attempts.find(a => a.status === 'completed' && (!startedAt || a.createdAt >= startedAt))
             ?? attempts.find(a => a.status === 'completed');
         if (!attempt)
-            return fail('这次表达还没有完成。');
+            return fail('这段还没写完。');
         if (startedAt && attempt.createdAt < startedAt)
-            return fail('找到的表达记录早于本次任务开始时间，不能当作本次证据。');
+            return fail('这次写作是在任务开始前做的，不能算作这一次。');
         return { ok: true, reason: '表达已完成；独立性按实际辅助级别记录', evidenceId: attempt.id, module: m };
     }
     if (m === 'exam') {
@@ -204,10 +204,10 @@ export function taskEvidence(task: PlanItem, data: Data, exec: TaskEvidenceInput
         if (!s)
             return fail('这次考试测评还没有完成（需提交并复盘）。');
         if (startedAt && s.createdAt < startedAt)
-            return fail('找到的考试会话早于本次任务开始时间，不能当作本次证据。');
-        return { ok: true, reason: '考试会话已完成（迁移证据，不是英语总分）', evidenceId: s.id, module: m };
+            return fail('这次测评是在任务开始前做的，不能算作这一次。');
+        return { ok: true, reason: '测评已完成（是换题检验，不是英语总分）', evidenceId: s.id, module: m };
     }
-    return fail('未知模块：不能标记完成。');
+    return fail('这项任务类型不认识，没法标记完成。');
 }
 /** 今日页「继续下一项」：按计划顺序找第一个未结束任务（进行中优先）。 */
 export function nextOpenTask(plan: DailyPlan | null): PlanItem | null {

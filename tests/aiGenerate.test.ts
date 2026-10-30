@@ -117,7 +117,7 @@ test('阅读强化：合法输出通过质量门，题目证据逐字来自正�
         assert.equal(r.value.exercises.length, 3);
         assert.equal(r.quality.checks.find(c => c.id === 'attribution')?.ok, true);
     }
-    assert.match(EVIDENCE_NOTE, /不产生掌握证据/);
+    assert.match(EVIDENCE_NOTE, /不会让你“自动学会”/);
 });
 test('阅读强化：编造证据句 → 校验失败并重试，最终不通过', async () => {
     const fake = JSON.parse(JSON.stringify(READ));

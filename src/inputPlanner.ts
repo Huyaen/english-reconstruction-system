@@ -26,7 +26,7 @@ export function planInputTask(input: {
         return {
             kind: 'input-continue', sourceId: unfinished.sourceId, sessionId: unfinished.id,
             minutes: Math.max(5, Math.min(available, planned)),
-            label: '继续上次真实输入',
+            label: '继续上次输入练习',
             reasons: ['input-unfinished-session', `planned-${planned}min`],
         };
     }
@@ -46,7 +46,7 @@ export function planInputTask(input: {
     const minutes = Math.max(5, Math.min(available, Math.min(duration, want)));
     return {
         kind: 'input-session', sourceId: pick.id, minutes,
-        label: `真实输入：${pick.title}`,
+        label: `输入练习：${pick.title}`,
         reasons: ['input-real-source', `source-${pick.id}`, duration > minutes ? `partial-watch-${minutes}/${duration}min` : `full-length-${minutes}min`],
     };
 }

@@ -36,7 +36,7 @@ export function explicitUnknownRate(marks: ReadingMark[], wordCount: number, dis
         confidence: coverage >= 0.2 ? 'medium' : 'low',
         note: distinctTokensRead > 0
             ? `你只标记了 ${active.length} 处（覆盖 ${pct(coverage)}% 的正文）；未标记不等于认识`
-            : '未标记不等于认识：这是“显式生词率”，不是真实生词率',
+            : '没标记不等于你认识：这是“你标出来的生词比例”，不是真实的生词率',
     };
 }
 // 估算生词率：用词库四分类（known / uncertain / unknown / no-evidence）；未知词库部分不算“不会”
@@ -69,7 +69,7 @@ export function estimatedUnknownRate(marks: ReadingMark[], tokens: string[], loo
         source: 'vocabulary_model',
         sampleCoverage: coverage,
         confidence: coverage >= 0.75 ? 'medium' : 'low',
-        note: `其中 ${noEvidence} 个词不在词库里——不等于你不会，只是还没有证据`,
+        note: `其中 ${noEvidence} 个词不在词库里——不等于你不会，只是还没学过`,
     };
 }
 export function vocabularyCoverageEstimate(marks: ReadingMark[], tokens: string[], lookup: (n: string) => Word | undefined): RateMetric {

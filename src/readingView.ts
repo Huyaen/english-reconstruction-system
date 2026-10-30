@@ -15,7 +15,7 @@ const MARK_LABELS: Record<ReadingMark['judgment'], string> = {
 };
 export function sourceLabel(p: Passage): string {
     const map: Record<string, string> = {
-        pasted_text: '粘贴正文', uploaded_file: '上传文件', uploaded_image: '截图 OCR',
+        pasted_text: '粘贴正文', uploaded_file: '上传文件', uploaded_image: '截图取字',
         web_article: '网页文章', curated_real_material: '真实材料', ai_reinforcement: 'AI 生成材料', library_item: '阅读库',
     };
     const base = map[p.sourceType] ?? p.sourceType;
@@ -25,10 +25,10 @@ export function sourceLabel(p: Passage): string {
 export function importPanelHTML(duplicateHint = ''): string {
     return `<section class="panel" id="read-import">
   <div class="section-title">导入阅读材料</div>
-  <p class="hint">只接收真实材料：粘贴、上传 TXT/MD/HTML、或从截图 OCR（识别完需要你人工核对）。本阶段不做 PDF/DOCX 解析，也不抓取需要登录或付费的页面。</p>
+  <p class="hint">这里只收你自己的材料：粘贴正文、上传 TXT/MD/HTML，或者从截图里识别文字（识别后请核对一遍）。现在还不支持 PDF、DOCX，也不会去抓需要登录或付费的页面。</p>
   ${duplicateHint ? `<p class="hint warn">${esc(duplicateHint)}</p>` : ''}
   <div class="two-col">
-    <label>标题（可留空自动取首行）<input id="read-title" placeholder="例：The Cost of Convenience" /></label>
+    <label>标题（留空就用正文首行）<input id="read-title" placeholder="例：The Cost of Convenience" /></label>
     <label>主题<input id="read-topic" placeholder="例：环境 / 科技 / 教育" /></label>
   </div>
   <label>正文<textarea id="read-paste" rows="10" placeholder="把英文文章正文粘贴到这里……"></textarea></label>
@@ -36,26 +36,26 @@ export function importPanelHTML(duplicateHint = ''): string {
   <label class="hint"><input type="checkbox" id="read-allow-short" /> 不足 60 词也按短文导入（仍要用它练完整流程）</label>
   <div class="actions read-import-bar">
     <button class="primary" data-read-save="paste">预览并保存</button>
-    <label class="secondary" style="display:inline-flex;align-items:center;gap:6px">上传文件<input type="file" id="read-file" accept=".txt,.md,.markdown,.text,.html,.htm" hidden /><span data-read-file-label>选择 TXT / MD / HTML</span></label>
+    <label class="secondary" style="display:inline-flex;align-items:center;gap:6px">上传文件<input type="file" id="read-file" accept=".txt,.md,.markdown,.text,.html,.htm" hidden /><span data-read-file-label>选一个文件</span></label>
     <button class="secondary" data-read-url-open="1">从网址导入</button>
-    <button class="secondary" data-read-ocr-open="1">截图 OCR</button>
+    <button class="secondary" data-read-ocr-open="1">截图取字</button>
   </div>
   <div id="read-url-box" hidden>
     <label>文章网址<input id="read-url" placeholder="https://…" /></label>
-    <p class="hint">抓取受浏览器 CORS 与站点访问控制限制：失败会明确告诉你原因，不给绕过的“伪成功”。</p>
+    <p class="hint">网页能不能抓下来，取决于站点和浏览器的跨域限制。抓不到会告诉你原因，不会假装成功。</p>
     <div class="actions"><button class="primary" data-read-fetch="1">尝试抓取</button></div>
     <p class="hint" id="read-url-msg"></p>
   </div>
   <div id="read-ocr-box" hidden>
     <label>截图（PNG / JPG）<input type="file" id="read-image" accept="image/png,image/jpeg" /></label>
-    <p class="hint" id="read-ocr-msg">OCR 全程在你自己的浏览器里跑（本地 Wasm），图片不会上传到任何服务器。首次使用需要下载约 3MB 的英文识别模型。</p>
+    <p class="hint" id="read-ocr-msg">文字识别全程在你自己的浏览器里跑，图片不会上传到任何服务器。第一次用要下载约 3MB 的英文识别模型。</p>
     <div class="actions">
-      <button class="primary" data-read-ocr-run="1" hidden>开始本地识别</button>
-      <button class="secondary" data-read-ocr-cancel="1" hidden>取消识别</button>
+      <button class="primary" data-read-ocr-run="1" hidden>开始识别文字</button>
+      <button class="secondary" data-read-ocr-cancel="1" hidden>取消</button>
       <button class="secondary" data-read-ocr-manual="1" hidden>手动录入文字</button>
     </div>
     <progress id="read-ocr-progress" max="1" value="0" hidden></progress>
-    <img id="read-ocr-preview" alt="待识别截图" hidden />
+    <img id="read-ocr-preview" alt="待识别的截图" hidden />
     <label id="read-ocr-edit-wrap" hidden>识别文本（可修改；确认后才会入库）<textarea id="read-ocr-text" rows="10"></textarea></label>
     <label class="hint" id="read-ocr-confirm-wrap" hidden><input type="checkbox" id="read-ocr-confirm" /> 我已核对这份文字，并改掉了识别错字</label>
     <div class="actions" id="read-ocr-save-wrap" hidden><button class="primary" data-read-ocr-save="1">用这段文字创建阅读材料</button></div>
@@ -76,8 +76,8 @@ export function previewHTML(input: {
   <div class="metrics">
     <div class="metric"><span>词数</span><strong>${p.wordCount}</strong><small>${p.sentences?.length ?? 0} 句 / ${p.paragraphs?.length ?? 0} 段</small></div>
     <div class="metric"><span>预计时间</span><strong>${minutes}</strong><small>按当前速度估算</small></div>
-    <div class="metric"><span>难度</span><strong>${d ? d.difficulty.toFixed(1) : '—'}</strong><small>${d ? classificationLabel(d.classification) : '证据不足，未估算'}</small></div>
-    <div class="metric"><span>已知词覆盖</span><strong>${d ? `${Math.round(d.knownCoverage * 100)}%` : '—'}</strong><small>${d ? `置信度 ${d.confidence}` : '还没有词库证据'}</small></div>
+    <div class="metric"><span>难度</span><strong>${d ? d.difficulty.toFixed(1) : '—'}</strong><small>${d ? classificationLabel(d.classification) : '记录不够，没估算'}</small></div>
+    <div class="metric"><span>已知词覆盖</span><strong>${d ? `${Math.round(d.knownCoverage * 100)}%` : '—'}</strong><small>${d ? `可信度 ${d.confidence}` : '词库里还没有记录'}</small></div>
   </div>
   ${d ? `<ul class="plain-list">${d.reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
   <p class="hint">开始之前先猜一下：这篇文章大概在讲什么？（先不查词，也不看译文）</p>
@@ -161,7 +161,7 @@ export function readerHTML(input: {
   <aside class="panel reader-side" id="read-side">
     <button class="reader-side-toggle reader-sheet-close" data-reader-side-toggle="1" aria-label="收起辅助面板">收起</button>
     <div class="section-title"><b>这一段</b></div>
-    <p class="hint">点词标记：知道 / 模糊 / 不知道 / 猜出。标记只在这里记接触，不会直接改掌握度。</p>
+    <p class="hint">点词标记：知道 / 模糊 / 不知道 / 猜出。标记只记成“见过”，不会直接改变掌握程度。</p>
     <div class="actions" id="read-mark-tools">
       ${Object.entries(MARK_LABELS).map(([k, v]) => `<button class="chip" data-mark="${k}">${v}</button>`).join('')}
       <button class="chip" data-mark-undo="1">撤销</button>
@@ -183,9 +183,9 @@ export function readerHTML(input: {
       <button class="chip" data-read-help="3">结构解释</button>
       <button class="chip" data-read-help="4">完整讲解</button>
     </div>
-    <p class="hint">L3 以上算“看过答案”：本次理解只记接触，不作为掌握证据。</p>
+    <p class="hint">用到第 3 级以上的帮助，就算看过答案：这次只记“见过”，不算掌握。</p>
     ${input.showHelp && input.helpText ? `<div class="grammar-card">${input.helpText}</div>` : ''}
-    <p class="hint">已用最高辅助：${maxHelpLevelUsed(input.session)}（${esc(SUPPORT_LABELS[maxHelpLevelUsed(input.session)])}）</p>
+    <p class="hint">用到最高一级：${maxHelpLevelUsed(input.session)}（${esc(SUPPORT_LABELS[maxHelpLevelUsed(input.session)])}）</p>
   </aside>
   </div>
 </div>`;
@@ -193,7 +193,7 @@ export function readerHTML(input: {
 export function coldTestHTML(): string {
     return `<section class="panel" id="read-cold">
   <div class="section-title">先读一遍，不查词也没关系</div>
-  <p class="hint">这一遍只记录你现在的真实状态：读得懂多少、有多依赖中文。系统不会把自评当成客观理解率。</p>
+  <p class="hint">这一遍只记录你现在的真实状态：读得懂多少、有多依赖中文。不会把你的感觉当成客观正确率。</p>
   <label>我觉得理解了大概多少？（0–100）<input id="read-cold-self" type="range" min="0" max="100" step="5" value="50" /><output id="read-cold-self-out">50</output></label>
   <label>阅读时的语言状态
     <select id="read-cold-dep">
@@ -268,10 +268,10 @@ export function resultHTML(input: {
     <div class="metric"><span>首读速度</span><strong>${fmt(m.firstPassWpm)}</strong><small>词/分钟（首读）</small></div>
     <div class="metric"><span>重读速度</span><strong>${fmt(m.rereadWpm)}</strong><small>词/分钟（单独统计）</small></div>
     <div class="metric"><span>自评理解</span><strong>${fmt(m.selfReportedFirst)} → ${fmt(m.selfReportedSecond)}</strong><small>自评，不是客观测量</small></div>
-    <div class="metric"><span>显式生词率</span><strong>${m.explicitUnknownRate.available ? `${m.explicitUnknownRate.value}%` : '—'}</strong><small>${m.explicitUnknownRate.note}</small></div>
+    <div class="metric"><span>生词比例</span><strong>${m.explicitUnknownRate.available ? `${m.explicitUnknownRate.value}%` : '—'}</strong><small>${m.explicitUnknownRate.note}</small></div>
     <div class="metric"><span>标记词</span><strong>${marks.length}</strong><small>不知道 ${m.markedWords} · 模糊 ${m.vagueWords}</small></div>
     <div class="metric"><span>难句</span><strong>${m.difficultSentences}</strong><small>${m.grammarProblems.map(t => PROBLEM_TYPE_LABELS[t as ReadingProblemType] ?? t).join('、') || '未标记'}</small></div>
-    <div class="metric"><span>辅助使用</span><strong>${m.supportUsage.helps}</strong><small>最高 L${m.supportUsage.maxLevel}</small></div>
+    <div class="metric"><span>用了帮助</span><strong>${m.supportUsage.helps}</strong><small>最高 L${m.supportUsage.maxLevel}</small></div>
   </div>
   ${m.caveats.length ? `<ul class="plain-list">${m.caveats.map(c => `<li class="hint warn">${esc(c)}</li>`).join('')}</ul>` : ''}
   <div class="actions">
@@ -292,12 +292,12 @@ export function studyWordsHTML(candidates: Array<{
     const bucketLabel: Record<string, string> = { core: '核心（进词汇训练）', recognition: '识别（只练认识）', 'low-value': '暂不入计划', 'proper-noun': '专名（只给释义）' };
     return `<section class="panel" id="read-words">
   <div class="section-title">本次生词</div>
-  <p class="hint">筛选复用 Phase 2 的学习价值；新词没有释义时先补释义，补完才能进入 Preview / Recall（不会自动提升掌握度）。</p>
+  <p class="hint">按“值不值得学”挑过一遍。没有中文释义的词要先补上，补完才能进预览和回忆测试；补释义本身不会算你掌握。</p>
   ${candidates.length ? `<ul class="plain-list">${candidates.map(c => `<li>
       <b>${esc(c.normalized)}</b> · ${esc(bucketLabel[c.bucket] ?? c.bucket)} · ${c.occurrences} 次
       ${c.needsDefinition ? `<input data-def="${esc(c.normalized)}" placeholder="补中文释义后入库" /><span class="hint warn">还没有释义，先补上（不编造释义）</span>` : '<span class="hint">已在词库</span>'}
       <div class="hint">${esc(c.contextSentence.slice(0, 140))}</div>
     </li>`).join('')}</ul>` : '<p class="hint">这次没有标记出生词。</p>'}
-  <div class="actions"><button class="primary" data-read-words-save="1">保存并加入词汇引擎</button></div>
+  <div class="actions"><button class="primary" data-read-words-save="1">保存到词库</button></div>
 </section>`;
 }

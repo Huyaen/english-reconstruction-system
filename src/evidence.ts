@@ -105,4 +105,4 @@ export function isForgotten(w: Word): boolean {
     const c = EVIDENCE_CONFIG.forgotten;
     return w.state.lapses >= 1 && w.state.total >= c.minTotal && (w.state.level === 'unknown' || w.state.level === 'vague') && (w.schedule.spacedPasses >= c.minSpaced || w.fsrs.reps >= c.minReps);
 }
-export const LIFECYCLE_LABELS: Record<Lifecycle, string> = { unseen: '未预览', previewed: '已预览', learning: '学习中', recognition: '可识别', active: '可提取', productive: '可产出' };
+export const LIFECYCLE_LABELS: Record<Lifecycle, string> = { unseen: '未预览', previewed: '已预览', learning: '学习中', recognition: '看得懂', active: '想得起', productive: '用得出' };

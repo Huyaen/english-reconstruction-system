@@ -263,7 +263,7 @@ test('Reflection：字幕模式与难度原因口径', () => {
     const ok = validateReflection({ mode: 'light', captionMode: 'zh', comprehension: 0.9, difficultyReasons: [...DIFFICULTY_REASONS] });
     assert.ok(ok.ok);
     assert.equal(ok.reflection.captionMode, 'zh');
-    assert.match(captionCaveat('zh'), /不能当作英语听力能力证据/);
+    assert.match(captionCaveat('zh'), /不能当作英语听力能力证明/);
 });
 // ————— Transcript —————
 test('Transcript：SRT 解析（含跨小时、毫秒、多行文本）', () => {

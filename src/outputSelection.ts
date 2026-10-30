@@ -61,12 +61,12 @@ export function selectOutputTasks(input: SelectionInput): SelectionResult {
             communicationGoal: '用英语介绍这份材料讲了什么，并说出一个你的看法',
             sourceType: 'input',
             sourceId: s.id,
-            sourceLabel: src?.title || '真实输入',
+            sourceLabel: src?.title || '输入练习',
             targetWords: [],
             targetGrammar: [],
             expectedMinutes: Math.min(minutes, 12),
             difficultyEstimate: 0.4,
-            reasons: [`最近完成过真实输入：${src?.title || s.sourceId}`, ...(interest ? [`与兴趣「${interest.label}」相关（只影响选题）`] : [])],
+            reasons: [`最近看过：${src?.title || s.sourceId}`, ...(interest ? [`与兴趣「${interest.label}」相关（只影响选题）`] : [])],
             now,
             id: `otask_input_${s.id}`,
         }));
@@ -144,7 +144,7 @@ export function selectOutputTasks(input: SelectionInput): SelectionResult {
     const freeTopic = (input.topic ?? '').trim();
     out.push(buildTaskSpec({
         taskType: 'free_expression',
-        topic: freeTopic || 'what happened today',
+        topic: freeTopic || '今天发生的一件小事',
         communicationGoal: freeTopic ? `用英语表达你对「${freeTopic}」的想法` : '用英语说说今天发生的一件小事',
         sourceType: 'free',
         sourceId: '',
@@ -166,7 +166,7 @@ export function selectOutputTasks(input: SelectionInput): SelectionResult {
     if (!task)
         note = '没有可用任务：先写一句你自己的英语也可以。';
     else if (input.data.inputSessions?.length === 0 && input.data.readingSessions?.length === 0)
-        note = '还没有阅读/真实输入材料：这里给的是自由表达任务，不会假装有材料。';
+        note = '还没有阅读或输入材料：这里给的是自由写作，不会假装有材料。';
     return { candidates: candidates.slice(0, 6), task, note };
 }
 function score(t: OutputTaskSpec, minutes: number, energy: 'low' | 'normal' | 'good'): number {

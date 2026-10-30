@@ -105,7 +105,7 @@ test('real application DOM import, double-start protection, keyboard and reload 
             assert.equal(rw.document.querySelector('#next'), null, 'paused question must not time out');
             click(rw, '#continue');
             await until(() => !!rw.document.querySelector('#next'));
-            assert.match(rw.document.querySelector('#feedback')!.textContent!, /超时/);
+            assert.match(rw.document.querySelector('#feedback')!.textContent!, /没来得及答|超时/);
             rw.document.body.dispatchEvent(new rw.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
             await until(() => !rw.document.querySelector('#next'));
             await new Promise(r => setTimeout(r, 120));

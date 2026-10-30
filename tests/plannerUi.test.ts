@@ -77,12 +77,12 @@ test('Phase 3 UI：生成计划 → 预览 → Recall → 校准/重排 → Clos
         click(w, '#plan-create');
         await until(w, () => !!w.document.querySelector('#plan-panel'), 'plan panel');
         assert.equal(w.document.querySelector('#plan-setup'), null);
-        assert.ok(w.document.querySelector('#plan-panel')!.textContent!.includes('预算 30 分钟'));
+        assert.ok(w.document.querySelector('#plan-panel')!.textContent!.includes('可用 30 分钟'));
         const labels = [...w.document.querySelectorAll('.plan-task')].map(c => c.querySelector('.task-main b')!.textContent!);
         // 顺序契约：预览 → Recall → （可选）句子/语法任务 → Closing 末位
         assert.ok(labels[0].includes('新词预览'), `首项必须是新词预览：${labels.join(' | ')}`);
         assert.ok(labels[1].includes('新词回忆'), `第二项必须是新词回忆：${labels.join(' | ')}`);
-        assert.equal(labels[labels.length - 1], '今日收尾回忆', 'Closing 必须末位');
+        assert.equal(labels[labels.length - 1], '收尾再想一遍', 'Closing 必须末位');
         assert.ok(labels.some(l => /句子|语法/.test(l)), `Phase 4 句任务必须进入今日计划：${labels.join(' | ')}`);
         assert.ok(labels.length >= 3 && labels.length <= 6, `任务数量应在合理范围：${labels.join(' | ')}`);
         const totalTasks = labels.length;
@@ -125,12 +125,12 @@ test('Phase 3 UI：生成计划 → 预览 → Recall → 校准/重排 → Clos
         await until(w, () => w.document.querySelector('#toast')!.textContent!.includes('重排未完成任务'), 'regenerate toast');
         assert.ok(card(w, '新词预览').textContent!.includes('已完成'), '重排后已完成任务保留');
         assert.ok(card(w, '新词回忆').textContent!.includes('已完成'), '重排后已完成任务保留');
-        const closingCard = card(w, '今日收尾回忆');
+        const closingCard = card(w, '收尾再想一遍');
         assert.ok(closingCard.querySelector('[data-task-start]'), 'Closing 仍可执行');
         assert.equal([...w.document.querySelectorAll('.plan-task')].pop(), closingCard, 'Closing 始终是最后一个任务');
         assert.ok(!closingCard.textContent!.includes('0 个词'), 'Closing 必须使用真实词');
         // Closing Loop
-        clickInCard(w, '今日收尾回忆', 'start');
+        clickInCard(w, '收尾再想一遍', 'start');
         await until(w, () => !!w.document.querySelector('.answers'), 'closing started');
         await answerQuestions(w, 6);
         await until(w, () => !!w.document.querySelector('[data-closing]'), 'closing feedback');
@@ -180,7 +180,7 @@ test('Phase 3 UI：生成计划 → 预览 → Recall → 校准/重排 → Clos
             const restoredSettled = [...reopened.window.document.querySelectorAll('.plan-task')].filter(c => /已完成|已跳过|已替换/.test(c.textContent!)).length;
             assert.match(reopened.window.document.querySelector('#plan-panel .section-title')!.textContent!, new RegExp(`完成 ${restoredDone}/${restoredTotal}`));
             assert.equal(restoredSettled, restoredTotal);
-            assert.ok(card(reopened.window, '今日收尾回忆').textContent!.includes('已完成'));
+            assert.ok(card(reopened.window, '收尾再想一遍').textContent!.includes('已完成'));
             assert.equal((await plans()).length, 1);
         }
         finally {

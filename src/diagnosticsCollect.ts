@@ -79,40 +79,40 @@ function vocabularyMetrics(data: Data, range: Range, retention: RetentionResult)
     const ms = reviews.map(r => r.ms).filter(v => Number.isFinite(v) && v > 0);
     const metrics: MetricValue[] = [
         metric({
-            id: 'vocab.stable', domain: 'vocabulary', label: '稳定词汇量（active + productive）', kind: 'count',
+            id: 'vocab.stable', domain: 'vocabulary', label: '稳定记住的词', kind: 'count',
             value: stable, sample: words.length, minSample: 1, quality: 'mixed',
-            definition: '生命周期达到 active 或 productive 的词数；由既有识别/提取/产出证据阈值决定，不是自报。',
+            definition: '已经到“想得起、用得出”这一步的词数。按实际作答算，不是自己估的。',
             reasons: [`全库 ${words.length} 个词；active ${active}、productive ${productive}。`],
         }),
         metric({
-            id: 'vocab.active', domain: 'vocabulary', label: '主动词汇（active）', kind: 'count', value: active,
+            id: 'vocab.active', domain: 'vocabulary', label: '想得起的词', kind: 'count', value: active,
             sample: words.length, minSample: 1, quality: 'mixed',
-            definition: '识别达标 + 中→英主动提取证据 ≥ 3 次且分数达标。',
+            definition: '看英文能认，并且中→英主动想起至少 3 次、都答对了。',
         }),
         metric({
-            id: 'vocab.productive', domain: 'vocabulary', label: '产出词汇（productive）', kind: 'count', value: productive,
+            id: 'vocab.productive', domain: 'vocabulary', label: '用得出的词', kind: 'count', value: productive,
             sample: words.length, minSample: 1, quality: 'mixed',
-            definition: '有独立产出证据（≥3 条且分数达标），不是“写过一次”。',
+            definition: '在写作里自己用过至少 3 次、而且写得对；只写一次不算。',
         }),
         metric({
-            id: 'vocab.retrievalMs', domain: 'vocabulary', label: '提取速度（中位反应时间）', kind: 'duration',
+            id: 'vocab.retrievalMs', domain: 'vocabulary', label: '想起来的快慢', kind: 'duration',
             value: median(ms), sample: ms.length, quality: 'task-behavior',
-            definition: '本窗口内单词测试反应时间的中位数（毫秒）；越短不一定越好，需与正确率一起看。',
+            definition: '单词题用时的中位数。快不一定就好，要和正确率一起看。',
         }),
         metric({
-            id: 'vocab.reviews', domain: 'vocabulary', label: '复习次数', kind: 'count', value: reviews.length,
-            sample: reviews.length, quality: 'task-behavior', definition: '本窗口内完成的单词测试记录数。',
+            id: 'vocab.reviews', domain: 'vocabulary', label: '复习了几次', kind: 'count', value: reviews.length,
+            sample: reviews.length, quality: 'task-behavior', definition: '这段时间做完的单词题数量。',
         }),
         metric({
-            id: 'vocab.exposures', domain: 'vocabulary', label: '有效接触次数', kind: 'count', value: exposures.length,
-            sample: exposures.length, quality: 'mixed', definition: '本窗口内 counted=true 的词汇接触记录；曝光不是掌握。',
+            id: 'vocab.exposures', domain: 'vocabulary', label: '见过几次', kind: 'count', value: exposures.length,
+            sample: exposures.length, quality: 'mixed', definition: '真的看过、算得上的次数。见过不等于记住。',
         }),
     ];
     for (const p of retention.points) {
         metrics.push(metric({
-            id: `vocab.retention.${p.label.toLowerCase()}`, domain: 'vocabulary', label: `${p.label} 保持率`, kind: 'rate',
+            id: `vocab.retention.${p.label.toLowerCase()}`, domain: 'vocabulary', label: `${p.label} 还记得多少`, kind: 'rate',
             value: p.rate, sample: p.total, quality: 'task-behavior', numerator: p.correct, denominator: p.total,
-            definition: `首次出现后第 ${p.label.slice(1)} 个 24h 窗口的复习正确率；样本不足时留空。`,
+            definition: `第一次学过之后第 ${p.label.slice(1)} 天那次复习的正确率；答得太少就留空。`,
             reasons: [p.note],
         }));
     }
@@ -167,30 +167,30 @@ function grammarMetrics(data: Data, range: Range): MetricValue[] {
     const worst = weakestConcept(data, range);
     const metrics: MetricValue[] = [
         rateMetric({
-            id: 'grammar.accuracy', domain: 'grammar', label: '语法题正确率', numerator: correct, denominator: attempts.length,
+            id: 'grammar.accuracy', domain: 'grammar', label: '语法题答对率', numerator: correct, denominator: attempts.length,
             sample: attempts.length, quality: 'task-behavior',
-            definition: '本窗口语法识别题的正确比例（含提示后的作答）；提示后的正确不等于独立掌握。',
+            definition: '语法题答对的比例（看过提示的也算在内）。看了提示才答对，不算自己会。',
         }),
         rateMetric({
-            id: 'grammar.independentAccuracy', domain: 'grammar', label: '独立语法正确率', numerator: independent, denominator: attempts.length,
+            id: 'grammar.independentAccuracy', domain: 'grammar', label: '自己答对的比例', numerator: independent, denominator: attempts.length,
             sample: attempts.length, quality: 'task-behavior',
-            definition: 'independent=true 的语法作答正确比例；分母仍是全部语法作答。',
+            definition: '没看提示就答对的占比；算比例时仍然按全部语法题算。',
         }),
         rateMetric({
-            id: 'grammar.sentenceStructure', domain: 'grammar', label: '句子结构正确率', numerator: structureCorrect, denominator: sentenceEvaluable.length,
+            id: 'grammar.sentenceStructure', domain: 'grammar', label: '拆句正确率', numerator: structureCorrect, denominator: sentenceEvaluable.length,
             sample: sentenceEvaluable.length, quality: 'task-behavior',
-            definition: '句子实验室中结构可判定的尝试；含提示/照抄的尝试不产生独立证据。',
+            definition: '能判断对错的那几次尝试。看提示或照抄的不算自己拆的。',
         }),
         metric({
-            id: 'grammar.obstacles', domain: 'grammar', label: '阅读中的语法/词汇障碍标记', kind: 'count', value: readingObstacles.length,
-            sample: readingObstacles.length, quality: 'self-report', definition: '阅读时用户主动标记为语法/词汇障碍的证据条数。',
+            id: 'grammar.obstacles', domain: 'grammar', label: '读不懂的地方标了几处', kind: 'count', value: readingObstacles.length,
+            sample: readingObstacles.length, quality: 'self-report', definition: '读文章时你自己标出来的语法或词汇障碍有几处。',
         }),
     ];
     if (worst) {
         metrics.push(metric({
-            id: 'grammar.weakest', domain: 'grammar', label: `最需补的语法点：${worst.name}`, kind: 'rate', value: Math.round(worst.rate * 1000) / 1000,
+            id: 'grammar.weakest', domain: 'grammar', label: `最该补的语法点：${worst.name}`, kind: 'rate', value: Math.round(worst.rate * 1000) / 1000,
             sample: worst.sample, quality: 'task-behavior', numerator: Math.round(worst.rate * worst.sample), denominator: worst.sample,
-            definition: '本窗口内样本 ≥ 5 的语法点中正确率最低者；同分取 id 较小者，规则确定。',
+            definition: '这段时间练过至少 5 次的语法点里，正确率最低的那个。并列时取编号小的，规则固定。',
         }));
     }
     return metrics;
@@ -215,26 +215,26 @@ function readingMetrics(data: Data, range: Range): MetricValue[] {
     })
         .filter((v): v is number => v !== null);
     return [
-        metric({ id: 'reading.sessions', domain: 'reading', label: '完成阅读会话', kind: 'count', value: sessions.length, sample: sessions.length, quality: 'task-behavior', definition: '本窗口内创建/完成的阅读会话数。' }),
+        metric({ id: 'reading.sessions', domain: 'reading', label: '读完的文章', kind: 'count', value: sessions.length, sample: sessions.length, quality: 'task-behavior', definition: '这段时间开始或读完的阅读数量。' }),
         rateMetric({
-            id: 'reading.unknownRate', domain: 'reading', label: '未知词率（显式标记）', numerator: unknown, denominator: judged,
+            id: 'reading.unknownRate', domain: 'reading', label: '生词比例', numerator: unknown, denominator: judged,
             sample: judged, quality: 'self-report',
-            definition: '阅读中主动标记为 unknown/guessed 的 token ÷ 全部已标记 token；没有标记时留空，不用估算值冒充。',
+            definition: '你标成“不认识”或“猜的”词，占全部标记词的比例。没标就留空，不猜。',
         }),
         rateMetric({
-            id: 'reading.uncertainRate', domain: 'reading', label: '模糊词率', numerator: vague, denominator: judged,
-            sample: judged, quality: 'self-report', definition: '标记为 vague 的 token ÷ 全部已标记 token。',
+            id: 'reading.uncertainRate', domain: 'reading', label: '模糊词比例', numerator: vague, denominator: judged,
+            sample: judged, quality: 'self-report', definition: '标成“模糊”的词，占全部标记词的比例。',
         }),
         rateMetric({
-            id: 'reading.verifiedComprehension', domain: 'reading', label: '可核对理解正确率', numerator: verified.filter(c => (c.score ?? 0) >= 60).length, denominator: verified.length,
-            sample: verified.length, quality: 'verified', definition: '有标准答案/可核对条目的得分 ≥60 视为通过；自评不计入。',
+            id: 'reading.verifiedComprehension', domain: 'reading', label: '有标准答案的题答对率', numerator: verified.filter(c => (c.score ?? 0) >= 60).length, denominator: verified.length,
+            sample: verified.length, quality: 'verified', definition: '有标准答案的题，60 分以上算过；自评的不算。',
         }),
         rateMetric({
-            id: 'reading.selfComprehension', domain: 'reading', label: '自评理解（≥60 的比例）', numerator: self.filter(c => (c.score ?? 0) >= 60).length, denominator: self.length,
-            sample: self.length, quality: 'self-report', definition: '自报理解度 ≥60 的会话比例；只代表主观感受。',
+            id: 'reading.selfComprehension', domain: 'reading', label: '自评读懂的比例', numerator: self.filter(c => (c.score ?? 0) >= 60).length, denominator: self.length,
+            sample: self.length, quality: 'self-report', definition: '你说理解度在 60 以上的会话占比。只是你的感觉。',
         }),
-        metric({ id: 'reading.speed', domain: 'reading', label: '阅读速度（词/分钟，中位数）', kind: 'index', value: median(speeds), sample: speeds.length, quality: 'task-behavior', definition: '词数 ÷ 实际阅读分钟（至少 60 秒的会话）；不同材料难度下不可直接比。' }),
-        metric({ id: 'reading.rereadDelta', domain: 'reading', label: '重读自评提升（百分点）', kind: 'index', value: average(reread), sample: reread.length, quality: 'self-report', definition: '同一会话的“重读后自评 − 首读自评”；仅自评，且不同材料次数不可比。' }),
+        metric({ id: 'reading.speed', domain: 'reading', label: '阅读速度（词/分钟）', kind: 'index', value: median(speeds), sample: speeds.length, quality: 'task-behavior', definition: '词数 ÷ 真正读的分钟数（只算读了 60 秒以上的）。材料难度不同，不要直接比。' }),
+        metric({ id: 'reading.rereadDelta', domain: 'reading', label: '重读后感觉好多少', kind: 'index', value: average(reread), sample: reread.length, quality: 'self-report', definition: '同一篇“重读后的自评减去第一次的自评”。只是感觉，不同文章之间也不能比。' }),
     ];
 }
 function inputMetrics(data: Data, range: Range): MetricValue[] {
@@ -245,11 +245,11 @@ function inputMetrics(data: Data, range: Range): MetricValue[] {
     const captioned = completed.filter(s => (s.captionMode === 'en' || s.captionMode === 'zh') && typeof s.comprehension === 'number');
     const uncaptioned = completed.filter(s => s.captionMode === 'none' && typeof s.comprehension === 'number');
     return [
-        metric({ id: 'input.completed', domain: 'input', label: '完成输入会话', kind: 'count', value: completed.length, sample: sessions.length, quality: 'task-behavior', definition: '本窗口内状态为 completed 的真实材料输入会话。' }),
-        metric({ id: 'input.minutes', domain: 'input', label: '观看/聆听时长（分钟）', kind: 'duration', value: reported.reduce((a, b) => a + b, 0), sample: reported.length, quality: 'self-report', definition: '用户自报或计划完成的分钟数之和；不是平台真实播放进度，也不等于掌握。' }),
-        metric({ id: 'input.comprehension', domain: 'input', label: '自评理解均值（0–100）', kind: 'index', value: average(comp), sample: comp.length, quality: 'self-report', definition: '完成后自报理解度的均值；没有“听力分数”。' }),
-        metric({ id: 'input.captioned', domain: 'input', label: '有字幕时自评理解', kind: 'index', value: average(captioned.map(s => s.comprehension!)), sample: captioned.length, quality: 'self-report', definition: 'captionMode 为 en/zh 的会话自评均值。' }),
-        metric({ id: 'input.uncaptioned', domain: 'input', label: '无字幕时自评理解', kind: 'index', value: average(uncaptioned.map(s => s.comprehension!)), sample: uncaptioned.length, quality: 'self-report', definition: 'captionMode=none 的会话自评均值。' }),
+        metric({ id: 'input.completed', domain: 'input', label: '看完的材料', kind: 'count', value: completed.length, sample: sessions.length, quality: 'task-behavior', definition: '这段时间标成“完成”的输入记录。' }),
+        metric({ id: 'input.minutes', domain: 'input', label: '看了多久（分钟）', kind: 'duration', value: reported.reduce((a, b) => a + b, 0), sample: reported.length, quality: 'self-report', definition: '你自己填的分钟数之和。不是平台的真实播放进度，也不代表记住了。' }),
+        metric({ id: 'input.comprehension', domain: 'input', label: '平均听懂程度（0–100）', kind: 'index', value: average(comp), sample: comp.length, quality: 'self-report', definition: '每次完成后你自报的理解度平均。这里没有所谓“听力分数”。' }),
+        metric({ id: 'input.captioned', domain: 'input', label: '有字幕时听得懂多少', kind: 'index', value: average(captioned.map(s => s.comprehension!)), sample: captioned.length, quality: 'self-report', definition: '开了英文或中文字幕那些次的平均自评。' }),
+        metric({ id: 'input.uncaptioned', domain: 'input', label: '没字幕时听得懂多少', kind: 'index', value: average(uncaptioned.map(s => s.comprehension!)), sample: uncaptioned.length, quality: 'self-report', definition: '完全没开字幕那些次的平均自评。' }),
     ];
 }
 function outputMetrics(data: Data, range: Range): MetricValue[] {
@@ -261,20 +261,20 @@ function outputMetrics(data: Data, range: Range): MetricValue[] {
     const revisions = attempts.filter(a => !!a.revisionText).length;
     const transfers = attempts.filter(a => !!a.transferOf).length;
     return [
-        metric({ id: 'output.completed', domain: 'output', label: '完成的表达任务', kind: 'count', value: attempts.length, sample: attempts.length, quality: 'task-behavior', definition: '本窗口有最终文本的表达尝试；一句话也算完成。' }),
+        metric({ id: 'output.completed', domain: 'output', label: '写完的段落', kind: 'count', value: attempts.length, sample: attempts.length, quality: 'task-behavior', definition: '这段时间写出最终稿的；只写一句也算完成。' }),
         rateMetric({
-            id: 'output.independentShare', domain: 'output', label: '独立产出证据占比', numerator: independent, denominator: evidence.length,
+            id: 'output.independentShare', domain: 'output', label: '自己写的比例', numerator: independent, denominator: evidence.length,
             sample: evidence.length, quality: 'mixed',
-            definition: '独立且非照抄的产出证据 ÷ 全部产出证据；L4 完整示范后的正确表达不计入独立。',
-            reasons: [`照抄证据 ${copied} 条，已排除。`],
+            definition: '没用完整示范、也没照抄的，占全部写作的比例。看过完整示范后写对的，不算自己写。',
+            reasons: [`照抄的 ${copied} 条已排除。`],
         }),
         rateMetric({
-            id: 'output.assistedShare', domain: 'output', label: '使用过辅助的任务占比', numerator: assisted, denominator: attempts.length,
+            id: 'output.assistedShare', domain: 'output', label: '用过提示的比例', numerator: assisted, denominator: attempts.length,
             sample: attempts.length, quality: 'task-behavior',
-            definition: '最高辅助级别 ≥1 的任务比例；辅助被记录，不因此扣“作文分”。',
+            definition: '用过至少一级提示的占比。记下来是为了看清过程，不会因此扣作文分。',
         }),
-        metric({ id: 'output.revisions', domain: 'output', label: '自己修改过的尝试', kind: 'count', value: revisions, sample: attempts.length, quality: 'task-behavior', definition: '存在 revisionText 的尝试数；照抄反馈后重写不算独立。' }),
-        metric({ id: 'output.transfers', domain: 'output', label: '迁移尝试', kind: 'count', value: transfers, sample: attempts.length, quality: 'task-behavior', definition: '带 transferOf 的尝试数；迁移必须换语境与内容。' }),
+        metric({ id: 'output.revisions', domain: 'output', label: '自己改过的段落', kind: 'count', value: revisions, sample: attempts.length, quality: 'task-behavior', definition: '你写完又自己改过的次数。照抄建议再改，不算自己改的。' }),
+        metric({ id: 'output.transfers', domain: 'output', label: '换场景写作次数', kind: 'count', value: transfers, sample: attempts.length, quality: 'task-behavior', definition: '换了新场景、新内容再写的次数；照着原题重写不算。' }),
     ];
 }
 function translationMetrics(data: Data, range: Range): MetricValue[] {
@@ -286,10 +286,10 @@ function translationMetrics(data: Data, range: Range): MetricValue[] {
     const values = grades.map(score);
     const direct = grades.filter(g => g === 'A' || g === 'B').length;
     return [
-        metric({ id: 'translation.mean', domain: 'translation', label: '翻译依赖均值（0=直接理解，4=没有理解）', kind: 'index', value: average(values), sample: values.length, quality: 'self-report', definition: '阅读会话中自报的 A–E 等级换算均值；只表示依赖程度，不是能力分数。' }),
+        metric({ id: 'translation.mean', domain: 'translation', label: '要先翻译的程度（0 = 直接懂，4 = 基本没懂）', kind: 'index', value: average(values), sample: values.length, quality: 'self-report', definition: '阅读时自报的翻译依赖等级平均。只说明依赖程度，不是能力分数。' }),
         rateMetric({
-            id: 'translation.directShare', domain: 'translation', label: '直接理解占比（A/B）', numerator: direct, denominator: grades.length,
-            sample: grades.length, quality: 'self-report', definition: 'A/B 等级占全部已记录等级的比例。',
+            id: 'translation.directShare', domain: 'translation', label: '不用翻译就懂的比例', numerator: direct, denominator: grades.length,
+            sample: grades.length, quality: 'self-report', definition: '评为 A 或 B 的次数，占全部有记录次数的比例。',
         }),
     ];
 }
@@ -327,5 +327,5 @@ export function sentenceSample(data: Data, range: Range): SentenceAttempt[] {
     return data.sentenceAttempts.filter(a => inRange(a.at ?? a.createdAt, range));
 }
 export function configVersionNote(): string {
-    return `证据阈值来自 EVIDENCE_CONFIG：active≥${EVIDENCE_CONFIG.lifecycle.activeMinScore} 分/${EVIDENCE_CONFIG.lifecycle.activeMinEvidence} 次，productive≥${EVIDENCE_CONFIG.lifecycle.productiveMinScore} 分/${EVIDENCE_CONFIG.lifecycle.productiveMinEvidence} 次。`;
+    return `门槛来自 EVIDENCE_CONFIG：active≥${EVIDENCE_CONFIG.lifecycle.activeMinScore} 分/${EVIDENCE_CONFIG.lifecycle.activeMinEvidence} 次，productive≥${EVIDENCE_CONFIG.lifecycle.productiveMinScore} 分/${EVIDENCE_CONFIG.lifecycle.productiveMinEvidence} 次。`;
 }

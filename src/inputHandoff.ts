@@ -17,7 +17,7 @@ export interface TranscriptHandoffOptions {
 }
 export function transcriptPassageDraft(transcript: Transcript, source: InputSource, opts: TranscriptHandoffOptions = {}): ImportResult<PassageDraft> {
     if (transcript.language !== 'en')
-        return { ok: false, error: { code: 'unsupported-document', message: '只有英文字幕可以进入 Reading Lab。', hint: '中文字幕不能当作英语原声转录。', fallback: ['paste'], stage: 'source-validation' }, stages: [] };
+        return { ok: false, error: { code: 'unsupported-document', message: '只有英文字幕可以进入 阅读。', hint: '中文字幕不能当作英语原声转录。', fallback: ['paste'], stage: 'source-validation' }, stages: [] };
     const text = cuesToText(transcript.cues, { startMs: opts.startMs, endMs: opts.endMs });
     const built = buildPastedDraft({ raw: text, title: opts.title ?? source.title, topic: opts.topic ?? source.topic, allowShort: true });
     if (!built.ok)

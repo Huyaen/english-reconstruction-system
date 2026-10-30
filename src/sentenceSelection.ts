@@ -240,10 +240,10 @@ export function selectSentenceBatch(input: SentenceSelectionInput, count: number
 // —— Planner 句任务描述（Planner 只负责排期与预算，不重写选择逻辑）——
 export type SentenceTaskKind = 'sentence-basic-structure' | 'sentence-weak-grammar' | 'sentence-difficult-review' | 'sentence-transfer';
 export const SENTENCE_TASK_LABELS: Record<SentenceTaskKind, string> = {
-    'sentence-basic-structure': '句子结构练习',
-    'sentence-weak-grammar': '弱项语法强化',
-    'sentence-difficult-review': '难句复习',
-    'sentence-transfer': '迁移练习',
+    'sentence-basic-structure': '拆句子',
+    'sentence-weak-grammar': '补薄弱语法',
+    'sentence-difficult-review': '再看难句',
+    'sentence-transfer': '换个句子试试',
 };
 export interface SentenceTaskDescriptor {
     kind: SentenceTaskKind;

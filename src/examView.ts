@@ -21,8 +21,8 @@ export function examOverviewHtml(d: Data, specs: ExamSpecification[], items: Ass
             <details><summary>来源与核验</summary><ul class="exam-sources">${sourceLinks}</ul><p class="hint">核验时间：${s.verifiedAt ? fmtDate(s.verifiedAt) : '未记录'} · 置信度：${esc(s.confidence)}</p></details>
         </article>`;
     }).join('');
-    return `<section class="panel exam-intro"><div class="section-title"><h2>考试迁移</h2><span class="subtle">本地 · 不联网评分</span></div>
-        <p class="lede">这里只做迁移证据：做新题、看错因、隔几天再测。它不预测高考分数，也不把一次正确当成掌握。</p>
+    return `<section class="panel exam-intro"><div class="section-title"><h2>考试练习</h2><span class="subtle">本地 · 不联网评分</span></div>
+        <p class="lede">换新题、看错因、隔几天再测。不预测高考分数，答对一次也不算掌握。</p>
         <div class="exam-warning"><strong>2028 规则尚未公布。</strong> 2026 的 115+35 是已确认的历史规则，不能直接当作 2028 的确定结构；本页用“暂定/未知”标出未确认内容，不用默认值填空。</div>
         <div class="exam-actions"><button class="primary" id="exam-start-mixed">开始混合练习</button><button class="secondary" id="exam-start-weekly">生成本周周测</button><label class="switch-line"><input type="checkbox" id="exam-plan-toggle" ${planEnabled ? 'checked' : ''}> ${planEnabled ? '当前已开启：每日计划最多安排 1 道考试题' : '把 1 道考试题加入每日计划（默认关闭）'}</label></div>
         <p class="hint">练习只使用题库中<strong>未做过</strong>的题；做过就换题，不用重复题冒充进步。</p>
@@ -57,7 +57,7 @@ export function examSessionHtml(session: ExamSession, index: number, draft: stri
     return `<section class="panel exam-session"><div class="exam-progress"><div><strong>${prog.answered}/${prog.total}</strong> 已答 · 第 ${index + 1} 题</div><div class="track"><i style="width:${prog.ratio * 100}%"></i></div><span>建议 ${session.timeLimitMinutes} 分钟</span></div>
         ${meta}<h2 class="exam-stem">${esc(item.stem).replace(/\n/g, '<br>')}</h2>${input}
         <div class="exam-nav"><button class="secondary" id="exam-prev" ${index === 0 ? 'disabled' : ''}>上一题</button><button class="secondary" id="exam-next" ${index >= session.items.length - 1 ? 'disabled' : ''}>下一题</button><button class="text-button" id="exam-save">保存并留在此题</button><button class="primary" id="exam-submit">提交测评</button></div>
-        <p class="hint">答案自动保存在本地；刷新会恢复。提交后客观题才评分，开放题只显示 rubric，不冒充已评分。</p></section>`;
+        <p class="hint">答案自动保存在本地；刷新会恢复。提交后才给客观题打分；开放题只给评分要点，不假装已经打过分了。</p></section>`;
 }
 export function examResultHtml(session: ExamSession): string {
     const correct = session.items.filter(i => i.options.length && session.answers[i.id]?.value === i.answerKey).length;
@@ -68,7 +68,7 @@ export function examResultHtml(session: ExamSession): string {
         <p class="hint">客观题 ${correct}/${objective} 正确。${session.scoreStatus === 'partial' ? '含开放题，因此只有部分分，不是整卷成绩。' : ''} 这里没有官方分数，也没有预测分。</p>
         <h3>错因复盘 <span class="subtle">${esc(errorSummary(session.errors))}</span></h3>${errors}
         <div class="exam-actions"><button class="primary" id="exam-complete">完成复盘</button><button class="secondary" id="exam-retest">做一道同类新题</button><button class="text-button" id="exam-back">返回考试首页</button></div>
-        <p class="hint">复测只换新题验证迁移；一次做对不等于掌握，也不直接改写词汇掌握度。</p></section>`;
+        <p class="hint">复测只换新题；一次做对不等于掌握，也不会直接改动词汇的掌握程度。</p></section>`;
 }
 export function weeklyPanelHtml(build: {
     items: AssessmentItem[];
@@ -114,7 +114,7 @@ export function examLogsHtml(logs: ExamLog[], specs: ExamSpecification[], editin
             <div class="exam-log-actions"><button class="text-button exam-log-edit" data-log="${esc(l.id)}">编辑</button><button class="text-button exam-log-del" data-log="${esc(l.id)}">删除</button></div>
         </article>`;
     }).join('');
-    return `<section class="panel"><div class="section-title"><h2>学校考试记录</h2><span class="subtle">学生自报（self_reported）· 未经系统核验</span></div>
+    return `<section class="panel"><div class="section-title"><h2>学校考试记录</h2><span class="subtle">你自己填的 · 没有系统核对</span></div>
         <p class="hint">记录你真实参加过的考试，不要求使用高考分值。校内考试、月考、模拟考试和自定义考试都可以保存；分数只作为事实记录，不反推掌握度、不预测下次分数。</p>
         <div class="exam-log-form">
             <label class="log-date">日期<input type="date" id="log-date" value="${esc(editing?.date ?? today)}"></label>
@@ -137,7 +137,7 @@ export function examLogsHtml(logs: ExamLog[], specs: ExamSpecification[], editin
         ${rows ? `<div class="exam-log-list">${rows}</div>` : '<p class="empty-note">还没有考试记录。保存后可刷新、编辑、删除、导出或随完整备份恢复。</p>'}</section>`;
 }
 export function specsAuditHtml(specs: ExamSpecification[], items: AssessmentItem[]): string {
-    return `<section class="panel"><div class="section-title"><h2>规格审计</h2><span class="subtle">来源优先于记忆</span></div>
+    return `<section class="panel"><div class="section-title"><h2>考试规格核对</h2><span class="subtle">以官方来源为准</span></div>
         <table class="exam-table"><thead><tr><th>年份</th><th>类别</th><th>状态</th><th>总分</th><th>来源</th><th>题目</th></tr></thead><tbody>${specs.map(s => `<tr><td>${s.applicableYear}</td><td>${esc(examCategoryLabel(s.examCategory))}</td><td>${esc(statusLabel(s.status))}</td><td>${s.totalScore ?? '—'}</td><td>${s.sourceRefs.length}</td><td>${items.filter(i => i.examCategory === s.examCategory).length}</td></tr>`).join('')}</tbody></table>
-        <p class="hint">规格与题目均版本化保存在本地；2028 没有官方文件时，所有未知字段保持 null，不用默认值填空。</p></section>`;
+        <p class="hint">规格和题目都按版本存在本地；2028 还没有官方文件时，未知项就留空，不拿默认值凑。</p></section>`;
 }

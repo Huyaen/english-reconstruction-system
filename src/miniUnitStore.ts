@@ -1,4 +1,4 @@
-// —— Phase 7：Mini Unit 持久化（miniUnits store，keyPath id）——
+// —— Phase 7：单元 持久化（miniUnits store，keyPath id）——
 // 并发语义与 plannerStore 一致：单事务内“读取-比较 revision-写入”，
 // 冲突显式抛 StaleUnitError；创建时用单事务保证不会出现两个 active 单元。
 import type { MiniUnit } from './types.ts';
@@ -11,7 +11,7 @@ export class StaleUnitError extends Error {
 }
 export class ActiveUnitExistsError extends Error {
     constructor(public activeId: string) {
-        super('已经有一个进行中的 Mini Unit，请先完成或放弃它');
+        super('已经有一个进行中的 单元，请先完成或放弃它');
         this.name = 'ActiveUnitExistsError';
     }
 }

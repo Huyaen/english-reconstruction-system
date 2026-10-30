@@ -259,7 +259,7 @@ export async function reviseOutput(id: string, expectedRevision: number | undefi
     const kind = classified ? (classified as {
         kind: string;
     }).kind : '';
-    const msg = kind === 'copied' ? '已保存修改。注意：这条修改与建议高度相似，按“照抄”记录，不会产生独立掌握证据。'
+    const msg = kind === 'copied' ? '已保存。这条改动和建议很接近，会按“照抄”记录，不算你自己写的。'
         : kind === 'after_hint' ? '已保存修改（提示后完成）。' : '已保存修改。';
     return { ok: true, value: r.attempt };
 }
@@ -359,7 +359,7 @@ function buildTaskFromInput(s: Data['inputSessions'][number], title: string, top
         difficultyEstimate: 0.4,
         minWords: 15,
         maxWords: 120,
-        reasons: [`来自真实输入：${title || s.id}`],
+        reasons: [`来自输入练习：${title || s.id}`],
         interestOnly: true,
         createdAt: now,
     };

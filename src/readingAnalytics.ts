@@ -84,7 +84,7 @@ export function computeReadingMetrics(session: ReadingSession, opts: {
     const assistedAnswers = (detail.comprehension ?? []).filter(c => c.assisted).length;
     const maxLevel = (detail.helps ?? []).reduce((a, h) => Math.max(a, h.level), 0);
     if (maxLevel >= 3)
-        caveats.push('用过完整讲解/结构解释：本次不构成独立理解证据');
+        caveats.push('用过完整讲解或结构解释：这次不算自己独立读懂');
     const grammarProblems = [...new Set((detail.difficultSentences ?? []).flatMap(d => d.problemTypes))];
     let estimated = na<number>('没有提供词表，无法估算');
     if (opts.tokens && opts.lookup) {
@@ -138,7 +138,7 @@ export function computeReadingTrend(sessions: ReadingSession[]): ReadingTrend {
         avgRereadWpm: avg(rereadWpm),
         avgRereadGain: avg(gains),
         avgExplicitUnknownRate: avg(rates),
-        sampleNote: completed.length < 3 ? `只有 ${completed.length} 篇完成的阅读，趋势还不可靠` : `${completed.length} 篇完成的阅读`,
+        sampleNote: completed.length < 3 ? `只读完 ${completed.length} 篇，还看不出趋势` : `${completed.length} 篇完成的阅读`,
     };
 }
 export function evidenceDigest(session: ReadingSession) {

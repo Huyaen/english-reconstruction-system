@@ -92,7 +92,7 @@ test('迁移任务换了语境，不换两个词了事；延迟任务有 D1', ()
     assert.notEqual(t.task.topic, task.topic);
     assert.equal(transferIsGenuine(task, t.task), true);
     assert.equal(t.strength, 'strong');
-    assert.ok(t.notes.join(' ').includes('不同语境'));
+    assert.ok(t.notes.join(' ').includes('换了场景'));
     assert.equal(transferIsGenuine(task, { ...t.task, topic: task.topic }), false);
     const delayed = buildDelayedTask(task, { now: NOW, delayDays: 1 });
     assert.ok(delayed.task.communicationGoal);

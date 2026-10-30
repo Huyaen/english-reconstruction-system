@@ -94,7 +94,7 @@ test('显式兴趣优先于近期行为：兴趣主题排第一，理由为 Base
     const r = rec(p, d);
     assert.equal(r.themes[0].topic, 'rivers');
     assert.equal(r.themes[0].reasonKind, 'interests');
-    assert.equal(r.themes[0].reasonTag, 'Based on your interests');
+    assert.equal(r.themes[0].reasonTag, '基于你的兴趣');
     assert.ok(r.themes.some(t => t.reasonKind === 'recent'), '近期行为应体现在另一条推荐上');
 });
 // 5) 一次点击不永久改变权重
@@ -119,10 +119,10 @@ test('画像非空时保留探索位：至少一条 Explore something new', () =
     });
     const r = rec(p, d);
     assert.equal(r.themes.length, 3);
-    assert.ok(r.themes.some(t => t.exploration && t.reasonTag === 'Explore something new'), JSON.stringify(r.themes.map(t => [t.topic, t.reasonKind])));
+    assert.ok(r.themes.some(t => t.exploration && t.reasonTag === '换个新领域试试'), JSON.stringify(r.themes.map(t => [t.topic, t.reasonKind])));
 });
 // 7) 当前单元相关
-test('进行中的单元主题标记为 Related to your Mini Unit', () => {
+test('进行中的单元主题标记为 Related to your unit', () => {
     const d = data({
         passages: [passage({ id: 'p1', topic: 'rivers' }), passage({ id: 'p2', topic: 'rivers', title: 'River Notes', contentHash: 'h2' })],
         miniUnits: [unit({ id: 'u9', topic: 'rivers', anchorMaterialId: 'p2', stage: 'active' })],
@@ -131,7 +131,7 @@ test('进行中的单元主题标记为 Related to your Mini Unit', () => {
     const rivers = r.themes.find(t => t.topic === 'rivers');
     assert.ok(rivers);
     assert.equal(rivers!.reasonKind, 'unit');
-    assert.equal(rivers!.reasonTag, 'Related to your Mini Unit');
+    assert.equal(rivers!.reasonTag, '和你正在做的单元相关');
 });
 // 8) 查看/调整/重置
 test('重置清空画像并保留重置计数；空画像与脏数据都能安全归一化', () => {
@@ -178,7 +178,7 @@ test('刚完成同主题单元会被降权并标记 repeat，不反复推相似�
 test('空画像 + 行为不足时明确说明不是精准个性化', () => {
     const d = data({ passages: [passage({ topic: 'rivers' })] });
     const r = rec(emptyProfile(NOW), d);
-    assert.match(r.note, /不算精准个性化|依据有限/);
+    assert.match(r.note, /不算个性化|依据有限/);
     assert.equal(activitySignals(d, NOW).sufficient, false);
 });
 test('行为足够 + 有画像时不再声明依据不足', () => {

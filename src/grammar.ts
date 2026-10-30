@@ -422,11 +422,11 @@ export interface GrammarConceptState {
     reasons: string[];
 }
 export const GRAMMAR_BAND_LABELS: Record<GrammarBand, string> = {
-    unknown: '尚无证据',
-    'insufficient-evidence': '证据不足',
-    exposed: '已接触',
-    learning: '建立中',
-    'likely-mastered': '较稳定（估算）',
+    unknown: '还没练过',
+    'insufficient-evidence': '练得还少',
+    exposed: '看过讲解',
+    learning: '在练',
+    'likely-mastered': '练得比较稳',
 };
 function errorCounts(attempts: GrammarAttempt[]): Record<string, number> {
     const out: Record<string, number> = {};

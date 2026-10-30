@@ -36,14 +36,14 @@ export const PLANNER_CONFIG = {
     retentionMinSamples: 3,
 } as const;
 export const TASK_LABELS: Record<string, string> = {
-    'yesterday-recall': '昨日隔夜检测',
-    'due-review': '到期复习',
-    'weak-review': '弱词强化',
+    'yesterday-recall': '昨天学的还记得吗',
+    'due-review': '今天该复习的',
+    'weak-review': '薄弱词再练',
     'new-preview': '新词预览',
-    'new-recall': '新词回忆',
-    'closing-recall': '今日收尾回忆',
-    're-entry-check': '重新进入检测',
-    'output-task': '真实表达',
+    'new-recall': '新词回忆测试',
+    'closing-recall': '收尾再想一遍',
+    're-entry-check': '找回状态',
+    'output-task': '写一段',
     ...SENTENCE_TASK_LABELS,
 };
 export const MODULES = ['vocabulary', 'sentence', 'reading', 'input', 'output', 'exam'] as const;
@@ -70,9 +70,9 @@ export function moduleCapabilities(overrides: CapabilityOverrides = {}): Record<
         vocabulary: { available: true, requires: null, label: '词汇记忆' },
         sentence: { available: true, requires: null, label: '句子与语法' },
         reading: { available: true, requires: null, label: '阅读' },
-        input: { available: true, requires: null, label: '真实输入' },
-        output: { available: true, requires: null, label: '真实表达' },
-        exam: { available: true, requires: null, label: '考试迁移' },
+        input: { available: true, requires: null, label: '输入练习' },
+        output: { available: true, requires: null, label: '写作练习' },
+        exam: { available: true, requires: null, label: '考试' },
     };
     for (const key of MODULES)
         if (overrides[key] === false)
@@ -416,10 +416,10 @@ function normalizeBudget(minutes: number): {
     reasons: string[];
 } {
     if (!Number.isFinite(minutes))
-        throw Error('时间预算必须是有效数字');
+        throw Error('可用时间要填数字');
     const rounded = Math.round(minutes);
     if (rounded <= 0)
-        throw Error('时间预算必须大于 0 分钟');
+        throw Error('可用时间要大于 0 分钟');
     const cfg = PLANNER_CONFIG.budget;
     const clamped = clamp(rounded, cfg.min, cfg.max);
     return { minutes: clamped, reasons: rounded === clamped ? [] : [`budget-clamped-${rounded}->${clamped}`] };
@@ -1145,7 +1145,7 @@ export function buildReplacement(plan: DailyPlan, task: PlanItem, words: Word[],
 export function assertPlanInvariants(plan: DailyPlan): void {
     const total = planMinutes(plan);
     if (total > plan.availableMinutes)
-        throw Error(`计划超出时间预算：${total} > ${plan.availableMinutes}`);
+        throw Error(`计划超过可用时间：${total} > ${plan.availableMinutes}`);
     const caps = moduleCapabilities();
     for (const t of plan.initialPlan) {
         const cap = t.capabilityRequired as PlanModule | undefined;
@@ -1154,7 +1154,7 @@ export function assertPlanInvariants(plan: DailyPlan): void {
         if (!caps[cap].available)
             throw Error(`未实现的 capability 生成了任务：${cap}`);
         if (cap === 'sentence' && (!t.refs || !t.refs.length))
-            throw Error(`句子任务 ${t.id} 必须绑定真实句 id（禁止假任务）`);
+            throw Error(`句子任务 ${t.id} 必须绑定真实句子（不能拿空任务凑）`);
         if (t.minutes <= 0)
             throw Error(`任务 ${t.id} 的时间无效`);
     }

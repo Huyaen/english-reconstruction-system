@@ -1,5 +1,5 @@
 // —— Phase 11：错因归因（六分类 + 二级）——
-// 纪律：一题答错不自动等于“阅读差”；证据不足返回 uncertain，绝不把猜测写成已验证根因。
+// 纪律：一题答错不自动等于“阅读差”；记录不够返回 uncertain，绝不把猜测写成已验证根因。
 // 归因来源优先级：用户自报 > 选项级 distractor 证据 > 目标技能弱推断 > uncertain。
 import type { AssessmentAnswer, AssessmentItem, ExamErrorCategory, ExamErrorRecord, ExamErrorSubcategory, ExamSession, } from './examTypes.ts';
 import { isChoiceItem } from './examItems.ts';
@@ -7,10 +7,10 @@ const INTERVENTION: Record<ExamErrorCategory, string> = {
     vocabulary: '词汇：回到词库做该词的识别/主动提取，并在真实语境中再遇一次。',
     structure: '结构：回到 Sentence Lab 拆主谓/从句，再用同结构新句验证。',
     logic: '逻辑：回阅读做段落关系与推理训练，要求引用原文依据。',
-    evidence: '证据：练“先定位原文再选答案”，禁止凭印象作答。',
+    evidence: '对应原文：练“先回原文找依据，再选答案”，别凭印象作答。',
     overthinking: '过度推断：复盘干扰项，练习只选原文支持的选项。',
     time_pressure: '时间压力：做限时短练，先跳过卡住的题，再回看。',
-    uncertain: '证据不足：先保留疑问，完成复盘或补一次同类题再判断。',
+    uncertain: '记录不够：先保留疑问，完成复盘或补一次同类题再判断。',
 };
 const SKILL_MAP: {
     prefix: string;
@@ -23,7 +23,7 @@ const SKILL_MAP: {
     { prefix: 'logic', category: 'logic', subcategory: 'misreading', reason: '题目目标能力标注为逻辑关系；可能误读因果/转折。' },
     { prefix: 'reading.main', category: 'logic', subcategory: 'misreading', reason: '主旨题答错更可能是整体理解或过度概括，而非单词问题。' },
     { prefix: 'reading.inference', category: 'logic', subcategory: 'distractor', reason: '推断题答错常见于选了原文未支持的干扰项。' },
-    { prefix: 'reading.evidence', category: 'evidence', subcategory: 'incomplete_evidence', reason: '题目要求定位证据；可能没有回到原文核对。' },
+    { prefix: 'reading.evidence', category: 'evidence', subcategory: 'incomplete_evidence', reason: '这道题要去原文找依据，可能没回去核对。' },
     { prefix: 'reading.detail', category: 'evidence', subcategory: 'misreading', reason: '细节题答错常见于定位错误或漏看限定词。' },
 ];
 function fromSkills(item: AssessmentItem): {
@@ -80,7 +80,7 @@ export function attributeError(item: AssessmentItem, answer: AssessmentAnswer | 
     if (!inferred) {
         return {
             itemId: item.id, category: 'uncertain', subcategory: 'other', confidence: 'low',
-            explanation: '这道题没有选项级错因证据，也没有明确的能力标签；先保留为不确定，完成复盘后再判断。',
+            explanation: '这道题看不出具体错在哪，也没有明确的能力标签；先记成不确定，复盘后再判断。',
             evidenceRefs, alternatives, intervention: INTERVENTION.uncertain, userReported: false, at: opts.now,
         };
     }
@@ -124,13 +124,13 @@ export function correctError(record: ExamErrorRecord, category: ExamErrorCategor
 }
 export function errorCategoryLabel(c: ExamErrorCategory): string {
     return ({
-        vocabulary: '词汇', structure: '结构', logic: '逻辑', evidence: '证据', overthinking: '过度推断', time_pressure: '时间压力', uncertain: '不确定',
+        vocabulary: '词汇', structure: '结构', logic: '逻辑', evidence: '依据', overthinking: '过度推断', time_pressure: '时间压力', uncertain: '不确定',
     } as const)[c];
 }
 export function errorSubcategoryLabel(s: ExamErrorSubcategory): string {
     return ({
         word_meaning: '词义', collocation: '搭配', clause_relation: '从句关系', reference: '指代', distractor: '干扰项',
-        misreading: '误读', incomplete_evidence: '证据不足', timing_strategy: '时间策略', careless_selection: '粗心选择', overgeneralization: '过度概括', other: '其他',
+        misreading: '误读', incomplete_evidence: '记录不够', timing_strategy: '时间策略', careless_selection: '粗心选择', overgeneralization: '过度概括', other: '其他',
     } as const)[s];
 }
 export function errorSummary(errors: ExamErrorRecord[]): string {
