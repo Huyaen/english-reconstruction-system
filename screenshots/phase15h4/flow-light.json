@@ -1,0 +1,1310 @@
+{
+ "theme": "light",
+ "size": "1440x900",
+ "t0": 1793359204321,
+ "steps": [
+  {
+   "name": "A1-books",
+   "internal": {
+    "page": "books",
+    "chromePage": "books",
+    "level": "b",
+    "theme": "light",
+    "busy": false,
+    "feedback": false,
+    "paused": false,
+    "session": null,
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 0,
+    "startingSession": false,
+    "mainChildren": 4,
+    "navActive": [
+     "books"
+    ]
+   },
+   "chrome": {
+    "page": "books",
+    "level": "b",
+    "theme": "light",
+    "h1": "你的词库",
+    "mainText": "你的词库YOUR WORDBOOKS导入你要学的词，所有记录留在这台设备。＋ 导入词书全部词书统一验收词书 24全部状态未测试不会模糊正常熟练优先级排序字母排序复习时间排序训练这批导出预览新词单词 / 释义掌握状态优先级正确 / 作答平均反",
+    "resume": false,
+    "navActive": [
+     "books"
+    ]
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 0,
+    "matched": 0,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 0
+   },
+   "levelOk": true
+  },
+  {
+   "name": "A2-quiz-enter",
+   "internal": {
+    "page": "quiz",
+    "chromePage": "quiz",
+    "level": "b",
+    "theme": "light",
+    "busy": false,
+    "feedback": false,
+    "paused": false,
+    "session": {
+     "id": "655aadae-3cb5-421b-abcb-7d75cf9741fd",
+     "index": 0,
+     "queue": 24
+    },
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 1,
+    "startingSession": false,
+    "mainChildren": 4,
+    "navActive": []
+   },
+   "chrome": {
+    "page": "quiz",
+    "level": "b",
+    "theme": "light",
+    "h1": "",
+    "mainText": "← 保存并退出1 / 24暂停ENGLISH → 中文unifiedweak22选出对应的中文释义1统一验收释义232统一验收释义203统一验收释义214统一验收释义22不知道 Space已暂停暂停时间不计入反应时间继续答题数字键选择 · ",
+    "resume": false,
+    "navActive": []
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 45,
+    "matched": 42,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 12
+   },
+   "levelOk": true
+  },
+  {
+   "name": "A3-quiz-wrong",
+   "question": {
+    "wordId": "0c5f0344-2596-431d-88a2-a3c7aa33d75e",
+    "options": [
+     "22db7aab-2ab4-4913-a584-6c03b39ef20e",
+     "91e45cec-de5e-4f82-b6a6-9782d10fc272",
+     "6c56d280-bc2f-41de-a1df-736f96f0b198",
+     "0c5f0344-2596-431d-88a2-a3c7aa33d75e"
+    ],
+    "direction": "en-zh"
+   },
+   "picked": "22db7aab-2ab4-4913-a584-6c03b39ef20e",
+   "feedback": "unifiedweak22 · 统一验收释义22已记录错词 · 0.83 s下一题 Enter",
+   "verdict": {
+    "correctMark": "\"✓\"",
+    "wrongMark": "\"✕\"",
+    "correctIsAnswer": true,
+    "wrongIsPicked": true,
+    "correctColor": "rgb(20, 23, 27)",
+    "others": [
+     {
+      "opacity": "0.5",
+      "color": "rgb(20, 23, 27)"
+     },
+     {
+      "opacity": "0.5",
+      "color": "rgb(20, 23, 27)"
+     }
+    ]
+   },
+   "styles": {
+    ".quiz-card": {
+     "display": "block",
+     "gridTemplateColumns": "none",
+     "maxWidth": "780px",
+     "width": "780px",
+     "height": "671.219px",
+     "padding": "52px",
+     "marginTop": "0px",
+     "marginBottom": "0px",
+     "borderRadius": "26px",
+     "borderLeftWidth": "1px",
+     "backgroundColor": "rgba(0, 0, 0, 0)",
+     "backgroundImage": "radial-gradient(90% 70% at 50% -22%, rgba(255, 255, 255, 0.55), rgba(0, 0, 0, 0) 62%), linear-gradient(rgb(255, 255, 255), color(srgb 0.956078 0.964314 0.972941))",
+     "color": "rgb(20, 23, 27)",
+     "opacity": "1",
+     "boxShadow": "rgba(255, 255, 255, 0.92) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.02) 0px 0px 0px 1px inset, rgba(0, 0, 0, 0.24) 0px 1px 0px 0px, rgba(0, 0, 0, 0.9) 0px 40px 80px -60px",
+     "fontSize": "16px",
+     "minHeight": "0px",
+     "transform": "none",
+     "::after.content": "none",
+     "::after.color": "rgb(20, 23, 27)"
+    },
+    ".answer.is-correct": {
+     "display": "flex",
+     "gridTemplateColumns": "none",
+     "maxWidth": "none",
+     "width": "333px",
+     "height": "62px",
+     "padding": "0px 22px",
+     "marginTop": "0px",
+     "marginBottom": "0px",
+     "borderRadius": "12px",
+     "borderLeftWidth": "1px",
+     "backgroundColor": "rgb(246, 247, 249)",
+     "backgroundImage": "linear-gradient(90deg, rgba(76, 127, 98, 0.14), rgba(0, 0, 0, 0) 62%), none",
+     "color": "rgb(20, 23, 27)",
+     "opacity": "1",
+     "boxShadow": "rgba(255, 255, 255, 0.35) 0px 1px 0px 0px, rgba(12, 16, 22, 0.22) 0px 2px 6px -3px",
+     "fontSize": "14px",
+     "minHeight": "62px",
+     "transform": "matrix(1, 0, 0, 1, 0, 0)",
+     "::after.content": "\"✓\"",
+     "::after.color": "rgb(76, 127, 98)"
+    },
+    ".answer.is-wrong": {
+     "display": "flex",
+     "gridTemplateColumns": "none",
+     "maxWidth": "none",
+     "width": "333px",
+     "height": "62px",
+     "padding": "0px 22px",
+     "marginTop": "0px",
+     "marginBottom": "0px",
+     "borderRadius": "12px",
+     "borderLeftWidth": "1px",
+     "backgroundColor": "rgb(246, 247, 249)",
+     "backgroundImage": "linear-gradient(90deg, rgba(162, 75, 71, 0.12), rgba(0, 0, 0, 0) 62%), none",
+     "color": "rgb(20, 23, 27)",
+     "opacity": "1",
+     "boxShadow": "rgba(255, 255, 255, 0.35) 0px 1px 0px 0px, rgba(12, 16, 22, 0.22) 0px 2px 6px -3px",
+     "fontSize": "14px",
+     "minHeight": "62px",
+     "transform": "matrix(1, 0, 0, 1, 0, 0)",
+     "::after.content": "\"✕\"",
+     "::after.color": "rgb(162, 75, 71)"
+    },
+    "#feedback .answer-feedback": {
+     "display": "flex",
+     "gridTemplateColumns": "none",
+     "maxWidth": "none",
+     "width": "657px",
+     "height": "131.578px",
+     "padding": "16px",
+     "marginTop": "0px",
+     "marginBottom": "0px",
+     "borderRadius": "10px",
+     "borderLeftWidth": "1px",
+     "backgroundColor": "rgb(245, 247, 249)",
+     "backgroundImage": "none",
+     "color": "rgb(46, 52, 59)",
+     "opacity": "1",
+     "boxShadow": "none",
+     "fontSize": "13px",
+     "minHeight": "0px",
+     "transform": "none",
+     "::after.content": "none",
+     "::after.color": "rgb(46, 52, 59)"
+    },
+    "#next": {
+     "display": "flex",
+     "gridTemplateColumns": "none",
+     "maxWidth": "none",
+     "width": "122.594px",
+     "height": "38px",
+     "padding": "0px 16px",
+     "marginTop": "0px",
+     "marginBottom": "0px",
+     "borderRadius": "8px",
+     "borderLeftWidth": "1px",
+     "backgroundColor": "rgb(20, 24, 29)",
+     "backgroundImage": "linear-gradient(100deg, rgba(0, 0, 0, 0) 42%, rgba(255, 255, 255, 0.3) 47%, rgba(0, 0, 0, 0) 54%), linear-gradient(172deg, rgb(76, 85, 96), rgb(35, 42, 49) 48%, rgb(12, 16, 21))",
+     "color": "rgb(247, 250, 253)",
+     "opacity": "1",
+     "boxShadow": "rgba(255, 255, 255, 0.62) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.28) 0px -1px 0px 0px inset, rgba(0, 0, 0, 0.18) 0px 2px 0px 0px, rgba(0, 0, 0, 0.6) 0px 10px 24px -14px",
+     "fontSize": "13px",
+     "minHeight": "38px",
+     "transform": "matrix(1, 0, 0, 1, 0, 0)",
+     "::after.content": "none",
+     "::after.color": "rgb(247, 250, 253)"
+    }
+   },
+   "internal": {
+    "page": "quiz",
+    "chromePage": "quiz",
+    "level": "b",
+    "theme": "light",
+    "busy": false,
+    "feedback": true,
+    "paused": false,
+    "session": {
+     "id": "655aadae-3cb5-421b-abcb-7d75cf9741fd",
+     "index": 1,
+     "queue": 25
+    },
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 1,
+    "startingSession": false,
+    "mainChildren": 4,
+    "navActive": []
+   },
+   "chrome": {
+    "page": "quiz",
+    "level": "b",
+    "theme": "light",
+    "h1": "",
+    "mainText": "← 保存并退出1 / 24暂停ENGLISH → 中文unifiedweak22选出对应的中文释义1统一验收释义232统一验收释义203统一验收释义214统一验收释义22不知道 Spaceunifiedweak22 · 统一验收释义22已记",
+    "resume": false,
+    "navActive": []
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 45,
+    "matched": 42,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 12
+   },
+   "levelOk": true
+  },
+  {
+   "name": "A4-quiz-paused",
+   "pauseCoverHidden": false,
+   "internal": {
+    "page": "quiz",
+    "chromePage": "quiz",
+    "level": "b",
+    "theme": "light",
+    "busy": false,
+    "feedback": false,
+    "paused": true,
+    "session": {
+     "id": "655aadae-3cb5-421b-abcb-7d75cf9741fd",
+     "index": 1,
+     "queue": 25
+    },
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 1,
+    "startingSession": false,
+    "mainChildren": 4,
+    "navActive": []
+   },
+   "chrome": {
+    "page": "quiz",
+    "level": "b",
+    "theme": "light",
+    "h1": "",
+    "mainText": "← 保存并退出2 / 25暂停ENGLISH → 中文unifiedweak23选出对应的中文释义1统一验收释义202统一验收释义223统一验收释义214统一验收释义23不知道 Space已暂停暂停时间不计入反应时间继续答题数字键选择 · ",
+    "resume": false,
+    "navActive": []
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 45,
+    "matched": 42,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 12
+   },
+   "levelOk": true
+  },
+  {
+   "name": "A5-quiz-resumed",
+   "pauseCoverHidden": true,
+   "internal": {
+    "page": "quiz",
+    "chromePage": "quiz",
+    "level": "b",
+    "theme": "light",
+    "busy": false,
+    "feedback": false,
+    "paused": false,
+    "session": {
+     "id": "655aadae-3cb5-421b-abcb-7d75cf9741fd",
+     "index": 1,
+     "queue": 25
+    },
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 1,
+    "startingSession": false,
+    "mainChildren": 4,
+    "navActive": []
+   },
+   "chrome": {
+    "page": "quiz",
+    "level": "b",
+    "theme": "light",
+    "h1": "",
+    "mainText": "← 保存并退出2 / 25暂停ENGLISH → 中文unifiedweak23选出对应的中文释义1统一验收释义202统一验收释义223统一验收释义214统一验收释义23不知道 Space已暂停暂停时间不计入反应时间继续答题数字键选择 · ",
+    "resume": false,
+    "navActive": []
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 45,
+    "matched": 42,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 12
+   },
+   "levelOk": true
+  },
+  {
+   "name": "A6-quiz-correct-advanced",
+   "question": {
+    "wordId": "22db7aab-2ab4-4913-a584-6c03b39ef20e",
+    "options": [
+     "91e45cec-de5e-4f82-b6a6-9782d10fc272",
+     "0c5f0344-2596-431d-88a2-a3c7aa33d75e",
+     "6c56d280-bc2f-41de-a1df-736f96f0b198",
+     "22db7aab-2ab4-4913-a584-6c03b39ef20e"
+    ],
+    "direction": "en-zh"
+   },
+   "indexAfter": 2,
+   "internal": {
+    "page": "quiz",
+    "chromePage": "quiz",
+    "level": "b",
+    "theme": "light",
+    "busy": false,
+    "feedback": false,
+    "paused": false,
+    "session": {
+     "id": "655aadae-3cb5-421b-abcb-7d75cf9741fd",
+     "index": 2,
+     "queue": 25
+    },
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 1,
+    "startingSession": false,
+    "mainChildren": 4,
+    "navActive": []
+   },
+   "chrome": {
+    "page": "quiz",
+    "level": "b",
+    "theme": "light",
+    "h1": "",
+    "mainText": "← 保存并退出3 / 25暂停中文 → ENGLISH统一验收释义21选出对应的英文单词1unifiedweak182unifiedweak203unifiedweak214unifiedweak12不知道 Space已暂停暂停时间不计入反",
+    "resume": false,
+    "navActive": []
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 45,
+    "matched": 42,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 12
+   },
+   "levelOk": true
+  },
+  {
+   "name": "A7-quit-home",
+   "internal": {
+    "page": "home",
+    "chromePage": "home",
+    "level": "a",
+    "theme": "light",
+    "busy": false,
+    "feedback": false,
+    "paused": false,
+    "session": null,
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 1,
+    "startingSession": false,
+    "mainChildren": 3,
+    "navActive": [
+     "home"
+    ]
+   },
+   "chrome": {
+    "page": "home",
+    "level": "a",
+    "theme": "light",
+    "h1": "先给今天留一段时间。",
+    "mainText": "—分钟可用 —还没有任务 还没有今天的计划 先给今天留一段时间。 计划只在预算内安排拿得到证据的任务；没有真实目标时不会生成假任务。 导入词书 先用上方预算设定今天的可用时间，再生成路线 今日路线生成计划后出现 A · Obsidian B",
+    "resume": true,
+    "navActive": [
+     "home"
+    ]
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 4,
+    "matched": 4,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 0
+   },
+   "levelOk": true
+  },
+  {
+   "name": "D1-resume-quiz",
+   "resumeIndex": 2,
+   "internal": {
+    "page": "quiz",
+    "chromePage": "quiz",
+    "level": "b",
+    "theme": "light",
+    "busy": false,
+    "feedback": false,
+    "paused": false,
+    "session": {
+     "id": "655aadae-3cb5-421b-abcb-7d75cf9741fd",
+     "index": 2,
+     "queue": 25
+    },
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 1,
+    "startingSession": false,
+    "mainChildren": 4,
+    "navActive": []
+   },
+   "chrome": {
+    "page": "quiz",
+    "level": "b",
+    "theme": "light",
+    "h1": "",
+    "mainText": "← 保存并退出3 / 25暂停中文 → ENGLISH统一验收释义21选出对应的英文单词1unifiedweak182unifiedweak203unifiedweak214unifiedweak12不知道 Space已暂停暂停时间不计入反",
+    "resume": false,
+    "navActive": []
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 45,
+    "matched": 42,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 12
+   },
+   "levelOk": true
+  },
+  {
+   "name": "D2-results",
+   "styles": {
+    "#main": {
+     "display": "block",
+     "gridTemplateColumns": "none",
+     "maxWidth": "1080px",
+     "width": "1080px",
+     "height": "1116.34px",
+     "padding": "40px 48.96px 96px",
+     "marginTop": "0px",
+     "marginBottom": "0px",
+     "borderRadius": "0px",
+     "borderLeftWidth": "0px",
+     "backgroundColor": "rgba(0, 0, 0, 0)",
+     "backgroundImage": "none",
+     "color": "rgb(20, 23, 27)",
+     "opacity": "0.72",
+     "boxShadow": "none",
+     "fontSize": "16px",
+     "minHeight": "auto",
+     "transform": "matrix(1, 0, 0, 1, 0, 12)",
+     "::after.content": "none",
+     "::after.color": "rgb(20, 23, 27)"
+    },
+    ".metrics": {
+     "display": "grid",
+     "gridTemplateColumns": "228.516px 228.531px 228.516px 228.531px",
+     "maxWidth": "none",
+     "width": "982.094px",
+     "height": "119.781px",
+     "padding": "0px",
+     "marginTop": "0px",
+     "marginBottom": "28px",
+     "borderRadius": "16px",
+     "borderLeftWidth": "1px",
+     "backgroundColor": "rgba(16, 20, 26, 0.12)",
+     "backgroundImage": "none",
+     "color": "rgb(20, 23, 27)",
+     "opacity": "1",
+     "boxShadow": "rgb(255, 255, 255) 0px 1px 0px 0px inset, rgba(12, 16, 22, 0.05) 0px 1px 2px 0px",
+     "fontSize": "16px",
+     "minHeight": "0px",
+     "transform": "none",
+     "::after.content": "none",
+     "::after.color": "rgb(20, 23, 27)"
+    },
+    ".actions": {
+     "display": "flex",
+     "gridTemplateColumns": "none",
+     "maxWidth": "none",
+     "width": "982.094px",
+     "height": "38px",
+     "padding": "0px",
+     "marginTop": "0px",
+     "marginBottom": "28px",
+     "borderRadius": "0px",
+     "borderLeftWidth": "0px",
+     "backgroundColor": "rgba(0, 0, 0, 0)",
+     "backgroundImage": "none",
+     "color": "rgb(20, 23, 27)",
+     "opacity": "1",
+     "boxShadow": "none",
+     "fontSize": "16px",
+     "minHeight": "0px",
+     "transform": "none",
+     "::after.content": "none",
+     "::after.color": "rgb(20, 23, 27)"
+    },
+    ".panel summary": {
+     "display": "list-item",
+     "gridTemplateColumns": "none",
+     "maxWidth": "none",
+     "width": "924.094px",
+     "height": "20.7969px",
+     "padding": "0px",
+     "marginTop": "0px",
+     "marginBottom": "12px",
+     "borderRadius": "0px",
+     "borderLeftWidth": "0px",
+     "backgroundColor": "rgba(0, 0, 0, 0)",
+     "backgroundImage": "none",
+     "color": "rgb(46, 52, 59)",
+     "opacity": "1",
+     "boxShadow": "none",
+     "fontSize": "13px",
+     "minHeight": "0px",
+     "transform": "none",
+     "::after.content": "none",
+     "::after.color": "rgb(46, 52, 59)"
+    }
+   },
+   "internal": {
+    "page": "results",
+    "chromePage": "results",
+    "level": "b",
+    "theme": "light",
+    "busy": true,
+    "feedback": false,
+    "paused": false,
+    "session": null,
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 0,
+    "startingSession": false,
+    "mainChildren": 5,
+    "navActive": []
+   },
+   "chrome": {
+    "page": "results",
+    "level": "b",
+    "theme": "light",
+    "h1": "这一轮，记住了多少？",
+    "mainText": "这一轮，记住了多少？SESSION COMPLETE薄弱词已记录，并安排了下一次复习。本轮作答27含本轮强化重复正确率96.3%24 个不同单词平均反应0.53 s有效作答时间待强化23按本轮结束后的状态重测本轮弱词导出本轮弱词返回首页不会",
+    "resume": false,
+    "navActive": []
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 8,
+    "matched": 6,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 1
+   },
+   "levelOk": true
+  },
+  {
+   "name": "D3-results-again-quiz",
+   "internal": {
+    "page": "quiz",
+    "chromePage": "quiz",
+    "level": "b",
+    "theme": "light",
+    "busy": false,
+    "feedback": false,
+    "paused": false,
+    "session": {
+     "id": "f5cf1f4d-217c-456c-9363-748d3da62537",
+     "index": 0,
+     "queue": 23
+    },
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 1,
+    "startingSession": false,
+    "mainChildren": 4,
+    "navActive": []
+   },
+   "chrome": {
+    "page": "quiz",
+    "level": "b",
+    "theme": "light",
+    "h1": "",
+    "mainText": "← 保存并退出1 / 23暂停中文 → ENGLISH统一验收释义22选出对应的英文单词1unifiedweak212unifiedweak223unifiedweak204unifiedweak23不知道 Space已暂停暂停时间不计入反",
+    "resume": false,
+    "navActive": []
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 45,
+    "matched": 42,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 12
+   },
+   "levelOk": true
+  },
+  {
+   "name": "D4-back-home-from-quiz",
+   "internal": {
+    "page": "home",
+    "chromePage": "home",
+    "level": "a",
+    "theme": "light",
+    "busy": false,
+    "feedback": false,
+    "paused": false,
+    "session": null,
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 1,
+    "startingSession": false,
+    "mainChildren": 3,
+    "navActive": [
+     "home"
+    ]
+   },
+   "chrome": {
+    "page": "home",
+    "level": "a",
+    "theme": "light",
+    "h1": "先给今天留一段时间。",
+    "mainText": "—分钟可用 —还没有任务 还没有今天的计划 先给今天留一段时间。 计划只在预算内安排拿得到证据的任务；没有真实目标时不会生成假任务。 导入词书 先用上方预算设定今天的可用时间，再生成路线 今日路线生成计划后出现 A · Obsidian B",
+    "resume": true,
+    "navActive": [
+     "home"
+    ]
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 4,
+    "matched": 4,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 0
+   },
+   "levelOk": true
+  },
+  {
+   "name": "D6-results-back-home",
+   "internal": {
+    "page": "home",
+    "chromePage": "home",
+    "level": "a",
+    "theme": "light",
+    "busy": true,
+    "feedback": false,
+    "paused": false,
+    "session": null,
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 0,
+    "startingSession": false,
+    "mainChildren": 3,
+    "navActive": [
+     "home"
+    ]
+   },
+   "chrome": {
+    "page": "home",
+    "level": "a",
+    "theme": "light",
+    "h1": "先给今天留一段时间。",
+    "mainText": "—分钟可用 —还没有任务 还没有今天的计划 先给今天留一段时间。 计划只在预算内安排拿得到证据的任务；没有真实目标时不会生成假任务。 导入词书 先用上方预算设定今天的可用时间，再生成路线 今日路线生成计划后出现 A · Obsidian B",
+    "resume": false,
+    "navActive": [
+     "home"
+    ]
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 4,
+    "matched": 4,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 0
+   },
+   "levelOk": true
+  },
+  {
+   "name": "C1-weak",
+   "internal": {
+    "page": "weak",
+    "chromePage": "weak",
+    "level": "b",
+    "theme": "light",
+    "busy": true,
+    "feedback": false,
+    "paused": false,
+    "session": null,
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 0,
+    "startingSession": false,
+    "mainChildren": 3,
+    "navActive": [
+     "weak"
+    ]
+   },
+   "chrome": {
+    "page": "weak",
+    "level": "b",
+    "theme": "light",
+    "h1": "把薄弱的地方练扎实",
+    "mainText": "把薄弱的地方练扎实FOCUSED REVIEW不会和模糊词，按当前复习优先级排列。 这一页只做一件事 12 个词等着再练一次 按当前优先级排序；答错的词会立刻回到本轮队列。 开始复习 查看这 12 个词的明细全部词书统一验收词书 48全部状",
+    "resume": false,
+    "navActive": [
+     "weak"
+    ]
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 0,
+    "matched": 0,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 0
+   },
+   "levelOk": true
+  },
+  {
+   "name": "C2-weak-quiz",
+   "internal": {
+    "page": "quiz",
+    "chromePage": "quiz",
+    "level": "b",
+    "theme": "light",
+    "busy": false,
+    "feedback": false,
+    "paused": false,
+    "session": {
+     "id": "9977405e-8abd-40b2-9c99-2c411ccaefb2",
+     "index": 0,
+     "queue": 12
+    },
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 1,
+    "startingSession": false,
+    "mainChildren": 4,
+    "navActive": []
+   },
+   "chrome": {
+    "page": "quiz",
+    "level": "b",
+    "theme": "light",
+    "h1": "",
+    "mainText": "← 保存并退出1 / 12暂停ENGLISH → 中文unifiedweak21选出对应的中文释义1统一验收释义122统一验收释义213统一验收释义234统一验收释义20不知道 Space已暂停暂停时间不计入反应时间继续答题数字键选择 · ",
+    "resume": false,
+    "navActive": []
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 45,
+    "matched": 42,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 12
+   },
+   "levelOk": true
+  },
+  {
+   "name": "C3-weak-results",
+   "internal": {
+    "page": "results",
+    "chromePage": "results",
+    "level": "b",
+    "theme": "light",
+    "busy": true,
+    "feedback": false,
+    "paused": false,
+    "session": null,
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 0,
+    "startingSession": false,
+    "mainChildren": 5,
+    "navActive": []
+   },
+   "chrome": {
+    "page": "results",
+    "level": "b",
+    "theme": "light",
+    "h1": "这一轮，记住了多少？",
+    "mainText": "这一轮，记住了多少？SESSION COMPLETE薄弱词已记录，并安排了下一次复习。本轮作答12含本轮强化重复正确率100.0%12 个不同单词平均反应0.08 s有效作答时间待强化12按本轮结束后的状态重测本轮弱词导出本轮弱词返回首页不",
+    "resume": false,
+    "navActive": []
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 8,
+    "matched": 6,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 1
+   },
+   "levelOk": true
+  },
+  {
+   "name": "C4-results-back-home",
+   "internal": {
+    "page": "home",
+    "chromePage": "home",
+    "level": "a",
+    "theme": "light",
+    "busy": true,
+    "feedback": false,
+    "paused": false,
+    "session": null,
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 0,
+    "startingSession": false,
+    "mainChildren": 3,
+    "navActive": [
+     "home"
+    ]
+   },
+   "chrome": {
+    "page": "home",
+    "level": "a",
+    "theme": "light",
+    "h1": "先给今天留一段时间。",
+    "mainText": "—分钟可用 —还没有任务 还没有今天的计划 先给今天留一段时间。 计划只在预算内安排拿得到证据的任务；没有真实目标时不会生成假任务。 导入词书 先用上方预算设定今天的可用时间，再生成路线 今日路线生成计划后出现 A · Obsidian B",
+    "resume": false,
+    "navActive": [
+     "home"
+    ]
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 4,
+    "matched": 4,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 0
+   },
+   "levelOk": true
+  },
+  {
+   "name": "B1-preview",
+   "internal": {
+    "page": "preview",
+    "chromePage": "preview",
+    "level": "b",
+    "theme": "light",
+    "busy": true,
+    "feedback": false,
+    "paused": false,
+    "session": null,
+    "preview": {
+     "index": 0,
+     "total": 18
+    },
+    "openSessions": 0,
+    "startingSession": false,
+    "mainChildren": 2,
+    "navActive": []
+   },
+   "chrome": {
+    "page": "preview",
+    "level": "b",
+    "theme": "light",
+    "h1": "",
+    "mainText": "← 结束预览1 / 18NEW WORD PREVIEWunifiednew2 统一验收释义2快速建立第一次编码，不用纠结；稍后立刻用 Recall 检验。Preview 不是正式测试。1已经会2熟悉3陌生4跳过",
+    "resume": false,
+    "navActive": []
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 41,
+    "matched": 5,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [
+     "[data-page=\"preview\"] .quiz-card blockquote",
+     ":is([data-page=\"quiz\"], [data-page=\"preview\"]) #feedback, :is([data-page=\"quiz\"], [data-page=\"preview\"]) .answer-feedback",
+     ":is([data-page=\"quiz\"], [data-page=\"preview\"]) #feedback .ok, :is([data-page=\"quiz\"], [data-page=\"preview\"]) .answer-feedback.ok",
+     ":is([data-page=\"quiz\"], [data-page=\"preview\"]) #feedback .bad, :is([data-page=\"quiz\"], [data-page=\"preview\"]) .answer-feedback.bad",
+     ":is([data-page=\"quiz\"], [data-page=\"preview\"]) #feedback strong",
+     ":is([data-page=\"quiz\"], [data-page=\"preview\"]) #feedback .answer-feedback",
+     ":is([data-page=\"quiz\"], [data-page=\"preview\"]) #feedback .answer-feedback.bad",
+     ":is([data-page=\"quiz\"], [data-page=\"preview\"]) #feedback .feedback-copy",
+     ":is([data-page=\"quiz\"], [data-page=\"preview\"]) #feedback .feedback-copy strong",
+     ":is([data-page=\"quiz\"], [data-page=\"preview\"]) .quiz-hint"
+    ],
+    "stateful": 10
+   },
+   "levelOk": true
+  },
+  {
+   "name": "B2-preview-done",
+   "previews": 18,
+   "styles": {
+    "#main": {
+     "display": "block",
+     "gridTemplateColumns": "none",
+     "maxWidth": "760px",
+     "width": "760px",
+     "height": "359.422px",
+     "padding": "40px 48.96px 96px",
+     "marginTop": "0px",
+     "marginBottom": "0px",
+     "borderRadius": "0px",
+     "borderLeftWidth": "0px",
+     "backgroundColor": "rgba(0, 0, 0, 0)",
+     "backgroundImage": "none",
+     "color": "rgb(20, 23, 27)",
+     "opacity": "0.994844",
+     "boxShadow": "none",
+     "fontSize": "16px",
+     "minHeight": "auto",
+     "transform": "matrix(1, 0, 0, 1, 0, 0.220992)",
+     "::after.content": "none",
+     "::after.color": "rgb(20, 23, 27)"
+    },
+    "#recall-now": {
+     "display": "flex",
+     "gridTemplateColumns": "none",
+     "maxWidth": "none",
+     "width": "153.328px",
+     "height": "38px",
+     "padding": "0px 16px",
+     "marginTop": "0px",
+     "marginBottom": "0px",
+     "borderRadius": "8px",
+     "borderLeftWidth": "1px",
+     "backgroundColor": "rgb(20, 24, 29)",
+     "backgroundImage": "linear-gradient(100deg, rgba(0, 0, 0, 0) 42%, rgba(255, 255, 255, 0.3) 47%, rgba(0, 0, 0, 0) 54%), linear-gradient(172deg, rgb(76, 85, 96), rgb(35, 42, 49) 48%, rgb(12, 16, 21))",
+     "color": "rgb(247, 250, 253)",
+     "opacity": "1",
+     "boxShadow": "rgba(255, 255, 255, 0.62) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.28) 0px -1px 0px 0px inset, rgba(0, 0, 0, 0.18) 0px 2px 0px 0px, rgba(0, 0, 0, 0.6) 0px 10px 24px -14px",
+     "fontSize": "13px",
+     "minHeight": "38px",
+     "transform": "matrix(1, 0, 0, 1, 0, 0)",
+     "::after.content": "none",
+     "::after.color": "rgb(247, 250, 253)"
+    },
+    ".actions": {
+     "display": "flex",
+     "gridTemplateColumns": "none",
+     "maxWidth": "none",
+     "width": "662.094px",
+     "height": "38px",
+     "padding": "0px",
+     "marginTop": "22px",
+     "marginBottom": "20px",
+     "borderRadius": "0px",
+     "borderLeftWidth": "0px",
+     "backgroundColor": "rgba(0, 0, 0, 0)",
+     "backgroundImage": "none",
+     "color": "rgb(20, 23, 27)",
+     "opacity": "1",
+     "boxShadow": "none",
+     "fontSize": "16px",
+     "minHeight": "0px",
+     "transform": "none",
+     "::after.content": "none",
+     "::after.color": "rgb(20, 23, 27)"
+    }
+   },
+   "internal": {
+    "page": "preview-done",
+    "chromePage": "preview-done",
+    "level": "b",
+    "theme": "light",
+    "busy": true,
+    "feedback": false,
+    "paused": false,
+    "session": null,
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 0,
+    "startingSession": false,
+    "mainChildren": 3,
+    "navActive": []
+   },
+   "chrome": {
+    "page": "preview-done",
+    "level": "b",
+    "theme": "light",
+    "h1": "第一次编码完成",
+    "mainText": "第一次编码完成PREVIEW COMPLETE已预览 18 个词；未预览完的 0 个已保留，下次可继续。开始 Recall（18 词）返回首页Preview 只负责第一次装填；Recall 才检验提取。未预览的新词不会进入正式测试。",
+    "resume": false,
+    "navActive": []
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 3,
+    "matched": 3,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 0
+   },
+   "levelOk": true
+  },
+  {
+   "name": "B3-recall-quiz",
+   "internal": {
+    "page": "quiz",
+    "chromePage": "quiz",
+    "level": "b",
+    "theme": "light",
+    "busy": false,
+    "feedback": false,
+    "paused": false,
+    "session": {
+     "id": "8e94b29c-a275-418a-8010-c3f7eeb8d27b",
+     "index": 0,
+     "queue": 18
+    },
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 1,
+    "startingSession": false,
+    "mainChildren": 4,
+    "navActive": []
+   },
+   "chrome": {
+    "page": "quiz",
+    "level": "b",
+    "theme": "light",
+    "h1": "",
+    "mainText": "← 保存并退出1 / 18暂停ENGLISH → 中文unifiednew2选出对应的中文释义1统一验收释义52统一验收释义23统一验收释义74统一验收释义4不知道 Space已暂停暂停时间不计入反应时间继续答题数字键选择 · 空格不知道 ",
+    "resume": false,
+    "navActive": []
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 45,
+    "matched": 42,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 12
+   },
+   "levelOk": true
+  },
+  {
+   "name": "B4-recall-results",
+   "styles": {
+    "#main": {
+     "display": "block",
+     "gridTemplateColumns": "none",
+     "maxWidth": "1080px",
+     "width": "1080px",
+     "height": "1024.34px",
+     "padding": "40px 48.96px 96px",
+     "marginTop": "0px",
+     "marginBottom": "0px",
+     "borderRadius": "0px",
+     "borderLeftWidth": "0px",
+     "backgroundColor": "rgba(0, 0, 0, 0)",
+     "backgroundImage": "none",
+     "color": "rgb(20, 23, 27)",
+     "opacity": "0.947355",
+     "boxShadow": "none",
+     "fontSize": "16px",
+     "minHeight": "auto",
+     "transform": "matrix(1, 0, 0, 1, 0, 2.2562)",
+     "::after.content": "none",
+     "::after.color": "rgb(20, 23, 27)"
+    },
+    ".metrics": {
+     "display": "grid",
+     "gridTemplateColumns": "228.516px 228.531px 228.516px 228.531px",
+     "maxWidth": "none",
+     "width": "982.094px",
+     "height": "119.781px",
+     "padding": "0px",
+     "marginTop": "0px",
+     "marginBottom": "28px",
+     "borderRadius": "16px",
+     "borderLeftWidth": "1px",
+     "backgroundColor": "rgba(16, 20, 26, 0.12)",
+     "backgroundImage": "none",
+     "color": "rgb(20, 23, 27)",
+     "opacity": "1",
+     "boxShadow": "rgb(255, 255, 255) 0px 1px 0px 0px inset, rgba(12, 16, 22, 0.05) 0px 1px 2px 0px",
+     "fontSize": "16px",
+     "minHeight": "0px",
+     "transform": "none",
+     "::after.content": "none",
+     "::after.color": "rgb(20, 23, 27)"
+    }
+   },
+   "internal": {
+    "page": "results",
+    "chromePage": "results",
+    "level": "b",
+    "theme": "light",
+    "busy": true,
+    "feedback": false,
+    "paused": false,
+    "session": null,
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 0,
+    "startingSession": false,
+    "mainChildren": 5,
+    "navActive": []
+   },
+   "chrome": {
+    "page": "results",
+    "level": "b",
+    "theme": "light",
+    "h1": "这一轮，记住了多少？",
+    "mainText": "这一轮，记住了多少？SESSION COMPLETE薄弱词已记录，并安排了下一次复习。本轮作答20含本轮强化重复正确率100.0%18 个不同单词平均反应0.50 s有效作答时间待强化16按本轮结束后的状态重测本轮弱词导出本轮弱词返回首页不",
+    "resume": false,
+    "navActive": []
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 8,
+    "matched": 6,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 1
+   },
+   "levelOk": true
+  },
+  {
+   "name": "B5-home",
+   "internal": {
+    "page": "home",
+    "chromePage": "home",
+    "level": "a",
+    "theme": "light",
+    "busy": true,
+    "feedback": false,
+    "paused": false,
+    "session": null,
+    "preview": {
+     "index": 0,
+     "total": 0
+    },
+    "openSessions": 0,
+    "startingSession": false,
+    "mainChildren": 3,
+    "navActive": [
+     "home"
+    ]
+   },
+   "chrome": {
+    "page": "home",
+    "level": "a",
+    "theme": "light",
+    "h1": "先给今天留一段时间。",
+    "mainText": "—分钟可用 —还没有任务 还没有今天的计划 先给今天留一段时间。 计划只在预算内安排拿得到证据的任务；没有真实目标时不会生成假任务。 导入词书 先用上方预算设定今天的可用时间，再生成路线 今日路线生成计划后出现 A · Obsidian B",
+    "resume": false,
+    "navActive": [
+     "home"
+    ]
+   },
+   "consistent": true,
+   "cssScope": {
+    "total": 4,
+    "matched": 4,
+    "zero": 0,
+    "unexpected": [],
+    "contentDependent": [],
+    "stateful": 0
+   },
+   "levelOk": true
+  }
+ ],
+ "failures": [],
+ "consoleErrors": [],
+ "bootWaitMs": 18002,
+ "seeded": {
+  "ok": true,
+  "words": 24,
+  "passages": 1,
+  "inputSources": 2,
+  "sentences": 12,
+  "examItems": 16
+ },
+ "weakLauncher": "12 个词等着再练一次",
+ "summary": {
+  "steps": 21,
+  "inconsistent": [],
+  "levelMismatch": [],
+  "pagesSeen": [
+   "books",
+   "quiz",
+   "home",
+   "results",
+   "weak",
+   "preview",
+   "preview-done"
+  ],
+  "failures": [],
+  "consoleErrors": []
+ }
+}

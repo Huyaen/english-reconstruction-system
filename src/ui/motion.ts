@@ -22,6 +22,8 @@ const LEVELS: Record<string, PageLevel> = {
   weak: 'b',
   quiz: 'b',
   preview: 'b',
+  'preview-done': 'b',
+  results: 'b',
   sentence: 'b',
   grammar: 'b',
   input: 'b',
@@ -43,12 +45,21 @@ function reducedMotion(): boolean {
   }
 }
 
+/**
+ * 只绑定页面作用域（data-page / data-level）。幂等、无副作用、不碰观察器。
+ * 供「页面真的切换了」的时刻同步调用：会话类页面（quiz / preview-done / results）
+ * 直接写 #main、不走 render()，如果只在这里跟着 paint() 走，根节点就会停在上一个页面。
+ */
+export function applyPageScope(page: string): void {
+  const root = document.documentElement;
+  root.dataset.page = page;
+  root.dataset.level = LEVELS[page] ?? 'b';
+}
+
 /** 每次渲染后调用：幂等，重复调用只重建观察器。 */
 export function applyPageChrome(page: string): void {
   const root = document.documentElement;
-  root.dataset.page = page;
-  const level = LEVELS[page] ?? 'b';
-  root.dataset.level = level;
+  applyPageScope(page);
 
   if (reducedMotion()) {
     delete root.dataset.motion;

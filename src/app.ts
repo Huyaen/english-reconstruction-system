@@ -1,5 +1,5 @@
 import './tokens.css';
-import { applyPageChrome, disposePageChrome, installPressFeedback } from './ui/motion.ts';
+import { applyPageChrome, applyPageScope, disposePageChrome, installPressFeedback } from './ui/motion.ts';
 import './style.css';
 import './proto15c.css';
 import './proto15c-v2.css';
@@ -113,6 +113,8 @@ import { diagnosticsPage } from './diagnosticsView.ts';
 import { buildDiagnostics, latestSnapshot } from './diagnosticsInsight.ts';
 import { generateSnapshot, generateWeekly } from './diagnosticsActions.ts';
 let data: Data, page = 'home', bookFilter = '', search = '', levelFilter = '', sort = 'priority', listPage = 0;
+/** 页面纪元：每次真的换页 +1。异步任务拿它作废自己，避免旧任务的收尾写进新页面。 */
+let pageEpoch = 0;
 let active: StudySession | null = null, feedback = false, busy = false, started = 0, timer: ReturnType<typeof setTimeout> | null = null, paused = false;
 let startingSession = false;
 let wordMap = new Map<string, Word>();
@@ -223,11 +225,27 @@ function setPage(p: string) {
         previewWords = [];
         previewIndex = 0;
     }
-    page = p;
+    enterPage(p);
     listPage = 0;
     vtPending = true;
     render();
 }
+/**
+ * 页面切换的唯一出口：内部 page、<html> 上的视觉作用域、以及「作废旧异步任务」的纪元一起前进。
+ * 会话类页面（quiz / preview-done / results）直接写 #main、不经过 render()，所以不能只依赖
+ * paint() 末尾的 applyPageChrome —— 否则根节点停在上一个页面，[data-page="quiz"] /
+ * [data-page="results"] 这些页面级规则永远不命中（15h.4 的 P1 根因）。
+ * 这里只写属性：不重渲染、不重建会话、不碰数据。
+ */
+function enterPage(next: string): number {
+    page = next;
+    pageEpoch += 1;
+    applyPageScope(next);
+    return pageEpoch;
+}
+/** 当前页面纪元。异步任务在 await 之后比对它，判断自己是不是已经过期。 */
+function pageToken(): number { return pageEpoch; }
+
 function stopTimer() {
     if (timer)
         clearTimeout(timer);
@@ -485,7 +503,7 @@ function startPreview() {
     }
     previewWords = words;
     previewIndex = 0;
-    page = 'preview';
+    enterPage('preview');
     render();
 }
 function startReflow() {
@@ -510,8 +528,12 @@ async function previewAnswer(result: PreviewResult) {
     const w = previewWords[previewIndex];
     if (!w)
         return;
+    const token = pageToken();
     const { word, exposure } = applyPreview(w, result, Date.now(), uid());
     await savePreview(word, exposure);
+    // 预览记录已保存；换页之后不要再推进/重绘预览页。
+    if (token !== pageToken() || page !== 'preview')
+        return;
     data.words[data.words.findIndex(x => x.id === w.id)] = word;
     wordMap.set(w.id, word);
     previewIndex++;
@@ -527,7 +549,10 @@ function previewDone() {
     }
     previewWords = [];
     previewIndex = 0;
-    page = 'preview-done';
+    enterPage('preview-done');
+    // 会话页不走 render()，侧栏高亮/标题仍停在上一页；用和 quiz 相同的骨架重建，
+    // 让 DOM 与 data-page 指的是同一页（15h.4 已确认的状态不同步）。
+    shell();
     $('#main').innerHTML = title('PREVIEW COMPLETE', '第一次编码完成', `已预览 ${done.length} 个词；未预览完的 ${remain} 个已保留，下次可继续。`) + `<div class="actions"><button id="recall-now" class="primary" ${done.length ? '' : 'disabled'}>开始 Recall（${done.length} 词）</button><button id="back-home" class="secondary">返回首页</button></div><p class="hint">Preview 只负责第一次装填；Recall 才检验提取。未预览的新词不会进入正式测试。</p>`;
     on('#recall-now', 'click', () => { void startMode('previewed-recall', done); });
     on('#back-home', 'click', () => backToToday('#main .preview-card, #main .quiz-card, #main .reader-main, #main .exam-card, #main .lab-card, #main > *'));
@@ -599,16 +624,20 @@ async function startModeOnce(mode: string, explicit?: Word[]) {
     }
     await startSession(s);
 }
-async function startSession(s: StudySession) { active = s; page = 'quiz'; shell(); await showQuestion(); }
+async function startSession(s: StudySession) { active = s; enterPage('quiz'); shell(); await showQuestion(); }
 async function showQuestion() {
     stopTimer();
     feedback = false;
     paused = false;
     elapsedBeforePause = 0;
     busy = true;
+    const token = pageToken();
     if (!active)
         return;
     if (active.index >= active.queue.length) {
+        // 取题/备考期间页面可能已经被切走：不要在别的页面上弹结果。
+        if (token !== pageToken() || page !== 'quiz')
+            return;
         active.ended = Date.now();
         await putItems('sessions', [active]);
         showResults(active);
@@ -619,6 +648,11 @@ async function showQuestion() {
             const w = wordMap.get(active.queue[active.index])!;
             active.question = question(w, data.words, Math.random() * 100 < data.settings.ratio ? 'en-zh' : 'zh-en', data.settings.difficulty);
             await putItems('sessions', [active]);
+        }
+        // await 之后核对纪元：换页/换会话后旧任务不得把题面写进新页面。
+        if (token !== pageToken() || page !== 'quiz') {
+            busy = false;
+            return;
         }
         const q = active.question, w = wordMap.get(q.wordId)!;
         $('#main').innerHTML = `<div class="quiz-top"><button id="quit" class="text-button">← 保存并退出</button><span>${active.index + 1} / ${active.queue.length}</span><button id="pause" class="text-button">暂停</button></div><div class="quiz-progress"><i style="width:${active.index / active.queue.length * 100}%"></i></div><section class="quiz-card"><div class="eyebrow">${q.direction === 'en-zh' ? 'ENGLISH → 中文' : '中文 → ENGLISH'}</div><div id="question-text" class="question">${esc(q.direction === 'en-zh' ? w.en : w.zh)}</div><p class="subtle">选出对应的${q.direction === 'en-zh' ? '中文释义' : '英文单词'}</p><div class="answers">${q.options.map((id, i) => { const option = wordMap.get(id)!; return `<button class="answer" data-answer="${id}"><kbd>${i + 1}</kbd><span>${esc(q.direction === 'en-zh' ? option.zh : option.en)}</span></button>`; }).join('')}</div><button id="unknown" class="unknown">不知道 <kbd>Space</kbd></button><div id="feedback" aria-live="polite"></div><div id="pause-cover" hidden><h2>已暂停</h2><p>暂停时间不计入反应时间</p><button id="continue" class="primary">继续答题</button></div></section><div class="quiz-hint">数字键选择 · 空格不知道 · Enter 下一题</div>`;
@@ -648,6 +682,7 @@ async function submit(selectedId: string | null, reason: ReviewRecord['reason'])
     busy = true;
     stopTimer();
     const s = active, w = wordMap.get(s.question!.wordId)!;
+    const token = pageToken();
     const ms = reason === 'timeout' ? data.settings.timeout : performance.now() - started + elapsedBeforePause;
     const result = answer(s, w, selectedId, ms, reason, data.settings);
     try {
@@ -664,6 +699,12 @@ async function submit(selectedId: string | null, reason: ReviewRecord['reason'])
     wordMap.set(w.id, result.word);
     data.records.push(result.record);
     data.sessions[data.sessions.findIndex(x => x.id === s.id)] = result.session;
+    // 落盘已经完成；这中间如果退出了训练，就不要再把旧会话写回当前页面。
+    if (token !== pageToken() || page !== 'quiz') {
+        busy = false;
+        stopTimer();
+        return;
+    }
     active = result.session;
     if (result.record.correct) {
         busy = false;
@@ -746,7 +787,8 @@ document.addEventListener('keydown', e => {
 });
 function showResults(s: StudySession) {
     stopTimer();
-    page = 'results';
+    enterPage('results');
+    shell();
     if (taskExecution && taskExecution.sessionId === s.id) {
         const exec = taskExecution;
         taskExecution = null;
@@ -2167,7 +2209,7 @@ async function startPlanTaskOnce(taskId: string, fromFlow = false): Promise<void
     };
     // 重复点击/刷新后继续：同一计划任务已有进行中的领域会话时，恢复而不是新建。
     if (module === 'sentence' && labSession?.planTaskId === taskId) {
-        page = 'lab';
+        enterPage('lab');
         render();
         return;
     }
@@ -2175,7 +2217,7 @@ async function startPlanTaskOnce(taskId: string, fromFlow = false): Promise<void
         const activeOut = data.outputAttempts.find(a => a.status !== 'completed' && a.dailyPlanTaskId === taskId);
         if (activeOut) {
             outputAttemptId = activeOut.id;
-            page = 'output';
+            enterPage('output');
             render();
             return;
         }
@@ -2184,7 +2226,7 @@ async function startPlanTaskOnce(taskId: string, fromFlow = false): Promise<void
         const activeExam = data.examSessions.find(x => ['created', 'active', 'paused'].includes(x.status) && x.dailyPlanTaskId === taskId);
         if (activeExam) {
             examSessionId = activeExam.id;
-            page = 'exam';
+            enterPage('exam');
             render();
             return;
         }
@@ -2237,7 +2279,7 @@ async function startPlanTaskOnce(taskId: string, fromFlow = false): Promise<void
             }
             inputSessionId = existing.id;
             inputModeDraft = existing.mode;
-            page = 'input';
+            enterPage('input');
             render();
             return;
         }
@@ -2255,7 +2297,7 @@ async function startPlanTaskOnce(taskId: string, fromFlow = false): Promise<void
         reindex();
         inputSessionId = startedInput.value.id;
         inputModeDraft = startedInput.value.mode;
-        page = 'input';
+        enterPage('input');
         render();
         return;
     }
@@ -2270,7 +2312,7 @@ async function startPlanTaskOnce(taskId: string, fromFlow = false): Promise<void
         if (!(await markStarted()))
             return;
         outputPlanTaskId = taskId;
-        page = 'output';
+        enterPage('output');
         outputAttemptId = null;
         await startOutputTask(candidate, '', null, null, null, taskId);
         return;
@@ -2280,7 +2322,7 @@ async function startPlanTaskOnce(taskId: string, fromFlow = false): Promise<void
         if (!(await markStarted()))
             return;
         examPlanTaskId = taskId;
-        page = 'exam';
+        enterPage('exam');
         await startExamItems([itemId], taskId);
         return;
     }
@@ -2297,7 +2339,7 @@ async function startPlanTaskOnce(taskId: string, fromFlow = false): Promise<void
         taskExecution = exec;
         previewWords = refs;
         previewIndex = 0;
-        page = 'preview';
+        enterPage('preview');
         shell();
         previewPage();
         return;
@@ -2321,7 +2363,7 @@ async function startTodayTraining(): Promise<void> {
     const next = nextOpenTask(todayPlan);
     if (!next) {
         toast('今天的计划已经全部完成');
-        page = 'home';
+        enterPage('home');
         render();
         return;
     }
@@ -2380,7 +2422,7 @@ async function completePlanTask(exec: {
         try { sessionStorage.setItem('d.justDone', exec.planTaskId); } catch { /* 隐私模式忽略 */ }
     }
     if (savedPlan && trainingFlow) {
-        page = 'home';
+        enterPage('home');
         render();
     }
     return !!savedPlan;
@@ -2686,7 +2728,7 @@ function startLab(sentenceIds: string[], planTaskId: string | null, planTaskKind
     }
     labSession = { sessionId: `lab-${Date.now().toString(36)}`, queue, index: 0, planTaskId, planTaskKind, startedAt: Date.now(), current: null, finished: [], ungraded: !!opts.ungraded, returnTo: opts.returnTo ?? null };
     openLabSentence();
-    page = 'lab';
+    enterPage('lab');
     render();
 }
 function labRecord(): SentenceRecord | undefined { return sentenceRecords.find(s => s.id === labSession?.current?.sentenceId); }
@@ -2700,7 +2742,7 @@ function openLabSentence(opts: {
     const rec = sentenceRecords.find(s => s.id === session.queue[session.index]);
     if (!rec) {
         labSession = null;
-        page = 'sentence';
+        enterPage('sentence');
         render();
         return;
     }
@@ -2763,7 +2805,7 @@ function labPage(): void {
         if (labReturnToReading())
             return;
         labSession = null;
-        page = 'sentence';
+        enterPage('sentence');
         render();
     }));
     document.querySelectorAll<HTMLElement>('[data-jit]').forEach(b => b.addEventListener('click', () => showJitCard(b.dataset.jit ?? '')));
@@ -2946,10 +2988,10 @@ async function finishLabSession(): Promise<void> {
     }
     if (taskId) {
         await completePlanTask({ planTaskId: taskId, kind: kind ?? 'sentence-basic-structure', startedAt: Date.now() - minutes * 60000, sessionId: session.sessionId }, minutes);
-        page = 'home';
+        enterPage('home');
     }
     else {
-        page = 'sentence';
+        enterPage('sentence');
     }
     render();
     toast(`本次完成 ${finished.length} 句 · 用时约 ${Math.round(minutes)} 分钟${finished.length ? ` · ${finished.map(f => `${f.correctSteps}/${f.total}`).join('、')}` : ''}`);
@@ -3466,7 +3508,7 @@ function openReadingMaterial(passage: Passage, sessionId: string | null): void {
     const unfinished = existing && isResumable(existing) ? existing : latestOpenSession(data.readingSessions.filter(s => s.passageId === passage.id));
     readSession = unfinished ?? null;
     readView = 'preview';
-    page = 'reading';
+    enterPage('reading');
     render();
 }
 function readingPage(): void {
@@ -3999,7 +4041,7 @@ function labReturnToReading(): boolean {
     readSelectedToken = null;
     readHelpState = { show: false, text: '' };
     readView = 'reader';
-    page = 'reading';
+    enterPage('reading');
     render();
     toast(`已回到原段落（第 ${(readSession.detail?.chunkIndex ?? 0) + 1} 段）；阅读进度与标记都在`);
     return true;
@@ -4655,8 +4697,43 @@ function examPageApp(): void {
         });
     }
 }
+/**
+ * Phase 15h.4 只读钩子：把「内部 page」暴露给验收脚本，才能证明它和 html[data-page] 一致。
+ * 只读、只存在于测试构建（__ERV2_TEST_HOOKS__ 常量在生产构建为 false，整块被摇树移除）。
+ */
+function installPageTestHook(): void {
+    if (!testHooksEnabled() || !new URLSearchParams(location.search).has('test'))
+        return;
+    (window as unknown as Record<string, unknown>).__pageTest = {
+        state() {
+            const root = document.documentElement;
+            return {
+                page,
+                chromePage: root.dataset.page ?? '',
+                level: root.dataset.level ?? '',
+                theme: root.dataset.theme ?? '',
+                busy, feedback, paused,
+                session: active ? { id: active.id, index: active.index, queue: active.queue.length } : null,
+                preview: { index: previewIndex, total: previewWords.length },
+                openSessions: data.sessions.filter(s => !s.ended).length,
+                startingSession,
+                mainChildren: document.querySelectorAll('#main > *').length,
+                navActive: Array.from(document.querySelectorAll('[data-nav].active')).map(b => (b as HTMLElement).dataset.nav ?? ''),
+            };
+        },
+        /** 当前题面（只读）：验收脚本据此挑一个确定不是答案的选项去点，而不是靠猜。 */
+        question() {
+            const q = active?.question;
+            if (!q)
+                return null;
+            return { wordId: q.wordId, options: q.options.slice(), direction: q.direction };
+        },
+    };
+}
+
 async function boot() {
     installTestHook();
+    installPageTestHook();
     installPressFeedback();
     await openDB();
     data = await loadData();
@@ -4776,7 +4853,7 @@ function installPlanTestHook(): void {
             inputPlanTaskId = null;
             outputPlanTaskId = null;
             examPlanTaskId = null;
-            page = 'home';
+            enterPage('home');
             render();
             return { ok: true };
         },
@@ -4787,7 +4864,7 @@ function installPlanTestHook(): void {
             const saved = await savePlan(plan, 0);
             todayPlan = saved;
             data.dailyPlans = upsertPlan(data.dailyPlans, saved);
-            page = 'home';
+            enterPage('home');
             render();
             return { ok: true, existing: false, id: saved.id, tasks: saved.initialPlan.length, modules: [...new Set(saved.initialPlan.map(t => t.module))] };
         },
@@ -4804,7 +4881,7 @@ function installPlanTestHook(): void {
                 sessions: { now: Date.now(), input: (d.inputSessions ?? []).map(x => ({ id: x.id, source: x.sourceId, status: x.status, plan: x.dailyPlanTaskId ?? null, started: x.startedAt ?? null, completed: x.completedAt ?? null, reflection: !!x.reflection })), output: (d.outputAttempts ?? []).map(x => ({ id: x.id, status: x.status, plan: x.dailyPlanTaskId ?? null, created: x.createdAt })), exam: (d.examSessions ?? []).map(x => ({ id: x.id, status: x.status, plan: x.dailyPlanTaskId ?? null, created: x.createdAt, items: x.itemIds })) },
             };
         },
-        async resetFlow() { trainingFlow = false; inputPlanTaskId = null; outputPlanTaskId = null; examPlanTaskId = null; page = 'home'; render(); return { ok: true }; },
+        async resetFlow() { trainingFlow = false; inputPlanTaskId = null; outputPlanTaskId = null; examPlanTaskId = null; enterPage('home'); render(); return { ok: true }; },
         integrity() { return checkDataIntegrity(data); },
         async evidenceFor(taskId: string) {
             const task = todayPlan?.initialPlan.find(t => t.id === taskId);

@@ -1,0 +1,365 @@
+{
+ "tag": "after",
+ "theme": "dark",
+ "steps": [
+  {
+   "name": "books-to-quiz",
+   "dataPage": "quiz",
+   "level": "b",
+   "theme": "dark",
+   "dom": {
+    "quizCard": true,
+    "answers": 4,
+    "progress": true,
+    "pauseCover": true,
+    "recallBtn": false,
+    "metrics": 0,
+    "previewCard": false,
+    "panelSummaries": 0,
+    "h1": ""
+   },
+   "scope": {
+    "quiz": {
+     "total": 45,
+     "hits": 26
+    },
+    "preview": {
+     "total": 41,
+     "hits": 18
+    },
+    "preview-done": {
+     "total": 3,
+     "hits": 1
+    },
+    "results": {
+     "total": 8,
+     "hits": 1
+    }
+   },
+   "style": {
+    "quizCard": {
+     "maxWidth": "780px",
+     "padding": "52px",
+     "borderRadius": "26px",
+     "fontSize": "16px",
+     "color": "rgb(233, 237, 242)",
+     "opacity": "1",
+     "width": "780px",
+     "height": "527.641px"
+    },
+    "question": {
+     "maxWidth": "none",
+     "padding": "0px",
+     "borderRadius": "0px",
+     "fontSize": "62px",
+     "color": "rgb(233, 237, 242)",
+     "opacity": "1",
+     "width": "674px",
+     "height": "80px"
+    },
+    "answer": {
+     "maxWidth": "none",
+     "padding": "0px 22px",
+     "borderRadius": "12px",
+     "fontSize": "14px",
+     "color": "rgb(233, 237, 242)",
+     "opacity": "1",
+     "width": "333px",
+     "height": "62px"
+    },
+    "main": {
+     "maxWidth": "1300px",
+     "padding": "40px 46.784px 96px",
+     "borderRadius": "0px",
+     "fontSize": "16px",
+     "color": "rgb(233, 237, 242)",
+     "opacity": "1",
+     "width": "1108px",
+     "height": "767.234px"
+    },
+    "metrics": null,
+    "recallBtn": null
+   }
+  },
+  {
+   "name": "quiz-answered",
+   "dataPage": "quiz",
+   "level": "b",
+   "theme": "dark",
+   "dom": {
+    "quizCard": true,
+    "answers": 4,
+    "progress": true,
+    "pauseCover": true,
+    "recallBtn": false,
+    "metrics": 0,
+    "previewCard": false,
+    "panelSummaries": 0,
+    "h1": ""
+   },
+   "scope": {
+    "quiz": {
+     "total": 45,
+     "hits": 40
+    },
+    "preview": {
+     "total": 41,
+     "hits": 32
+    },
+    "preview-done": {
+     "total": 3,
+     "hits": 1
+    },
+    "results": {
+     "total": 8,
+     "hits": 1
+    }
+   },
+   "style": {
+    "quizCard": {
+     "maxWidth": "780px",
+     "padding": "52px",
+     "borderRadius": "26px",
+     "fontSize": "16px",
+     "color": "rgb(233, 237, 242)",
+     "opacity": "1",
+     "width": "780px",
+     "height": "671.219px"
+    },
+    "question": {
+     "maxWidth": "none",
+     "padding": "0px",
+     "borderRadius": "0px",
+     "fontSize": "62px",
+     "color": "rgb(233, 237, 242)",
+     "opacity": "1",
+     "width": "674px",
+     "height": "80px"
+    },
+    "answer": {
+     "maxWidth": "none",
+     "padding": "0px 22px",
+     "borderRadius": "12px",
+     "fontSize": "14px",
+     "color": "rgb(233, 237, 242)",
+     "opacity": "1",
+     "width": "333px",
+     "height": "62px"
+    },
+    "main": {
+     "maxWidth": "1300px",
+     "padding": "40px 46.784px 96px",
+     "borderRadius": "0px",
+     "fontSize": "16px",
+     "color": "rgb(233, 237, 242)",
+     "opacity": "1",
+     "width": "1108px",
+     "height": "910.812px"
+    },
+    "metrics": null,
+    "recallBtn": null
+   }
+  },
+  {
+   "name": "quiz-finished",
+   "dataPage": "results",
+   "level": "b",
+   "theme": "dark",
+   "dom": {
+    "quizCard": false,
+    "answers": 0,
+    "progress": false,
+    "pauseCover": false,
+    "recallBtn": false,
+    "metrics": 1,
+    "previewCard": false,
+    "panelSummaries": 1,
+    "h1": "这一轮，记住了多少？"
+   },
+   "scope": {
+    "quiz": {
+     "total": 45,
+     "hits": 1
+    },
+    "preview": {
+     "total": 41,
+     "hits": 1
+    },
+    "preview-done": {
+     "total": 3,
+     "hits": 1
+    },
+    "results": {
+     "total": 8,
+     "hits": 6
+    }
+   },
+   "style": {
+    "quizCard": null,
+    "question": null,
+    "answer": null,
+    "main": {
+     "maxWidth": "1080px",
+     "padding": "40px 46.784px 96px",
+     "borderRadius": "0px",
+     "fontSize": "16px",
+     "color": "rgb(233, 237, 242)",
+     "opacity": "1",
+     "width": "1080px",
+     "height": "977.812px"
+    },
+    "metrics": {
+     "maxWidth": "none",
+     "padding": "0px",
+     "borderRadius": "16px",
+     "fontSize": "16px",
+     "color": "rgb(233, 237, 242)",
+     "opacity": "1",
+     "width": "986.438px",
+     "height": "119.25px"
+    },
+    "recallBtn": null
+   }
+  },
+  {
+   "name": "preview",
+   "dataPage": "preview",
+   "level": "b",
+   "theme": "dark",
+   "dom": {
+    "quizCard": true,
+    "answers": 4,
+    "progress": false,
+    "pauseCover": false,
+    "recallBtn": false,
+    "metrics": 0,
+    "previewCard": true,
+    "panelSummaries": 0,
+    "h1": ""
+   },
+   "scope": {
+    "quiz": {
+     "total": 45,
+     "hits": 16
+    },
+    "preview": {
+     "total": 41,
+     "hits": 20
+    },
+    "preview-done": {
+     "total": 3,
+     "hits": 1
+    },
+    "results": {
+     "total": 8,
+     "hits": 1
+    }
+   },
+   "style": {
+    "quizCard": {
+     "maxWidth": "780px",
+     "padding": "52px",
+     "borderRadius": "26px",
+     "fontSize": "16px",
+     "color": "rgb(233, 237, 242)",
+     "opacity": "1",
+     "width": "780px",
+     "height": "454.734px"
+    },
+    "question": {
+     "maxWidth": "none",
+     "padding": "0px",
+     "borderRadius": "0px",
+     "fontSize": "62px",
+     "color": "rgb(233, 237, 242)",
+     "opacity": "1",
+     "width": "674px",
+     "height": "80px"
+    },
+    "answer": {
+     "maxWidth": "none",
+     "padding": "0px 22px",
+     "borderRadius": "12px",
+     "fontSize": "14px",
+     "color": "rgb(233, 237, 242)",
+     "opacity": "1",
+     "width": "162.5px",
+     "height": "62px"
+    },
+    "main": {
+     "maxWidth": "1300px",
+     "padding": "40px 46.784px 96px",
+     "borderRadius": "0px",
+     "fontSize": "16px",
+     "color": "rgb(233, 237, 242)",
+     "opacity": "1",
+     "width": "1108px",
+     "height": "636.734px"
+    },
+    "metrics": null,
+    "recallBtn": null
+   }
+  },
+  {
+   "name": "preview-done",
+   "dataPage": "preview-done",
+   "level": "b",
+   "theme": "dark",
+   "dom": {
+    "quizCard": false,
+    "answers": 0,
+    "progress": false,
+    "pauseCover": false,
+    "recallBtn": true,
+    "metrics": 0,
+    "previewCard": false,
+    "panelSummaries": 0,
+    "h1": "第一次编码完成"
+   },
+   "scope": {
+    "quiz": {
+     "total": 45,
+     "hits": 1
+    },
+    "preview": {
+     "total": 41,
+     "hits": 1
+    },
+    "preview-done": {
+     "total": 3,
+     "hits": 3
+    },
+    "results": {
+     "total": 8,
+     "hits": 1
+    }
+   },
+   "style": {
+    "quizCard": null,
+    "question": null,
+    "answer": null,
+    "main": {
+     "maxWidth": "760px",
+     "padding": "40px 46.784px 96px",
+     "borderRadius": "0px",
+     "fontSize": "16px",
+     "color": "rgb(233, 237, 242)",
+     "opacity": "1",
+     "width": "760px",
+     "height": "359.422px"
+    },
+    "metrics": null,
+    "recallBtn": {
+     "maxWidth": "none",
+     "padding": "0px 16px",
+     "borderRadius": "8px",
+     "fontSize": "13px",
+     "color": "rgb(12, 16, 21)",
+     "opacity": "1",
+     "width": "153.328px",
+     "height": "38px"
+    }
+   }
+  }
+ ]
+}

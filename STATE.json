@@ -2,14 +2,14 @@
   "project": "English Reconstruction System V2",
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
-  "current_phase": "phase_15h3_css_integrity",
+  "current_phase": "phase_15h4_quiz_state_hotfix",
   "phase_status": "delivered on branch, awaiting final visual acceptance",
   "last_updated": "2026-10-29",
   "last_verified_commit": "6ada55b",
   "baseline_tag": "phase15h1-semantics",
   "database_version": 7,
   "build_status": "tsc 0 / build 0 / build:test 0",
-  "test_status": "395/395 pass (390 baseline + 5 new CSS scope regressions)",
+  "test_status": "398/398 pass (395 baseline + 3 real integration regressions)",
   "tasks": {
     "phase0_audit_001": {
       "status": "passed",
@@ -907,6 +907,60 @@
       },
       "commit": "6a42f67",
       "remote": "verified after final push"
+    },
+    {
+      "phase": "phase15h4",
+      "branch": "phase15h4-quiz-state-hotfix",
+      "tag": "phase15h4-quiz-state-hotfix",
+      "status": "delivered, awaiting user visual acceptance",
+      "evidence": {
+        "root_cause": "page 与 html[data-page] 由两条路径维护：会话页(quiz/preview-done/results)直写 #main、不走 render()->paint()->applyPageChrome",
+        "fix": {
+          "single_exit": "enterPage(page) 统一 24 处写入",
+          "scope": "motion.applyPageScope",
+          "levels": "preview-done/results 显式 b",
+          "epoch_guards": "showQuestion/submit/previewAnswer 在 await 后核对纪元",
+          "shell": "previewDone/showResults 重建骨架"
+        },
+        "before_after": {
+          "books_to_quiz": "data-page books→quiz, quiz规则 0/45→26/45, 卡片 710→780px",
+          "quiz_answered": "0/45→40/45",
+          "results": "data-page home→results, results规则 0/8→6/8",
+          "preview_done": "data-page preview→preview-done"
+        },
+        "stateflow": {
+          "checkpoints_per_theme": 21,
+          "themes": 2,
+          "inconsistent": 0,
+          "levelMismatch": 0,
+          "failures": 0,
+          "consoleErrors": 0,
+          "pages": [
+            "books",
+            "quiz",
+            "home",
+            "results",
+            "weak",
+            "preview",
+            "preview-done"
+          ]
+        },
+        "nav_sweep": {
+          "pages": 14,
+          "brandHome": true,
+          "failures": 0
+        },
+        "gates": {
+          "tsc": "0",
+          "tests": "398/398",
+          "build": "0",
+          "contrast": "225/0 dark + 225/0 light",
+          "mobile": "PASS",
+          "reduced_motion": "ok",
+          "live_a11y": "11/11"
+        },
+        "regression_on_head": "3/3 new tests fail on 691a97c (stale preview write / preview-done timeout / applyPageScope missing)"
+      }
     }
   ],
   "backlog_note": "docs/PHASE15H_MARKUP_BACKLOG.md 口径：原始 39 → 去重 25；15h.2 追加一节：177 条 [data-level]…[data-page] 规则 0 命中（P0 待决，本轮不启用）"

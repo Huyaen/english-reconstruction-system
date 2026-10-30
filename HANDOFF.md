@@ -1,3 +1,28 @@
+# HANDOFF — 当前状态（Phase 15h.4）
+
+> **2026-10-30 更新（15h.4）**：Quiz 页面状态同步 Hotfix。分支 `phase15h4-quiz-state-hotfix`
+> （起点 `phase15h3-css-integrity` @ `691a97c`），tag `phase15h4-quiz-state-hotfix`。`main` 仍 `9de8acd`，
+> **未合并**；`phase15h3-css-integrity` / `phase15h2-visual-qa` / `phase15h-full-ui` tag 均未移动。
+>
+> 根因：`page`（内部真值）与 `html[data-page]`（视觉真值）由**两条路径**维护 ——
+> 只有 `render() → paint() → applyPageChrome()` 会写根属性，而 `quiz` / `preview-done` / `results`
+> 三个会话页直接写 `#main`、从不走 `paint()`。于是「从词库直接训练」的根节点停在 `books`、
+> 「预览完成」停在 `preview`、「结果页」停在上一页，所有页面级规则一起失效。
+>
+> 修复：新增唯一出口 `enterPage()`（内部 page + `data-page` + `data-level` + 页面纪元），
+> 24 处 `page = 'x'` 全部改走它；`motion.ts` 拆出 `applyPageScope()`（只写属性，不重建观察器）；
+> `preview-done` / `results` 在等级表里显式声明 b；`previewDone()` / `showResults()` 重建骨架；
+> 三处异步收尾（取题、作答落盘、预览作答）在 `await` 后核对页面纪元，旧任务不再写回新页面。
+>
+> 证据：修复前 `data-page` = books/home/preview 且 quiz 规则 0/45 命中 → 修复后 = quiz/results/preview-done，
+> quiz 规则 26–40/45、results 6/8；卡片 `max-width` 710 → 780px。真实浏览器 7 条业务路径 × 2 主题
+> × 21 个检查点：不一致 0、等级不同步 0、失败 0、控制台错误 0；14 个侧栏入口 + 品牌键全一致。
+> 门禁：`tsc` 0、`npm test` **398/398**（+3 条真实 jsdom 集成回归，已验证「改回旧代码 3 条全红」）、
+> `build` 0、对比度 225/0 ×2、移动 PASS、live-a11y 11/11、Reduced Motion OK。
+> 未覆盖：键盘逐键截图、hover/focus 像素级取证、headful 序列、计划任务入口的预览分支。
+> 视觉验收仍未获得用户确认 —— **不得自行宣布 Phase 15 审美目标达成**。
+> 文档：`docs/PHASE15H4_ROOT_CAUSE_AND_FIX.md`、`docs/PHASE15H4_TEST_REPORT.md`。
+
 # HANDOFF — 当前状态（Phase 15h.3）
 
 > **2026-10-29 更新（15h.3）**：CSS 作用域完整性 + 转场连续性收口。分支 `phase15h3-css-integrity`

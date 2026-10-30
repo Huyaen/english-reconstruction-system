@@ -1,0 +1,104 @@
+{
+ "rows": [
+  {
+   "nav": "home",
+   "page": "home",
+   "chrome": "home",
+   "level": "a",
+   "text": "—分钟可用 —还没有任务 还没有今天的计划 先给今天留一段时间。 计划只在预算内"
+  },
+  {
+   "nav": "books",
+   "page": "books",
+   "chrome": "books",
+   "level": "b",
+   "text": "你的词库YOUR WORDBOOKS导入你要学的词，所有记录留在这台设备。＋ 导"
+  },
+  {
+   "nav": "weak",
+   "page": "weak",
+   "chrome": "weak",
+   "level": "b",
+   "text": "把薄弱的地方练扎实FOCUSED REVIEW不会和模糊词，按当前复习优先级排列"
+  },
+  {
+   "nav": "sentence",
+   "page": "sentence",
+   "chrome": "sentence",
+   "level": "b",
+   "text": "句子训练SENTENCE LAB不是背语法，是拆句：先找主干，再认修饰，再看从句"
+  },
+  {
+   "nav": "reading",
+   "page": "reading",
+   "chrome": "reading",
+   "level": "c",
+   "text": "阅读READING LAB先直接读英文；只有在真的卡住时才要辅助。阅读不会自动提"
+  },
+  {
+   "nav": "input",
+   "page": "input",
+   "chrome": "input",
+   "level": "b",
+   "text": "REAL INPUT真实输入看你真正想看的英文内容，记录看得怎么样——不是每段视"
+  },
+  {
+   "nav": "output",
+   "page": "output",
+   "chrome": "output",
+   "level": "b",
+   "text": "OUTPUT LAB真实表达先把意思送出去，再让它更准确。写一句也算完成。 今天"
+  },
+  {
+   "nav": "grammar",
+   "page": "grammar",
+   "chrome": "grammar",
+   "level": "b",
+   "text": "语法图谱GRAMMAR MAP概念之间按先修关系连接：先有主干，再认从句，再想非"
+  },
+  {
+   "nav": "unit",
+   "page": "unit",
+   "chrome": "unit",
+   "level": "a",
+   "text": "Mini Unit · 主题学习单元 围绕一份真实材料，连续 2–4 个学习日："
+  },
+  {
+   "nav": "diagnostics",
+   "page": "diagnostics",
+   "chrome": "diagnostics",
+   "level": "a",
+   "text": "LEARNING DIAGNOSTICS学情诊断7 天窗口 · 只描述证据，不给"
+  },
+  {
+   "nav": "exam",
+   "page": "exam",
+   "chrome": "exam",
+   "level": "b",
+   "text": "把练习迁移到考试EXAM TRANSFER换题、换语境、看错因。这里不产生官方分"
+  },
+  {
+   "nav": "stats",
+   "page": "stats",
+   "chrome": "stats",
+   "level": "a",
+   "text": "看见记忆的变化MEMORY INSIGHTS统计来自实际作答记录；没有学习数据的"
+  },
+  {
+   "nav": "ai",
+   "page": "ai",
+   "chrome": "ai",
+   "level": "c",
+   "text": "让数据给出下一步OPTIONAL INTELLIGENCEAI 分析是可选功能，"
+  },
+  {
+   "nav": "settings",
+   "page": "settings",
+   "chrome": "settings",
+   "level": "c",
+   "text": "按你的速度来PREFERENCES时间阈值、测试难度和数据备份，都由你控制。测试"
+  }
+ ],
+ "failures": [],
+ "brandHome": true
+}
