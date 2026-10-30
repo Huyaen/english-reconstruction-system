@@ -959,8 +959,11 @@
           "reduced_motion": "ok",
           "live_a11y": "11/11"
         },
-        "regression_on_head": "3/3 new tests fail on 691a97c (stale preview write / preview-done timeout / applyPageScope missing)"
-      }
+        "regression_on_head": "3/3 new tests fail on 691a97c (stale preview write / preview-done timeout / applyPageScope missing)",
+        "ci": "41049768099 (success @ 4186c8d) / 41050234265 (success @ 84b8bd2)"
+      },
+      "commit": "84b8bd2 (docs/评审包脚本); tag 指向代码提交 4186c8d",
+      "remote": "verified: local==remote==84b8bd2, tag phase15h4-quiz-state-hotfix==4186c8d"
     }
   ],
   "backlog_note": "docs/PHASE15H_MARKUP_BACKLOG.md 口径：原始 39 → 去重 25；15h.2 追加一节：177 条 [data-level]…[data-page] 规则 0 命中（P0 待决，本轮不启用）"
