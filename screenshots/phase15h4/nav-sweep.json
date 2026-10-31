@@ -5,98 +5,98 @@
    "page": "home",
    "chrome": "home",
    "level": "a",
-   "text": "—分钟可用 —还没有任务 还没有今天的计划 先给今天留一段时间。 计划只在预算内"
+   "text": "—分钟可用 —还没有任务 还没有计划 先给今天留一段时间。 计划只在你给的时间之"
   },
   {
    "nav": "books",
    "page": "books",
    "chrome": "books",
    "level": "b",
-   "text": "你的词库YOUR WORDBOOKS导入你要学的词，所有记录留在这台设备。＋ 导"
+   "text": "你的词库词库把要学的词导进来。所有记录只存在这台设备上。＋ 导入词书全部词书统一"
   },
   {
    "nav": "weak",
    "page": "weak",
    "chrome": "weak",
    "level": "b",
-   "text": "把薄弱的地方练扎实FOCUSED REVIEW不会和模糊词，按当前复习优先级排列"
+   "text": "把没记住的词练熟薄弱词答错和选“模糊”的词，按该先练的排。 按优先度排好 12 "
   },
   {
    "nav": "sentence",
    "page": "sentence",
    "chrome": "sentence",
    "level": "b",
-   "text": "句子训练SENTENCE LAB不是背语法，是拆句：先找主干，再认修饰，再看从句"
+   "text": "一句一句拆开句子不背规则，直接动手拆：先找主干，再认修饰，最后看从句和非谓语。默"
   },
   {
    "nav": "reading",
    "page": "reading",
    "chrome": "reading",
    "level": "c",
-   "text": "阅读READING LAB先直接读英文；只有在真的卡住时才要辅助。阅读不会自动提"
+   "text": "先自己读一遍阅读先直接读英文，卡住了再要辅助。读懂一篇文章，不会自动让单词变成“"
   },
   {
    "nav": "input",
    "page": "input",
    "chrome": "input",
    "level": "b",
-   "text": "REAL INPUT真实输入看你真正想看的英文内容，记录看得怎么样——不是每段视"
+   "text": "输入练习输入练习看你真正想看的英文内容，记录看得怎么样——不是每段视频都要做题。"
   },
   {
    "nav": "output",
    "page": "output",
    "chrome": "output",
    "level": "b",
-   "text": "OUTPUT LAB真实表达先把意思送出去，再让它更准确。写一句也算完成。 今天"
+   "text": "写作练习写作练习先把意思写出来，再让它更准确。写一句也算完成。 今天写什么30 "
   },
   {
    "nav": "grammar",
    "page": "grammar",
    "chrome": "grammar",
    "level": "b",
-   "text": "语法图谱GRAMMAR MAP概念之间按先修关系连接：先有主干，再认从句，再想非"
+   "text": "把句子拆开看语法先找主干，再认从句和非谓语。这里显示的是练习记录，不是承诺你已掌"
   },
   {
    "nav": "unit",
    "page": "unit",
    "chrome": "unit",
    "level": "a",
-   "text": "Mini Unit · 主题学习单元 围绕一份真实材料，连续 2–4 个学习日："
+   "text": "主题单元 围绕你的一份材料，连着 2–4 天：先读懂，再练熟，然后不看提示做一遍"
   },
   {
    "nav": "diagnostics",
    "page": "diagnostics",
    "chrome": "diagnostics",
    "level": "a",
-   "text": "LEARNING DIAGNOSTICS学情诊断7 天窗口 · 只描述证据，不给"
+   "text": "学习报告学习报告看最近 7 天 · 只看你做了什么，不给英语总分保存今天的报告生"
   },
   {
    "nav": "exam",
    "page": "exam",
    "chrome": "exam",
    "level": "b",
-   "text": "把练习迁移到考试EXAM TRANSFER换题、换语境、看错因。这里不产生官方分"
+   "text": "用考试题检验自己考试换新题、换语境、看错因。这里不给官方分数，也不预测高考成绩。"
   },
   {
    "nav": "stats",
    "page": "stats",
    "chrome": "stats",
    "level": "a",
-   "text": "看见记忆的变化MEMORY INSIGHTS统计来自实际作答记录；没有学习数据的"
+   "text": "看自己记住了多少统计数字都来自你自己的作答；没学的日子留空。累计作答0全部历史练"
   },
   {
    "nav": "ai",
    "page": "ai",
    "chrome": "ai",
    "level": "c",
-   "text": "让数据给出下一步OPTIONAL INTELLIGENCEAI 分析是可选功能，"
+   "text": "让 AI 看看你的记录可选AI 分析可以不用；不联网也能正常学习和复习。✦让 A"
   },
   {
    "nav": "settings",
    "page": "settings",
    "chrome": "settings",
    "level": "c",
-   "text": "按你的速度来PREFERENCES时间阈值、测试难度和数据备份，都由你控制。测试"
+   "text": "按你的节奏来设置答题快慢、题目难度和备份，都在这里改。测试与节奏多快算快答（秒）"
   }
  ],
  "failures": [],

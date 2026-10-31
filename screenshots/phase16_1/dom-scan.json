@@ -1,0 +1,1516 @@
+{
+ "base": "http://127.0.0.1:4191/",
+ "states": 39,
+ "hits": [],
+ "selects": [
+  {
+   "state": "dark:home",
+   "id": "range-book",
+   "label": "范围",
+   "options": [
+    "全部词书",
+    "scan"
+   ]
+  },
+  {
+   "state": "dark:home",
+   "id": "range-count",
+   "label": "数量",
+   "options": [
+    "50 词",
+    "100 词",
+    "300 词",
+    "500 词",
+    "1000 词"
+   ]
+  },
+  {
+   "state": "dark:home",
+   "id": "range-ratio",
+   "label": "方向",
+   "options": [
+    "双向各 50%",
+    "英→中 70%",
+    "中→英 70%",
+    "只看英文（英→中）",
+    "只看中文（中→英）"
+   ]
+  },
+  {
+   "state": "dark:books",
+   "id": "level",
+   "label": "掌握筛选",
+   "options": [
+    "全部状态",
+    "未测试",
+    "不会",
+    "模糊",
+    "正常",
+    "熟练"
+   ]
+  },
+  {
+   "state": "dark:books",
+   "id": "sort",
+   "label": "排序",
+   "options": [
+    "不会的排前面",
+    "按字母排",
+    "该复习的排前面"
+   ]
+  },
+  {
+   "state": "dark:weak",
+   "id": "level",
+   "label": "掌握筛选",
+   "options": [
+    "全部状态",
+    "不会",
+    "模糊"
+   ]
+  },
+  {
+   "state": "dark:weak",
+   "id": "sort",
+   "label": "排序",
+   "options": [
+    "不会的排前面",
+    "按字母排",
+    "该复习的排前面"
+   ]
+  },
+  {
+   "state": "dark:reading",
+   "id": "read-filter",
+   "label": "",
+   "options": [
+    "全部",
+    "未读",
+    "未完成",
+    "已读"
+   ]
+  },
+  {
+   "state": "dark:input",
+   "id": "input-language",
+   "label": "语言",
+   "options": [
+    "英语",
+    "中文",
+    "其他"
+   ]
+  },
+  {
+   "state": "dark:input",
+   "id": "input-content-type",
+   "label": "类型",
+   "options": [
+    "自动判断",
+    "YouTube",
+    "Bilibili",
+    "在线视频",
+    "纪录片",
+    "电竞",
+    "游戏内容",
+    "剧集片段",
+    "文章",
+    "其他"
+   ]
+  },
+  {
+   "state": "dark:input",
+   "id": "input-status",
+   "label": "按状态筛选",
+   "options": [
+    "全部状态",
+    "已保存",
+    "已看过",
+    "已归档"
+   ]
+  },
+  {
+   "state": "dark:input",
+   "id": "input-captions",
+   "label": "",
+   "options": [
+    "全部字幕状态",
+    "有字幕",
+    "明确无字幕",
+    "未知"
+   ]
+  },
+  {
+   "state": "dark:input",
+   "id": "input-type",
+   "label": "按类型筛选",
+   "options": [
+    "全部类型",
+    "YouTube",
+    "Bilibili",
+    "文章",
+    "纪录片",
+    "电竞",
+    "游戏内容",
+    "剧集片段",
+    "在线视频",
+    "其他"
+   ]
+  },
+  {
+   "state": "dark:diagnostics",
+   "id": "diag-days",
+   "label": "看最近",
+   "options": [
+    "最近 7 天",
+    "最近 14 天",
+    "最近 30 天"
+   ]
+  },
+  {
+   "state": "dark:stats",
+   "id": "trend-days",
+   "label": "趋势时间",
+   "options": [
+    "最近 7 天",
+    "最近 30 天"
+   ]
+  },
+  {
+   "state": "dark:settings",
+   "id": null,
+   "label": "难度",
+   "options": [
+    "简单（4 个选项）",
+    "普通（4 个选项）",
+    "困难（6 个选项）"
+   ]
+  },
+  {
+   "state": "dark:settings",
+   "id": null,
+   "label": "答错反馈",
+   "options": [
+    "立即下一题",
+    "停留 0.5 秒",
+    "停留 1 秒",
+    "手动继续"
+   ]
+  },
+  {
+   "state": "dark:settings",
+   "id": null,
+   "label": "复习怎么排",
+   "options": [
+    "默认（FSRS）",
+    "旧算法（回滚用）"
+   ]
+  },
+  {
+   "state": "dark:settings",
+   "id": null,
+   "label": "返回格式",
+   "options": [
+    "自动（先要结构化的，不支持就用普通文本）",
+    "只接受 JSON（JSON Mode）",
+    "只接受严格 JSON 结构（JSON Schema）",
+    "只当纯文本处理"
+   ]
+  },
+  {
+   "state": "light:home",
+   "id": "range-book",
+   "label": "范围",
+   "options": [
+    "全部词书",
+    "scan"
+   ]
+  },
+  {
+   "state": "light:home",
+   "id": "range-count",
+   "label": "数量",
+   "options": [
+    "50 词",
+    "100 词",
+    "300 词",
+    "500 词",
+    "1000 词"
+   ]
+  },
+  {
+   "state": "light:home",
+   "id": "range-ratio",
+   "label": "方向",
+   "options": [
+    "双向各 50%",
+    "英→中 70%",
+    "中→英 70%",
+    "只看英文（英→中）",
+    "只看中文（中→英）"
+   ]
+  },
+  {
+   "state": "light:books",
+   "id": "level",
+   "label": "掌握筛选",
+   "options": [
+    "全部状态",
+    "未测试",
+    "不会",
+    "模糊",
+    "正常",
+    "熟练"
+   ]
+  },
+  {
+   "state": "light:books",
+   "id": "sort",
+   "label": "排序",
+   "options": [
+    "不会的排前面",
+    "按字母排",
+    "该复习的排前面"
+   ]
+  },
+  {
+   "state": "light:weak",
+   "id": "level",
+   "label": "掌握筛选",
+   "options": [
+    "全部状态",
+    "不会",
+    "模糊"
+   ]
+  },
+  {
+   "state": "light:weak",
+   "id": "sort",
+   "label": "排序",
+   "options": [
+    "不会的排前面",
+    "按字母排",
+    "该复习的排前面"
+   ]
+  },
+  {
+   "state": "light:reading",
+   "id": "read-filter",
+   "label": "",
+   "options": [
+    "全部",
+    "未读",
+    "未完成",
+    "已读"
+   ]
+  },
+  {
+   "state": "light:input",
+   "id": "input-language",
+   "label": "语言",
+   "options": [
+    "英语",
+    "中文",
+    "其他"
+   ]
+  },
+  {
+   "state": "light:input",
+   "id": "input-content-type",
+   "label": "类型",
+   "options": [
+    "自动判断",
+    "YouTube",
+    "Bilibili",
+    "在线视频",
+    "纪录片",
+    "电竞",
+    "游戏内容",
+    "剧集片段",
+    "文章",
+    "其他"
+   ]
+  },
+  {
+   "state": "light:input",
+   "id": "input-status",
+   "label": "按状态筛选",
+   "options": [
+    "全部状态",
+    "已保存",
+    "已看过",
+    "已归档"
+   ]
+  },
+  {
+   "state": "light:input",
+   "id": "input-captions",
+   "label": "",
+   "options": [
+    "全部字幕状态",
+    "有字幕",
+    "明确无字幕",
+    "未知"
+   ]
+  },
+  {
+   "state": "light:input",
+   "id": "input-type",
+   "label": "按类型筛选",
+   "options": [
+    "全部类型",
+    "YouTube",
+    "Bilibili",
+    "文章",
+    "纪录片",
+    "电竞",
+    "游戏内容",
+    "剧集片段",
+    "在线视频",
+    "其他"
+   ]
+  },
+  {
+   "state": "light:diagnostics",
+   "id": "diag-days",
+   "label": "看最近",
+   "options": [
+    "最近 7 天",
+    "最近 14 天",
+    "最近 30 天"
+   ]
+  },
+  {
+   "state": "light:stats",
+   "id": "trend-days",
+   "label": "趋势时间",
+   "options": [
+    "最近 7 天",
+    "最近 30 天"
+   ]
+  },
+  {
+   "state": "light:settings",
+   "id": null,
+   "label": "难度",
+   "options": [
+    "简单（4 个选项）",
+    "普通（4 个选项）",
+    "困难（6 个选项）"
+   ]
+  },
+  {
+   "state": "light:settings",
+   "id": null,
+   "label": "答错反馈",
+   "options": [
+    "立即下一题",
+    "停留 0.5 秒",
+    "停留 1 秒",
+    "手动继续"
+   ]
+  },
+  {
+   "state": "light:settings",
+   "id": null,
+   "label": "复习怎么排",
+   "options": [
+    "默认（FSRS）",
+    "旧算法（回滚用）"
+   ]
+  },
+  {
+   "state": "light:settings",
+   "id": null,
+   "label": "返回格式",
+   "options": [
+    "自动（先要结构化的，不支持就用普通文本）",
+    "只接受 JSON（JSON Mode）",
+    "只接受严格 JSON 结构（JSON Schema）",
+    "只当纯文本处理"
+   ]
+  }
+ ],
+ "headings": [
+  {
+   "state": "dark:home",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "dark:home",
+   "tag": "h1",
+   "text": "新词预览"
+  },
+  {
+   "state": "dark:home",
+   "tag": "h2",
+   "text": "自己再练一轮"
+  },
+  {
+   "state": "dark:home",
+   "tag": "h3",
+   "text": "快速刷词"
+  },
+  {
+   "state": "dark:home",
+   "tag": "h3",
+   "text": "今天该复习 0"
+  },
+  {
+   "state": "dark:home",
+   "tag": "h3",
+   "text": "薄弱词 0"
+  },
+  {
+   "state": "dark:home",
+   "tag": "h3",
+   "text": "随机抽查"
+  },
+  {
+   "state": "dark:home",
+   "tag": "h2",
+   "text": "今天的新词"
+  },
+  {
+   "state": "dark:home",
+   "tag": "h2",
+   "text": "掌握情况"
+  },
+  {
+   "state": "dark:home",
+   "tag": "h2",
+   "text": "薄弱词的变化"
+  },
+  {
+   "state": "dark:books",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "dark:books",
+   "tag": "h1",
+   "text": "你的词库"
+  },
+  {
+   "state": "dark:books",
+   "tag": "th",
+   "text": "单词 / 释义"
+  },
+  {
+   "state": "dark:books",
+   "tag": "th",
+   "text": "掌握状态"
+  },
+  {
+   "state": "dark:books",
+   "tag": "th",
+   "text": "优先度"
+  },
+  {
+   "state": "dark:books",
+   "tag": "th",
+   "text": "答对 / 作答"
+  },
+  {
+   "state": "dark:books",
+   "tag": "th",
+   "text": "平均用时"
+  },
+  {
+   "state": "dark:books",
+   "tag": "th",
+   "text": "下次复习"
+  },
+  {
+   "state": "dark:weak",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "dark:weak",
+   "tag": "h1",
+   "text": "把没记住的词练熟"
+  },
+  {
+   "state": "dark:weak",
+   "tag": "summary",
+   "text": "查看这 0 个词的明细"
+  },
+  {
+   "state": "dark:sentence",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "dark:sentence",
+   "tag": "h1",
+   "text": "一句一句拆开"
+  },
+  {
+   "state": "dark:sentence",
+   "tag": "h2",
+   "text": "句源与能力"
+  },
+  {
+   "state": "dark:sentence",
+   "tag": "h2",
+   "text": "AI 定向句"
+  },
+  {
+   "state": "dark:sentence",
+   "tag": "h2",
+   "text": "添加你遇到的真实句子"
+  },
+  {
+   "state": "dark:sentence",
+   "tag": "h2",
+   "text": "句库（12）"
+  },
+  {
+   "state": "dark:sentence",
+   "tag": "th",
+   "text": "句子"
+  },
+  {
+   "state": "dark:sentence",
+   "tag": "th",
+   "text": "目标语法"
+  },
+  {
+   "state": "dark:sentence",
+   "tag": "th",
+   "text": "结构"
+  },
+  {
+   "state": "dark:sentence",
+   "tag": "th",
+   "text": "操作"
+  },
+  {
+   "state": "dark:reading",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "dark:reading",
+   "tag": "h1",
+   "text": "先自己读一遍"
+  },
+  {
+   "state": "dark:reading",
+   "tag": "h2",
+   "text": "AI 强化阅读"
+  },
+  {
+   "state": "dark:reading",
+   "tag": "th",
+   "text": "文章"
+  },
+  {
+   "state": "dark:reading",
+   "tag": "th",
+   "text": "难度"
+  },
+  {
+   "state": "dark:reading",
+   "tag": "th",
+   "text": "操作"
+  },
+  {
+   "state": "dark:input",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "dark:input",
+   "tag": "h1",
+   "text": "输入练习"
+  },
+  {
+   "state": "dark:output",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "dark:output",
+   "tag": "h1",
+   "text": "写作练习"
+  },
+  {
+   "state": "dark:output",
+   "tag": "h2",
+   "text": "今天写什么"
+  },
+  {
+   "state": "dark:output",
+   "tag": "h2",
+   "text": "可选任务"
+  },
+  {
+   "state": "dark:grammar",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "dark:grammar",
+   "tag": "h1",
+   "text": "把句子拆开看"
+  },
+  {
+   "state": "dark:grammar",
+   "tag": "h2",
+   "text": "还没有足够的练习记录"
+  },
+  {
+   "state": "dark:grammar",
+   "tag": "h2",
+   "text": "按类别看"
+  },
+  {
+   "state": "dark:grammar",
+   "tag": "h2",
+   "text": "句子成分与基本句型"
+  },
+  {
+   "state": "dark:grammar",
+   "tag": "h2",
+   "text": "从句系统"
+  },
+  {
+   "state": "dark:grammar",
+   "tag": "h2",
+   "text": "非谓语动词"
+  },
+  {
+   "state": "dark:grammar",
+   "tag": "h2",
+   "text": "时态 · 语态 · 情态"
+  },
+  {
+   "state": "dark:grammar",
+   "tag": "h2",
+   "text": "短语结构"
+  },
+  {
+   "state": "dark:grammar",
+   "tag": "h2",
+   "text": "逻辑与衔接"
+  },
+  {
+   "state": "dark:unit",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "dark:unit",
+   "tag": "h1",
+   "text": "主题单元"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "h1",
+   "text": "学习报告"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "h2",
+   "text": "暂不下结论"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "h2",
+   "text": "记录从哪来"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "h2",
+   "text": "还记得多少"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "h2",
+   "text": "词汇"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "summary",
+   "text": "查看其余 5 项指标"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "h2",
+   "text": "语法"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "h2",
+   "text": "阅读"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "summary",
+   "text": "查看其余 3 项指标"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "h2",
+   "text": "输入练习"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "summary",
+   "text": "查看其余 1 项指标"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "h2",
+   "text": "写作练习"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "summary",
+   "text": "查看其余 1 项指标"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "h2",
+   "text": "要不要先翻译"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "h2",
+   "text": "考试"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "summary",
+   "text": "查看其余 3 项指标"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "h2",
+   "text": "和上一段时间比"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "h2",
+   "text": "接下来可以做什么"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "h2",
+   "text": "边界"
+  },
+  {
+   "state": "dark:diagnostics",
+   "tag": "h2",
+   "text": "历史快照"
+  },
+  {
+   "state": "dark:exam",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "dark:exam",
+   "tag": "h1",
+   "text": "用考试题检验自己"
+  },
+  {
+   "state": "dark:exam",
+   "tag": "h2",
+   "text": "考试练习"
+  },
+  {
+   "state": "dark:exam",
+   "tag": "h3",
+   "text": "2026 · 暂定/待确认"
+  },
+  {
+   "state": "dark:exam",
+   "tag": "summary",
+   "text": "来源与核验"
+  },
+  {
+   "state": "dark:exam",
+   "tag": "h3",
+   "text": "2026 · 官方已确认"
+  },
+  {
+   "state": "dark:exam",
+   "tag": "summary",
+   "text": "来源与核验"
+  },
+  {
+   "state": "dark:exam",
+   "tag": "h3",
+   "text": "2028 · 暂定/待确认"
+  },
+  {
+   "state": "dark:exam",
+   "tag": "summary",
+   "text": "来源与核验"
+  },
+  {
+   "state": "dark:stats",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "dark:stats",
+   "tag": "h1",
+   "text": "看自己记住了多少"
+  },
+  {
+   "state": "dark:stats",
+   "tag": "h2",
+   "text": "两个方向"
+  },
+  {
+   "state": "dark:stats",
+   "tag": "h2",
+   "text": "掌握情况"
+  },
+  {
+   "state": "dark:stats",
+   "tag": "h2",
+   "text": "最近的变化"
+  },
+  {
+   "state": "dark:stats",
+   "tag": "th",
+   "text": "日期"
+  },
+  {
+   "state": "dark:stats",
+   "tag": "th",
+   "text": "作答"
+  },
+  {
+   "state": "dark:stats",
+   "tag": "th",
+   "text": "正确率"
+  },
+  {
+   "state": "dark:stats",
+   "tag": "th",
+   "text": "平均用时"
+  },
+  {
+   "state": "dark:stats",
+   "tag": "th",
+   "text": "变熟练的次数"
+  },
+  {
+   "state": "dark:stats",
+   "tag": "th",
+   "text": "该复习时答错"
+  },
+  {
+   "state": "dark:ai",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "dark:ai",
+   "tag": "h1",
+   "text": "让 AI 看看你的记录"
+  },
+  {
+   "state": "dark:ai",
+   "tag": "h2",
+   "text": "让 AI 看看你的记录"
+  },
+  {
+   "state": "dark:settings",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "dark:settings",
+   "tag": "h1",
+   "text": "按你的节奏来"
+  },
+  {
+   "state": "dark:settings",
+   "tag": "h2",
+   "text": "测试与节奏"
+  },
+  {
+   "state": "dark:settings",
+   "tag": "h2",
+   "text": "AI 服务（可选）"
+  },
+  {
+   "state": "dark:settings",
+   "tag": "h2",
+   "text": "数据地址"
+  },
+  {
+   "state": "dark:settings",
+   "tag": "h2",
+   "text": "备份与换地址"
+  },
+  {
+   "state": "light:home",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "light:home",
+   "tag": "h1",
+   "text": "新词预览"
+  },
+  {
+   "state": "light:home",
+   "tag": "h2",
+   "text": "自己再练一轮"
+  },
+  {
+   "state": "light:home",
+   "tag": "h3",
+   "text": "快速刷词"
+  },
+  {
+   "state": "light:home",
+   "tag": "h3",
+   "text": "今天该复习 0"
+  },
+  {
+   "state": "light:home",
+   "tag": "h3",
+   "text": "薄弱词 18"
+  },
+  {
+   "state": "light:home",
+   "tag": "h3",
+   "text": "随机抽查"
+  },
+  {
+   "state": "light:home",
+   "tag": "h2",
+   "text": "今天的新词"
+  },
+  {
+   "state": "light:home",
+   "tag": "h2",
+   "text": "掌握情况"
+  },
+  {
+   "state": "light:home",
+   "tag": "h2",
+   "text": "薄弱词的变化"
+  },
+  {
+   "state": "light:books",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "light:books",
+   "tag": "h1",
+   "text": "你的词库"
+  },
+  {
+   "state": "light:books",
+   "tag": "th",
+   "text": "单词 / 释义"
+  },
+  {
+   "state": "light:books",
+   "tag": "th",
+   "text": "掌握状态"
+  },
+  {
+   "state": "light:books",
+   "tag": "th",
+   "text": "优先度"
+  },
+  {
+   "state": "light:books",
+   "tag": "th",
+   "text": "答对 / 作答"
+  },
+  {
+   "state": "light:books",
+   "tag": "th",
+   "text": "平均用时"
+  },
+  {
+   "state": "light:books",
+   "tag": "th",
+   "text": "下次复习"
+  },
+  {
+   "state": "light:weak",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "light:weak",
+   "tag": "h1",
+   "text": "把没记住的词练熟"
+  },
+  {
+   "state": "light:weak",
+   "tag": "summary",
+   "text": "查看这 18 个词的明细"
+  },
+  {
+   "state": "light:sentence",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "light:sentence",
+   "tag": "h1",
+   "text": "一句一句拆开"
+  },
+  {
+   "state": "light:sentence",
+   "tag": "h2",
+   "text": "句源与能力"
+  },
+  {
+   "state": "light:sentence",
+   "tag": "h2",
+   "text": "AI 定向句"
+  },
+  {
+   "state": "light:sentence",
+   "tag": "h2",
+   "text": "添加你遇到的真实句子"
+  },
+  {
+   "state": "light:sentence",
+   "tag": "h2",
+   "text": "句库（12）"
+  },
+  {
+   "state": "light:sentence",
+   "tag": "th",
+   "text": "句子"
+  },
+  {
+   "state": "light:sentence",
+   "tag": "th",
+   "text": "目标语法"
+  },
+  {
+   "state": "light:sentence",
+   "tag": "th",
+   "text": "结构"
+  },
+  {
+   "state": "light:sentence",
+   "tag": "th",
+   "text": "操作"
+  },
+  {
+   "state": "light:reading",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "light:reading",
+   "tag": "h1",
+   "text": "先自己读一遍"
+  },
+  {
+   "state": "light:reading",
+   "tag": "h2",
+   "text": "AI 强化阅读"
+  },
+  {
+   "state": "light:reading",
+   "tag": "th",
+   "text": "文章"
+  },
+  {
+   "state": "light:reading",
+   "tag": "th",
+   "text": "难度"
+  },
+  {
+   "state": "light:reading",
+   "tag": "th",
+   "text": "操作"
+  },
+  {
+   "state": "light:input",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "light:input",
+   "tag": "h1",
+   "text": "输入练习"
+  },
+  {
+   "state": "light:output",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "light:output",
+   "tag": "h1",
+   "text": "写作练习"
+  },
+  {
+   "state": "light:output",
+   "tag": "h2",
+   "text": "今天写什么"
+  },
+  {
+   "state": "light:output",
+   "tag": "h2",
+   "text": "可选任务"
+  },
+  {
+   "state": "light:grammar",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "light:grammar",
+   "tag": "h1",
+   "text": "把句子拆开看"
+  },
+  {
+   "state": "light:grammar",
+   "tag": "h2",
+   "text": "还没有足够的练习记录"
+  },
+  {
+   "state": "light:grammar",
+   "tag": "h2",
+   "text": "按类别看"
+  },
+  {
+   "state": "light:grammar",
+   "tag": "h2",
+   "text": "句子成分与基本句型"
+  },
+  {
+   "state": "light:grammar",
+   "tag": "h2",
+   "text": "从句系统"
+  },
+  {
+   "state": "light:grammar",
+   "tag": "h2",
+   "text": "非谓语动词"
+  },
+  {
+   "state": "light:grammar",
+   "tag": "h2",
+   "text": "时态 · 语态 · 情态"
+  },
+  {
+   "state": "light:grammar",
+   "tag": "h2",
+   "text": "短语结构"
+  },
+  {
+   "state": "light:grammar",
+   "tag": "h2",
+   "text": "逻辑与衔接"
+  },
+  {
+   "state": "light:unit",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "light:unit",
+   "tag": "h1",
+   "text": "主题单元"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "h1",
+   "text": "学习报告"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "h2",
+   "text": "暂不下结论"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "h2",
+   "text": "记录从哪来"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "h2",
+   "text": "还记得多少"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "h2",
+   "text": "词汇"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "summary",
+   "text": "查看其余 5 项指标"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "h2",
+   "text": "语法"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "h2",
+   "text": "阅读"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "summary",
+   "text": "查看其余 3 项指标"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "h2",
+   "text": "输入练习"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "summary",
+   "text": "查看其余 1 项指标"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "h2",
+   "text": "写作练习"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "summary",
+   "text": "查看其余 1 项指标"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "h2",
+   "text": "要不要先翻译"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "h2",
+   "text": "考试"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "summary",
+   "text": "查看其余 3 项指标"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "h2",
+   "text": "和上一段时间比"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "h2",
+   "text": "接下来可以做什么"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "h2",
+   "text": "边界"
+  },
+  {
+   "state": "light:diagnostics",
+   "tag": "h2",
+   "text": "历史快照"
+  },
+  {
+   "state": "light:exam",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "light:exam",
+   "tag": "h1",
+   "text": "用考试题检验自己"
+  },
+  {
+   "state": "light:exam",
+   "tag": "h2",
+   "text": "考试练习"
+  },
+  {
+   "state": "light:exam",
+   "tag": "h3",
+   "text": "2026 · 暂定/待确认"
+  },
+  {
+   "state": "light:exam",
+   "tag": "summary",
+   "text": "来源与核验"
+  },
+  {
+   "state": "light:exam",
+   "tag": "h3",
+   "text": "2026 · 官方已确认"
+  },
+  {
+   "state": "light:exam",
+   "tag": "summary",
+   "text": "来源与核验"
+  },
+  {
+   "state": "light:exam",
+   "tag": "h3",
+   "text": "2028 · 暂定/待确认"
+  },
+  {
+   "state": "light:exam",
+   "tag": "summary",
+   "text": "来源与核验"
+  },
+  {
+   "state": "light:stats",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "light:stats",
+   "tag": "h1",
+   "text": "看自己记住了多少"
+  },
+  {
+   "state": "light:stats",
+   "tag": "h2",
+   "text": "两个方向"
+  },
+  {
+   "state": "light:stats",
+   "tag": "h2",
+   "text": "掌握情况"
+  },
+  {
+   "state": "light:stats",
+   "tag": "h2",
+   "text": "最近的变化"
+  },
+  {
+   "state": "light:stats",
+   "tag": "th",
+   "text": "日期"
+  },
+  {
+   "state": "light:stats",
+   "tag": "th",
+   "text": "作答"
+  },
+  {
+   "state": "light:stats",
+   "tag": "th",
+   "text": "正确率"
+  },
+  {
+   "state": "light:stats",
+   "tag": "th",
+   "text": "平均用时"
+  },
+  {
+   "state": "light:stats",
+   "tag": "th",
+   "text": "变熟练的次数"
+  },
+  {
+   "state": "light:stats",
+   "tag": "th",
+   "text": "该复习时答错"
+  },
+  {
+   "state": "light:ai",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "light:ai",
+   "tag": "h1",
+   "text": "让 AI 看看你的记录"
+  },
+  {
+   "state": "light:ai",
+   "tag": "h2",
+   "text": "让 AI 看看你的记录"
+  },
+  {
+   "state": "light:settings",
+   "tag": "a",
+   "text": "词 词间 把词留在记忆里"
+  },
+  {
+   "state": "light:settings",
+   "tag": "h1",
+   "text": "按你的节奏来"
+  },
+  {
+   "state": "light:settings",
+   "tag": "h2",
+   "text": "测试与节奏"
+  },
+  {
+   "state": "light:settings",
+   "tag": "h2",
+   "text": "AI 服务（可选）"
+  },
+  {
+   "state": "light:settings",
+   "tag": "h2",
+   "text": "数据地址"
+  },
+  {
+   "state": "light:settings",
+   "tag": "h2",
+   "text": "备份与换地址"
+  }
+ ],
+ "errors": [],
+ "covered": [
+  "dark:home",
+  "dark:books",
+  "dark:weak",
+  "dark:sentence",
+  "dark:reading",
+  "dark:input",
+  "dark:output",
+  "dark:grammar",
+  "dark:unit",
+  "dark:diagnostics",
+  "dark:exam",
+  "dark:stats",
+  "dark:ai",
+  "dark:settings",
+  "light:home",
+  "light:books",
+  "light:weak",
+  "light:sentence",
+  "light:reading",
+  "light:input",
+  "light:output",
+  "light:grammar",
+  "light:unit",
+  "light:diagnostics",
+  "light:exam",
+  "light:stats",
+  "light:ai",
+  "light:settings"
+ ]
+}
