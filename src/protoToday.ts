@@ -306,7 +306,7 @@ function rowF(t: ProtoTaskView, index: number, open = false): string {
     <span class="d-row-meta"><span>${t.minutes} 分钟</span>${t.critical ? '<i class="d-key-flag">必做</i>' : ''}<i class="d-chev" aria-hidden="true"></i></span>
   </button>
   <div class="d-row-detail" style="height:${open ? 'auto' : '0px'}">
-    <p>${esc(t.reason || '先排该复习的，再按忘记的程度排')} · ${esc(t.module)}</p>
+    <p>${esc(t.reason || '先安排该复习的，再按忘得多不多排')} · ${esc(t.module)}</p>
     <div class="d-row-actions">${go}${rest}</div>
   </div>
 </div>`;
@@ -380,12 +380,12 @@ export function protoTodayD(c: ProtoContext): string {
     <div class="d2-spine" role="group" aria-label="今天可用时间">
       <div class="d2-remaining">
         <b data-odometer="${c.remainingMinutes}" data-odometer-key="p15f-remaining">${c.remainingMinutes}</b>
-        <span>分钟还没做</span>
+        <span>分钟的练习还没做</span>
       </div>
       <div class="d2-budget" style="--p:${routePct}%" role="img" aria-label="今天可用 ${c.budget} 分钟，计划内 ${c.remainingMinutes} 分钟，还没排 ${unscheduled} 分钟">
         <i class="d2-bar"><i class="d2-rest" style="--p:${routePct}%"></i><i class="d2-fill" style="--p:${routePct}%"></i><i class="d2-tick" style="--p:${routePct}%"></i></i>
         <em class="d2-budget-b">${c.budget} 分钟可用</em>
-        <em class="d2-budget-c">${unscheduled} 分钟还没排</em>
+        <em class="d2-budget-c">还剩 ${unscheduled} 分钟没排</em>
         <em class="d2-budget-a">${c.remainingMinutes} 分钟已排</em>
       </div>
       <div class="d2-progress">
@@ -404,7 +404,7 @@ export function protoTodayD(c: ProtoContext): string {
         <div class="d2-chips">
           ${t ? `<span>${t.minutes} 分钟</span>` : ''}
           ${t && t.critical ? '<span class="is-warm">必做</span>' : ''}
-          ${crit && !(t && t.critical) ? `<span>${crit} 项别跳过</span>` : ''}
+          ${crit && !(t && t.critical) ? `<span>${crit} 项必做</span>` : ''}
         </div>
       </div>
       <div class="d2-now-side">

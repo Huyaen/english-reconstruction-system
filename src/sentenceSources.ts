@@ -6,14 +6,14 @@
 //   3) 目标比例 40% AI / 40% 用户真实难句 / 20% 新真实语料（§46），当前按真实可用能力自动重新分配。
 import type { SentenceRecord, SentenceSourceType } from './types.ts';
 import { STRUCTURE_VERSION, heuristicStructure, tokenize, type ClauseKind, type SentenceStructure, type StructureClause, type StructureRole, type StructureToken } from './sentenceStructure.ts';
-export const CURATED_ATTRIBUTION = '本应用作者撰写的教学句（authored）· 非外部语料，不代表任何文章原句';
+export const CURATED_ATTRIBUTION = '本应用作者写的教学句，不是从文章里摘的原句';
 export const SOURCE_LABELS: Record<SentenceSourceType, string> = {
-    curated: '练习句（为练语法写的）',
+    curated: '练习句',
     user: '你自己加的句子',
     saved: '你收藏的难句',
     'real-material': '真实材料里的句子',
     reading: '从阅读带过来的句子',
-    ai: 'AI 生成的句子（还没上线）',
+    ai: 'AI 生成的句子',
 };
 export const TARGET_SOURCE_MIX = { ai: 0.4, user: 0.4, real: 0.2 } as const;
 // —— gold 结构构造器：以紧凑声明生成可校验结构，避免手工维护 token 表 ——
@@ -425,9 +425,9 @@ export function validateGenerationResult(result: unknown, req: SentenceGeneratio
 }
 export function generationUnavailableReason(aiConfigured: boolean, readingAvailable = false): string {
     if (!aiConfigured)
-        return 'AI 生句（Phase 6）尚未上线，且未配置 AI 服务：不会伪造任何 AI 句子。';
+        return 'AI 生成句子这个功能还没有开放；没有设置 AI 服务时，也不会伪造 AI 句子。';
     if (!readingAvailable)
-        return 'AI 已配置但 Phase 6 结构化生句契约尚未启用：仍不伪造输出。';
+        return 'AI 服务已经设置好了，但生成句子这个功能还没有开放：不会伪造输出。';
     return '';
 }
 // AI 不可用时的确定性 fallback：只返回 curated/已保存句，provider='none'

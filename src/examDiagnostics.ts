@@ -69,7 +69,7 @@ export function examMetrics(data: Data, range: Range): MetricValue[] {
     out.push(metric({
         id: 'exam.selfReportedLogs', domain: 'exam', label: '自报考试记录', kind: 'count', value: logs.length || null,
         sample: logs.length, definition: '窗口内用户自报的校内/月考/模拟/自定义考试条数；只作事实线索，不参与错因或能力计算。',
-        quality: 'task-behavior', reasons: logs.length ? ['来源固定为 self_reported；自评文字不升级为已验证错因。'] : ['本窗口没有自报考试记录。'],
+        quality: 'task-behavior', reasons: logs.length ? ['这些条数都是你自己填的；自评文字不会被当成已验证的错因。'] : ['本窗口没有自报考试记录。'],
     }));
     // 明确不使用“考试总分/预测分”：仅有题目的来源与分值，不足以推断官方分数。
     out.push(metric({

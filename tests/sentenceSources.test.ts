@@ -19,8 +19,12 @@ test('人工教学句库：数量、来源标注、结构与唯一性', () => {
         assert.equal(validateStructure(r.structure).ok, true);
         assert.ok(r.difficulty >= 1 && r.difficulty <= 3);
     }
-    assert.ok(CURATED_ATTRIBUTION.includes('authored'));
-    assert.ok(CURATED_ATTRIBUTION.includes('非外部语料'));
+    // 归属说明改成了中文，但必须仍然说清两件事：作者写的、不是文章原句。
+    // 这里断言语义而不是英文标记，删掉任何一句都会红。
+    assert.ok(CURATED_ATTRIBUTION.includes('作者'), '必须承认是作者写的');
+    assert.ok(/不是从文章|非文章/.test(CURATED_ATTRIBUTION), '必须说明不是文章原句');
+    // 「非外部语料」这种说法已改成用户能懂的句子，语义断言：不得声称来自外部文章
+    assert.ok(/不是从文章里摘|非外部/.test(CURATED_ATTRIBUTION), '不得暗示句子来自外部文章');
 });
 test('句库种子：只增不改，幂等，不覆盖用户句子', () => {
     const user = userSentenceRecord('The plan actually worked out well.', '这个计划最后确实成功了。', NOW).record;

@@ -60,7 +60,7 @@ export function retentionReport(data: Data): RetentionResult {
             evaluable,
             note: evaluable
                 ? `首次出现后第 ${label.slice(1)} 个 24h 窗口内的复习正确率（${b.correct}/${b.total}）。`
-                : `样本 ${b.total} < ${RATE_MIN_SAMPLE}，不计算 ${label}。`,
+                : `记录太少（${b.total} 条，至少要 ${RATE_MIN_SAMPLE} 条），先不算 ${label}。`,
         };
     });
     return {

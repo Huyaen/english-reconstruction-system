@@ -1,6 +1,7 @@
 export const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 export const $ = <T extends HTMLElement = HTMLElement>(q: string) => document.querySelector<T>(q)!;
-export const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
+/** 百分比：一律取整。一位小数会让 11 次作答的 27.3% 看起来像精确测量。 */
+export const pct = (v: number) => `${Math.round(v * 100)}%`;
 export const seconds = (v: number) => `${(v / 1000).toFixed(2)} 秒`;
 export const date = (v: number) => v ? new Date(v).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '尚未测试';
 export function toast(text: string) { $('#toast').textContent = text; $('#toast').classList.add('show'); setTimeout(() => $('#toast').classList.remove('show'), 5000); }

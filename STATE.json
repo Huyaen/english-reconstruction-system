@@ -2,14 +2,14 @@
   "project": "English Reconstruction System V2",
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
-  "current_phase": "phase16_ux_writing",
-  "phase_status": "delivered on branch, awaiting final visual acceptance",
-  "last_updated": "2026-10-30",
+  "current_phase": "phase16_1_copy_polish",
+  "phase_status": "delivered on branch, awaiting user visual acceptance",
+  "last_updated": "2026-10-31",
   "last_verified_commit": "HEAD",
   "baseline_tag": "phase15h1-semantics",
   "database_version": 7,
-  "build_status": "tsc 0 / build 0 / build:test 0",
-  "test_status": "398/398 pass",
+  "build_status": "tsc 0 / build 0 / build:test 0 / copy-lint 0 hits / dom-scan 0 hits / overflow 84 views 0",
+  "test_status": "407/407 pass",
   "tasks": {
     "phase0_audit_001": {
       "status": "passed",
@@ -710,6 +710,34 @@
         "contrast PROTO=d 225/0 dark + 225/0 light",
         "phase15h1-live-a11y 11/11；mobile-audit PASS；reduced-motion OK"
       ]
+    },
+    "phase16_1_copy_polish": {
+      "status": "delivered",
+      "description": "Phase 16.1 文案残留修复：审计 P1 16 项 + P2 12 项全部处理，另修 9 处同类残留；新增 src/uiLabels.ts 映射层、静态/动态双轨检测与 9 条防回归测试；不改枚举/存储/算法/评分/视觉",
+      "files": [
+        "src/uiLabels.ts",
+        "scripts/lib/copyLint.mjs",
+        "scripts/phase16_1-copy-lint.mjs",
+        "scripts/phase16_1-dom-scan.mjs",
+        "scripts/phase16_1-overflow.mjs",
+        "tests/phase16_1.copyLeak.test.ts",
+        "docs/PHASE16_1_COPY_FIX_REPORT.md"
+      ],
+      "tests": [
+        "npx tsc --noEmit",
+        "npm test",
+        "node scripts/phase16_1-copy-lint.mjs",
+        "node scripts/phase16_1-dom-scan.mjs",
+        "node scripts/phase16_1-overflow.mjs",
+        "node scripts/phase15h4-navsweep.mjs"
+      ],
+      "evidence": {
+        "tests": "406->407 (新增 9)",
+        "lint": "101 files / 0 hits",
+        "dom": "39 states / 38 selects / 0 hits",
+        "overflow": "84 views / 0 clipped / 0 docOverflow",
+        "navsweep": "14 pages / 0 failures"
+      }
     }
   },
   "known_bugs": [],

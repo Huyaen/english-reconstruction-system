@@ -20,7 +20,7 @@ export const OUTPUT_TASK_TYPES: Record<OutputTaskType, TaskTypeMeta> = {
     paragraph_summary: { label: 'Paragraph Summary', zh: '短段落', purpose: '用一个短段落解释材料的核心意思与关键细节', minWords: 60, maxWords: 160, needsCoherence: true, needsSource: true },
     retelling: { label: 'Retelling', zh: '复述', purpose: '用自己的话复述看过/读过的内容', minWords: 40, maxWords: 140, needsCoherence: true, needsSource: true },
     opinion: { label: 'Opinion', zh: '观点', purpose: '表达自己的看法并给出理由', minWords: 35, maxWords: 140, needsCoherence: true, needsSource: false },
-    free_expression: { label: 'Free Expression', zh: '自由表达', purpose: '自由描述自己的想法、经历或观察', minWords: 20, maxWords: 160, needsCoherence: false, needsSource: false },
+    free_expression: { label: 'Free Expression', zh: '自由写', purpose: '自由描述自己的想法、经历或观察', minWords: 20, maxWords: 160, needsCoherence: false, needsSource: false },
     transformation: { label: 'Sentence Transformation', zh: '换个句式、换个词', purpose: '在新语境里使用目标词或目标语法', minWords: 8, maxWords: 60, needsCoherence: false, needsSource: false },
     repair: { label: 'Communication Repair', zh: '绕开不会的词', purpose: '不会某个词时，用已知英语把意思说清楚', minWords: 6, maxWords: 70, needsCoherence: false, needsSource: false },
 };

@@ -6,6 +6,7 @@
 import type { Data, DiagnosticEvidenceMix, DiagnosticPayload, MetricValue, SkillSnapshot, WeeklyDiagnostic } from './types.ts';
 import { esc, date } from './ui.ts';
 import { retentionLine } from './diagnosticsInsight.ts';
+import { MASTERY_DISCLAIMER } from './uiLabels.ts';
 const DOMAIN_LABEL: Record<MetricValue['domain'], string> = {
     vocabulary: '词汇',
     grammar: '语法',
@@ -56,9 +57,9 @@ function domainCard(domain: MetricValue['domain'], metrics: MetricValue[]): stri
     const head = list.slice(0, 4).map(metricCard).join('');
     const rest = list.slice(4);
     return `<section class="panel diag-domain">
-      <div class="section-title"><h2>${esc(DOMAIN_LABEL[domain])}</h2><span class="pill">${evaluable}/${list.length} 项能看</span></div>
+      <div class="section-title"><h2>${esc(DOMAIN_LABEL[domain])}</h2><span class="pill">${evaluable}/${list.length} 项有数据</span></div>
       ${list.length ? head + (rest.length ? `<details class="diag-more"><summary>查看其余 ${rest.length} 项指标</summary>${rest.map(metricCard).join('')}</details>` : '') : '<p class="muted">还没有这类记录。</p>'}
-    </section>`;
+    </section>` + (domain === 'vocabulary' ? `<p class="hint diag-mastery-note">${esc(MASTERY_DISCLAIMER)}</p>` : '');
 }
 function evidenceBar(mix: DiagnosticEvidenceMix): string {
     const total = Math.max(1, mix.verified + mix.taskBehavior + mix.selfReport + mix.inferred);

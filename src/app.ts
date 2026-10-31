@@ -110,6 +110,7 @@ import { sentenceConceptIds, sentenceConceptNames, sentencesForConcept } from '.
 import { ensureGraphData, loadSentences, saveSentences, sentenceAttemptsDesc } from './sentenceStore.ts';
 import { saveSentenceEvidence as dbSaveSentenceEvidence } from './db.ts';
 import { diagnosticsPage } from './diagnosticsView.ts';
+import { SOURCE_TEXT, STRUCTURE_TEXT, CAPABILITY_NEED_TEXT, PRIORITY_TEXT, PRIORITY_LEGEND, sourceMixNote } from './uiLabels.ts';
 import { buildDiagnostics, latestSnapshot } from './diagnosticsInsight.ts';
 import { generateSnapshot, generateWeekly } from './diagnosticsActions.ts';
 let data: Data, page = 'home', bookFilter = '', search = '', levelFilter = '', sort = 'priority', listPage = 0;
@@ -436,7 +437,7 @@ function home() {
   ${newWordsPanel()}
   <div class="two-col">
     <section class="panel"><div class="section-title"><h2>掌握情况</h2><span class="subtle">全部单词</span></div>${distribution()}<p class="hint">“熟练”要两个方向都答对，还要隔几天再答对。短时间内反复答对不算。</p></section>
-    <section class="panel"><div class="section-title"><h2>薄弱词的变化</h2></div><div class="weak-change"><div><strong>${s.newWeak}</strong><span>今天新出现</span></div><div><strong class="green">${s.resolved}</strong><span>今天补上了</span></div></div><p class="hint">答错、或自己选了“模糊”，就会进薄弱词；过几天再答对才会离开。</p></section>
+    <section class="panel"><div class="section-title"><h2>薄弱词的变化</h2></div><div class="weak-change"><div><strong>${s.newWeak}</strong><span>今天新出现</span></div><div><strong class="green">${s.resolved}</strong><span>今天补上了</span></div></div><p class="hint">答错，或者自己选了「模糊」，就会进薄弱词；过几天再答对才会离开。</p></section>
   </div>
 </div>`;
     on('#import', 'click', importDialog);
@@ -821,16 +822,16 @@ function library(weak: boolean) {
     const launcher = weak
         ? `<section class="panel review-launcher">
   <div class="review-launcher-copy">
-    <span class="review-kicker">只做一件事</span>
+    <span class="review-kicker">按优先度排好</span>
     <strong>${weakWords.length ? `${weakWords.length} 个词等着再练一次` : '还没有需要强化的词'}</strong>
-    <span class="subtle">${weakWords.length ? '按先练哪个排好了；这一轮答错的词会再出现。' : '在词库里答几题，错的和模糊的会自己出现。'}</span>
+    <span class="subtle">${weakWords.length ? '按该先练的排好了；这一轮答错的词会再出现。' : '在词库里答几题，错的和模糊的会自己出现。'}</span>
   </div>
   ${weakWords.length
             ? '<button id="review-start" class="primary">开始复习</button>'
             : '<button id="import-weak" class="primary">导入词书</button>'}
 </section>`
         : '';
-    $('#main').innerHTML = title(weak ? '薄弱词' : '词库', weak ? '把没记住的词练熟' : '你的词库', weak ? '答错和选“模糊”的词，按先练哪个排好。' : '把要学的词导进来。所有记录只存在这台设备上。', weak ? '' : `<button id="import" class="primary">＋ 导入词书</button>`) + launcher + `${weak ? `<details class="weak-ledger"><summary>查看这 ${weakWords.length} 个词的明细</summary><div class="weak-ledger-body">` : ''}<div class="book-tabs"><button data-book="" class="${!bookFilter ? 'selected' : ''}">全部词书</button>${data.books.map(b => `<button data-book="${b.id}" class="${bookFilter === b.id ? 'selected' : ''}">${esc(b.name)} <small>${data.words.filter(w => w.bookId === b.id).length}</small></button>`).join('')}</div><div class="toolbar"><input id="search" placeholder="搜索单词、释义或标签" aria-label="搜索词库" value="${esc(search)}"><select id="level" aria-label="掌握筛选"><option value="">全部状态</option>${Object.entries(labels).filter(([k]) => !weak || k === 'unknown' || k === 'vague').map(([k, v]) => `<option value="${k}" ${k === levelFilter ? 'selected' : ''}>${v}</option>`).join('')}</select><select id="sort" aria-label="排序"><option value="priority" ${sort === 'priority' ? 'selected' : ''}>先练不会的</option><option value="alpha" ${sort === 'alpha' ? 'selected' : ''}>字母排序</option><option value="due" ${sort === 'due' ? 'selected' : ''}>先练该复习的</option></select><span class="toolbar-actions">${weak ? '<button id="import" class="secondary">导入词书</button>' : ''}<button id="train-filter" class="secondary">练这些词</button><button id="export-filter" class="secondary">导出</button><button id="preview-lib" class="secondary">预览新词</button></span>${bookFilter ? '<button id="rename-book" class="text-button">重命名</button><button id="delete-book" class="danger-text">删除词书</button>' : ''}</div><section class="panel no-padding" id="word-table"></section>${weak ? '</div></details>' : ''}`;
+    $('#main').innerHTML = title(weak ? '薄弱词' : '词库', weak ? '把没记住的词练熟' : '你的词库', weak ? '答错和选“模糊”的词，按该先练的排。' : '把要学的词导进来。所有记录只存在这台设备上。', weak ? '' : `<button id="import" class="primary">＋ 导入词书</button>`) + launcher + `${weak ? `<details class="weak-ledger"><summary>查看这 ${weakWords.length} 个词的明细</summary><div class="weak-ledger-body">` : ''}<div class="book-tabs"><button data-book="" class="${!bookFilter ? 'selected' : ''}">全部词书</button>${data.books.map(b => `<button data-book="${b.id}" class="${bookFilter === b.id ? 'selected' : ''}">${esc(b.name)} <small>${data.words.filter(w => w.bookId === b.id).length}</small></button>`).join('')}</div><div class="toolbar"><input id="search" placeholder="搜索单词、释义或标签" aria-label="搜索词库" value="${esc(search)}"><select id="level" aria-label="掌握筛选"><option value="">全部状态</option>${Object.entries(labels).filter(([k]) => !weak || k === 'unknown' || k === 'vague').map(([k, v]) => `<option value="${k}" ${k === levelFilter ? 'selected' : ''}>${v}</option>`).join('')}</select><select id="sort" aria-label="排序"><option value="priority" ${sort === 'priority' ? 'selected' : ''}>不会的排前面</option><option value="alpha" ${sort === 'alpha' ? 'selected' : ''}>按字母排</option><option value="due" ${sort === 'due' ? 'selected' : ''}>该复习的排前面</option></select><span class="toolbar-actions">${weak ? '<button id="import" class="secondary">导入词书</button>' : ''}<button id="train-filter" class="secondary">练这些词</button><button id="export-filter" class="secondary">导出</button><button id="preview-lib" class="secondary">预览新词</button></span>${bookFilter ? '<button id="rename-book" class="text-button">重命名</button><button id="delete-book" class="danger-text">删除词书</button>' : ''}</div><section class="panel no-padding" id="word-table"></section>${weak ? '</div></details>' : ''}`;
     drawTable(weak);
     on('#import', 'click', importDialog);
     on('#review-start', 'click', () => startMode('weak', filtered(true).slice(0, 1000)));
@@ -858,7 +859,7 @@ function library(weak: boolean) {
     });
     on('#delete-book', 'click', deleteBookDialog);
 }
-function drawTable(weak: boolean) { const ws = filtered(weak), pages = Math.max(1, Math.ceil(ws.length / 50)); listPage = Math.min(listPage, pages - 1); $('#word-table').innerHTML = `<div class="table-scroll"><table><thead><tr><th>单词 / 释义</th><th>掌握状态</th><th>先练哪个</th><th>答对 / 作答</th><th>平均用时</th><th>下次复习</th></tr></thead><tbody>${ws.slice(listPage * 50, listPage * 50 + 50).map(w => `<tr><td><button class="word-link" data-detail="${w.id}">${esc(w.en)}</button><small>${esc(w.zh)}</small></td><td><span class="badge ${w.state.level}">${labels[w.state.level]}</span> <small class="lifecycle">${LIFECYCLE_LABELS[lifecycleOf(w)]}</small></td><td><b class="priority-${priorityGrade(w)}">${priorityGrade(w)}</b></td><td>${w.state.correct} / ${w.state.total}</td><td>${w.state.total ? seconds(w.state.meanMs) : '—'}</td><td>${w.state.total ? (effectiveDue(w, data.settings.schedulingAuthority) <= Date.now() ? '<span class="due-text">该复习了</span>' : date(effectiveDue(w, data.settings.schedulingAuthority))) : '未测试'}</td></tr>`).join('') || `<tr><td colspan="6" class="empty-cell"><div class="empty-state"><strong>没有符合条件的单词</strong><span>导入词书，或把搜索与筛选清空再看一遍。</span><div class="actions"><button id="empty-import" class="primary">导入词书</button><button id="empty-clear" class="secondary">清除筛选</button></div></div></td></tr>`}</tbody></table></div><div class="pagination"><span>共 ${ws.length} 个词 · 每页 50 个</span><div><button id="prev" ${listPage === 0 ? 'disabled' : ''}>上一页</button><span>${listPage + 1} / ${pages}</span><button id="next-page" ${listPage === pages - 1 ? 'disabled' : ''}>下一页</button></div></div>`; on('#prev', 'click', () => { listPage--; drawTable(weak); }); on('#next-page', 'click', () => { listPage++; drawTable(weak); }); bindDetails();
+function drawTable(weak: boolean) { const ws = filtered(weak), pages = Math.max(1, Math.ceil(ws.length / 50)); listPage = Math.min(listPage, pages - 1); $('#word-table').innerHTML = `<div class="table-scroll"><table><thead><tr><th>单词 / 释义</th><th>掌握状态</th><th>优先度</th><th>答对 / 作答</th><th>平均用时</th><th>下次复习</th></tr></thead><tbody>${ws.slice(listPage * 50, listPage * 50 + 50).map(w => `<tr><td><button class="word-link" data-detail="${w.id}">${esc(w.en)}</button><small>${esc(w.zh)}</small></td><td><span class="badge ${w.state.level}">${labels[w.state.level]}</span> <small class="lifecycle">${LIFECYCLE_LABELS[lifecycleOf(w)]}</small></td><td><b class="priority-${priorityGrade(w)}" title="${PRIORITY_TEXT[priorityGrade(w)]}">${priorityGrade(w)}</b></td><td>${w.state.correct} / ${w.state.total}</td><td>${w.state.total ? seconds(w.state.meanMs) : '—'}</td><td>${w.state.total ? (effectiveDue(w, data.settings.schedulingAuthority) <= Date.now() ? '<span class="due-text">该复习了</span>' : date(effectiveDue(w, data.settings.schedulingAuthority))) : '未测试'}</td></tr>`).join('') || `<tr><td colspan="6" class="empty-cell"><div class="empty-state"><strong>没有符合条件的单词</strong><span>导入词书，或把搜索与筛选清空再看一遍。</span><div class="actions"><button id="empty-import" class="primary">导入词书</button><button id="empty-clear" class="secondary">清除筛选</button></div></div></td></tr>`}</tbody></table></div><div class="pagination"><span>共 ${ws.length} 个词 · 每页 50 个</span>${`<span class="subtle">${PRIORITY_LEGEND}</span>`}</span><div><button id="prev" ${listPage === 0 ? 'disabled' : ''}>上一页</button><span>${listPage + 1} / ${pages}</span><button id="next-page" ${listPage === pages - 1 ? 'disabled' : ''}>下一页</button></div></div>`; on('#prev', 'click', () => { listPage--; drawTable(weak); }); on('#next-page', 'click', () => { listPage++; drawTable(weak); }); bindDetails();
  on('#empty-import', 'click', importDialog);
  on('#empty-clear', 'click', () => { search = ''; bookFilter = ''; levelFilter = ''; listPage = 0; drawTable(weak); });
  }
@@ -1510,7 +1511,7 @@ function bindInputSession(session: NonNullable<ReturnType<typeof inputSessionByI
     });
     on('[data-baseline-skip]', 'click', async () => {
         const result = await inputActions.baselineAction(session.id, rev(), { captionMode: 'none', comprehension: null, skipped: true });
-        toast(result.ok ? '已跳过冷测，记录为 no_baseline' : result.message);
+        toast(result.ok ? '已跳过冷测，记作「没测过」' : result.message);
         await refresh();
     });
     document.querySelectorAll<HTMLElement>('[data-mode]').forEach(b => b.onclick = () => {
@@ -1622,7 +1623,7 @@ function bindInputSession(session: NonNullable<ReturnType<typeof inputSessionByI
         await unitRefresh();
         setPage('reading');
     });
-    on('[data-transcript-sentences]', 'click', () => toast(transcript ? '难句候选在下方；送入句法练习时结构标记为“未验证”，不会伪造 gold parse。' : '没有字幕。'));
+    on('[data-transcript-sentences]', 'click', () => toast(transcript ? '难句候选在下方；送入句法练习时结构标记为“未验证”，不会把自动切出来的结构当成标准答案。' : '没有字幕。'));
     document.querySelectorAll<HTMLElement>('[data-sentence-pick]').forEach(b => b.onclick = async () => {
         if (!transcript) {
             toast('没有字幕。');
@@ -1889,9 +1890,9 @@ function settingsPage() {
     const s = data.settings;
     const origin = originNotice();
     $('#main').innerHTML = title('设置', '按你的节奏来', '答题快慢、题目难度和备份，都在这里改。') + `<form id="settings-form"><div class="two-col"><section class="panel"><h2>测试与节奏</h2><div class="form-grid"><label>多快算快答（秒）<input name="fast" type="number" min="0.1" step="0.1" value="${s.fast / 1000}" required></label><label>多快算正常（秒）<input name="normal" type="number" min="0.2" step="0.1" value="${s.normal / 1000}" required></label><label>多久算没答（秒）<input name="timeout" type="number" min="0.3" max="120" step="0.1" value="${s.timeout / 1000}" required></label><label>英文题占比（%）<input name="ratio" type="number" min="0" max="100" value="${s.ratio}" required></label><label>难度<select name="difficulty">${[['easy', '简单（4 个选项）'], ['normal', '普通（4 个选项）'], ['hard', '困难（6 个选项）']].map(([v, t]) => `<option value="${v}" ${s.difficulty === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>答错反馈<select name="feedback">${[[0, '立即下一题'], [500, '停留 0.5 秒'], [1000, '停留 1 秒'], [-1, '手动继续']].map(([v, t]) => `<option value="${v}" ${s.feedback === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>复习怎么排<select name="schedulingAuthority"><option value="fsrs" ${s.schedulingAuthority === 'fsrs' ? 'selected' : ''}>默认（FSRS）</option><option value="legacy" ${s.schedulingAuthority === 'legacy' ? 'selected' : ''}>旧算法（回滚用）</option></select></label><label>希望记住的比例<input name="requestRetention" type="number" min="0.5" max="0.99" step="0.01" value="${s.requestRetention}" required></label></div><p class="hint">答对立即下一题。正常上限至超时之间为模糊。切换标签页会自动暂停计时。</p></section><section class="panel"><h2>AI 服务（可选）</h2><p class="hint">不填也能正常学，只是用不了 AI 生成和批改。</p><label>服务地址<input name="endpoint" type="url" placeholder="https://你的服务地址/v1" value="${esc(s.endpoint)}" autocomplete="off"></label><label>模型名称<input name="model" value="${esc(s.model)}" placeholder="填写供应商提供的模型名称"></label><label>API 密钥<input name="key" type="password" value="${esc(s.key)}" autocomplete="off" placeholder="仅用于你配置的地址"></label><label class="check"><input name="rememberKey" type="checkbox" ${s.rememberKey ? 'checked' : ''}> 在这台设备保存密钥</label>
-<label>返回格式<select name="structuredMode">${[['auto', '自动（先要结构化的，不支持就用普通文本）'], ['json_object', '仅 JSON Mode'], ['json_schema', '仅 JSON Schema'], ['text', '仅纯文本抽取']].map(([v, t]) => `<option value="${v}" ${(s.ai?.structuredMode ?? 'auto') === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
-<div class="form-grid"><label>最多等多久（秒）<input name="aiTimeout" type="number" min="3" max="180" value="${Math.round((s.ai?.timeoutMs ?? 45000) / 1000)}"></label><label>失败后重试次数<input name="aiRetries" type="number" min="0" max="3" value="${s.ai?.maxRetries ?? 2}"></label><label>最大输出 tokens<input name="aiMaxTokens" type="number" min="64" max="8000" value="${s.ai?.maxOutputTokens ?? 1200}"></label><label>每日 token 上限<input name="aiBudget" type="number" min="0" placeholder="留空 = 不限" value="${s.ai?.dailyTokenBudget ?? ''}"></label></div>
-<p class="hint">不勾“在这台设备保存密钥”，关掉页面就清了。勾了以后密钥会明文存在这台电脑的浏览器里，导出的完整备份不会带上它。浏览器直连要求服务商支持 CORS。用量按 token 计，这里不换算成钱。</p></section></div><button class="primary" type="submit">保存设置</button></form>${originPanelHTML(origin)}<section class="panel backup-panel"><h2>备份与换地址</h2><p>导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。</p><div class="actions"><button id="backup" class="primary">导出全部学习数据</button><label class="button secondary">导入备份<input id="restore" type="file" accept=".json" hidden></label><button id="persist" class="secondary">申请持久存储</button><button id="check-integrity" class="secondary">检查数据完整性</button><button id="clear" class="danger-text">清空本地数据</button></div><p id="storage-info" class="hint">学习数据按浏览器和站点地址保存。请一直使用相同的 localhost:4173 地址。</p></section>`;
+<label>返回格式<select name="structuredMode">${[['auto', '自动（先要结构化的，不支持就用普通文本）'], ['json_object', '只接受 JSON（JSON Mode）'], ['json_schema', '只接受严格 JSON 结构（JSON Schema）'], ['text', '只当纯文本处理']].map(([v, t]) => `<option value="${v}" ${(s.ai?.structuredMode ?? 'auto') === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+<div class="form-grid"><label>最多等多久（秒）<input name="aiTimeout" type="number" min="3" max="180" value="${Math.round((s.ai?.timeoutMs ?? 45000) / 1000)}"></label><label>失败后重试次数<input name="aiRetries" type="number" min="0" max="3" value="${s.ai?.maxRetries ?? 2}"></label><label>单次输出上限（token）<input name="aiMaxTokens" type="number" min="64" max="8000" value="${s.ai?.maxOutputTokens ?? 1200}"></label><label>每天用量上限（token）<input name="aiBudget" type="number" min="0" placeholder="留空 = 不限" value="${s.ai?.dailyTokenBudget ?? ''}"></label></div>
+<p class="hint">不勾“在这台设备保存密钥”，关掉页面就清了。勾了以后密钥会明文存在这台电脑的浏览器里，导出的完整备份不会带上它。浏览器直连要求服务商支持 CORS。用量按 token 计，这里不换算成钱。token 是服务商计费的单位，1 个 token 大约是半个英文单词。浏览器直连还要求服务商允许跨域访问。</p></section></div><button class="primary" type="submit">保存设置</button></form>${originPanelHTML(origin)}<section class="panel backup-panel"><h2>备份与换地址</h2><p>导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。</p><div class="actions"><button id="backup" class="primary">导出全部学习数据</button><label class="button secondary">导入备份<input id="restore" type="file" accept=".json" hidden></label><button id="persist" class="secondary">申请持久存储</button><button id="check-integrity" class="secondary">检查数据完整性</button><button id="clear" class="danger-text">清空本地数据</button></div><p id="storage-info" class="hint">学习数据按浏览器和站点地址保存：一直用同一个地址打开，才能看到同一份数据。</p></section>`;
     on('#settings-form', 'submit', async (e) => {
         e.preventDefault();
         const f = new FormData(e.target as HTMLFormElement);
@@ -1991,14 +1992,14 @@ function planInput(minutes: number, energy: EnergyState): PlannerInput {
     };
 }
 function energyLabel(e: EnergyState) { return e === 'low' ? '状态差' : e === 'good' ? '状态好' : '正常'; }
-function unavailableModulesText(): string { const caps = moduleCapabilities(); return MODULES.filter(m => !caps[m].available).map(m => `${caps[m].label}（${caps[m].requires}）`).join('、') || '无'; }
+function unavailableModulesText(): string { const caps = moduleCapabilities(); return MODULES.filter(m => !caps[m].available).map(m => `${caps[m].label}（${caps[m].requires ? CAPABILITY_NEED_TEXT[caps[m].requires] ?? '暂时用不了' : '暂时用不了'}）`).join('、') || '无'; }
 function planSetup(): string {
     const presets: number[] = [...PLANNER_CONFIG.budget.presets];
     const custom = !presets.includes(planBudget);
     return `<section class="panel plan-panel" id="plan-setup"><div class="section-title"><h2>今天的计划</h2><span class="subtle">按你给的时间排</span></div><p class="hint">选一段今天能空出来的时间，再选一下状态。计划只排这几件事：昨天学的词、今天该复习的词、新词，以及收尾时再回忆一次。</p><div class="plan-setup"><label>可用时间<select id="plan-budget">${presets.map(n => `<option value="${n}" ${n === planBudget ? 'selected' : ''}>${n} 分钟</option>`).join('')}<option value="custom" ${custom ? 'selected' : ''}>自定义</option></select></label><label>自定义分钟<input id="plan-custom" type="number" min="${PLANNER_CONFIG.budget.min}" max="${PLANNER_CONFIG.budget.max}" step="1" value="${planBudget}" ${custom ? '' : 'disabled'}></label><label>今日状态<select id="plan-energy">${([['low', '状态差'], ['normal', '正常'], ['good', '状态好']] as const).map(([v, t]) => `<option value="${v}" ${planEnergy === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><button id="plan-create" class="primary" ${planBusy ? 'disabled' : ''}>生成今天的计划</button></div><p class="hint">${esc(unavailableTasksText())}。</p></section>`;
 }
 function moduleName(m: ReturnType<typeof taskModule>): string {
-    return ({ vocabulary: '词汇', sentence: '句子', reading: '阅读', input: '输入', output: '表达', exam: '考试', closing: '收尾', unsupported: '未知' } as const)[m];
+    return ({ vocabulary: '词汇', sentence: '句子', reading: '阅读', input: '输入', output: '写作', exam: '考试', closing: '收尾', unsupported: '未知' } as const)[m];
 }
 function unavailableTasksText(): string {
     const missing: string[] = [];
@@ -2036,7 +2037,7 @@ function planOverview(plan: DailyPlan): string {
     return `<section class="panel plan-panel" id="plan-panel">
   <div class="section-title"><h2>今天的顺序</h2><span class="subtle">剩余 ${progress.remainingMinutes} / ${plan.availableMinutes} 分钟 · 完成 ${progress.done}/${progress.total}${progress.skipped ? ` · 跳过 ${progress.skipped}` : ''}</span></div>
   <div class="plan-progress" role="progressbar" aria-valuenow="${Math.round(progress.ratio * 100)}" aria-valuemin="0" aria-valuemax="100" aria-label="今日计划进度"><i style="width:${Math.round(progress.ratio * 100)}%"></i></div>
-  <p class="hint">可用 ${plan.availableMinutes} 分钟 · 状态 ${energyLabel(plan.energyState)} · ${esc(humanReasons(budgetReasons) || '先排该复习的，再按忘记的程度排')}</p>
+  <p class="hint">可用 ${plan.availableMinutes} 分钟 · 状态 ${energyLabel(plan.energyState)} · ${esc(humanReasons(budgetReasons) || '先安排该复习的，再按忘得多不多排')}</p>
   ${recallLine}
   <div class="plan-tasks" data-stagger>${(() => { const nextId = nextOpenTask(plan)?.id; return plan.initialPlan.map(t => taskCard(t, nextId)).join(''); })() || '<p class="subtle">今天没有需要安排的任务。</p>'}</div>
   <div class="actions"><button id="plan-regenerate" class="secondary">重排没做完的</button><button id="plan-adjust" class="text-button">改时间或状态</button></div>
@@ -2499,7 +2500,7 @@ async function replacePlanTask(taskId: string) {
 function planAdjustDialog() {
     if (!todayPlan)
         return;
-    modal(`<h2>调整今天的时间</h2><p>已完成 ${planProgress(todayPlan).doneMinutes} 分钟不可撤回；只会重排未完成部分。</p><label>总时间（分钟）<input id="adjust-budget" type="number" min="${PLANNER_CONFIG.budget.min}" max="${PLANNER_CONFIG.budget.max}" step="1" value="${todayPlan.availableMinutes}"></label><label>今日状态<select id="adjust-energy">${([['low', '状态差'], ['normal', '正常'], ['good', '状态好']] as const).map(([v, t]) => `<option value="${v}" ${todayPlan!.energyState === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><div class="actions"><button id="adjust-save" class="primary">重新安排未完成部分</button></div>`);
+    modal(`<h2>调整今天的时间</h2><p>已经做完的 ${planProgress(todayPlan).doneMinutes} 分钟不会重排，只重排没做完的部分。</p><label>总时间（分钟）<input id="adjust-budget" type="number" min="${PLANNER_CONFIG.budget.min}" max="${PLANNER_CONFIG.budget.max}" step="1" value="${todayPlan.availableMinutes}"></label><label>今日状态<select id="adjust-energy">${([['low', '状态差'], ['normal', '正常'], ['good', '状态好']] as const).map(([v, t]) => `<option value="${v}" ${todayPlan!.energyState === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><div class="actions"><button id="adjust-save" class="primary">重新安排未完成部分</button></div>`);
     on('#adjust-save', 'click', async () => {
         const budget = Number(document.querySelector<HTMLInputElement>('#adjust-budget')?.value);
         const energy = (document.querySelector<HTMLSelectElement>('#adjust-energy')?.value ?? 'normal') as EnergyState;
@@ -2559,6 +2560,12 @@ const ERROR_LABELS: Record<string, string> = {
     'no-answer': '未作答',
     'structure-error': '结构判断',
 };
+/** 语法掌握展示：没练过时不拿算法先验冒充测量结果（数值仍保留在 state 里，只改展示） */
+function grammarMastery(st: { attempts: number; p: number; band: string }): { value: string; note: string } {
+    if (!st.attempts)
+        return { value: '还没练过', note: '25% 只是起点估计' };
+    return { value: `${Math.round(st.p * 100)}%`, note: GRAMMAR_BAND_LABELS[st.band as keyof typeof GRAMMAR_BAND_LABELS] };
+}
 function bandClassOf(band: string): string {
     return band === 'likely-mastered' ? 'fluent' : band === 'learning' ? 'normal' : band === 'unknown' ? 'unknown' : 'vague';
 }
@@ -2583,7 +2590,7 @@ function grammarPage(): void {
     const filters = cats.map(c => `<button class="chip ${grammarCategoryFilter === c ? 'active' : ''}" aria-pressed="${grammarCategoryFilter === c}" data-gcat="${c}">${c ? GRAMMAR_CATEGORY_LABELS[c] : '全部'}</button>`).join('');
     const evidenced = states.filter(s => s.attempts > 0);
     const attemptsTotal = states.reduce((n, s) => n + s.attempts, 0);
-    const weakPanel = weak.length ? `<section class="panel"><h2>需要优先处理</h2><p class="hint">排序：错得多的、最近还在错的、前置还没练的排在前面。</p><ul class="weak-grammar">${weak.slice(0, 6).map(s => { const def = conceptById(s.conceptId); return `<li><b>${esc(def?.name ?? s.conceptId)}</b> <span class="badge ${bandClassOf(s.band)}">${pct(s.p)}</span><small>${esc(errorSummary(s))} · 练过 ${s.attempts} 次</small><span class="row-actions"><button class="secondary small" data-concept="${s.conceptId}">看详情</button><button class="primary small" data-concept-practice="${s.conceptId}">去练习</button></span></li>`; }).join('')}</ul></section>` : `<section class="panel"><h2>还没有足够的练习记录</h2><p class="hint">${evidenced.length ? `已有 ${evidenced.length} 个语法点练了 ${attemptsTotal} 次，但还不到标记“薄弱”的门槛（至少 ${GRAMMAR_CONFIG.weak.minAttempts} 次、正确率低于 ${pct(GRAMMAR_CONFIG.weak.threshold)}）。没到门槛就不贴标签。` : '拆过一个句子后，这里会按语法点显示你的练习情况。没练过时显示 25%，只是个起点，不代表你会或不会。'}</p></section>`;
+    const weakPanel = weak.length ? `<section class="panel"><h2>需要优先处理</h2><p class="hint">排序：错得多的、最近还在错的、前置还没练的排在前面。</p><ul class="weak-grammar">${weak.slice(0, 6).map(s => { const def = conceptById(s.conceptId); return `<li><b>${esc(def?.name ?? s.conceptId)}</b> <span class="badge ${bandClassOf(s.band)}">${pct(s.p)}</span><small>${esc(errorSummary(s))} · 练过 ${s.attempts} 次</small><span class="row-actions"><button class="secondary small" data-concept="${s.conceptId}">看详情</button><button class="primary small" data-concept-practice="${s.conceptId}">去练习</button></span></li>`; }).join('')}</ul></section>` : `<section class="panel"><h2>还没有足够的练习记录</h2><p class="hint">${evidenced.length ? `已有 ${evidenced.length} 个语法点练了 ${attemptsTotal} 次，但还不到标记“薄弱”的门槛（至少 ${GRAMMAR_CONFIG.weak.minAttempts} 次、正确率低于 ${pct(GRAMMAR_CONFIG.weak.threshold)}）。没到门槛就不贴标签。` : '拆过一个句子后，这里会按语法点显示你的练习情况。没练过时只写「还没练过」：25% 是算法的起点估计，不是测出来的结果。'}</p></section>`;
     const groups = GRAMMAR_ORDER
         .filter(c => !grammarCategoryFilter || grammarCategoryFilter === c)
         .map(c => {
@@ -2594,7 +2601,7 @@ function grammarPage(): void {
             const prereqChips = d.prerequisiteIds.length
                 ? d.prerequisiteIds.map(id => `<button class="chip small" data-concept="${id}">${esc(conceptById(id)?.name ?? id)}</button>`).join('')
                 : '<span class="hint">没有（最基础）</span>';
-            return `<article class="concept-card ${st.weak ? 'weak' : ''}" data-band="${st.band}"><header><button class="concept-link" data-concept="${d.id}">${esc(d.name)}</button><span class="badge ${bandClassOf(st.band)}">${GRAMMAR_BAND_LABELS[st.band]}</span></header><p class="hint">${esc(d.description)}</p><p class="concept-prereq"><span class="subtle">前置</span>${prereqChips}</p><div class="concept-metrics"><span>大概掌握 <b>${pct(st.p)}</b></span><span>练过 <b>${st.attempts}</b></span><span>自己答对 <b>${st.independentCorrect}</b></span><span>可练句子 <b>${sentences}</b></span></div>${st.weak ? `<p class="hint warn">${esc(errorSummary(st))}</p>` : ''}<div class="row-actions"><button class="secondary small" data-concept-practice="${d.id}">去练习</button></div></article>`;
+            return `<article class="concept-card ${st.weak ? 'weak' : ''}" data-band="${st.band}"><header><button class="concept-link" data-concept="${d.id}">${esc(d.name)}</button><span class="badge ${bandClassOf(st.band)}">${GRAMMAR_BAND_LABELS[st.band]}</span></header><p class="hint">${esc(d.description)}</p><p class="concept-prereq"><span class="subtle">前置</span>${prereqChips}</p><div class="concept-metrics"><span>大概掌握 <b>${grammarMastery(st).value}</b></span><span>练过 <b>${st.attempts}</b></span><span>自己答对 <b>${st.independentCorrect}</b></span><span>可练句子 <b>${sentences}</b></span></div>${st.weak ? `<p class="hint warn">${esc(errorSummary(st))}</p>` : ''}<div class="row-actions"><button class="secondary small" data-concept-practice="${d.id}">去练习</button></div></article>`;
         }).join('')}</div></section>`;
     }).join('');
     $('#main').innerHTML = `<div id="grammar-page">` + title('语法', '把句子拆开看', '先找主干，再认从句和非谓语。这里显示的是练习记录，不是承诺你已掌握。')
@@ -2625,9 +2632,9 @@ function conceptDetail(conceptId: string, states: GrammarConceptState[]): void {
     const card = def.card;
     $('#main').innerHTML = `<div id="concept-detail">` + title('语法点', def.name, `${GRAMMAR_CATEGORY_LABELS[def.category]} · 难度 ${def.difficulty}/3`)
         + `<div class="actions"><button class="secondary" data-concept-back="1">← 返回语法</button><button class="primary" data-concept-practice="${def.id}">用真实句子练这个概念</button></div>`
-        + `<div class="two-col"><section class="panel"><h2>练习情况</h2><div class="metrics compact">${metric('大概掌握', pct(st.p), GRAMMAR_BAND_LABELS[st.band])}${metric('练过几次', String(st.attempts), `答对 ${st.correct}`)}${metric('独立正确', String(st.independentCorrect), '不看提示、不试错')}${metric('主要错误', errorSummary(st), `${st.delayedAttempts} 次延迟复测`)}</div><p class="hint">判定理由：${esc(st.reasons.join('；') || '还没有足够的练习记录。')}</p><p class="hint">先修状态：${readiness.ok ? '已具备' : `缺少「${readiness.missing.map(id => conceptById(id)?.name ?? id).join('、')}」`}</p><h3>先修概念</h3><ul class="plain-list">${prereq}</ul>${chain.length ? `<p class="hint">完整先修链：${esc(chain.join(' → '))}</p>` : ''}${related.length ? `<p class="hint">易混概念：${esc(related.join('、'))}</p>` : ''}</section>`
+        + `<div class="two-col"><section class="panel"><h2>练习情况</h2><div class="metrics compact">${metric('大概掌握', grammarMastery(st).value, grammarMastery(st).note)}${metric('练过几次', String(st.attempts), `答对 ${st.correct}`)}${metric('独立正确', String(st.independentCorrect), '不看提示、不试错')}${metric('主要错误', errorSummary(st), `${st.delayedAttempts} 次延迟复测`)}</div><p class="hint">判定理由：${esc(st.reasons.join('；') || '还没有足够的练习记录。')}</p><p class="hint">先修状态：${readiness.ok ? '已具备' : `缺少「${readiness.missing.map(id => conceptById(id)?.name ?? id).join('、')}」`}</p><h3>先修概念</h3><ul class="plain-list">${prereq}</ul>${chain.length ? `<p class="hint">完整先修链：${esc(chain.join(' → '))}</p>` : ''}${related.length ? `<p class="hint">易混概念：${esc(related.join('、'))}</p>` : ''}</section>`
         + `<section class="panel"><h2>知识卡（20–60 秒读完）</h2><div class="grammar-card"><p><b>规则</b> ${esc(card.rule)}</p><p><b>为什么</b> ${esc(card.why)}</p><blockquote>${esc(card.example.ok)}${card.example.bad ? `<br><small class="bad-line">✗ ${esc(card.example.bad)}</small>` : ''}${card.example.note ? `<br><small>${esc(card.example.note)}</small>` : ''}</blockquote><p><b>常见错误</b></p><ul class="plain-list">${card.commonErrors.map(e => `<li>${esc(e)}</li>`).join('')}</ul><p><b>换个场景怎么用</b> ${esc(card.transfer)}</p></div></section></div>`
-        + `<section class="panel"><h2>真实训练句（${sentences.length}）</h2>${sentences.length ? `<ul class="sentence-mini">${sentences.map(s => `<li><span class="src-badge src-${s.sourceType}">${s.sourceType}</span> ${esc(s.text)}<button class="secondary small" data-sentence-start="${s.id}">练这句</button></li>`).join('')}</ul>` : '<p class="hint">句库中还没有挂这个概念的句子。可以到「句子训练」粘贴你遇到的真实句子。</p>'}</section>`
+        + `<section class="panel"><h2>真实训练句（${sentences.length}）</h2>${sentences.length ? `<ul class="sentence-mini">${sentences.map(s => `<li><span class="src-badge src-${s.sourceType}">${esc(SOURCE_TEXT[s.sourceType])}</span> ${esc(s.text)}<button class="secondary small" data-sentence-start="${s.id}">练这句</button></li>`).join('')}</ul>` : '<p class="hint">句库中还没有挂这个概念的句子。可以到「句子训练」粘贴你遇到的真实句子。</p>'}</section>`
         + `<section class="panel"><h2>最近练过</h2>${attempts.length ? `<ul class="plain-list">${attempts.map(a => `<li>${date(a.at)} · ${a.correct ? '正确' : '错误'}${a.independent ? ' · 独立' : ` · 辅助 L${a.supportLevel ?? 0}`}${a.transfer ? ' · 换题' : ''}${a.delayed ? ' · 延迟' : ''}${a.errorType ? ` · ${ERROR_LABELS[a.errorType] ?? a.errorType}` : ''}</li>`).join('')}</ul>` : '<p class="hint">还没有练习记录。</p>'}</section></div>`;
     document.querySelectorAll<HTMLElement>('[data-concept-back]').forEach(b => b.addEventListener('click', () => { grammarSelectedConcept = ''; render(); }));
     document.querySelectorAll<HTMLElement>('[data-concept-practice]').forEach(b => b.addEventListener('click', () => practiceConcept(b.dataset.conceptPractice ?? '')));
@@ -2648,19 +2655,19 @@ function sentencePage(): void {
     const aiConfigured = !!(data.settings.endpoint && data.settings.model && data.settings.key);
     const caps = sourceCapabilities({ sentences: sentenceRecords, aiConfigured, readingAvailable: false });
     const mix = effectiveSourceMix(caps);
-    const capabilityRows = caps.map(c => `<li><span class="src-badge src-${c.type}">${esc(c.label)}</span> ${c.available ? `<b>${c.count}</b> 句可用` : `未上线${c.requires ? `（${c.requires}）` : ''}`}</li>`).join('');
+    const capabilityRows = caps.map(c => `<li><span class="src-badge src-${c.type}">${esc(c.label)}</span> ${c.available ? `<b>${c.count}</b> 句可用` : `暂不可用${c.requires ? `（${CAPABILITY_NEED_TEXT[c.requires] ?? '还没接上'}）` : ''}`}</li>`).join('');
     const mixText = Object.entries(mix.mix).filter(([, v]) => v > 0).map(([k, v]) => `${esc(caps.find(c => c.type === k)?.label ?? k)} ${pct(v)}`).join(' · ');
     const rows = [...sentenceRecords].sort((a, b) => b.createdAt - a.createdAt).map(s => {
         const st = readStructure(s.structure, s.id, s.text).structure;
         const summary = structureSummary(st);
-        return `<tr><td><span class="src-badge src-${s.sourceType}">${s.sourceType}</span><br><b>${esc(s.text)}</b><small class="zh-line">${esc(s.zh)}</small></td><td>${esc(sentenceConceptNames(s).slice(0, 3).join('、') || '—')}</td><td>${summary.clauseCount} 层 / ${summary.clauseKinds.map(k => CLAUSE_LABELS[k]).join('+')}<br><small>${summary.provenance === 'gold' ? 'gold 结构' : summary.provenance === 'heuristic' ? '启发式（不确定）' : '无结构'}</small></td><td><button class="primary small" data-sentence-start="${s.id}">开始拆句</button>${s.sourceType === 'curated' ? '' : `<button class="danger-text small" data-sentence-del="${s.id}">删除</button>`}</td></tr>`;
+        return `<tr><td><span class="src-badge src-${s.sourceType}">${esc(SOURCE_TEXT[s.sourceType])}</span><br><b>${esc(s.text)}</b><small class="zh-line">${esc(s.zh)}</small></td><td>${esc(sentenceConceptNames(s).slice(0, 3).join('、') || '—')}</td><td>${summary.clauseCount} 层 / ${summary.clauseKinds.map(k => CLAUSE_LABELS[k]).join('+')}<br><small>${esc(STRUCTURE_TEXT[summary.provenance])}</small></td><td><button class="primary small" data-sentence-start="${s.id}">开始拆句</button>${s.sourceType === 'curated' ? '' : `<button class="danger-text small" data-sentence-del="${s.id}">删除</button>`}</td></tr>`;
     }).join('') || '<tr><td colspan="4" class="empty-cell">句库为空。粘贴一句你最近遇到的真实难句开始。</td></tr>';
     $('#main').innerHTML = `<div id="sentence-page">` + title('句子', '一句一句拆开', '不背规则，直接动手拆：先找主干，再认修饰，最后看从句和非谓语。默认不给完整翻译。')
         + `<div class="metrics">${metric('句库', String(sentenceRecords.length), '下面能看到来源')}${metric('做过拆句', String(data.sentenceAttempts.length), '每次都会记录')}${metric('自己拆对', String(data.sentenceAttempts.filter(a => a.structureCorrect && (a.maxSupportLevel ?? 0) === 0).length), '没看提示，一次就判断对')}${metric('句子来源', mix.degraded ? '用别的来源补上' : '按计划比例', `${mix.unavailable.length} 个来源暂时没有句子`)}</div>`
-        + `<div class="two-col"><section class="panel"><h2>句源与能力</h2><ul class="plain-list">${capabilityRows}</ul><p class="hint">计划比例：AI 生成 40%、你遇到的句子 40%、真实材料 20%。现在是：${mixText || '只有练习题'}。${mix.reasons.length ? `原因：${esc(mix.reasons.join('；'))}` : ''}</p><p class="hint">${esc(generationUnavailableReason(aiConfigured, false))}</p></section>`
+        + `<div class="two-col"><section class="panel"><h2>句源与能力</h2><ul class="plain-list">${capabilityRows}</ul><p class="hint">${esc(sourceMixNote(mix))}现在是：${esc(mixText || '只有练习题')}。</p><p class="hint">${esc(generationUnavailableReason(aiConfigured, false))}</p></section>`
         + aiSentencePanelHTML()
         + `<section class="panel"><h2>添加你遇到的真实句子</h2><form id="user-sentence-form"><label>英文原句<textarea id="user-sentence-input" rows="3" required maxlength="400" placeholder="粘贴你在文章、视频或对话里遇到的那一句"></textarea></label><label>中文意思（可选，先自己理解再填）<input id="user-sentence-zh" maxlength="300" placeholder="不填也可以，训练时会先让你自己判断"></label><div class="actions"><button class="primary" type="submit">保存到句库</button><button class="secondary" type="button" id="sentence-quick-start">按当前薄弱点开始训练</button></div></form><p class="hint">自己加进来的句子没有标准答案：程序会先给一个初稿，标出不确定的地方，你可以改。</p></section></div>`
-        + `<section class="panel"><h2>句库（${sentenceRecords.length}）</h2><div class="table-scroll"><table><thead><tr><th>句子</th><th>目标语法</th><th>结构</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div><p class="hint">标着 auto 的句子是为练习写的，不是从文章里摘的。</p></section></div>`;
+        + `<section class="panel"><h2>句库（${sentenceRecords.length}）</h2><div class="table-scroll"><table><thead><tr><th>句子</th><th>目标语法</th><th>结构</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div><p class="hint">标着「练习句」的是为练语法写的句子，不是从文章里摘的原句。</p></section></div>`;
     document.querySelectorAll<HTMLElement>('[data-sentence-start]').forEach(b => b.addEventListener('click', () => startLab([b.dataset.sentenceStart ?? ''], null, null)));
     document.querySelectorAll<HTMLElement>('[data-sentence-del]').forEach(b => b.addEventListener('click', () => void deleteSentence(b.dataset.sentenceDel ?? '')));
     on('#user-sentence-form', 'submit', async (e: Event) => {
@@ -2679,7 +2686,7 @@ function sentencePage(): void {
         await saveSentences([record]);
         sentenceRecords = [record, ...sentenceRecords];
         data.sentences = sentenceRecords;
-        toast(record.structureProvenance === 'heuristic' ? '已保存；这句没有 gold 结构，训练时会标注结构不确定' : '已保存到句库');
+        toast(record.structureProvenance === 'heuristic' ? '已保存；这句的结构是自动推断的，训练时会标出来' : '已保存到句库');
         render();
     });
     on('#sentence-quick-start', 'click', () => {
@@ -4392,7 +4399,7 @@ async function retestExam(s: ExamSession): Promise<void> {
     toast('已用一道没做过的新题再测一次');
 }
 function examTabsHtml(): string {
-    return `<div class="exam-tabs">${([['overview', '考试概览'], ['practice', '练习'], ['weekly', '周测'], ['logs', '学校记录'], ['specs', '规格审计']] as const).map(([id, label]) => `<button data-exam-tab="${id}" class="${examTab === id ? 'active' : ''}" aria-pressed="${examTab === id}">${label}</button>`).join('')}</div>`;
+    return `<div class="exam-tabs">${([['overview', '考试概览'], ['practice', '练习'], ['weekly', '周测'], ['logs', '学校记录'], ['specs', '规则与来源']] as const).map(([id, label]) => `<button data-exam-tab="${id}" class="${examTab === id ? 'active' : ''}" aria-pressed="${examTab === id}">${label}</button>`).join('')}</div>`;
 }
 function examPageApp(): void {
     const specs = examSpecList();
@@ -4661,7 +4668,7 @@ function examPageApp(): void {
             examLogEditingId = '';
             await reloadExam();
             render();
-            toast(draft.conflictAcknowledged && v.blockedConflict ? '已保存为自定义计分；来源仍是 self_reported' : '已保存：自报记录，不是系统验证成绩');
+            toast(draft.conflictAcknowledged && v.blockedConflict ? '已保存为自定义计分；来源仍是你自己填的' : '已保存：自报记录，不是系统验证成绩');
         });
         on('#log-cancel', 'click', () => { examLogEditingId = ''; render(); });
         document.querySelectorAll<HTMLElement>('.exam-log-edit').forEach(b => b.onclick = () => {
@@ -4678,7 +4685,7 @@ function examPageApp(): void {
         on('#exam-logs-export', 'click', () => {
             const payload = exportExamLogs(examLogList());
             download(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), `考试记录-${new Date().toISOString().slice(0, 10)}.json`);
-            toast('已导出考试记录（含类别、年份、满分与 self_reported 来源）');
+            toast('已导出考试记录（含类别、年份、满分与你自己填的来源）');
         });
         document.querySelector<HTMLInputElement>('#exam-logs-import')?.addEventListener('change', async (ev) => {
             const file = (ev.target as HTMLInputElement).files?.[0];
@@ -5051,7 +5058,7 @@ function aiReadingPanelHTML(): string {
     const disabled = !ready.ok || (weak.length === 0 && grammar.length === 0);
     const why = !ready.ok ? ready.reason : disabled ? '还没有可用的薄弱词/语法点：先读一篇真实文章并标记障碍。' : '';
     return `<section class="panel" id="ai-reading-panel">
-    <div class="section-title"><h2>AI 强化阅读</h2><span class="chip">AI 生成 · 不是真实语料</span></div>
+    <div class="section-title"><h2>AI 强化阅读</h2><span class="chip">AI 生成 · 不是真文章</span></div>
     <p class="hint">针对你真实遇到的阅读障碍生成一篇略高于当前水平的短文，练完再回到真实材料验证。</p>
     <div class="ai-targets">目标词：${weak.length ? weak.map(w => `<span class="chip">${esc(w.en)}</span>`).join('') : '<em>无</em>'}　语法：${grammar.length ? grammar.map(g => `<span class="chip">${esc(g.name)}</span>`).join('') : '<em>无</em>'}</div>
     <label>主题<input id="ai-reading-topic" maxlength="60" placeholder="例如：river engineering" value="${esc(aiReadingTopic)}"></label>
@@ -5241,7 +5248,7 @@ async function aiGenerateReading(): Promise<void> {
         await putItems('aiGenerations', [rec]);
         data.aiGenerations.push(rec);
         box.innerHTML = aiReadingResultHTML();
-        toast('已生成强化文章（不是真实语料）');
+        toast('已生成强化文章（AI 写的，不是真文章）');
     }
     catch (e) {
         box.innerHTML = aiErrorBlock(e instanceof AIError ? e.info : { code: 'unknown' as never, message: String((e as Error).message), hint: '可重试。', retryable: true, status: null });
@@ -5263,7 +5270,7 @@ async function aiSaveReading(): Promise<void> {
         id: uid(), title: aiReadingResult.title, text: aiReadingResult.passage,
         sourceType: 'ai_reinforcement', sourceUrl: '', topic: aiReadingResult.topic,
         wordCount: countWords(aiReadingResult.passage), difficulty: 'medium', createdAt: now,
-        sourceName: 'AI 强化生成（非真实语料）', language: 'en',
+        sourceName: 'AI 强化生成（非真实文章）', language: 'en',
         paragraphs: parsed.paragraphs, sentences: parsed.sentences,
         sourceReliability: 'ai_generated', extractionMethod: 'ai_generated',
         contentHash: aiReadingResult.contentHash, userEdited: false, importedAt: now,
@@ -5324,7 +5331,7 @@ function protoBelow(s: ReturnType<typeof summary>, unfinished: StudySession | un
   ${newWordsPanel()}
   <div class="two-col">
     <section class="panel"><div class="section-title"><h2>掌握情况</h2><span class="subtle">全部单词</span></div>${distribution()}<p class="hint">“熟练”要两个方向都答对，还要隔几天再答对。短时间内反复答对不算。</p></section>
-    <section class="panel"><div class="section-title"><h2>薄弱词的变化</h2></div><div class="weak-change"><div><strong>${s.newWeak}</strong><span>今天新出现</span></div><div><strong class="green">${s.resolved}</strong><span>今天补上了</span></div></div><p class="hint">答错、或自己选了“模糊”，就会进薄弱词；过几天再答对才会离开。</p></section>
+    <section class="panel"><div class="section-title"><h2>薄弱词的变化</h2></div><div class="weak-change"><div><strong>${s.newWeak}</strong><span>今天新出现</span></div><div><strong class="green">${s.resolved}</strong><span>今天补上了</span></div></div><p class="hint">答错，或者自己选了「模糊」，就会进薄弱词；过几天再答对才会离开。</p></section>
   </div>
 </div>`;
 }
@@ -5357,7 +5364,7 @@ function protoHome(s: ReturnType<typeof summary>): void {
         ratio: prog?.ratio ?? 0,
         next: views.find(v => v.isNext) ?? null,
         tasks: views,
-        reason: next ? humanReasons(next.reason) || '先排该复习的，再按忘记的程度排' : '',
+        reason: next ? humanReasons(next.reason) || '先安排该复习的，再按忘得多不多排' : '',
         emptyNote: '',
     };
     if (PROTO === 'd') {

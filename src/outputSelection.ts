@@ -148,12 +148,12 @@ export function selectOutputTasks(input: SelectionInput): SelectionResult {
         communicationGoal: freeTopic ? `用英语表达你对「${freeTopic}」的想法` : '用英语说说今天发生的一件小事',
         sourceType: 'free',
         sourceId: '',
-        sourceLabel: '自由表达',
+        sourceLabel: '自由写',
         targetWords: [],
         targetGrammar: [],
         expectedMinutes: Math.min(minutes, 10),
         difficultyEstimate: 0.3,
-        reasons: ['自由表达：不需要材料，先写你自己的意思'],
+        reasons: ['自由写：不需要材料，先写你自己的意思'],
         now,
         id: `otask_free_${freeTopic ? hash(freeTopic) : 'today'}`,
     }));
@@ -166,7 +166,7 @@ export function selectOutputTasks(input: SelectionInput): SelectionResult {
     if (!task)
         note = '没有可用任务：先写一句你自己的英语也可以。';
     else if (input.data.inputSessions?.length === 0 && input.data.readingSessions?.length === 0)
-        note = '还没有阅读或输入材料：这里给的是自由写作，不会假装有材料。';
+        note = '还没有阅读或输入材料：这里的任务不依赖材料，直接写你自己的意思就行。';
     return { candidates: candidates.slice(0, 6), task, note };
 }
 function score(t: OutputTaskSpec, minutes: number, energy: 'low' | 'normal' | 'good'): number {

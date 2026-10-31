@@ -42,7 +42,7 @@ function taskLabel(type: OutputTaskSpec['taskType']): string {
         case 'paragraph_summary': return '写作：一小段';
         case 'retelling': return '写作：复述';
         case 'opinion': return '写作：说观点';
-        case 'free_expression': return '写作：随便写';
+        case 'free_expression': return '写作：自由写';
         case 'transformation': return '写作：换个句式';
         case 'repair': return '写作：绕开不会的词';
         default: return '写作';

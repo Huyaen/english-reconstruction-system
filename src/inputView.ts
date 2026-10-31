@@ -5,6 +5,7 @@ import { esc, date } from './ui.ts';
 import { providerLabel } from './inputUrl.ts';
 import { REFLECTION_SPECS, DIFFICULTY_REASONS, DIFFICULTY_REASON_LABELS, reflectionLabel, captionCaveat } from './inputReflection.ts';
 import { formatTimestamp, transcriptStats } from './transcript.ts';
+import { INPUT_STATUS_TEXT, INPUT_TYPE_TEXT, INPUT_TARGET_TEXT } from './uiLabels.ts';
 import type { SentenceCandidate } from './inputHandoff.ts';
 export interface HubInput {
     data: Data;
@@ -61,7 +62,7 @@ export function inputHubPage(input: HubInput): string {
     <div class="page-title"><div><div class="eyebrow">输入练习</div><h1>输入练习</h1><p>看你真正想看的英文内容，记录看得怎么样——不是每段视频都要做题。</p></div></div>
     ${returnBanner}
     <section class="panel">
-      <div class="section-title">推荐媒体 <small class="muted">今天的目标：${esc(input.target)}｜兴趣只影响顺序，不影响能不能用</small></div>
+      <div class="section-title">推荐媒体 <small class="muted">今天的目标：${esc(INPUT_TARGET_TEXT[input.target as 'comfort' | 'growth'] ?? input.target)}｜兴趣只影响顺序，不影响能不能用</small></div>
       ${input.note ? `<p class="muted">${esc(input.note)}</p>` : ''}
       <div class="input-grid">${cards}</div>
       <p class="muted">兴趣画像：${input.interestLabels.length ? input.interestLabels.map(l => `<span class="chip">${esc(l)}</span>`).join('') : '未设置（推荐仍可用，只是不做个性化）'} <button class="text-button" data-input-goto-interest>管理兴趣</button></p>
@@ -80,12 +81,12 @@ export function inputHubPage(input: HubInput): string {
       <button class="primary" data-input-add>加入材料库</button>
     </section>
     <section class="panel">
-      <div class="section-title">My English Library</div>
+      <div class="section-title">我的素材库</div>
       <div class="toolbar">
         <input id="input-search" placeholder="搜索标题/主题/备注" value="${esc(input.filter.search)}">
-        <select id="input-status"><option value="all">全部状态</option>${['saved', 'used', 'archived'].map(v => `<option value="${v}" ${input.filter.status === v ? 'selected' : ''}>${v}</option>`).join('')}</select>
+        <select id="input-status" aria-label="按状态筛选"><option value="all">全部状态</option>${['saved', 'used', 'archived'].map(v => `<option value="${v}" ${input.filter.status === v ? 'selected' : ''}>${INPUT_STATUS_TEXT[v]}</option>`).join('')}</select>
         <select id="input-captions"><option value="any">全部字幕状态</option>${[['has', '有字幕'], ['none', '明确无字幕'], ['unknown', '未知']].map(([v, t]) => `<option value="${v}" ${input.filter.captions === v ? 'selected' : ''}>${t}</option>`).join('')}</select>
-        <select id="input-type"><option value="all">全部类型</option>${['youtube', 'bilibili', 'article', 'documentary', 'esports', 'game_content', 'series_clip', 'online_video', 'other'].map(v => `<option value="${v}" ${input.filter.contentType === v ? 'selected' : ''}>${v}</option>`).join('')}</select>
+        <select id="input-type" aria-label="按类型筛选"><option value="all">全部类型</option>${['youtube', 'bilibili', 'article', 'documentary', 'esports', 'game_content', 'series_clip', 'online_video', 'other'].map(v => `<option value="${v}" ${input.filter.contentType === v ? 'selected' : ''}>${INPUT_TYPE_TEXT[v]}</option>`).join('')}</select>
       </div>
       <div class="library-list">${libRows}</div>
     </section>
@@ -136,7 +137,7 @@ export function inputSessionPage(input: SessionPageInput): string {
         <label>最大障碍<input id="baseline-blocker" placeholder="例如：语速 / 连读 / 词不认识" maxlength="200"></label>
       </div>
       <div class="actions"><button class="primary" data-baseline-save>保存冷测</button><button class="text-button" data-baseline-skip>跳过冷测</button></div>
-    </section>` : `<section class="panel"><b>冷测</b><p class="muted">${baseline.status === 'recorded' ? `已记录：听懂约 ${Math.round((baseline.comprehension ?? 0) * 100)}%（${baseline.captionMode}）` : '已跳过（no_baseline）'} · ${date(baseline.at)}</p></section>`}
+    </section>` : `<section class="panel"><b>冷测</b><p class="muted">${baseline.status === 'recorded' ? `已记录：听懂约 ${Math.round((baseline.comprehension ?? 0) * 100)}%（${baseline.captionMode}）` : '已跳过（没测过）'} · ${date(baseline.at)}</p></section>`}
     <section class="panel">
       <div class="section-title">复盘</div>
       <p class="muted">${esc(input.captionCaveat)}</p>

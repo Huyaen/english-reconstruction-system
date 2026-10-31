@@ -114,7 +114,7 @@ export function metric(input: MetricInput): MetricValue {
     }
     else if (!input.notApplicable && input.sample < minSample) {
         evaluability = 'insufficient';
-        reasons.push(`样本 ${input.sample} < 最少 ${minSample}，不展示为结论。`);
+        reasons.push(`记录太少（${input.sample} 条，至少要 ${minSample} 条），先不下结论。`);
     }
     return {
         id: input.id,

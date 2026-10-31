@@ -36,7 +36,7 @@ export function outputHubPage(input: OutputHubInput): string {
       <article class="panel output-card">
         <div class="row spread"><b>${esc(taskMeta(t.taskType).zh)} · ${esc(t.topic)}</b><span class="pill">${esc(srcLabel(t.sourceType))}</span></div>
         <p class="muted">${esc(t.communicationGoal)}</p>
-        <p class="muted">${esc(t.reasons.join(' · ') || '自由表达')} · 约 ${t.expectedMinutes} 分钟 · ${t.minWords}–${t.maxWords} 词</p>
+        <p class="muted">${esc(t.reasons.join(' · ') || '自由写')} · 约 ${t.expectedMinutes} 分钟 · ${t.minWords}–${t.maxWords} 词</p>
         <div class="actions"><button class="primary" data-out-start="${esc(t.id)}">开始写</button></div>
       </article>`).join('');
     const handoffs = input.handoffs.length ? `<section class="panel"><div class="section-title"><h2>从刚才的材料继续</h2><span class="subtle">原文会直接带入，不用重写</span></div>
@@ -63,7 +63,7 @@ export function outputHubPage(input: OutputHubInput): string {
       </div>
       ${s ? `<div class="output-suggestion"><b>建议：${esc(taskMeta(s.taskType).zh)} · ${esc(s.topic)}</b>
         <p>${esc(s.communicationGoal)}</p>
-        <p class="muted">${esc(s.reasons.join(' · ') || '自由表达')} · 约 ${s.expectedMinutes} 分钟 · 建议 ${s.minWords}–${s.maxWords} 词</p>
+        <p class="muted">${esc(s.reasons.join(' · ') || '自由写')} · 约 ${s.expectedMinutes} 分钟 · 建议 ${s.minWords}–${s.maxWords} 词</p>
         <div class="actions"><button id="out-use-suggestion" class="primary">用这个任务开始</button></div></div>` : ''}
     </section>
     ${handoffs}

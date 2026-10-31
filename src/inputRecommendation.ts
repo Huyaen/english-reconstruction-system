@@ -6,8 +6,8 @@ import type { Data, EnergyState, InputSource, InterestProfile } from './types.ts
 import { interestFor, REASON_LABELS, type ActivitySignals, type InterestReasonKind } from './interestProfile.ts';
 import { providerLabel } from './inputUrl.ts';
 export const INPUT_TARGETS = {
-    comfort: { min: 0.8, max: 0.9, label: 'Comfort（目标理解 80–90%）' },
-    growth: { min: 0.65, max: 0.8, label: 'Growth（目标理解 65–80%）' },
+    comfort: { min: 0.8, max: 0.9, label: '轻松一点（目标听懂 80–90%）' },
+    growth: { min: 0.65, max: 0.8, label: '有点挑战（目标听懂 65–80%）' },
 } as const;
 export type InputTarget = keyof typeof INPUT_TARGETS;
 export interface InputCandidate {

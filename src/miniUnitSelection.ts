@@ -82,7 +82,7 @@ export function recommendThemes(input: ThemeInput): {
 } {
     const authentic = input.passages.filter(isAuthenticAnchor);
     if (!authentic.length)
-        return { themes: [], note: '阅读库里还没有真实材料。先把一篇真实英文文章（粘贴/导入/OCR/URL）加入阅读库，才能开始 单元。' };
+        return { themes: [], note: '阅读库里还没有真实材料。先把一篇真实英文文章（粘贴正文、上传文件、截图取字、从网址导入）加入阅读库，才能开始单元。' };
     const openUnits = input.units.filter(u => u.status === 'active');
     const recentThemes = input.units.filter(u => u.status !== 'abandoned').sort((a, b) => (b.updatedAt ?? b.startedAt) - (a.updatedAt ?? a.startedAt)).slice(0, 3).map(u => u.theme);
     const weak = new Set(input.words.filter(w => w.state.level === 'unknown' || w.state.level === 'vague').map(w => w.en.toLowerCase()));

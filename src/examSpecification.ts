@@ -89,7 +89,7 @@ export function builtinSpecifications(): ExamSpecification[] {
         ],
         scoringRules: ['笔试与听说测试分开计分，总分 150。', '本应用只做本地练习评分，不产生官方成绩。'],
         publishedAt: '2025-11-18', verifiedAt, confidence: 'high',
-        notes: ['这是 2026 年已公布规则，不能直接当作 2028 年规则。', '各题型题量与分值未在官方页面公开，标记 provisional。'],
+        notes: ['这是 2026 年已公布规则，不能直接当作 2028 年规则。', '各题型题量与分值未在官方页面公开，先标为暂定。'],
     };
     const target2028: ExamSpecification = {
         id: 'spec-2028-gaokao-foreign-language',
@@ -133,7 +133,7 @@ export function builtinSpecifications(): ExamSpecification[] {
         questionTypes: [qtype('contextual_grammar', '语境语法', 'provisional'), qtype('reading_comprehension', '阅读理解', 'provisional'), qtype('listening', '听力', 'provisional')],
         scoringRules: ['合格考与普通高考外语是不同考试，记录不得混用。'],
         publishedAt: null, verifiedAt, confidence: 'low',
-        notes: ['80+20 来自用户线索，未取得官方页面，标记 provisional；使用前必须核对。'],
+        notes: ['80+20 这个分法来自用户线索，还没拿到官方页面，先标为待核实；用之前请自己核对。'],
     };
     return [first2026, target2028, academic2026];
 }

@@ -1,5 +1,19 @@
-# HANDOFF — 当前状态（Phase 16）
+# HANDOFF — 当前状态（Phase 16.1）
 
+> **2026-10-31 更新（Phase 16.1 文案残留修复）**：分支 `phase16.1-copy-polish`
+> （起点 Phase 16 `phase16-ux-writing` @ `9e281cc`）。`main` 仍 `9de8acd`，**未合并**。
+>
+> 依据独立审计（P0 0 / P1 16 / P2 12，`C:\Users\86152\Documents\ERV2-phase16-audit\`）：
+> 16 项 P1 全部处理（14 改写 / 2 保留 + 解释），12 项 P2 全部处理，另修 9 处同类残留。
+> 内部原因代码、状态枚举、开发阶段号、英文标题、未解释的优先级字母不再出现在界面上。
+> 学习语义零改动：枚举存储值、IndexedDB v7、FSRS、Planner、评分、AI 协议、用户数据、
+> 学习材料与题干全部未动。
+>
+> 验证：`tsc` 0；`npm test` **407/407**（新增 9 条防回归）；`build` / `build:test` 0；
+> 静态文案检测 101 文件 / **0 命中**；真实 DOM 检测 39 状态 / 38 下拉 / **0 命中**；
+> 排版回归 84 视图（1366/1440/1920 × 深浅）/ **0 裁切 / 0 溢出**；15h.4 页面状态同步 14/14。
+> 证据：`screenshots/phase16_1/`（56 张）+ `docs/PHASE16_1_COPY_FIX_REPORT.md`。
+> 视觉审美仍未由用户确认。
 > **2026-10-30 更新（Phase 16）**：全站界面文案重写。分支 `phase16-ux-writing`
 > （起点 15h.4 `phase15h4-quiz-state-hotfix` @ `e293ef4`）。`main` 仍 `9de8acd`，**未合并**；
 > 15h.1–15h.4 的 tag 均未移动。

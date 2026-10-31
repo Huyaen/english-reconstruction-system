@@ -120,5 +120,5 @@ export function planReadingTasks(input: ReadingPlanInput): ReadingTaskDescriptor
 }
 // 没有材料时的引导（不是任务，只是解释为什么今天没有阅读任务）
 export function readingUnavailableReason(passages: Passage[]): string {
-    return passages.length ? '' : '还没有阅读材料：先导入一篇文章（粘贴正文 / 上传 TXT / 截图 OCR），才会有真实阅读任务';
+    return passages.length ? '' : '还没有阅读材料：先导入一篇文章（粘贴正文 / 上传 TXT / 截图取字），才会有真实阅读任务';
 }

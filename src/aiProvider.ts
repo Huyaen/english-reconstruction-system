@@ -56,18 +56,18 @@ export interface ChatRequest {
     maxOutputTokens?: number;
 }
 const HINTS: Record<AIFailureCode, string> = {
-    'missing-key': '还没有配置 API Key：在设置里填入 Provider 的 Key（只保存在本机，不会进日志或备份）。',
-    'missing-model': '还没有填写模型名：在设置里填写 Provider 提供的模型 id。',
-    'invalid-endpoint': 'Endpoint 不是有效的 http(s) 地址：填到 /v1 这一层即可（不要带 /chat/completions）。',
-    auth: '鉴权失败：检查 API Key 是否正确、是否过期，或该 Key 是否有此模型的权限。',
-    'model-not-found': 'Provider 找不到这个模型：确认模型名拼写与账号可用的模型列表。',
-    'rate-limit': 'Provider 限流（429）：稍后重试，或降低并发/缩短一次生成的长度。',
-    server: 'Provider 服务端出错（5xx）：这是对方的问题，稍后再试。',
+    'missing-key': '还没有填密钥：在设置里填入服务商给的密钥（只保存在本机，不会进日志或备份）。',
+    'missing-model': '还没有填模型名：在设置里填服务商给的模型名称。',
+    'invalid-endpoint': '服务地址不是有效的 http(s) 地址：填到 /v1 这一层即可（不要带 /chat/completions）。',
+    auth: '鉴权失败：检查密钥是否正确、是否过期，或这个密钥有没有该模型的权限。',
+    'model-not-found': '服务商找不到这个模型：确认模型名拼写与账号可用的模型列表。',
+    'rate-limit': '服务商限流（429）：稍后重试，或缩短一次生成的长度。',
+    server: '服务商那边出错（5xx）：这是对方的问题，稍后再试。',
     timeout: '请求超时：网络慢或模型太慢；可以调大超时或换更快的模型。',
-    network: '连不上 Provider：检查网络、代理与 Endpoint 地址。',
-    cors: '浏览器被 CORS 拦住了：该 Provider 不允许浏览器直连；换支持 CORS 的端点或本地代理。',
+    network: '连不上服务商：检查网络、代理与服务地址。',
+    cors: '浏览器被跨域限制拦住了（CORS）：这个服务商不允许浏览器直连；换一个允许直连的地址，或用本地代理。',
     aborted: '已取消本次生成。',
-    'invalid-response': 'Provider 返回的内容不是预期的 JSON：已拒绝写入，可重试或换个模型。',
+    'invalid-response': '服务商返回的内容不是预期的 JSON：已拒绝写入，可重试或换个模型。',
     'unsupported-mode': '该模型不支持任何可用的结构化输出方式：请换用支持 JSON 输出的模型。',
     'budget-exceeded': '已达到你设置的每日预算上限：今天不再自动生成（可调高上限或明天再用）。',
 };
@@ -106,11 +106,11 @@ export function endpointIssue(endpoint: string): string | null {
 export function validateAIConfig(cfg: AIProviderConfig): AIErrorInfo | null {
     const issue = endpointIssue(cfg.endpoint);
     if (issue)
-        return { code: 'invalid-endpoint', message: issue === 'missing' ? '还没有配置 AI Endpoint。' : 'Endpoint 地址无效。', hint: HINTS['invalid-endpoint'], retryable: false, status: null };
+        return { code: 'invalid-endpoint', message: issue === 'missing' ? '还没有设置 AI 服务地址。' : 'AI 服务地址无效。', hint: HINTS['invalid-endpoint'], retryable: false, status: null };
     if (!cfg.model.trim())
         return { code: 'missing-model', message: '还没有配置模型名。', hint: HINTS['missing-model'], retryable: false, status: null };
     if (!cfg.key.trim())
-        return { code: 'missing-key', message: '还没有配置 API Key。', hint: HINTS['missing-key'], retryable: false, status: null };
+        return { code: 'missing-key', message: '还没有填密钥。', hint: HINTS['missing-key'], retryable: false, status: null };
     return null;
 }
 export function isConfigured(s: AISettings | undefined | null): boolean {
@@ -136,15 +136,15 @@ export function classifyStatus(status: number, body: string): AIErrorInfo {
     if (status === 401 || status === 403)
         return { code: 'auth', message: `鉴权失败（HTTP ${status}）。`, hint: HINTS.auth, retryable: false, status };
     if (status === 404)
-        return { code: 'model-not-found', message: `Provider 找不到模型或接口（HTTP 404）。`, hint: HINTS['model-not-found'], retryable: false, status };
+        return { code: 'model-not-found', message: `服务商找不到模型或接口（HTTP 404）。`, hint: HINTS['model-not-found'], retryable: false, status };
     if (status === 429)
-        return { code: 'rate-limit', message: 'Provider 限流（HTTP 429）。', hint: HINTS['rate-limit'], retryable: true, status };
+        return { code: 'rate-limit', message: '服务商限流（HTTP 429）。', hint: HINTS['rate-limit'], retryable: true, status };
     if (status >= 500)
-        return { code: 'server', message: `Provider 服务端错误（HTTP ${status}）。`, hint: HINTS.server, retryable: true, status };
+        return { code: 'server', message: `服务商那边出错（HTTP ${status}）。`, hint: HINTS.server, retryable: true, status };
     // 400/422 里如果明说 response_format / json，就是“该模型不支持这种结构化方式”，交给降级逻辑处理
     if (/response_format|json_schema|json mode|structured/i.test(snippet))
         return { code: 'unsupported-mode', message: `该模型不接受这种结构化输出方式（HTTP ${status}）。`, hint: HINTS['unsupported-mode'], retryable: false, status };
-    return { code: 'invalid-response', message: `请求被 Provider 拒绝（HTTP ${status}）：${snippet}`, hint: HINTS['invalid-response'], retryable: false, status };
+    return { code: 'invalid-response', message: `请求被服务商拒绝（HTTP ${status}）：${snippet}`, hint: HINTS['invalid-response'], retryable: false, status };
 }
 export function classifyThrown(err: unknown): AIErrorInfo {
     if (err instanceof AIError)
@@ -159,7 +159,7 @@ export function classifyThrown(err: unknown): AIErrorInfo {
     if (/timeout|timed out/i.test(msg))
         return { code: 'timeout', message: '请求超时。', hint: HINTS.timeout, retryable: true, status: null };
     if (/failed to fetch|networkerror|load failed|net::err/i.test(msg))
-        return { code: 'network', message: '连不上 Provider（网络错误）。', hint: HINTS.network, retryable: true, status: null };
+        return { code: 'network', message: '连不上服务商（网络错误）。', hint: HINTS.network, retryable: true, status: null };
     if (/cors|cross-origin/i.test(msg))
         return { code: 'cors', message: '浏览器被 CORS 拦住了。', hint: HINTS.cors, retryable: false, status: null };
     return { code: 'invalid-response', message: `AI 请求失败：${msg.slice(0, 140)}`, hint: HINTS['invalid-response'], retryable: false, status: null };
@@ -238,7 +238,7 @@ async function attempt(cfg: AIProviderConfig, req: ChatRequest, mode: Exclude<St
             raw = JSON.parse(text);
         }
         catch {
-            throw new AIError({ code: 'invalid-response', message: 'Provider 返回的不是 JSON。', hint: HINTS['invalid-response'], retryable: false, status: res.status });
+            throw new AIError({ code: 'invalid-response', message: '服务商返回的不是 JSON。', hint: HINTS['invalid-response'], retryable: false, status: res.status });
         }
         const choice = (raw as {
             choices?: Array<{
@@ -256,7 +256,7 @@ async function attempt(cfg: AIProviderConfig, req: ChatRequest, mode: Exclude<St
                 }>).map(x => x?.text ?? '').join('')
                 : '';
         if (!content.trim())
-            throw new AIError({ code: 'invalid-response', message: 'Provider 返回了空内容。', hint: HINTS['invalid-response'], retryable: true, status: res.status });
+            throw new AIError({ code: 'invalid-response', message: '服务商返回了空内容。', hint: HINTS['invalid-response'], retryable: true, status: res.status });
         return {
             text: content,
             usage: readUsage(raw, req.system + req.user, content),

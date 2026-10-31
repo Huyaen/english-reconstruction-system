@@ -82,7 +82,7 @@ export function unitCreatePage(input: {
         <div class="section-title">还没有可用的主题</div>
         <p>阅读库里还没有真实英文材料。这里不会凭空推荐，也不会拿 AI 写的文章当材料。</p>
         <ol class="unit-steps">
-          <li>去「阅读」页粘贴一段真实英文，或上传文件 / 截图 OCR / 添加真实 URL</li>
+          <li>去「阅读」页粘贴一段真实英文，或上传文件 / 截图取字 / 从网址导入</li>
           <li>材料进入阅读库后，这里会出现基于真实材料的主题推荐</li>
         </ol>
         <button class="primary" data-unit-open-reading>去阅读库添加材料</button>
