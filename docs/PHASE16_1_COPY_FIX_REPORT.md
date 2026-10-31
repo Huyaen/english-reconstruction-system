@@ -155,9 +155,12 @@
 ## 十、Git 与未解决问题
 
 - 分支：`phase16.1-copy-polish`
-- 起点：`phase16-ux-writing` @ `9e281cc`（工作树干净，本地与远端一致）
-- `main`：未移动（`9de8acd`）
-- 本轮提交、远端校验、CI 结果见交付时的报告与 `STATE.json`
+- 起点：`phase16-ux-writing` @ `9e281cc`
+- 提交：`fb79d11` fix(16.1) 文案修复 → `07aa1c6` chore(16.1) 构建产物与取证
+- tag：`phase16.1-copy-polish` → `07aa1c6`（annotated `f926720`）
+- 远端：`origin/phase16.1-copy-polish` == `07aa1c6`（已核对）
+- CI：run `41183227383` **success** @ `07aa1c6`
+- `main`：未移动（`9de8acd`），未合并
 
 **未解决 / 未覆盖**
 
