@@ -251,11 +251,12 @@ legacy（没有信任字段）的句子练习：3 条
 | --- | --- |
 | 分支 | `phase16.3-evidence-integrity`（不合并 `main`） |
 | 基线 | `495bce1`（Phase 16.2 交付点） |
-| 提交 | 见文末「交付回填」 |
-| 门禁 | `tsc` 0；`npm test` 431/431；`build` 0；copy-lint 见回填；DOM scan 见回填 |
+| 修复提交 | `eb2ef92` — `fix(16.3): 未核验结构只记接触、AI 目标四端同源，语法掌握不再被 AI 句推高` |
+| 产物提交 | `53aa8ab` — `build(16.3): 重新生成 dist`（首次 CI 在「dist 与源码不同步」这一步失败，重建后通过；该步按设计存在，未删改） |
+| tag | `phase16.3-evidence-integrity` → `53aa8ab`（annotated，未移动任何旧 tag） |
+| CI | run `41287868813`（Node 22 + Node 24）→ **success**；失败留痕：`41287566919`（dist 陈旧） |
+| 审查包 | `review-export/phase16_3-review.zip`（32 项 / 3.2MB） |
 | 未移动标签 | `phase16.2-copy-final` → `2af1bd7`（保持不动） |
-
----
 
 ## 十三、下一步建议（不在本轮范围）
 
