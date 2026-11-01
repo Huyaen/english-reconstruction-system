@@ -478,19 +478,21 @@ export function validateGenerationResult(result: unknown, req: SentenceGeneratio
     }
     return { ok: issues.length === 0, issues };
 }
-// AI 句这条能力要分三种状态说清楚（Phase 16.2）：
+// AI 句这条能力要分三种状态说清楚（Phase 16.2；措辞在 16.3 收口）：
 //   ① 没有配置服务 → 不能生成，也不该说「功能还没做」
-//   ② 配置了但一句都没生成过 → 能手动生成，但计划里还没有 AI 句
-//   ③ 句库里有 AI 句 → 计划按比例取用，仍可继续生成
-// 「自动按比例补 AI 句」没有实现，所以任何状态下都不能声称计划会自己去生成。
+//   ② 配置了但还没生成 → 能手动生成，但句库里暂时没有 AI 句
+//   ③ 句库里已经有 AI 句 → 仍可继续生成；选句看薄弱语法、难度、生词覆盖和先修关系，
+//      不按来源比例分配（40/40/20 只是句源目标），所以只能说「符合条件时可能被选中」。
+// 「计划自动批量生成」和「按来源比例取用」都没有实现，任何状态下都不能声称；
+// 「加入句库」只代表进入候选池，不代表会被选中、更不代表当天计划里一定有它。
 export function aiGenerationNotice(input: { configured: boolean; hasTargets: boolean; aiCount: number }): string {
     if (!input.configured)
-        return '还没有设置 AI 服务：设置后可以在下面手动生成定向句，生成并加入句库，才会进计划。';
+        return '还没有设置 AI 服务。设置后可以在下面手动生成定向句；生成并加入句库后才有机会被选中，计划不会自己批量生成。';
     if (input.aiCount > 0)
-        return `句库里已经有 ${input.aiCount} 句 AI 句，计划会按比例取用；也可以继续在下面生成。`;
+        return `句库里已经有 ${input.aiCount} 句 AI 句。符合学习目标和难度要求时，它们可以被选来练习；你也可以继续生成。`;
     if (!input.hasTargets)
-        return 'AI 服务已设置。先练出几个薄弱词，再来生成定向句；生成并加入句库，才会进计划。';
-    return 'AI 服务已设置，可以在下面生成定向句；加入句库后才会进计划。计划不会自己批量生成 AI 句。';
+        return 'AI 服务已设置。先练出几个薄弱词，再来生成定向句；生成并加入句库后才有机会被选中。';
+    return 'AI 服务已设置，可以在下面生成定向句。加入句库只是进了候选池——能不能被选中，要看目标语法和难度合不合适。计划不会自己批量生成 AI 句。';
 }
 // AI 不可用时的确定性 fallback：只返回 curated/已保存句，provider='none'
 export function sentenceGenerationFallback(req: SentenceGenerationRequest, pool: SentenceRecord[]): SentenceGenerationResult {
