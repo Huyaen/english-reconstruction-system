@@ -2,14 +2,14 @@
   "project": "English Reconstruction System V2",
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
-  "current_phase": "phase16_1_copy_polish",
+  "current_phase": "phase16_2_copy_final",
   "phase_status": "delivered on branch, awaiting user visual acceptance",
-  "last_updated": "2026-10-31",
+  "last_updated": "2026-11-01",
   "last_verified_commit": "HEAD",
   "baseline_tag": "phase15h1-semantics",
   "database_version": 7,
-  "build_status": "tsc 0 / build 0 / build:test 0 / copy-lint 0 hits / dom-scan 0 hits / overflow 84 views 0",
-  "test_status": "407/407 pass",
+  "build_status": "tsc 0 / build 0 / build:test 0 / copy-lint 99 files 0 hits (AST) / dom-scan 39 states 0 hits / overflow 84 views 0",
+  "test_status": "416/416 pass",
   "tasks": {
     "phase0_audit_001": {
       "status": "passed",
@@ -738,6 +738,36 @@
         "overflow": "84 views / 0 clipped / 0 docOverflow",
         "navsweep": "14 pages / 0 failures"
       }
+    },
+    "phase16_2_copy_final": {
+      "status": "delivered",
+      "description": "文案收口：句源能力三态化（配置/可生成/真有句子）、AI 说明改三态真话、9 组内部枚举过映射、检测器改 AST（受控反例 7/7）、修复无薄弱语法时 AI 定向句必然校验失败",
+      "files": [
+        "src/sentenceSources.ts",
+        "src/uiLabels.ts",
+        "src/inputView.ts",
+        "src/inputReflection.ts",
+        "src/outputView.ts",
+        "src/outputTransfer.ts",
+        "src/outputSelection.ts",
+        "src/outputTask.ts",
+        "src/app.ts",
+        "src/readingAnalytics.ts",
+        "scripts/lib/copyLint.mjs",
+        "scripts/phase16_1-copy-lint.mjs",
+        "tests/phase16_2.detector.test.ts",
+        "docs/PHASE16_2_COPY_FINAL_REPORT.md"
+      ],
+      "tests": [
+        "npm test 416/416",
+        "tsc 0",
+        "build 0",
+        "copy-lint 0 hits",
+        "dom-scan 0 hits",
+        "overflow 84/0",
+        "navsweep 14/14"
+      ],
+      "evidence": "screenshots/phase16_2/ (13 张) + docs/PHASE16_2_COPY_FINAL_REPORT.md"
     }
   },
   "known_bugs": [],

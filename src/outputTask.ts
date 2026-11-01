@@ -3,7 +3,8 @@
 // 所有函数都是纯函数（不碰 DOM / 不碰 IndexedDB），便于单测与复用。
 import type { OutputSourceType, OutputTaskSpec, OutputTaskType } from './types.ts';
 export interface TaskTypeMeta {
-    label: string;
+    /** 英文任务名：只给模型和导出用，界面上只用 zh */
+    enLabel: string;
     zh: string;
     /** 这次训练真正要完成的交际目标类型 */
     purpose: string;
@@ -15,14 +16,14 @@ export interface TaskTypeMeta {
     needsSource: boolean;
 }
 export const OUTPUT_TASK_TYPES: Record<OutputTaskType, TaskTypeMeta> = {
-    one_sentence: { label: 'One Sentence', zh: '一句话', purpose: '用一个完整英语句子传递一个意思', minWords: 4, maxWords: 30, needsCoherence: false, needsSource: false },
-    short_summary: { label: 'Short Summary', zh: '3–5 句总结', purpose: '用 3–5 句英语概括材料的主要意思', minWords: 25, maxWords: 90, needsCoherence: true, needsSource: true },
-    paragraph_summary: { label: 'Paragraph Summary', zh: '短段落', purpose: '用一个短段落解释材料的核心意思与关键细节', minWords: 60, maxWords: 160, needsCoherence: true, needsSource: true },
-    retelling: { label: 'Retelling', zh: '复述', purpose: '用自己的话复述看过/读过的内容', minWords: 40, maxWords: 140, needsCoherence: true, needsSource: true },
-    opinion: { label: 'Opinion', zh: '观点', purpose: '表达自己的看法并给出理由', minWords: 35, maxWords: 140, needsCoherence: true, needsSource: false },
-    free_expression: { label: 'Free Expression', zh: '自由写', purpose: '自由描述自己的想法、经历或观察', minWords: 20, maxWords: 160, needsCoherence: false, needsSource: false },
-    transformation: { label: 'Sentence Transformation', zh: '换个句式、换个词', purpose: '在新语境里使用目标词或目标语法', minWords: 8, maxWords: 60, needsCoherence: false, needsSource: false },
-    repair: { label: 'Communication Repair', zh: '绕开不会的词', purpose: '不会某个词时，用已知英语把意思说清楚', minWords: 6, maxWords: 70, needsCoherence: false, needsSource: false },
+    one_sentence: { enLabel: 'One Sentence', zh: '一句话', purpose: '用一个完整英语句子传递一个意思', minWords: 4, maxWords: 30, needsCoherence: false, needsSource: false },
+    short_summary: { enLabel: 'Short Summary', zh: '3–5 句总结', purpose: '用 3–5 句英语概括材料的主要意思', minWords: 25, maxWords: 90, needsCoherence: true, needsSource: true },
+    paragraph_summary: { enLabel: 'Paragraph Summary', zh: '短段落', purpose: '用一个短段落解释材料的核心意思与关键细节', minWords: 60, maxWords: 160, needsCoherence: true, needsSource: true },
+    retelling: { enLabel: 'Retelling', zh: '复述', purpose: '用自己的话复述看过/读过的内容', minWords: 40, maxWords: 140, needsCoherence: true, needsSource: true },
+    opinion: { enLabel: 'Opinion', zh: '观点', purpose: '表达自己的看法并给出理由', minWords: 35, maxWords: 140, needsCoherence: true, needsSource: false },
+    free_expression: { enLabel: 'Free Expression', zh: '自由写', purpose: '自由描述自己的想法、经历或观察', minWords: 20, maxWords: 160, needsCoherence: false, needsSource: false },
+    transformation: { enLabel: 'Sentence Transformation', zh: '换个句式、换个词', purpose: '在新语境里使用目标词或目标语法', minWords: 8, maxWords: 60, needsCoherence: false, needsSource: false },
+    repair: { enLabel: 'Communication Repair', zh: '绕开不会的词', purpose: '不会某个词时，用已知英语把意思说清楚', minWords: 6, maxWords: 70, needsCoherence: false, needsSource: false },
 };
 export const OUTPUT_TASK_ORDER: OutputTaskType[] = [
     'one_sentence', 'short_summary', 'paragraph_summary', 'retelling',

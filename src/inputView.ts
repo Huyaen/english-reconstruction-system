@@ -5,7 +5,7 @@ import { esc, date } from './ui.ts';
 import { providerLabel } from './inputUrl.ts';
 import { REFLECTION_SPECS, DIFFICULTY_REASONS, DIFFICULTY_REASON_LABELS, reflectionLabel, captionCaveat } from './inputReflection.ts';
 import { formatTimestamp, transcriptStats } from './transcript.ts';
-import { INPUT_STATUS_TEXT, INPUT_TYPE_TEXT, INPUT_TARGET_TEXT } from './uiLabels.ts';
+import { INPUT_STATUS_TEXT, INPUT_TYPE_TEXT, INPUT_TARGET_TEXT, INPUT_SESSION_STATUS_TEXT, CAPTION_MODE_TEXT, INPUT_MODE_TEXT, INPUT_MODE_SHORT, TRANSCRIPT_PROVENANCE_TEXT } from './uiLabels.ts';
 import type { SentenceCandidate } from './inputHandoff.ts';
 export interface HubInput {
     data: Data;
@@ -97,7 +97,7 @@ export function inputHubPage(input: HubInput): string {
       </div>
       <p class="muted">${esc(input.analytics.note)}</p>
       ${input.analytics.comprehensionSeries.length ? `<p class="muted">理解自评趋势：${input.analytics.comprehensionSeries.map(p => `${Math.round((p.value ?? 0) * 100)}%`).join(' → ')}（自报，不代表能力考试分数）</p>` : ''}
-      ${Object.keys(input.analytics.captions).length ? `<p class="muted">字幕分布：${Object.entries(input.analytics.captions).map(([k, v]) => `${k} × ${v}`).join(' · ')}</p>` : ''}
+      ${Object.keys(input.analytics.captions).length ? `<p class="muted">字幕分布：${Object.entries(input.analytics.captions).map(([k, v]) => `${CAPTION_MODE_TEXT[k] ?? '字幕未知'} × ${v}`).join(' · ')}</p>` : ''}
     </section>`;
 }
 export interface SessionPageInput {
@@ -115,7 +115,7 @@ export function inputSessionPage(input: SessionPageInput): string {
     const baseline = s.baseline;
     const stats = input.transcript ? transcriptStats(input.transcript) : null;
     return `
-    <div class="page-title"><div><div class="eyebrow">这次输入</div><h1>${esc(s.title)}</h1><p>${esc(s.topic)} · ${s.durationMinutes ? s.durationMinutes + ' 分钟' : '时长未知'} · 计划 ${s.plannedMinutes ?? '—'} 分钟 · 状态 ${status}</p></div>
+    <div class="page-title"><div><div class="eyebrow">这次输入</div><h1>${esc(s.title)}</h1><p>${esc(s.topic)} · ${s.durationMinutes ? s.durationMinutes + ' 分钟' : '时长未知'} · 计划 ${s.plannedMinutes ?? '—'} 分钟 · 状态 ${INPUT_SESSION_STATUS_TEXT[status] ?? '进行中'}</p></div>
       <button class="secondary" data-input-back>返回材料库</button></div>
     <section class="panel">
       <div class="actions">
@@ -137,12 +137,12 @@ export function inputSessionPage(input: SessionPageInput): string {
         <label>最大障碍<input id="baseline-blocker" placeholder="例如：语速 / 连读 / 词不认识" maxlength="200"></label>
       </div>
       <div class="actions"><button class="primary" data-baseline-save>保存冷测</button><button class="text-button" data-baseline-skip>跳过冷测</button></div>
-    </section>` : `<section class="panel"><b>冷测</b><p class="muted">${baseline.status === 'recorded' ? `已记录：听懂约 ${Math.round((baseline.comprehension ?? 0) * 100)}%（${baseline.captionMode}）` : '已跳过（没测过）'} · ${date(baseline.at)}</p></section>`}
+    </section>` : `<section class="panel"><b>冷测</b><p class="muted">${baseline.status === 'recorded' ? `已记录：听懂约 ${Math.round((baseline.comprehension ?? 0) * 100)}%（${CAPTION_MODE_TEXT[baseline.captionMode ?? 'none'] ?? '字幕未知'}）` : '已跳过（没测过）'} · ${date(baseline.at)}</p></section>`}
     <section class="panel">
       <div class="section-title">复盘</div>
       <p class="muted">${esc(input.captionCaveat)}</p>
       <div class="actions">
-        ${(['light', 'standard', 'deep'] as const).map(m => `<button class="${s.mode === m ? 'primary' : 'secondary'}" data-mode="${m}">${reflectionLabel(m)}</button>`).join('')}
+        ${(['light', 'standard', 'deep'] as const).map(m => `<button class="${s.mode === m ? 'primary' : 'secondary'}" data-mode="${m}">${INPUT_MODE_TEXT[m] ?? reflectionLabel(m)}</button>`).join('')}
       </div>
       <div class="form-grid">
         <label>字幕模式<select id="refl-caption">${captionOptions(refl?.captionMode ?? s.captionMode ?? 'none')}</select></label>
@@ -153,10 +153,10 @@ export function inputSessionPage(input: SessionPageInput): string {
       <div class="ai-targets">${DIFFICULTY_REASONS.map(r => `<label class="check"><input type="checkbox" data-reason="${r}" ${refl?.difficultyReasons?.includes(r) ? 'checked' : ''}> ${DIFFICULTY_REASON_LABELS[r]}</label>`).join('')}</div>
       ${s.mode === 'standard' ? `<label>英文总结（3–5 句，保存原文；不做内容事实评分）<textarea id="refl-summary" rows="4">${esc(refl?.summary ?? '')}</textarea></label>` : ''}
       ${s.mode === 'deep' ? `
-        <label>Main Idea<input id="refl-main" value="${esc(refl?.mainIdea ?? '')}"></label>
+        <label>文章主旨（用英文写一句）<input id="refl-main" value="${esc(refl?.mainIdea ?? '')}"></label>
         <label>三个要点（每行一个）<textarea id="refl-points" rows="4">${esc((refl?.keyPoints ?? []).join('\n'))}</textarea></label>
-        <label>Personal Opinion<input id="refl-opinion" value="${esc(refl?.opinion ?? '')}"></label>
-        <label>Short Retelling<textarea id="refl-retelling" rows="3">${esc(refl?.retelling ?? '')}</textarea></label>` : ''}
+        <label>你的看法（用英文写 1–2 句）<input id="refl-opinion" value="${esc(refl?.opinion ?? '')}"></label>
+        <label>用自己的话复述（英文，3–5 句）<textarea id="refl-retelling" rows="3">${esc(refl?.retelling ?? '')}</textarea></label>` : ''}
       <div class="actions">
         <button class="primary" data-refl-save>保存复盘</button>
         <button class="secondary" data-session-complete>完成这次输入</button>
@@ -166,7 +166,7 @@ export function inputSessionPage(input: SessionPageInput): string {
     <section class="panel">
       <div class="section-title">字幕（可选） <small class="muted">只解析你自己提供的文件</small></div>
       ${input.transcript
-        ? `<p class="muted">已导入 ${input.transcript.cues.length} 条字幕 · ${stats?.durationMinutes ?? 0} 分钟 · 时间轴 ${input.transcript.timed ? '有' : '无'} · 来源 ${esc(input.transcript.provenance)}</p>
+        ? `<p class="muted">已导入 ${input.transcript.cues.length} 条字幕 · ${stats?.durationMinutes ?? 0} 分钟 · 时间轴 ${input.transcript.timed ? '有' : '无'} · 来源 ${esc(TRANSCRIPT_PROVENANCE_TEXT[input.transcript.provenance] ?? '来源不确定')}</p>
            <div class="actions">
              <button class="secondary" data-transcript-reading>送到阅读里练</button>
              <button class="text-button" data-transcript-sentences>查看难句候选</button>
@@ -181,7 +181,7 @@ export function inputSessionPage(input: SessionPageInput): string {
       </div>
       <button class="secondary" data-transcript-import>导入字幕</button>
     </section>
-    ${s.status === 'completed' ? `<section class="panel"><b>已完成</b><p class="muted">${date(s.completedAt ?? 0)} · 自报 ${s.reportedWatchedMinutes ?? 0} 分钟 · 模式 ${s.reflection?.mode ?? s.mode} · 完成度 ${Math.round((s.reflection?.completion ?? 0) * 100)}%</p><p class="muted">记下的只有：看过的记录 + 你的自评${s.reflection?.summary ? ' + 写下的总结' : ''}。这不会自动提高听力或词汇掌握。</p></section>` : ''}
+    ${s.status === 'completed' ? `<section class="panel"><b>已完成</b><p class="muted">${date(s.completedAt ?? 0)} · 自报 ${s.reportedWatchedMinutes ?? 0} 分钟 · 模式 ${INPUT_MODE_SHORT[s.reflection?.mode ?? s.mode] ?? '标准'} · 完成度 ${Math.round((s.reflection?.completion ?? 0) * 100)}%</p><p class="muted">记下的只有：看过的记录 + 你的自评${s.reflection?.summary ? ' + 写下的总结' : ''}。这不会自动提高听力或词汇掌握。</p></section>` : ''}
     ${s.miniUnitId ? `<section class="panel"><b>关联 单元</b><p class="muted">这次输入记到了 ${esc(s.miniUnitId)} 的单元里，但只算参与，不算已经会迁移。</p></section>` : ''}`;
 }
 function captionOptions(current: string): string {

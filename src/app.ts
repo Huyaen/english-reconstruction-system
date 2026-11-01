@@ -104,13 +104,13 @@ import { GRAMMAR_BAND_LABELS, GRAMMAR_CATEGORY_LABELS, type GrammarConceptDef, G
 import { CLAUSE_LABELS, ROLE_LABELS, clauseForToken, heuristicStructure, readStructure, structureRows, structureSummary, validateStructure, type SentenceStructure } from './sentenceStructure.ts';
 import { EVIDENCE_LABELS, STEP_LABELS, SUPPORT_LABELS, MAX_SUPPORT_LEVEL, buildLabPlan, buildTransferTask, evaluateStep, stepRecord, supportHint, type LabPlan, type LabStep } from './sentenceLab.ts';
 import { applyEvidence, justInTimeCard, stepConceptMap, type AttemptDraft } from './sentenceEvidence.ts';
-import { curatedSentenceRecords, effectiveSourceMix, generationUnavailableReason, sentenceGenerationFallback, sourceCapabilities, userSentenceRecord } from './sentenceSources.ts';
+import { aiGenerationNotice, curatedSentenceRecords, effectiveSourceMix, sentenceGenerationFallback, sourceCapabilities, userSentenceRecord } from './sentenceSources.ts';
 import { SENTENCE_TASK_LABELS, selectSentenceBatch } from './sentenceSelection.ts';
 import { sentenceConceptIds, sentenceConceptNames, sentencesForConcept } from './sentenceGraphMap.ts';
 import { ensureGraphData, loadSentences, saveSentences, sentenceAttemptsDesc } from './sentenceStore.ts';
 import { saveSentenceEvidence as dbSaveSentenceEvidence } from './db.ts';
 import { diagnosticsPage } from './diagnosticsView.ts';
-import { SOURCE_TEXT, STRUCTURE_TEXT, CAPABILITY_NEED_TEXT, PRIORITY_TEXT, PRIORITY_LEGEND, sourceMixNote } from './uiLabels.ts';
+import { SOURCE_TEXT, STRUCTURE_TEXT, CAPABILITY_NEED_TEXT, PRIORITY_TEXT, PRIORITY_LEGEND, SOURCE_SHORTAGE_TEXT, describeMix, sourceMixNote } from './uiLabels.ts';
 import { buildDiagnostics, latestSnapshot } from './diagnosticsInsight.ts';
 import { generateSnapshot, generateWeekly } from './diagnosticsActions.ts';
 let data: Data, page = 'home', bookFilter = '', search = '', levelFilter = '', sort = 'priority', listPage = 0;
@@ -1441,7 +1441,7 @@ function bindInputHub(): void {
     });
     document.querySelectorAll<HTMLElement>('[data-input-library]').forEach(b => b.onclick = async () => {
         const result = await inputActions.saveLibraryAction(data, b.dataset.inputLibrary!);
-        toast(result.ok ? '已收藏到 Library（收藏不等于看完）' : result.message);
+        toast(result.ok ? '已收藏到素材库（收藏不等于看完）' : result.message);
         await refresh();
     });
     document.querySelectorAll<HTMLElement>('[data-library-source]').forEach(b => b.onclick = async () => {
@@ -1849,7 +1849,7 @@ function unitPageApp() {
             setPage(aiBtn.dataset.unitAi === 'reading' ? 'reading' : 'sentence');
         };
 }
-function statistics() { const s = summary(data); $('#main').innerHTML = title('统计', '看自己记住了多少', '数字都来自你自己的作答；没学的日子留空。') + `<div class="metrics">${metric('累计作答', String(data.records.length), '全部历史')}${metric('练过的词', String(data.words.filter(w => w.state.total).length), '至少答过一次')}${metric('稳定记住', String(s.effective), '还没到复习时间的熟练词')}${metric('该复习', String(s.due), '每个词单独算')}</div><div class="two-col"><section class="panel"><h2>两个方向</h2>${Object.entries(s.directions).map(([k, v]) => `<div class="direction-stat"><b>${k === 'en-zh' ? '英文 → 中文' : '中文 → 英文'}</b><strong>${v.attempts ? pct(v.accuracy) : '—'}</strong><span>${v.attempts} 次 · ${seconds(v.meanMs)}</span></div>`).join('')}<p class="hint">两个方向都是选择题，所以中→英答对，不代表能独立拼写。</p></section><section class="panel"><h2>掌握情况</h2>${distribution()}</section></div><section class="panel"><div class="section-title"><h2>最近的变化</h2><select id="trend-days" aria-label="趋势时间"><option value="7">最近 7 天</option><option value="30">最近 30 天</option></select></div><div id="trend"></div></section><p class="hint">“稳定记住”是估算：要两个方向都答对，还要隔几天再答对。它不是词汇量测试成绩。</p>`; drawTrend(7); on('#trend-days', 'change', e => drawTrend(Number((e.target as HTMLSelectElement).value))); }
+function statistics() { const s = summary(data); $('#main').innerHTML = title('统计', '看自己记住了多少', '数字都来自你自己的作答；没学的日子留空。') + `<div class="metrics">${metric('累计作答', String(data.records.length), '全部历史')}${metric('练过的词', String(data.words.filter(w => w.state.total).length), '至少答过一次')}${metric('稳定记住', String(s.effective), '还没到复习时间的熟练词')}${metric('该复习', String(s.due), '每个词单独算')}</div><div class="two-col"><section class="panel"><h2>两个方向</h2>${Object.entries(s.directions).map(([k, v]) => `<div class="direction-stat"><b>${k === 'en-zh' ? '英文 → 中文' : '中文 → 英文'}</b><strong>${v.attempts ? pct(v.accuracy) : '—'}</strong><span>${v.attempts ? `${v.attempts} 次 · ${seconds(v.meanMs)}` : '还没有记录'}</span></div>`).join('')}<p class="hint">两个方向都是选择题，所以中→英答对，不代表能独立拼写。</p></section><section class="panel"><h2>掌握情况</h2>${distribution()}</section></div><section class="panel"><div class="section-title"><h2>最近的变化</h2><select id="trend-days" aria-label="趋势时间"><option value="7">最近 7 天</option><option value="30">最近 30 天</option></select></div><div id="trend"></div></section><p class="hint">“稳定记住”是估算：要两个方向都答对，还要隔几天再答对。它不是词汇量测试成绩。</p>`; drawTrend(7); on('#trend-days', 'change', e => drawTrend(Number((e.target as HTMLSelectElement).value))); }
 function drawTrend(days: number) { const rows = trend(data, days), max = Math.max(1, ...rows.map(r => r.attempts)); $('#trend').innerHTML = `<div class="chart" aria-label="每日作答次数">${rows.map(r => `<div class="bar-col"><span>${r.attempts || ''}</span><div class="bar${r.attempts ? '' : ' is-zero'}" style="height:${r.attempts ? Math.max(6, r.attempts / max * 120) : 0}px" title="${r.date}：${r.attempts}次"></div><small>${r.date.slice(5)}</small></div>`).join('')}</div><div class="table-scroll"><table><thead><tr><th>日期</th><th>作答</th><th>正确率</th><th>平均用时</th><th>变熟练的次数</th><th>该复习时答错</th></tr></thead><tbody>${rows.filter(r => r.attempts).map(r => `<tr><td>${r.date}</td><td>${r.attempts}</td><td>${pct(r.accuracy)}</td><td>${seconds(r.meanMs)}</td><td>${r.gained}</td><td>${r.forgotten}</td></tr>`).join('') || '<tr><td colspan="6">这段时间还没有记录</td></tr>'}</tbody></table></div>`; }
 function aiPage() {
     const configured = !!(data.settings.endpoint && data.settings.model && data.settings.key);
@@ -2655,8 +2655,7 @@ function sentencePage(): void {
     const aiConfigured = !!(data.settings.endpoint && data.settings.model && data.settings.key);
     const caps = sourceCapabilities({ sentences: sentenceRecords, aiConfigured, readingAvailable: false });
     const mix = effectiveSourceMix(caps);
-    const capabilityRows = caps.map(c => `<li><span class="src-badge src-${c.type}">${esc(c.label)}</span> ${c.available ? `<b>${c.count}</b> 句可用` : `暂不可用${c.requires ? `（${CAPABILITY_NEED_TEXT[c.requires] ?? '还没接上'}）` : ''}`}</li>`).join('');
-    const mixText = Object.entries(mix.mix).filter(([, v]) => v > 0).map(([k, v]) => `${esc(caps.find(c => c.type === k)?.label ?? k)} ${pct(v)}`).join(' · ');
+    const capabilityRows = caps.map(c => `<li><span class="src-badge src-${c.type}">${esc(c.label)}</span> ${c.available ? `<b>${c.count}</b> 句可用` : `0 句（${esc(SOURCE_SHORTAGE_TEXT[c.shortage ?? ''] ?? '暂时没有')}）`}</li>`).join('');
     const rows = [...sentenceRecords].sort((a, b) => b.createdAt - a.createdAt).map(s => {
         const st = readStructure(s.structure, s.id, s.text).structure;
         const summary = structureSummary(st);
@@ -2664,7 +2663,7 @@ function sentencePage(): void {
     }).join('') || '<tr><td colspan="4" class="empty-cell">句库为空。粘贴一句你最近遇到的真实难句开始。</td></tr>';
     $('#main').innerHTML = `<div id="sentence-page">` + title('句子', '一句一句拆开', '不背规则，直接动手拆：先找主干，再认修饰，最后看从句和非谓语。默认不给完整翻译。')
         + `<div class="metrics">${metric('句库', String(sentenceRecords.length), '下面能看到来源')}${metric('做过拆句', String(data.sentenceAttempts.length), '每次都会记录')}${metric('自己拆对', String(data.sentenceAttempts.filter(a => a.structureCorrect && (a.maxSupportLevel ?? 0) === 0).length), '没看提示，一次就判断对')}${metric('句子来源', mix.degraded ? '用别的来源补上' : '按计划比例', `${mix.unavailable.length} 个来源暂时没有句子`)}</div>`
-        + `<div class="two-col"><section class="panel"><h2>句源与能力</h2><ul class="plain-list">${capabilityRows}</ul><p class="hint">${esc(sourceMixNote(mix))}现在是：${esc(mixText || '只有练习题')}。</p><p class="hint">${esc(generationUnavailableReason(aiConfigured, false))}</p></section>`
+        + `<div class="two-col"><section class="panel"><h2>句源与能力</h2><ul class="plain-list">${capabilityRows}</ul><p class="hint">${esc(sourceMixNote(mix))}</p><p class="hint">${esc(aiGenerationNotice({ configured: aiConfigured, hasTargets: aiWeakWords().length > 0, aiCount: caps.find(c => c.type === 'ai')?.count ?? 0 }))}</p></section>`
         + aiSentencePanelHTML()
         + `<section class="panel"><h2>添加你遇到的真实句子</h2><form id="user-sentence-form"><label>英文原句<textarea id="user-sentence-input" rows="3" required maxlength="400" placeholder="粘贴你在文章、视频或对话里遇到的那一句"></textarea></label><label>中文意思（可选，先自己理解再填）<input id="user-sentence-zh" maxlength="300" placeholder="不填也可以，训练时会先让你自己判断"></label><div class="actions"><button class="primary" type="submit">保存到句库</button><button class="secondary" type="button" id="sentence-quick-start">按当前薄弱点开始训练</button></div></form><p class="hint">自己加进来的句子没有标准答案：程序会先给一个初稿，标出不确定的地方，你可以改。</p></section></div>`
         + `<section class="panel"><h2>句库（${sentenceRecords.length}）</h2><div class="table-scroll"><table><thead><tr><th>句子</th><th>目标语法</th><th>结构</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div><p class="hint">标着「练习句」的是为练语法写的句子，不是从文章里摘的原句。</p></section></div>`;
@@ -2798,7 +2797,7 @@ function labPage(): void {
             ${cur.supportLevel > 0 && !cur.answered ? `<p class="hint">提示：${esc(level.hint)}</p>` : ''}
             ${feedback}
         </section>
-        <p class="hint">句子来源：${rec.sourceType} · 结构来源：${cur.plan.simplified ? '简化流程（句子较简单）' : readStructure(rec.structure, rec.id, rec.text).structure.provenance}${cur.plan.uncertain ? ' · 结构不确定，已标注' : ''}${cur.plan.notes.length ? ` · ${esc(cur.plan.notes.join('；'))}` : ''}</p></div>`;
+        <p class="hint">句子来源：${esc(SOURCE_TEXT[rec.sourceType] ?? '句子')} · 结构来源：${cur.plan.simplified ? '简化流程（句子较简单）' : esc(STRUCTURE_TEXT[readStructure(rec.structure, rec.id, rec.text).structure.provenance] ?? '结构来源未知')}${cur.plan.uncertain ? ' · 结构不确定，已标注' : ''}${cur.plan.notes.length ? ` · ${esc(cur.plan.notes.join('；'))}` : ''}</p></div>`;
     document.querySelectorAll<HTMLElement>('[data-lab-option]').forEach(b => b.addEventListener('click', () => void labAnswer(b.dataset.labOption ?? '')));
     on('#lab-hint', 'click', () => {
         if (!labSession?.current || labSession.current.answered)
@@ -2943,7 +2942,7 @@ function labResultView(rec: SentenceRecord): void {
         render();
     });
 }
-// 预教词：authored 教学句自带释义，避免"要练语法却被生词卡死"
+// 预教词：练习句自带释义，避免"要练语法却被生词卡死"
 function preTeachHTML(rec: SentenceRecord): string {
     const glossary = rec.glossary ?? {};
     const lower = rec.text.toLowerCase();
@@ -3868,7 +3867,7 @@ function readingPreview(): void {
 function readingCold(): void {
     if (!readSession)
         return readingLibrary();
-    $('#main').innerHTML = `<div id="reading-page">${title('READING', `冷读：${resc(readPassage?.title ?? '')}`, '这一遍不看译文、不查词。读完（或读不下去）再记录真实状态。')}${coldTestHTML()}</div>`;
+    $('#main').innerHTML = `<div id="reading-page">${title('冷读', `冷读：${resc(readPassage?.title ?? '')}`, '这一遍不看译文、不查词。读完（或读不下去）再记录真实状态。')}${coldTestHTML()}</div>`;
     const range = document.querySelector<HTMLInputElement>('#read-cold-self');
     const out = document.querySelector<HTMLOutputElement>('#read-cold-self-out');
     range?.addEventListener('input', () => {
@@ -5015,8 +5014,22 @@ function aiWeakGrammar(): Array<{
         return { id: w.conceptId, name: w.name, description: def?.description ?? w.name };
     });
 }
+/**
+ * 生成用的语法目标（Phase 16.2）
+ * 没有任何薄弱语法时，旧实现会把空数组发出去，而生成契约要求 grammarTargets ≥ 1，
+ * 结果是「AI 定向句」对刚入门的用户永远失败，还弹出一句 schema 英文路径。
+ * 这里与「AI 强化阅读」一致：给一个默认可观察的语法点，并且**告诉用户这是默认的**，不假装是薄弱点。
+ */
+function aiGrammarTargets(): { list: Array<{ id: string; name: string; description: string }>; isDefault: boolean } {
+    const weak = aiWeakGrammar();
+    if (weak.length) return { list: weak, isDefault: false };
+    return {
+        list: [{ id: 'clause.relative', name: '定语从句', description: conceptById('clause.relative')?.description ?? '用 which/who/that 引导从句修饰名词' }],
+        isDefault: true,
+    };
+}
 function aiErrorBlock(info: AIErrorInfo, issues: string[] = []): string {
-    return `<div class="ai-error"><strong>${esc(info.message)}</strong><p>${esc(info.hint)}</p>${issues.length ? `<ul>${issues.slice(0, 6).map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}<p class="hint">本地功能不受影响：词库、复习、authored 教学句、真实阅读材料与今日计划仍然可用。</p></div>`;
+    return `<div class="ai-error"><strong>${esc(info.message)}</strong><p>${esc(info.hint)}</p>${issues.length ? `<ul>${issues.slice(0, 6).map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}<p class="hint">本地功能不受影响：词库、复习、练习句、真实阅读材料与今日计划仍然可用。</p></div>`;
 }
 function aiMetaLine(meta: Record<string, unknown>): string {
     const usage = (meta.usage ?? {}) as {
@@ -5024,7 +5037,7 @@ function aiMetaLine(meta: Record<string, unknown>): string {
         completionTokens?: number;
         estimated?: boolean;
     };
-    return `<p class="hint">${esc(String(meta.promptId))}@${esc(String(meta.promptVersion))} · 指纹 ${esc(String(meta.promptHash).slice(-8))} · ${esc(String(meta.model))}（${esc(String(meta.providerHost))}）· ${esc(String(meta.structuredMode))} · 第 ${esc(String(meta.attempts))} 次通过 · 用量 ${usage.promptTokens ?? 0}+${usage.completionTokens ?? 0} tokens${usage.estimated ? '（估算）' : ''}</p>`;
+    return `<p class="hint">模型 ${esc(String(meta.model))}（${esc(String(meta.providerHost))}）· 第 ${esc(String(meta.attempts))} 次尝试通过 · 用量：发送 ${usage.promptTokens ?? 0} + 生成 ${usage.completionTokens ?? 0} token${usage.estimated ? '（估算）' : ''}</p>`;
 }
 function aiSentencePanelHTML(): string {
     const ready = aiReady();
@@ -5035,10 +5048,10 @@ function aiSentencePanelHTML(): string {
     return `<section class="panel" id="ai-sentence-panel">
     <div class="section-title"><h2>AI 定向句</h2><span class="chip">AI 生成 · 结构未验证</span></div>
     <p class="hint">用你当前的真实薄弱词与语法点造一句练习句。${esc(EVIDENCE_NOTE)}</p>
-    <div class="ai-targets">目标词：${weak.length ? weak.map(w => `<span class="chip">${esc(w.en)}</span>`).join('') : '<em>无</em>'}　语法：${grammar.length ? grammar.map(g => `<span class="chip">${esc(g.name)}</span>`).join('') : '<em>无</em>'}</div>
+    <div class="ai-targets">目标词：${weak.length ? weak.map(w => `<span class="chip">${esc(w.en)}</span>`).join('') : '<em>无</em>'}　语法：${grammar.length ? grammar.map(g => `<span class="chip">${esc(g.name)}</span>`).join('') : '<span class="chip">定语从句（默认）</span><em class="muted">还没有薄弱语法，这次先用一个常见结构</em>'}</div>
     <label>场景 / 主题<input id="ai-sentence-theme" maxlength="60" placeholder="例如：修一座旧桥" value="${esc(aiTheme)}"></label>
     <div class="actions"><button class="primary" data-ai-sentence ${disabled ? 'disabled' : ''}>生成定向句</button><button class="secondary" data-ai-cancel hidden>取消</button></div>
-    ${why ? `<p class="hint">${esc(why)}</p>` : `<p class="hint">将发送：目标词 ${weak.length} 个、语法点 ${grammar.length} 个、主题与你填写的场景。不会发送完整词库、学习历史或备份。</p>`}
+    ${why ? `<p class="hint">${esc(why)}</p>` : `<p class="hint">将发送：目标词 ${weak.length} 个、语法点 ${aiGrammarTargets().list.length} 个、主题与你填写的场景。不会发送完整词库、学习历史或备份。</p>`}
     <div id="ai-sentence-result">${aiSentenceResultHTML()}</div></section>`;
 }
 function aiSentenceResultHTML(): string {
@@ -5046,8 +5059,8 @@ function aiSentenceResultHTML(): string {
         return '';
     const r = aiSentenceResult;
     return `<div class="ai-result"><blockquote>${esc(r.text)}</blockquote>${r.zh ? `<p class="hint">${esc(r.zh)}</p>` : ''}
-    <p><span class="chip">AI 生成</span> <span class="chip">结构 ai_unverified</span></p>
-    <p class="hint">质量门：${esc(r.quality)}</p>${aiMetaLine(r.meta)}
+    <p><span class="chip">AI 生成</span> <span class="chip">${esc(STRUCTURE_TEXT.ai_unverified)}</span></p>
+    <p class="hint">内容检查：${esc(r.quality)}</p>${aiMetaLine(r.meta)}
     <div class="actions"><button class="primary" data-ai-sentence-adopt>加入句库并开始练习</button></div></div>`;
 }
 function aiReadingPanelHTML(): string {
@@ -5060,7 +5073,7 @@ function aiReadingPanelHTML(): string {
     return `<section class="panel" id="ai-reading-panel">
     <div class="section-title"><h2>AI 强化阅读</h2><span class="chip">AI 生成 · 不是真文章</span></div>
     <p class="hint">针对你真实遇到的阅读障碍生成一篇略高于当前水平的短文，练完再回到真实材料验证。</p>
-    <div class="ai-targets">目标词：${weak.length ? weak.map(w => `<span class="chip">${esc(w.en)}</span>`).join('') : '<em>无</em>'}　语法：${grammar.length ? grammar.map(g => `<span class="chip">${esc(g.name)}</span>`).join('') : '<em>无</em>'}</div>
+    <div class="ai-targets">目标词：${weak.length ? weak.map(w => `<span class="chip">${esc(w.en)}</span>`).join('') : '<em>无</em>'}　语法：${grammar.length ? grammar.map(g => `<span class="chip">${esc(g.name)}</span>`).join('') : '<span class="chip">定语从句（默认）</span><em class="muted">还没有薄弱语法，这次先用一个常见结构</em>'}</div>
     <label>主题<input id="ai-reading-topic" maxlength="60" placeholder="例如：river engineering" value="${esc(aiReadingTopic)}"></label>
     ${obstacles.length ? `<p class="hint">将围绕这些真实障碍：${obstacles.map(o => esc(o)).join('；')}</p>` : ''}
     <div class="actions"><button class="primary" data-ai-reading ${disabled ? 'disabled' : ''}>生成强化文章</button><button class="secondary" data-ai-cancel hidden>取消</button></div>
@@ -5072,10 +5085,10 @@ function aiReadingResultHTML(): string {
         return '';
     const r = aiReadingResult;
     return `<div class="ai-result"><h3>${esc(r.title)}</h3>
-    <p class="hint"><span class="chip">AI 生成强化材料</span> 来源可靠性：ai_generated（不是真实出版物）</p>
+    <p class="hint"><span class="chip">AI 生成强化材料</span> 来源：AI 生成，不是真实出版物</p>
     <div class="ai-passage">${r.passage.split(/\n{2,}/).map(p => `<p>${esc(p)}</p>`).join('')}</div>
     <details><summary>阅读题（${r.exercises.length}）</summary>${r.exercises.map((e, i) => `<div class="ai-ex"><strong>${i + 1}. ${esc(e.question)}</strong><ol>${e.options.map((o, j) => `<li${j === e.answerIndex ? ' class="ok"' : ''}>${esc(o)}</li>`).join('')}</ol><p class="hint">原句：${esc(e.evidenceQuote)}</p></div>`).join('')}</details>
-    <p class="hint">质量门：${esc(r.quality)}</p>${aiMetaLine(r.meta)}
+    <p class="hint">内容检查：${esc(r.quality)}</p>${aiMetaLine(r.meta)}
     <div class="actions"><button class="primary" data-ai-reading-save>保存并开始阅读</button></div></div>`;
 }
 function aiObstacles(): string[] {
@@ -5117,6 +5130,7 @@ async function aiGenerateSentence(): Promise<void> {
         box.innerHTML = aiErrorBlock({ code: 'missing-model', message: '还没有弱词。', hint: '先做几轮词卡检索或读一篇文章并标记障碍，再来生成定向句。', retryable: false, status: null });
         return;
     }
+    const grammarForPrompt = aiGrammarTargets().list;
     aiRunning = new AbortController();
     const btn = document.querySelector<HTMLButtonElement>('[data-ai-sentence]');
     const cancel = document.querySelector<HTMLElement>('[data-ai-cancel]');
@@ -5129,7 +5143,7 @@ async function aiGenerateSentence(): Promise<void> {
     try {
         const r = await generateSentence({
             targetWords: weak.map(w => w.en),
-            targetGrammar: grammar.map(g => ({ id: g.id, name: g.name, description: g.description })),
+            targetGrammar: grammarForPrompt.map(g => ({ id: g.id, name: g.name, description: g.description })),
             theme: aiTheme || 'daily life',
             level: 'B1',
             minWords: 8, maxWords: 22,

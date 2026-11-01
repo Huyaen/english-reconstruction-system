@@ -104,7 +104,7 @@ export function selectOutputTasks(input: SelectionInput): SelectionResult {
     if (weak.length) {
         out.push(buildTaskSpec({
             taskType: 'transformation',
-            topic: 'your own example',
+            topic: '用你自己的例子',
             communicationGoal: `用 ${weak.map(w => w.en).join(' / ')} 各写一句和你自己生活有关的句子`,
             sourceType: 'vocabulary',
             sourceId: weak.map(w => w.id).join(','),
@@ -126,7 +126,7 @@ export function selectOutputTasks(input: SelectionInput): SelectionResult {
     if (grammar.length) {
         out.push(buildTaskSpec({
             taskType: 'transformation',
-            topic: 'your own example',
+            topic: '用你自己的例子',
             communicationGoal: `用 ${grammar.map(g => g.name).join(' / ')} 各写一句真实的话`,
             sourceType: 'grammar',
             sourceId: grammar.map(g => g.id).join(','),

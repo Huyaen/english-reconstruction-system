@@ -123,7 +123,8 @@ export function evidenceTypesOf(reflection: InputReflection): ('self_report' | '
     return types;
 }
 export function reflectionLabel(mode: InputMode): string {
-    return mode === 'light' ? 'Light · 30–60 秒' : mode === 'standard' ? 'Standard · 3–5 分钟' : 'Deep · 深入输出准备';
+    // Phase 16.2：用户看到的三个档位一律中文；英文 Light/Standard/Deep 不再上屏
+    return mode === 'light' ? '轻量复盘 · 30–60 秒' : mode === 'standard' ? '标准复盘 · 3–5 分钟' : '深入复盘 · 为写作输出做准备';
 }
 /** 中文字幕下理解更多 ≠ 听力提升：这是一个必须显式说明的口径 */
 export function captionCaveat(mode: CaptionMode): string {

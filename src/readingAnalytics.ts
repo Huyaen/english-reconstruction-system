@@ -61,7 +61,7 @@ export function computeReadingMetrics(session: ReadingSession, opts: {
             markedWords: 0, vagueWords: 0, difficultSentences: 0, grammarProblems: [],
             translationDependenceFirst: na('没有会话明细'), translationDependenceSecond: na('没有会话明细'),
             supportUsage: { helps: 0, maxLevel: 0, assistedAnswers: 0 },
-            rereadImproved: na('没有会话明细'), caveats: ['旧会话没有 Phase 5 明细数据'],
+            rereadImproved: na('没有会话明细'), caveats: ['旧会话缺少这次阅读的明细'],
         };
     }
     const firstMs = detail.firstPassStartedAt && detail.firstPassEndedAt ? detail.firstPassEndedAt - detail.firstPassStartedAt : null;

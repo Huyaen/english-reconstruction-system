@@ -7,12 +7,12 @@ const CONTEXTS: {
     topic: string;
     goal: string;
 }[] = [
-    { topic: 'a decision you made this week', goal: '解释你为什么做了这个决定' },
-    { topic: 'a game or match you watched', goal: '解释一个战术选择为什么有效' },
-    { topic: 'a place in your city', goal: '描述这个地方并说明它为什么重要' },
-    { topic: 'a mistake you learned from', goal: '说明发生了什么、你学到什么' },
-    { topic: 'a piece of news you remember', goal: '用两三句说明它为什么值得关注' },
-    { topic: 'a person who influenced you', goal: '解释这个人做了什么影响了你的选择' },
+    { topic: '本周做过的一个决定', goal: '解释你为什么做了这个决定' },
+    { topic: '你看过的一场比赛', goal: '解释一个战术选择为什么有效' },
+    { topic: '你城市里的一个地方', goal: '描述这个地方并说明它为什么重要' },
+    { topic: '一次让你学到东西的错误', goal: '说明发生了什么、你学到什么' },
+    { topic: '一条你记得的新闻', goal: '用两三句说明它为什么值得关注' },
+    { topic: '一个影响过你的人', goal: '解释这个人做了什么影响了你的选择' },
 ];
 export interface TransferPlan {
     task: OutputTaskSpec;

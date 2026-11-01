@@ -17,7 +17,7 @@ test('任务类型：一句话任务不要求篇章结构，总结任务要求�
     const sum = spec({ taskType: 'short_summary' });
     assert.equal(taskCriteria(sum).some(c => c.includes('连接')), true);
     for (const t of Object.keys(OUTPUT_TASK_TYPES))
-        assert.ok(taskMeta(t as never).label);
+        assert.ok(taskMeta(t as never).enLabel, '英文任务名是给模型/导出的，界面上只用 zh');
 });
 test('任务规模由时间与状态决定：时间少只写一句，不强制长度', () => {
     assert.equal(defaultTaskType({ minutes: 5, energy: 'normal', hasSource: true, hasUnit: false }), 'one_sentence');

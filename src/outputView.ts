@@ -2,6 +2,7 @@
 // 原则：编辑区优先；不把巨大统计面板塞进写作页面。
 import type { Data, OutputAttempt, OutputFeedback, OutputSupportLevel, OutputTaskSpec, OutputTaskType } from './types.ts';
 import { esc } from './ui.ts';
+import { FEEDBACK_STATUS_TEXT } from './uiLabels.ts';
 import { OUTPUT_TASK_ORDER, OUTPUT_TASK_TYPES, taskMeta } from './outputTask.ts';
 import { SUPPORT_LEVELS, supportLevelZh } from './outputScaffolding.ts';
 import { ERROR_LABELS } from './outputFeedback.ts';
@@ -48,7 +49,7 @@ export function outputHubPage(input: OutputHubInput): string {
           <button class="history-row" data-out-open="${esc(a.id)}">
             <b>${esc(taskMeta((a.taskType ?? 'free_expression') as OutputTaskType).zh)}</b>
             <span>${esc((a.finalText || a.originalText || '').slice(0, 70))}</span>
-            <small>${esc(a.feedbackStatus ?? 'none')} · ${a.revisions?.length ?? 0} 次修改</small>
+            <small>${esc(FEEDBACK_STATUS_TEXT[a.feedbackStatus ?? 'none'] ?? '没有 AI 反馈')} · ${a.revisions?.length ?? 0} 次修改</small>
           </button>`).join('')}</div></section>` : '';
     const stats = input.analytics.attempts ? `<section class="panel"><div class="section-title"><h2>表达概览</h2><span class="subtle">${esc(input.analytics.sampleNote)}</span></div>
       <div class="metrics">${metric('完成', String(input.analytics.completed), `共 ${input.analytics.attempts} 条记录`)}${metric('独立', String(input.analytics.independent), '无提示、非照抄')}${metric('辅助 / 照抄', `${input.analytics.assisted} / ${input.analytics.copied}`, '自己写的程度不同')}${metric('迁移 / 延迟', `${input.analytics.transfer} / ${input.analytics.delayed}`, '新语境 / D1')}</div>
@@ -130,7 +131,7 @@ function feedbackBlock(fb: OutputFeedback, a: OutputAttempt): string {
     return `<section class="panel">
       <div class="section-title"><h2>反馈</h2><span class="subtle">${esc(fb.sourceProvenance)} · ${esc(fb.promptVersion)}</span></div>
       <div class="feedback-row"><span class="pill">意思</span><b>${meaningLabel(fb.meaningAssessment)}</b><small class="muted">依据 ${esc(fb.meaningBasis)} · 置信 ${Math.round(fb.meaningConfidence * 100)}%</small></div>
-      ${fb.noCorrectionNeeded ? '<p class="ok-line">不用大改：这句已经能读了。</p>' : `<div class="feedback-row"><span class="pill warn">Major issue</span><ul>${fb.priorityIssues.map(issue).join('') || '<li>没有影响理解的主要问题。</li>'}</ul></div>`}
+      ${fb.noCorrectionNeeded ? '<p class="ok-line">不用大改：这句已经能读了。</p>' : `<div class="feedback-row"><span class="pill warn">主要问题</span><ul>${fb.priorityIssues.map(issue).join('') || '<li>没有影响理解的主要问题。</li>'}</ul></div>`}
       <div class="feedback-row"><span class="pill">What worked</span><ul>${fb.strengths.map(s => `<li>${esc(s)}</li>`).join('')}</ul></div>
       ${fb.upgrade ? `<div class="feedback-row"><span class="pill">Suggested revision</span><p>${esc(fb.upgrade.original)}<br>→ ${esc(fb.upgrade.suggested)}</p><p class="muted">${esc(fb.upgrade.why)}</p><small class="muted">${esc(fb.upgrade.changes.join(' · '))}</small></div>` : ''}
       <div class="feedback-row"><span class="pill">Next practice</span><p>${esc(fb.nextPractice)}</p></div>
@@ -164,7 +165,7 @@ function meaningLabel(v: OutputFeedback['meaningAssessment']): string {
     return v === 'delivered' ? '意思传达到了' : v === 'partly_delivered' ? '部分传达到' : v === 'not_delivered' ? '这次没有传到' : '无法判断（AI 不可用）';
 }
 function srcLabel(t: OutputTaskSpec['sourceType']): string {
-    return { free: '自由表达', reading: '来自阅读', input: '来自输入练习', mini_unit: '来自主题单元', vocabulary: '薄弱词', grammar: '薄弱语法', closing_loop: '今日收尾' }[t] ?? t;
+    return { free: '来自自由写', reading: '来自阅读', input: '来自输入练习', mini_unit: '来自主题单元', vocabulary: '薄弱词', grammar: '薄弱语法', closing_loop: '今日收尾' }[t] ?? t;
 }
 export function countWords(text: string): number {
     const t = String(text ?? '').trim();

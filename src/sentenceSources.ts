@@ -67,7 +67,7 @@ export function buildGoldStructure(spec: GoldSentenceSpec): SentenceStructure {
         rootClauseId: spec.clauses.find(c => c.parent === null)?.id ?? spec.clauses[0].id,
         provenance: 'gold',
         confidence: 1,
-        note: '人工审校的教学句结构（gold），可直接用于结构分析练习。',
+        note: '人工审校的教学句结构，可直接用于结构分析练习。',
     };
 }
 // —— 人工教学句库（authored；每句都带 gold 结构与目标语法概念）——
@@ -281,19 +281,51 @@ export function ensureCuratedSentences(existing: SentenceRecord[], now = Date.no
     }
     return out;
 }
-// —— 句源能力与动态比例（AI/阅读未上线时自动重新分配，不伪造来源）——
+// —— 句源能力与动态比例（Phase 16.2：把三个概念分开，绝不虚报）——
+// A. configured   配置有效：只说明填了服务地址/模型/密钥，不代表连得上，也不代表生成过。
+// B. canGenerate  产品里已经实现了「AI 定向句」手动生成；与句库里有没有 AI 句无关。
+// C. available    句库里真的有这种句子，现在就能用于训练（count > 0）。
+// 旧实现把 available 当成 configured，于是「0 句可用」和「占四成」同时出现；
+// 这里 available 一律 = count > 0，比例只按真的能用的来源分。
+export type SourceShortage =
+    | 'ai-not-configured'
+    | 'ai-no-sentences'
+    | 'real-material-empty'
+    | 'reading-not-connected'
+    | 'user-empty'
+    | 'saved-empty'
+    | 'curated-empty';
 export interface SourceCapability {
     type: SentenceSourceType;
     label: string;
     available: boolean;
     requires: string | null;
     count: number;
+    configured?: boolean;
+    canGenerate?: boolean;
+    shortage: SourceShortage | null;
+}
+export interface SourceMixShortage {
+    type: SentenceSourceType;
+    shortage: SourceShortage;
 }
 export interface SourceMixResult {
+    target: Record<SentenceSourceType, number>;
     mix: Record<SentenceSourceType, number>;
     degraded: boolean;
     unavailable: SentenceSourceType[];
     reasons: string[];
+    shortages: SourceMixShortage[];
+}
+export function targetSourceMix(): Record<SentenceSourceType, number> {
+    return {
+        curated: 0,
+        user: TARGET_SOURCE_MIX.user,
+        saved: 0,
+        ai: TARGET_SOURCE_MIX.ai,
+        'real-material': TARGET_SOURCE_MIX.real,
+        reading: 0,
+    };
 }
 export function sourceCapabilities(input: {
     sentences: SentenceRecord[];
@@ -301,40 +333,63 @@ export function sourceCapabilities(input: {
     readingAvailable?: boolean;
 }): SourceCapability[] {
     const countOf = (types: SentenceSourceType[]) => input.sentences.filter(s => types.includes(s.sourceType)).length;
+    const build = (
+        type: SentenceSourceType,
+        requires: string | null,
+        extra: { configured?: boolean; canGenerate?: boolean; shortage: SourceShortage | null } = { shortage: null },
+    ): SourceCapability => {
+        const count = countOf([type]);
+        return {
+            type,
+            label: SOURCE_LABELS[type],
+            available: count > 0,
+            requires,
+            count,
+            ...extra,
+            shortage: count > 0 ? null : extra.shortage,
+        };
+    };
     return [
-        { type: 'curated', label: SOURCE_LABELS.curated, available: countOf(['curated']) > 0, requires: null, count: countOf(['curated']) },
-        { type: 'user', label: SOURCE_LABELS.user, available: true, requires: null, count: countOf(['user']) },
-        { type: 'saved', label: SOURCE_LABELS.saved, available: true, requires: null, count: countOf(['saved']) },
-        { type: 'real-material', label: SOURCE_LABELS['real-material'], available: countOf(['real-material']) > 0, requires: null, count: countOf(['real-material']) },
-        { type: 'reading', label: SOURCE_LABELS.reading, available: countOf(['reading']) > 0, requires: 'phase5', count: countOf(['reading']) },
-        { type: 'ai', label: SOURCE_LABELS.ai, available: input.aiConfigured, requires: 'phase6', count: countOf(['ai']) },
+        build('curated', null, { shortage: 'curated-empty' }),
+        build('user', null, { shortage: 'user-empty' }),
+        build('saved', null, { shortage: 'saved-empty' }),
+        build('real-material', null, { shortage: 'real-material-empty' }),
+        build('reading', 'phase5', { shortage: 'reading-not-connected' }),
+        build('ai', 'phase6', {
+            configured: input.aiConfigured,
+            canGenerate: true,
+            shortage: input.aiConfigured ? 'ai-no-sentences' : 'ai-not-configured',
+        }),
     ];
 }
 export function effectiveSourceMix(caps: SourceCapability[]): SourceMixResult {
-    const reasons: string[] = [];
-    const available = new Set(caps.filter(c => c.available && c.count >= 0).map(c => c.type));
-    const unavailable = caps.filter(c => !c.available).map(c => c.type);
+    const byType = new Map(caps.map(c => [c.type, c]));
+    const target = targetSourceMix();
     const mix: Record<SentenceSourceType, number> = { curated: 0, user: 0, saved: 0, 'real-material': 0, reading: 0, ai: 0 };
-    if (available.has('ai')) {
-        mix.ai = TARGET_SOURCE_MIX.ai;
-        mix.user += TARGET_SOURCE_MIX.user;
-        mix['real-material'] += TARGET_SOURCE_MIX.real;
-        reasons.push('target-mix-40-40-20');
+    const shortages: SourceMixShortage[] = [];
+    const reasons: string[] = [];
+    for (const type of ['user', 'ai', 'real-material'] as const) {
+        const cap = byType.get(type);
+        if (cap?.available) {
+            mix[type] = target[type];
+            continue;
+        }
+        mix.curated += target[type];
+        const shortage = cap?.shortage ?? 'curated-empty';
+        shortages.push({ type, shortage });
+        reasons.push(`${type}-${shortage}-reallocated`);
     }
-    else {
-        reasons.push('ai-unavailable-reallocated');
-        mix.user += TARGET_SOURCE_MIX.user;
-        mix['real-material'] += available.has('reading') ? TARGET_SOURCE_MIX.real : 0;
-        mix.curated += TARGET_SOURCE_MIX.ai + (available.has('reading') ? 0 : TARGET_SOURCE_MIX.real);
+    // 连练习句都没有：比例没有意义，如实归零，不留一个「100% 练习句」的假象
+    if (!byType.get('curated')?.available) {
+        mix.curated = 0;
+        if (!shortages.some(s => s.shortage === 'curated-empty'))
+            shortages.push({ type: 'curated', shortage: 'curated-empty' });
+        reasons.push('no-sentence-at-all');
     }
-    if (!available.has('real-material'))
-        reasons.push('real-material-source-empty');
-    if (!available.has('reading'))
-        reasons.push('reading-handoff-not-registered');
     const total = Object.values(mix).reduce((n, v) => n + v, 0) || 1;
     for (const k of Object.keys(mix) as SentenceSourceType[])
         mix[k] = Math.round((mix[k] / total) * 100) / 100;
-    return { mix, degraded: !available.has('ai') || !available.has('reading'), unavailable, reasons };
+    return { target, mix, degraded: shortages.length > 0, unavailable: caps.filter(c => !c.available).map(c => c.type), reasons, shortages };
 }
 // —— AI 生句契约（Phase 6 才实现；当前只做校验与 fallback，绝不伪造输出）——
 export interface SentenceGenerationRequest {
@@ -423,12 +478,19 @@ export function validateGenerationResult(result: unknown, req: SentenceGeneratio
     }
     return { ok: issues.length === 0, issues };
 }
-export function generationUnavailableReason(aiConfigured: boolean, readingAvailable = false): string {
-    if (!aiConfigured)
-        return 'AI 生成句子这个功能还没有开放；没有设置 AI 服务时，也不会伪造 AI 句子。';
-    if (!readingAvailable)
-        return 'AI 服务已经设置好了，但生成句子这个功能还没有开放：不会伪造输出。';
-    return '';
+// AI 句这条能力要分三种状态说清楚（Phase 16.2）：
+//   ① 没有配置服务 → 不能生成，也不该说「功能还没做」
+//   ② 配置了但一句都没生成过 → 能手动生成，但计划里还没有 AI 句
+//   ③ 句库里有 AI 句 → 计划按比例取用，仍可继续生成
+// 「自动按比例补 AI 句」没有实现，所以任何状态下都不能声称计划会自己去生成。
+export function aiGenerationNotice(input: { configured: boolean; hasTargets: boolean; aiCount: number }): string {
+    if (!input.configured)
+        return '还没有设置 AI 服务：设置后可以在下面手动生成定向句，生成并加入句库，才会进计划。';
+    if (input.aiCount > 0)
+        return `句库里已经有 ${input.aiCount} 句 AI 句，计划会按比例取用；也可以继续在下面生成。`;
+    if (!input.hasTargets)
+        return 'AI 服务已设置。先练出几个薄弱词，再来生成定向句；生成并加入句库，才会进计划。';
+    return 'AI 服务已设置，可以在下面生成定向句；加入句库后才会进计划。计划不会自己批量生成 AI 句。';
 }
 // AI 不可用时的确定性 fallback：只返回 curated/已保存句，provider='none'
 export function sentenceGenerationFallback(req: SentenceGenerationRequest, pool: SentenceRecord[]): SentenceGenerationResult {
@@ -440,8 +502,8 @@ export function sentenceGenerationFallback(req: SentenceGenerationRequest, pool:
         provenance: null,
         error: null,
         fallbackReason: matched.length
-            ? `AI 未上线：改用人工教学句/真实句池中的 ${matched.length} 句（来源明示，不伪造 AI 生成）`
-            : 'AI 未上线且句池没有匹配句：本阶段不生成句子',
+            ? `没有可用的 AI 生成结果：改用人工教学句/真实句池中的 ${matched.length} 句（来源明示，不冒充 AI 生成）`
+            : '没有可用的 AI 生成结果，句池里也没有匹配句：这次不生成句子',
     };
 }
 // —— Reading Lab 交接契约（Phase 5 才实现 Reading；这里只定义接口）——

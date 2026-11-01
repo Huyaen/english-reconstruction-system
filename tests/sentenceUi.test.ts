@@ -95,7 +95,10 @@ test('Phase 4 UI：句子训练全流程（拆句 → 反馈/JIT → 独立证�
         await until(w, () => !!w.document.querySelector('#sentence-page'), 'sentence page');
         const page = w.document.querySelector('#sentence-page')!.textContent!;
         assert.ok(page.includes('练习句'), '句源必须明示 authored 教学句');
-        assert.ok(page.includes('不会伪造'), 'AI 未配置时不得声称有 AI 句');
+        // Phase 16.2：AI 未配置时既不能声称有 AI 句，也不能说「功能没开放」——必须说清是哪一环缺
+        assert.ok(page.includes('还没设置 AI 服务'), 'AI 未配置时必须说明原因');
+        assert.equal(page.includes('功能还没有开放'), false, '生成功能已实现，不能谎称没开放');
+        assert.equal(/AI 生成的句子 \d+%/.test(page), false, '没有 AI 句时不能给出 AI 占比');
         assert.equal(w.document.querySelectorAll('[data-sentence-start]').length >= 12, true, '句库应有 12 条教学句');
         // 1) 独立完成：定语从句句
         click(w, '[data-sentence-start="sen.curated.relative-01"]');

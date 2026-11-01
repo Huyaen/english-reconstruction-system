@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CURATED_ATTRIBUTION, curatedById, curatedSentenceRecords, curatedSpecs, effectiveSourceMix, ensureCuratedSentences, generationUnavailableReason, handoffToSentenceRecord, sentenceGenerationFallback, SOURCE_LABELS, sourceCapabilities, TARGET_SOURCE_MIX, userSentenceRecord, validateGenerationRequest, validateGenerationResult, type SentenceGenerationRequest, } from '../src/sentenceSources.ts';
+import { CURATED_ATTRIBUTION, curatedById, curatedSentenceRecords, curatedSpecs, effectiveSourceMix, ensureCuratedSentences, aiGenerationNotice, handoffToSentenceRecord, sentenceGenerationFallback, SOURCE_LABELS, sourceCapabilities, TARGET_SOURCE_MIX, userSentenceRecord, validateGenerationRequest, validateGenerationResult, type SentenceGenerationRequest, } from '../src/sentenceSources.ts';
 import { validateStructure } from '../src/sentenceStructure.ts';
 const NOW = 1700000000000;
 const POOL = curatedSentenceRecords(NOW);
@@ -40,34 +40,57 @@ test('句库种子：只增不改，幂等，不覆盖用户句子', () => {
     assert.equal(merged.find(s => s.id === used.id)!.usedCount, 7);
     assert.equal(merged.find(s => s.id === used.id)!.lastUsedAt, used.lastUsedAt);
 });
-test('句源能力：AI 未配置时如实标记不可用；配比降级并说明原因', () => {
+test('句源能力：available 只代表「现在真有句子」，配置了 AI ≠ 有 AI 句', () => {
     const noAi = sourceCapabilities({ sentences: POOL, aiConfigured: false });
-    assert.equal(noAi.find(c => c.type === 'ai')!.available, false);
+    const ai0 = noAi.find(c => c.type === 'ai')!;
+    assert.equal(ai0.available, false);
+    assert.equal(ai0.configured, false);
+    assert.equal(ai0.canGenerate, true, 'AI 定向句已经实现：能生成 ≠ 已经生成过');
+    assert.equal(ai0.shortage, 'ai-not-configured');
     assert.equal(noAi.find(c => c.type === 'curated')!.available, true);
     assert.equal(noAi.find(c => c.type === 'curated')!.count, 12);
+    assert.equal(noAi.find(c => c.type === 'user')!.available, false, '一句都没加过，不能说可用');
     assert.equal(noAi.find(c => c.type === 'real-material')!.available, false);
-    assert.equal(noAi.find(c => c.type === 'reading')!.requires, 'phase5');
     const withAi = sourceCapabilities({ sentences: POOL, aiConfigured: true });
-    assert.equal(withAi.find(c => c.type === 'ai')!.available, true);
-    const degraded = effectiveSourceMix(noAi);
-    assert.equal(degraded.degraded, true);
-    assert.equal(degraded.mix.ai, 0);
-    assert.ok(degraded.reasons.some(r => r.includes('ai-unavailable')));
-    const total = Object.values(degraded.mix).reduce((a, b) => a + b, 0);
-    assert.ok(Math.abs(total - 1) < 1e-6, `配比之和必须为 1，实际 ${total}`);
+    const ai1 = withAi.find(c => c.type === 'ai')!;
+    assert.equal(ai1.available, false, '填了密钥但 0 句，仍然不可用（这正是 Phase 16.2 修掉的假象）');
+    assert.equal(ai1.configured, true);
+    assert.equal(ai1.shortage, 'ai-no-sentences');
+    // 页面上的「现在是：… 40%」只能来自真的能用的来源
+    for (const caps of [noAi, withAi]) {
+        const m = effectiveSourceMix(caps);
+        assert.equal(m.mix.ai, 0);
+        assert.equal(m.mix.user, 0, '用户还没加句子，四成不能算到他头上');
+        assert.equal(m.mix.curated, 1, '缺的部分由练习句补上');
+        assert.ok(Math.abs(Object.values(m.mix).reduce((a, b) => a + b, 0) - 1) < 1e-6, '配比之和必须为 1');
+        assert.ok(m.shortages.some(s => s.type === 'ai'));
+    }
     const material = { ...POOL[0], id: 'sen.material.1', sourceType: 'real-material' as const, sourceId: 'mat-1', attribution: '真实材料' };
     const reading = { ...POOL[1], id: 'sen.reading.p1.0-20', sourceType: 'reading' as const, sourceId: 'p1', attribution: '阅读交接' };
+    const aiSentence = { ...POOL[2], id: 'sen.ai.1', sourceType: 'ai' as const, sourceId: 'gen-1', attribution: 'AI 生成' };
+    const own = { ...POOL[3], id: 'sen.user.1', sourceType: 'user' as const, sourceId: 'u-1', attribution: '自己加的' };
     const partial = effectiveSourceMix(sourceCapabilities({ sentences: [...POOL, material], aiConfigured: true }));
-    assert.equal(partial.mix.ai, TARGET_SOURCE_MIX.ai);
+    assert.equal(partial.mix.ai, 0, '没有 AI 句就不能给 AI 四成');
     assert.equal(partial.mix['real-material'], TARGET_SOURCE_MIX.real);
-    assert.equal(partial.degraded, true, '阅读来源未注册时必须如实降级');
-    assert.ok(partial.reasons.includes('reading-handoff-not-registered'));
-    const full = effectiveSourceMix(sourceCapabilities({ sentences: [...POOL, material, reading], aiConfigured: true }));
+    assert.equal(partial.degraded, true);
+    const full = effectiveSourceMix(sourceCapabilities({ sentences: [...POOL, material, reading, aiSentence, own], aiConfigured: true }));
     assert.equal(full.degraded, false);
     assert.equal(full.mix.ai, TARGET_SOURCE_MIX.ai);
     assert.equal(full.mix.user, TARGET_SOURCE_MIX.user);
     assert.ok(full.mix['real-material'] + full.mix.reading >= TARGET_SOURCE_MIX.real - 1e-9);
     assert.equal(Object.keys(SOURCE_LABELS).length, 6);
+});
+test('AI 句的三种状态各有真话：不谎称已开放，也不谎称计划会自动生成', () => {
+    const noService = aiGenerationNotice({ configured: false, hasTargets: true, aiCount: 0 });
+    assert.match(noService, /还没有设置 AI 服务/);
+    assert.doesNotMatch(noService, /还没有开放|未上线/, '功能已经实现，不能说没开放');
+    const noTargets = aiGenerationNotice({ configured: true, hasTargets: false, aiCount: 0 });
+    assert.match(noTargets, /先练出几个薄弱词/);
+    const ready = aiGenerationNotice({ configured: true, hasTargets: true, aiCount: 0 });
+    assert.match(ready, /生成定向句/);
+    assert.match(ready, /计划不会自己批量生成/, '自动补 AI 句没有实现，必须说清');
+    const has = aiGenerationNotice({ configured: true, hasTargets: true, aiCount: 3 });
+    assert.match(has, /3 句 AI 句/);
 });
 test('AI 生成契约：请求校验、结果校验、未上线时绝不伪造', () => {
     const req: SentenceGenerationRequest = {
@@ -90,7 +113,7 @@ test('AI 生成契约：请求校验、结果校验、未上线时绝不伪造',
     assert.equal(validateGenerationResult(fake, req).ok, false);
     const mismatched = { requestId: 'r', provider: 'ai', sentences: [{ text: 'The man who came is here.', zh: '', grammarTags: ['clause.object'], targetWords: [], theme: '' }], provenance: { model: 'm', promptVersion: 'p1', generatedAt: NOW }, error: null, fallbackReason: null };
     assert.equal(validateGenerationResult(mismatched as never, req).ok, false, '生成句必须覆盖请求的语法目标');
-    assert.ok(generationUnavailableReason(false).includes('不会伪造'));
+    assert.match(aiGenerationNotice({ configured: false, hasTargets: false, aiCount: 0 }), /还没有设置 AI 服务/);
 });
 test('用户句子入口：校验无效输入，valid 句带启发式结构标记', () => {
     const bad = userSentenceRecord('too short', '', NOW);

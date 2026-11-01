@@ -301,7 +301,7 @@ export interface SentenceRecord {
     targetWordIds: string[];
     theme: string;
     difficulty: number;
-    // 预教词表（authored 教学句自带；有释义的生词不阻断选句）
+    // 预教词表（练习句自带；有释义的生词不阻断选句）
     glossary?: Record<string, string>;
     structure: unknown;
     structureProvenance: SentenceStructureProvenance;

@@ -12,17 +12,12 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { lintSource, summarize } from './lib/copyLint.mjs';
+import { EXEMPT_FILES, lintSource, summarize } from './lib/copyLint.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const SRC = join(ROOT, 'src');
 
-/** 学习内容/数据文件：里面的英文是学习材料或真实来源，不属于界面文案 */
-const SKIP = new Set([
-    'examItems.ts', 'examSeed.ts', 'readingPassages.ts', 'readingSeed.ts', 'sentences.ts',
-    'prompts/reading.ts', 'aiPrompt.ts', 'ocr.ts', 'import.ts', 'aiGenerate.ts', 'aiValidate.ts',
-    'aiJson.ts', 'aiQuality.ts', 'grammar.ts', 'sentenceStructure.ts',
-]);
+// 例外清单只在内核里维护一份（EXEMPT_FILES），CLI 不再复制一份，避免两处漂移。
 
 function walk(dir, out = []) {
     for (const name of readdirSync(dir)) {
@@ -33,7 +28,7 @@ function walk(dir, out = []) {
     return out;
 }
 
-const files = walk(SRC).filter(f => !SKIP.has(relative(SRC, f).replace(/\\/g, '/')));
+const files = walk(SRC).filter(f => !EXEMPT_FILES.has(relative(SRC, f).replace(/\\/g, '/')));
 const hits = [];
 for (const f of files) hits.push(...lintSource(readFileSync(f, 'utf8'), relative(SRC, f).replace(/\\/g, '/')));
 const stat = summarize(hits, files.length);

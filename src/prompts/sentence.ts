@@ -51,7 +51,7 @@ export const SENTENCE_PROMPT: PromptSpec<SentencePromptInput> = {
     version: '1.0.0',
     purpose: '用学习者的薄弱词与语法点生成一句自然英文，用于拆句/重构练习',
     modelRequirements: { structured: 'preferred', minContextTokens: 2000 },
-    fallback: '不生成：改用 Phase 4 authored 教学句或用户自己的真实难句（不伪装成 AI 结果）',
+    fallback: '不生成：改用人工教学句或用户自己的真实难句（不冒充 AI 结果）',
     schemaName: 'sentence_generation',
     outputSchema: {
         type: 'object',
