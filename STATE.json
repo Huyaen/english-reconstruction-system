@@ -1,15 +1,15 @@
 {
   "project": "English Reconstruction System V2",
   "root": "D:\\英语重构训练\\vocabulary-app",
-  "overall_status": "in_progress",
-  "current_phase": "phase16_3_evidence_integrity",
-  "phase_status": "delivered on branch, awaiting user visual acceptance",
+  "overall_status": "released",
+  "current_phase": "v1_0_0_release",
+  "phase_status": "main merged (ff-only 9de8acd..b7c6af2); release engineering done; awaiting user visual acceptance",
   "last_updated": "2026-11-01",
-  "last_verified_commit": "HEAD",
+  "last_verified_commit": "b7c6af235ad2048acf50aee34275144d993b44df",
   "baseline_tag": "phase15h1-semantics",
   "database_version": 7,
-  "build_status": "tsc 0 / build 0 / build:test 0 / copy-lint 101 files 0 hits (AST) / dom-scan 39 states 0 hits / overflow 84 views 0 / navsweep 14 pages 0 failures",
-  "test_status": "431/431 pass",
+  "build_status": "tsc 0 / build 0 / dist reproducible (git status dist = 0) / copy-lint 101 files 0 hits / CI 41299310883 (main push) success",
+  "test_status": "438/438 pass",
   "tasks": {
     "phase0_audit_001": {
       "status": "passed",
@@ -1094,6 +1094,33 @@
         "pages": 14,
         "failures": []
       }
+    }
+  },
+  "release": {
+    "v1_0_0": {
+      "branch": "main",
+      "commit": "b7c6af235ad2048acf50aee34275144d993b44df",
+      "merge": "ff-only from 9de8acd; pre-merge rollback tag pre-v1.0.0-main",
+      "ci_main_push": "41299310883 success",
+      "ci_pre_merge": "41291883816 success",
+      "tests": "438/438",
+      "launcher": [
+        "启动词间.cmd",
+        "停止词间.cmd",
+        "scripts/launch-cijian.ps1",
+        "scripts/stop-cijian.ps1",
+        "Desktop 词间.lnk"
+      ],
+      "backup_file": "D:/英语重构训练/词间备份/词间完整备份_2026-11-01_dbv7.json",
+      "backup_sha256": "ce634517790fb61ffaa5b5c61bf45b696f768d53f8c51154c91dcce98fb875c0",
+      "restore_rehearsal": "isolated origin localhost:4176 - counts identical after reload",
+      "smoke": "isolated origin localhost:4177 - 12/12 checklist items, 0 script errors",
+      "judgement": "READY FOR RELEASE - pending user rotation of GitHub token",
+      "docs": [
+        "docs/RELEASE_V1.0.0.md",
+        "docs/USER_START_GUIDE.md",
+        "docs/RELEASE_ROLLBACK_GUIDE.md"
+      ]
     }
   }
 }

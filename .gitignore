@@ -20,3 +20,7 @@ screenshots/phase15h2/rec/
 .p15h3-*/
 screenshots/phase15h3/rec/
 .p15h4-*/
+
+# 启动器日志（本机运行产物）
+cijian-server.log
+cijian-server.log.err

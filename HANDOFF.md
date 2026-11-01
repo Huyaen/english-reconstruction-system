@@ -1,4 +1,23 @@
-# HANDOFF — 当前状态（Phase 16.3）
+# HANDOFF — 当前状态（v1.0.0 发布）
+
+> **2026-11-01 更新（v1.0.0 发布工程）**：`main` 已从 `9de8acd` **快进**到 `b7c6af2`，远端一致，
+> CI（main push）`41299310883` success；发布 tag `v1.0.0`；回滚坐标 `pre-v1.0.0-main → 9de8acd`。
+> 门禁：`tsc` 0；`npm test` **438/438**；`npm run build` 0 且 `dist` 可重现（重建后无 diff）；
+> copy-lint `{files:101,hits:0}`；真实浏览器冒烟（隔离 origin `localhost:4177`）12/12 项、0 脚本错误。
+>
+> 真实数据备份：`D:\英语重构训练\词间备份\词间完整备份_2026-11-01_dbv7.json`
+> （5,832,494 B；SHA-256 `ce634517…bf45c0`；books 1 / words 3175 / records 7 / sessions 1 /
+> sentences 12 / grammarConcepts 34 / exam 3+2+16；`settings.key` 已剔除）。原件为 Edge Default profile
+> 的 IndexedDB，只读复制后由应用自行导出，未被打开或迁移。
+> 恢复预演在隔离 origin `localhost:4176` 完成，恢复后与刷新后计数完全一致。
+>
+> 启动：双击「启动词间.cmd」或桌面「词间」快捷方式（固定 `http://localhost:4173`）；「停止词间.cmd」停服务。
+> 文档：`docs/RELEASE_V1.0.0.md`、`docs/USER_START_GUIDE.md`、`docs/RELEASE_ROLLBACK_GUIDE.md`。
+> 判定：**READY FOR RELEASE**（唯一待用户操作：轮换 GitHub 令牌）。
+>
+> 以下为 Phase 16.3 阶段记录，保留备查。
+
+# HANDOFF — Phase 16.3 记录
 
 > **2026-11-01 更新（Phase 16.3 证据完整性）**：分支 `phase16.3-evidence-integrity`（起点 Phase 16.2 `495bce1`）。
 > `main` 仍 `9de8acd`，**未合并**；已发布 tag 全部未移动。

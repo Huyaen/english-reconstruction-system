@@ -1,4 +1,3 @@
-@echo off
-cd /d "%~dp0"
-node server.mjs
-pause
+@echo off
+REM 兼容旧入口
+call "%~dp0启动词间.cmd"
