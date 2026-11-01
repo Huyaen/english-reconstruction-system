@@ -173,6 +173,7 @@ AI：填入本机假地址，**用 CDP 拦截那一次真实请求**返回受控
 | 提交 | `deb3b6c` `fix(16.2): 句源能力三态化、界面枚举收口，检测器改为 AST（受控反例 7/7）` |
 | 远端 | `origin/phase16.2-copy-final-fix` == 本地 `deb3b6c`（已核对 `git ls-remote`） |
 | CI | run `41279844743` @ `deb3b6c`：**success** |
+| tag | `phase16.2-copy-final` → `2af1bd7`（annotated，未移动任何旧 tag） |
 | 审查包 | `review-export/phase16_2-review.zip`（37 项 / 4.4MB，gitignore） |
 | 截图 | `screenshots/phase16_2/`（13 张：9 浅色 + 4 深色）+ `dom-scan.json` / `overflow.json` |
 | `main` | 仍 `9de8acd`，**未合并**；15h.1–16.1 的 tag 均未移动 |
