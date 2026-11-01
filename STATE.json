@@ -2,14 +2,14 @@
   "project": "English Reconstruction System V2",
   "root": "D:\\英语重构训练\\vocabulary-app",
   "overall_status": "in_progress",
-  "current_phase": "phase16_2_copy_final",
+  "current_phase": "phase16_3_evidence_integrity",
   "phase_status": "delivered on branch, awaiting user visual acceptance",
   "last_updated": "2026-11-01",
   "last_verified_commit": "HEAD",
   "baseline_tag": "phase15h1-semantics",
   "database_version": 7,
-  "build_status": "tsc 0 / build 0 / build:test 0 / copy-lint 99 files 0 hits (AST) / dom-scan 39 states 0 hits / overflow 84 views 0",
-  "test_status": "416/416 pass",
+  "build_status": "tsc 0 / build 0 / build:test 0 / copy-lint 101 files 0 hits (AST) / dom-scan 39 states 0 hits / overflow 84 views 0 / navsweep 14 pages 0 failures",
+  "test_status": "431/431 pass",
   "tasks": {
     "phase0_audit_001": {
       "status": "passed",
@@ -1053,5 +1053,47 @@
       "remote": "verified: local==remote==84b8bd2, tag phase15h4-quiz-state-hotfix==4186c8d"
     }
   ],
-  "backlog_note": "docs/PHASE15H_MARKUP_BACKLOG.md 口径：原始 39 → 去重 25；15h.2 追加一节：177 条 [data-level]…[data-page] 规则 0 命中（P0 待决，本轮不启用）"
+  "backlog_note": "docs/PHASE15H_MARKUP_BACKLOG.md 口径：原始 39 → 去重 25；15h.2 追加一节：177 条 [data-level]…[data-page] 规则 0 命中（P0 待决，本轮不启用）",
+  "phase16_3": {
+    "branch": "phase16.3-evidence-integrity",
+    "baseline": "495bce1",
+    "purpose": "句子来源可靠 ≠ 句法结构可靠：未核验结构只记接触，不计掌握；AI 目标展示/请求/校验/保存同源",
+    "new_files": [
+      "src/sentenceTrust.ts",
+      "src/aiTargets.ts",
+      "tests/phase16_3.structureTrust.test.ts",
+      "tests/phase16_3.appEvidence.test.ts",
+      "tests/phase16_3.aiTargets.test.ts",
+      "tests/phase16_3.sentenceSources.test.ts",
+      "scripts/phase16_3-legacy-audit.mjs",
+      "scripts/phase16_3-export.py",
+      "docs/PHASE16_3_EVIDENCE_INTEGRITY_REPORT.md"
+    ],
+    "evidence": {
+      "before": "495bce1 模块层：AI 句四步全对 → 5 条 GrammarAttempt，5 个概念 mastery 0.6014",
+      "after": "实机：structureTrust=unverified / masteryEligible=false / grammarAttempts 5→5",
+      "reading_request": "grammarHits 仅 clause.relative，clause.adverbial 0 次"
+    },
+    "gates": {
+      "tsc": 0,
+      "tests": "431/431",
+      "copy_lint": {
+        "files": 101,
+        "hits": 0
+      },
+      "dom_scan": {
+        "states": 39,
+        "hits": 0,
+        "errors": 0
+      },
+      "overflow": {
+        "views": 84,
+        "clipped": 0
+      },
+      "navsweep": {
+        "pages": 14,
+        "failures": []
+      }
+    }
+  }
 }

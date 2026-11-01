@@ -187,7 +187,11 @@ export function buildLabPlan(record: SentenceRecord, structure: SentenceStructur
     const main = rootClause(structure);
     const uncertain = structure.provenance !== 'gold' || structure.confidence < 0.6;
     if (uncertain)
-        notes.push(`结构来源为「${structure.provenance === 'gold' ? '人工审校' : structure.provenance === 'heuristic' ? '启发式（不确定）' : '无结构'}」，以下步骤基于该结构，可能不完整。`);
+        notes.push(structure.provenance === 'none' || !structure.tokens.length
+            ? '这句还没有可靠的句法结构，下面的步骤是按词序和标点推出来的，可能不完整。'
+            : structure.provenance === 'ai_unverified'
+                ? '这句的结构是自动分析出来的，没有人工核对，下面的步骤可能不完整。'
+                : '这句的结构是自动推断的（不确定），下面的步骤可能不完整。');
     const tokenCount = structure.tokens.length;
     const simple = structure.clauses.length <= 1 && tokenCount <= 7;
     const subjectSpan = spanOf(structure, 'subject', main);

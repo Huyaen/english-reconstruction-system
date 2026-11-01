@@ -3,6 +3,7 @@
 // 首读前不显示任何译文/答案；辅助必须由用户主动请求（L0–L4）。
 import type { Passage, ReadingChunk, ReadingDifficultyReport, ReadingMark, ReadingProblemType, ReadingSession, ReadingSentence, ReadingToken, } from './types.ts';
 import type { ReadingMetrics } from './readingAnalytics.ts';
+import { CONFIDENCE_TEXT } from './uiLabels.ts';
 import { stageLabel, READING_LIMITS, maxHelpLevelUsed, sessionProgress } from './readingSession.ts';
 import { classificationLabel } from './readingDifficulty.ts';
 import { PROBLEM_TYPE_LABELS } from './readingSentences.ts';
@@ -77,7 +78,7 @@ export function previewHTML(input: {
     <div class="metric"><span>词数</span><strong>${p.wordCount}</strong><small>${p.sentences?.length ?? 0} 句 / ${p.paragraphs?.length ?? 0} 段</small></div>
     <div class="metric"><span>预计时间</span><strong>${minutes}</strong><small>按当前速度估算</small></div>
     <div class="metric"><span>难度</span><strong>${d ? d.difficulty.toFixed(1) : '—'}</strong><small>${d ? classificationLabel(d.classification) : '记录不够，没估算'}</small></div>
-    <div class="metric"><span>已知词覆盖</span><strong>${d ? `${Math.round(d.knownCoverage * 100)}%` : '—'}</strong><small>${d ? `可信度 ${d.confidence}` : '词库里还没有记录'}</small></div>
+    <div class="metric"><span>已知词覆盖</span><strong>${d ? `${Math.round(d.knownCoverage * 100)}%` : '—'}</strong><small>${d ? `可信度 ${CONFIDENCE_TEXT[d.confidence] ?? d.confidence}` : '词库里还没有记录'}</small></div>
   </div>
   ${d ? `<ul class="plain-list">${d.reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
   <p class="hint">开始之前先猜一下：这篇文章大概在讲什么？（先不查词，也不看译文）</p>

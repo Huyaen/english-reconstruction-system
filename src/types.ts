@@ -348,6 +348,13 @@ export interface SentenceAttempt {
     meaningCorrect?: boolean | null;
     transferOf?: string | null;
     reviewedAt?: number | null;
+    // —— Phase 16.3：结构可信度与计分资格 ——
+    // 旧记录没有这两个字段：当时还没有区分「句子来源」与「结构是否核对过」，
+    // 不能用默认值替历史数据下结论（见 docs/PHASE16_3_EVIDENCE_INTEGRITY_REPORT.md「历史记录影响范围」）。
+    structureTrust?: 'verified' | 'unverified';
+    structureProvenance?: SentenceStructureProvenance;
+    /** 这次练习是否允许计入语法掌握；false 时不会有任何 GrammarAttempt 写入 */
+    masteryEligible?: boolean;
 }
 export interface Passage {
     id: string;

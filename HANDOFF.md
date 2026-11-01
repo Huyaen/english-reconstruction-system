@@ -1,64 +1,34 @@
-# HANDOFF — 当前状态（Phase 16.2）
+# HANDOFF — 当前状态（Phase 16.3）
 
-> **2026-11-01 更新（Phase 16.2 文案收口 + 检测器改造）**：分支 `phase16.2-copy-final-fix`
-> （起点 Phase 16.1 `phase16.1-copy-polish` @ `fc2eaf0`）。`main` 仍 `9de8acd`，**未合并**；
-> 已发布的 tag 全部未移动。
+> **2026-11-01 更新（Phase 16.3 证据完整性）**：分支 `phase16.3-evidence-integrity`（起点 Phase 16.2 `495bce1`）。
+> `main` 仍 `9de8acd`，**未合并**；已发布 tag 全部未移动。
 >
-> 依据上一轮独立验收的 FAIL（P0 2 类 / P1 6 条）：
-> ①「AI 已配置」时同时出现 `0 句可用` 与 `AI 占四成`；②`AI 生成句子这个功能还没有开放` 与同页可用面板矛盾；
-> ③`状态 active`、`（none）`、`Light · 30–60 秒`、`已收藏到 Library`、`结构 ai_unverified`、`authored` 等原始值上屏；
-> ④检测器对 7 个受控反例只抓到 2 个，「0 命中」不成立。
+> 上一轮的命题：「句子来源可靠」不等于「句法结构可靠」。AI 定向句的 `structureProvenance = 'ai_unverified'`，
+> 练完却按「独立作答」写 `GrammarAttempt`，BKT 后验被推到 **0.6014**——界面写着「结构由 AI 生成，未核对」，
+> 数据库里却把它当成掌握证据。
 >
 > 本轮做了什么：
-> · 句源能力拆成三个概念（配置有效 / 功能已实现 / 现在真有句子），比例只按真的有句子的来源分；
-> · AI 说明改三态真话，并明说「计划不会自己批量生成 AI 句」；
-> · 9 组内部枚举全部过映射（会话状态、字幕模式、复盘档位、字幕来源、反馈状态、任务类型、话题…）；
-> · 检测器改为 TypeScript AST（跨行模板、`class=` 盲区、单 token 调用全部覆盖），受控反例 7/7；
-> · 修掉验证中发现的真实缺陷：「AI 定向句」在没有薄弱语法时必然校验失败（`grammarTargets ≥ 1`），
->   现与「AI 强化阅读」一致给默认语法点，并在面板上明说是默认。
+> · 新增 `src/sentenceTrust.ts`：结构可信度 → 证据准入；未核验结构只记 exposure（接触），
+>   不写 `GrammarAttempt`、不推 BKT；字段缺失一律按 `unverified`（保守默认）。
+> · 新增 `src/aiTargets.ts` 的 `aiTargetPlan()`：展示 / 请求 / 校验 / 保存同源，
+>   修掉「面板说定语从句、阅读实际发 `clause.adverbial`」与「保存时重算成『—』」。
+> · UI 明确区分「接触」与「掌握」：结果页「（这次答对了，但结构没核对，不计入语法掌握）」+ 橙色说明。
+> · 句源说明只按真实库存说话，缺口存在时不再说「按计划比例」。
+> · 「全部检查通过」收敛为有边界的常量 `AI_CHECK_SCOPE_NOTE`（只代表规则项）。
+> · 新增只读工具 `scripts/phase16_3-legacy-audit.mjs`：识别历史数据里「未核验结构却被算进掌握」的记录，不自动回滚。
 >
-> 验证：`tsc` 0；`npm test` **416/416**；`build` / `build:test` 0；
-> 静态文案检测 99 文件 / **0 命中**（检测器已能被反例证明会抓）；真实 DOM 39 状态 / 38 下拉 / **0 命中**；
-> 排版回归 84 视图 / **0 裁切 / 0 溢出**；15h.4 页面状态同步 14/14；控制台错误 0。
-> 证据：`screenshots/phase16_2/`（13 张，含深色）+ `docs/PHASE16_2_COPY_FINAL_REPORT.md`。
-> 视觉审美仍未由用户确认。
+> 验证：`tsc` 0；`npm test` **431/431**；`build` / `build:test` 0；
+> copy-lint `{files:101,hits:0}`；DOM scan `{states:39,hits:0,selects:38,errors:0}`；
+> overflow `{views:84,clipped:0}`；15h.4 navsweep `{pages:14,failures:[]}`；实机 0 脚本错误（8 条均为审计脚本故意制造的 500）。
+>
+> 实机关键证据：AI 句答对后 `structureTrust='unverified'`、`masteryEligible=false`、`grammarAttempts` 5 → 5（0 新增）；
+> 同一输入在 `495bce1` 上会写 5 条证据、把 5 个概念推到 0.6014。
+>
+> 报告：`docs/PHASE16_3_EVIDENCE_INTEGRITY_REPORT.md`；截图：`screenshots/phase16_3/`（9 张 + 3 份门禁 JSON）。
 
-> **2026-10-31 更新（Phase 16.1 文案残留修复）**：分支 `phase16.1-copy-polish`
-> （起点 Phase 16 `phase16-ux-writing` @ `9e281cc`）。`main` 仍 `9de8acd`，**未合并**。
->
-> 依据独立审计（P0 0 / P1 16 / P2 12，`C:\Users\86152\Documents\ERV2-phase16-audit\`）：
-> 16 项 P1 全部处理（14 改写 / 2 保留 + 解释），12 项 P2 全部处理，另修 9 处同类残留。
-> 内部原因代码、状态枚举、开发阶段号、英文标题、未解释的优先级字母不再出现在界面上。
-> 学习语义零改动：枚举存储值、IndexedDB v7、FSRS、Planner、评分、AI 协议、用户数据、
-> 学习材料与题干全部未动。
->
-> 验证：`tsc` 0；`npm test` **407/407**（新增 9 条防回归）；`build` / `build:test` 0；
-> 静态文案检测 101 文件 / **0 命中**；真实 DOM 检测 39 状态 / 38 下拉 / **0 命中**；
-> 排版回归 84 视图（1366/1440/1920 × 深浅）/ **0 裁切 / 0 溢出**；15h.4 页面状态同步 14/14。
-> 证据：`screenshots/phase16_1/`（56 张）+ `docs/PHASE16_1_COPY_FIX_REPORT.md`。
-> 视觉审美仍未由用户确认。
-> **2026-10-30 更新（Phase 16）**：全站界面文案重写。分支 `phase16-ux-writing`
-> （起点 15h.4 `phase15h4-quiz-state-hotfix` @ `e293ef4`）。`main` 仍 `9de8acd`，**未合并**；
-> 15h.1–15h.4 的 tag 均未移动。
->
-> 做了什么：把应用里所有用户能看到的字——页面标题、按钮、说明、空状态、错误、toast、对话框、
-> 表头、表单标签、`aria-label`、`placeholder`——按「像一个懂行的朋友在说话」重写。
-> 不去改学习材料（释义/例句/原文/题干）、学习算法、IndexedDB v7、题目与评分、整体视觉系统。
->
-> 双证据源：`screenshots/phase16/copy-inventory.json`（静态全量 4,737 条）+
-> `copy-live-dark.json`（真实 DOM 20 个状态）。改后用同一套状态键重抓 dark/light，
-> `copy-diff.json` 逐状态列出：消失 376 条、新增 366 条。
->
-> 机器门禁：tsc 0、**398/398**、build 0、静态禁用词 112 文件 0 命中、真实 DOM dark/light 0 命中、
-> 生产构建巡检 84 视图（14 页 × 3 宽度 × 2 主题）横向溢出 0 / 控制台报错 0、
-> 对比度 225/0 ×2、live-a11y 11/11、mobile PASS、reduced-motion OK。
->
-> 顺手修掉三处非文案问题：开发用原型切换器不再出现在上线页（只在 `?proto=` 时渲染）、
-> 推荐理由徽标不再中英并排、对比度脚本改成等所有过渡结束后再采样（原先会把 `.d-quiet`
-> 的主题过渡中间色当最终色，误报 2.25:1）。
->
-> 规范与台账：`docs/PHASE16_UX_WRITING_GUIDE.md`、`docs/PHASE16_COPY_CHANGELOG.md`、
-> `docs/PHASE16_TEST_REPORT.md`。
+---
+
+## 历史（Phase 16.2）
 
 # HANDOFF — 当前状态（Phase 15h.4）
 

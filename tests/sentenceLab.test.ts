@@ -22,7 +22,9 @@ function draftOf(record: SentenceRecord, plan: ReturnType<typeof buildLabPlan>, 
         sentenceId: record.id, sentence: record.text, sourceType: record.sourceType, sourceId: record.sourceId,
         targetWords: record.targetWordIds, grammarConceptIds: plan.steps.flatMap(s => s.conceptIds), steps,
         durationMs: 42000, sessionId: 'sess-1', meaningCorrect: true, translationDependence: 0,
-        transferOf: null, delayed: false, ...opts,
+        transferOf: null, delayed: false,
+        // 这些用例都用人工标注的练习句：必须显式声明结构已核验，否则按 16.3 的保守默认不计分
+        structureTrust: 'verified', structureProvenance: record.structureProvenance, ...opts,
     };
 }
 // 用正确选项把整句走一遍
@@ -216,6 +218,7 @@ test('证据幂等：同一会话重复提交只算一次，不同会话再练�
         targetWords: [], grammarConceptIds: [...rec.grammarTags], steps,
         durationMs: 30000, sessionId: 'sess-A', meaningCorrect: null, translationDependence: 0,
         transferOf: null, delayed: false,
+        structureTrust: 'verified', structureProvenance: rec.structureProvenance,
     };
     let d = { concepts: seedGrammarConcepts([], 1000), grammarAttempts: [] as GrammarAttempt[], sentenceAttempts: [] as SentenceAttempt[] };
     const first = applyEvidence(d, draft, stepConceptMap(plan.steps), 2000);

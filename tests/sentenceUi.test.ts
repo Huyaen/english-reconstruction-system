@@ -110,7 +110,7 @@ test('Phase 4 UI：句子训练全流程（拆句 → 反馈/JIT → 独立证�
         assert.equal(w.document.querySelector('#main')!.textContent!.includes('我读的那本书'), false);
         await answerSentence(w, 'sen.curated.relative-01');
         const result = w.document.querySelector('#main')!.textContent!;
-        assert.ok(result.includes('自己答对') && result.includes('会算进掌握'));
+        assert.ok(result.includes('自己答对') && result.includes('会算进语法掌握'));
         assert.ok(result.includes('结构树'));
         const tokens = [...w.document.querySelectorAll('#lab-tree .token b')].map(e => e.textContent);
         // 结构树按"主句骨架 → 从句"分组（就是拆句顺序），组内保持原词序
@@ -154,7 +154,7 @@ test('Phase 4 UI：句子训练全流程（拆句 → 反馈/JIT → 独立证�
         await answerSentence(w, 'sen.curated.adverbial-01', { wrongStep: 0 });
         const wrongResult = w.document.querySelector('#main')!.textContent!;
         assert.ok(wrongResult.includes('自己答错了'), '答错必须如实分级');
-        assert.ok(wrongResult.includes('会算进掌握'), '独立错误应作为负证据影响估算');
+        assert.ok(wrongResult.includes('会算进语法掌握'), '独立错误应作为负证据影响估算');
         const attempts3 = await idbRows(w, 'sentenceAttempts');
         assert.equal(attempts3.length, 3);
         assert.equal(attempts3[2].structureCorrect, false);

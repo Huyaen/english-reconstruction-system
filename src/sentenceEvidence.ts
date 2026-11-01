@@ -4,9 +4,10 @@
 //   1) 同一 attempt 不重复写入（幂等 key 保护）。
 //   2) "看过答案"（辅助级别 ≥3）与"提示后正确"不产生掌握证据，只计 exposure。
 //   3) 迁移 / 延迟保持是强证据；所有概念概率仍是 BKT-lite 估算值。
-import type { GrammarAttempt, GrammarConcept, SentenceAttempt, SentenceEvidenceClass, SentenceSourceType, SentenceStepRecord } from './types.ts';
+import type { GrammarAttempt, GrammarConcept, SentenceAttempt, SentenceEvidenceClass, SentenceSourceType, SentenceStepRecord, SentenceStructureProvenance } from './types.ts';
 import { GRAMMAR_CONFIG, GRAMMAR_TAXONOMY, bktUpdate, grammarState, type GrammarConceptDef } from './grammar.ts';
 import { countsTowardMastery, evidenceClass, maxSupportLevel, type LabStep, type StepEvaluation } from './sentenceLab.ts';
+import type { StructureTrust } from './sentenceTrust.ts';
 export interface AttemptDraft {
     sentenceId: string;
     sentence: string;
@@ -21,6 +22,12 @@ export interface AttemptDraft {
     translationDependence: number;
     transferOf: string | null;
     delayed: boolean;
+    /**
+     * Phase 16.3：这句的结构可信度。
+     * 缺省按 'unverified' 处理——没声明核验过，就不许拿它给语法计分。
+     */
+    structureTrust?: StructureTrust;
+    structureProvenance?: SentenceStructureProvenance;
 }
 export interface EvidenceApplyResult {
     concepts: GrammarConcept[];
@@ -30,6 +37,8 @@ export interface EvidenceApplyResult {
     countsTowardMastery: boolean;
     updatedConceptIds: string[];
     duplicate: boolean;
+    /** 为什么这次没算掌握（only when countsTowardMastery === false） */
+    ineligibleReason?: 'support-too-high' | 'structure-unverified';
 }
 const uid = (prefix: string, now: number) => `${prefix}-${now.toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
 // 幂等 key：同一句 + 同一会话 + 同一批步骤在短时间内只写一次
@@ -51,6 +60,9 @@ export function buildSentenceAttempt(draft: AttemptDraft, now = Date.now()): {
         delayed: draft.delayed,
         allCorrect: draft.steps.length > 0 && draft.steps.every(s => s.correct),
     });
+    // 结构没核对过：答得再干净也不能推进语法掌握（只记这次练习本身）
+    const trust: StructureTrust = draft.structureTrust ?? 'unverified';
+    const eligible = trust === 'verified';
     const attempt: SentenceAttempt = {
         id: uid('sa', now),
         sentence: draft.sentence,
@@ -78,8 +90,11 @@ export function buildSentenceAttempt(draft: AttemptDraft, now = Date.now()): {
         meaningCorrect: draft.meaningCorrect,
         transferOf: draft.transferOf,
         reviewedAt: null,
+        structureTrust: trust,
+        structureProvenance: draft.structureProvenance,
+        masteryEligible: eligible && countsTowardMastery(klass),
     };
-    return { attempt, klass, counts: countsTowardMastery(klass) };
+    return { attempt, klass, counts: eligible && countsTowardMastery(klass) };
 }
 export function isDuplicateAttempt(existing: SentenceAttempt[], draft: AttemptDraft, now = Date.now()): boolean {
     const key = attemptKey(draft, now);
@@ -115,12 +130,32 @@ export function applyEvidence(data: {
     sentenceAttempts?: SentenceAttempt[];
 }, draft: AttemptDraft, stepConcepts: Map<string, string[]>, now = Date.now(), defs: GrammarConceptDef[] = GRAMMAR_TAXONOMY): EvidenceApplyResult {
     const { attempt, klass, counts } = buildSentenceAttempt(draft, now);
+    const eligible = attempt.structureTrust === 'verified';
     // 幂等：只拦"同一次会话里对同一句的重复提交"（双击/重放）。
     // 不同会话再练同一句是合法的第二次练习，必须各自计入证据——不能按"同一句 + 时间窗"去重。
     const duplicated = (data.sentenceAttempts ?? []).some(a => a.sentenceId === draft.sentenceId && a.sessionId === draft.sessionId);
     if (duplicated)
         return { concepts: data.concepts, grammarAttempts: data.grammarAttempts, attempt, evidenceClass: klass, countsTowardMastery: counts, updatedConceptIds: [], duplicate: true };
     const aggregates = aggregateByConcept(draft.steps, stepConcepts);
+    // 未核验结构：只记接触（contact），不写 GrammarAttempt，也不碰 BKT 后验与错误类型。
+    // 这样 grammarState() 重算时同样看不到这次作答——不存在「页面说不算、数据库却在算」。
+    // 注意：这里只拦「结构未核验」；「用了太多提示」是原有证据分级，仍然记接触次数（只是不推进掌握）。
+    if (!eligible) {
+        const contacted = new Map(data.concepts.map(c => [c.id, { ...c }]));
+        const ids: string[] = [];
+        for (const agg of aggregates) {
+            const prev = contacted.get(agg.conceptId);
+            if (!prev)
+                continue;
+            contacted.set(agg.conceptId, { ...prev, exposures: prev.exposures + 1, lastSeenAt: now, updatedAt: now });
+            ids.push(agg.conceptId);
+        }
+        return {
+            concepts: [...contacted.values()], grammarAttempts: data.grammarAttempts, attempt,
+            evidenceClass: klass, countsTowardMastery: false, updatedConceptIds: ids, duplicate: false,
+            ineligibleReason: 'structure-unverified',
+        };
+    }
     const conceptById = new Map(data.concepts.map(c => [c.id, { ...c }]));
     const grammarAttempts = [...data.grammarAttempts];
     const updatedConceptIds: string[] = [];
@@ -179,7 +214,11 @@ export function applyEvidence(data: {
         conceptById.set(agg.conceptId, next);
         updatedConceptIds.push(agg.conceptId);
     }
-    return { concepts: [...conceptById.values()], grammarAttempts, attempt, evidenceClass: klass, countsTowardMastery: counts, updatedConceptIds, duplicate: false };
+    return {
+        concepts: [...conceptById.values()], grammarAttempts, attempt, evidenceClass: klass,
+        countsTowardMastery: counts, updatedConceptIds, duplicate: false,
+        ineligibleReason: counts ? undefined : 'support-too-high',
+    };
 }
 // 延迟保持复测：对既有 attempt 做 24h 后重测的证据升级
 export function delayedClass(attempt: SentenceAttempt, now = Date.now()): SentenceEvidenceClass | null {
