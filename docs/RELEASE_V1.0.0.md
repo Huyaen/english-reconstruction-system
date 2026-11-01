@@ -17,12 +17,12 @@
 | 项目 | 值 |
 |---|---|
 | 发布分支 | `main` |
-| 发布提交 | `b7c6af235ad2048acf50aee34275144d993b44df` |
+| 发布提交 | `a7f9bb0053bd956520d42acfcdab40a9e522ed5d`（发布工程提交；代码合并点 `b7c6af2`） |
 | 合并前 main | `9de8acd2a40f84ab1fb631ada79de15242d2e45a` |
 | 合并方式 | `git merge --ff-only`（快进，无合并提交、无强推、无历史改写） |
 | 回滚坐标 | tag `pre-v1.0.0-main` → `9de8acd`（本轮新建，未移动任何旧 tag） |
-| 发布 tag | 见 `git tag -l "v1.0.0"`（本轮在 `main` 上新建 annotated tag） |
-| CI（main push） | run `41299310883` → **success** |
+| 发布 tag | `v1.0.0` → `a7f9bb0`（annotated，已推送；`git ls-remote` 已核对） |
+| CI（main push） | run `41302197280` @ `a7f9bb0` → **success**；合并点 `41299310883` @ `b7c6af2` → success |
 | CI（合并前的同等代码） | run `41291883816`（`workflow_dispatch` @ `b7c6af2`）→ success |
 | 测试 | `npm test` **438/438**（本轮在 `main` 上重跑） |
 | 构建 | `npm run build` 0；`dist` 与提交内容逐字节一致（重建后 `git status dist` 为 0） |
@@ -38,7 +38,7 @@
 | 构建可重现 | `npm run build` 后 `git status --porcelain dist` | 0（产物与提交一致，不是陈旧构建） |
 | 文案检测 | `node scripts/phase16_1-copy-lint.mjs` | `{"files":101,"hits":0,"byRule":{}}` |
 | 测试钩子 | `grep -rl "__labTest\|__readTest\|__examTest" dist/assets/*.js` | 无（生产包不含测试钩子） |
-| CI | GitHub Actions | main push `41299310883` success；Node 22 的「Verify committed build artifacts」步骤绿 |
+| CI | GitHub Actions | main push `41302197280`（`a7f9bb0`）success；`41299310883`（`b7c6af2`）success；Node 22 的「Verify committed build artifacts」步骤绿 |
 
 Git 卫生：合并前 `git status --porcelain` 为 0；`git stash list` 空；`.git/MERGE_HEAD`、`rebase-merge`、`rebase-apply` 均不存在；`origin/main` 与本地 `main` 同哈希；工作树在合并、构建、冒烟之后仍为 0 改动（本轮新增文件见第六节）。
 
