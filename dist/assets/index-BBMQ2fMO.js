@@ -547,7 +547,7 @@ ${cg(l)}`,jsonSchema:zn.outputSchema,schemaName:zn.schemaName},{...r,knownMode:r
         <label>最大障碍<input id="baseline-blocker" placeholder="例如：语速 / 连读 / 词不认识" maxlength="200"></label>
       </div>
       <div class="actions"><button class="primary" data-baseline-save>保存冷测</button><button class="text-button" data-baseline-skip>跳过冷测</button></div>
-    </section>`:`<section class="panel"><b>冷测</b><p class="muted">${a.status==="recorded"?`已记录（你自己填的自评，不是测出来的）：听懂约 ${Math.round((a.comprehension??0)*100)}%（${Kg[a.captionMode??"none"]??"字幕未知"}）`:"已跳过（没测过）"} · ${ma(a.at)}</p></section>`}
+    </section>`:`<section class="panel"><b>冷测</b><p class="muted">${a.status==="recorded"?`已记录：听懂约 ${Math.round((a.comprehension??0)*100)}%（${Kg[a.captionMode??"none"]??"字幕未知"}）`:"已跳过（没测过）"} · ${ma(a.at)}</p></section>`}
     <section class="panel">
       <div class="section-title">复盘</div>
       <p class="muted">${y(e.captionCaveat)}</p>
