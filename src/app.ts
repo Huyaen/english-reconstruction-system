@@ -1,3 +1,6 @@
+import { AutoBackup, type BackupState } from './autoBackup.ts';
+import { backupPanel, bindBackupPanel, updateBackupPanel } from './autoBackupView.ts';
+import { readLocalMeta, writeLocalMeta, onStudySaved } from './db.ts';
 import './tokens.css';
 import { applyPageChrome, applyPageScope, disposePageChrome, installPressFeedback } from './ui/motion.ts';
 import './style.css';
@@ -115,6 +118,11 @@ import { diagnosticsPage } from './diagnosticsView.ts';
 import { SOURCE_TEXT, STRUCTURE_TEXT, CAPABILITY_NEED_TEXT, PRIORITY_TEXT, PRIORITY_LEGEND, SOURCE_SHORTAGE_TEXT, STRUCTURE_ISSUE_TEXT, CONFIDENCE_TEXT, AI_CHECK_SCOPE_NOTE, sourceMixNote } from './uiLabels.ts';
 import { buildDiagnostics, latestSnapshot } from './diagnosticsInsight.ts';
 import { generateSnapshot, generateWeekly } from './diagnosticsActions.ts';
+const autoBackup = new AutoBackup(loadData, state => writeLocalMeta('auto-backup', state), () => {
+    updateBackupPanel(autoBackup);
+    if (autoBackup.state.status === 'error' || autoBackup.state.status === 'permission') toast(autoBackup.state.error);
+});
+const backupCompleted = (event: string) => { void autoBackup.run(event).catch(e => toast(e.message)); };
 let data: Data, page = 'home', bookFilter = '', search = '', levelFilter = '', sort = 'priority', listPage = 0;
 /** 页面纪元：每次真的换页 +1。异步任务拿它作废自己，避免旧任务的收尾写进新页面。 */
 let pageEpoch = 0;
@@ -554,6 +562,7 @@ function previewDone() {
         taskExecution = null;
         void completePlanTask(exec, Math.max(0.5, Math.round((Date.now() - exec.startedAt) / 30000) / 2));
     }
+    if (done.length) backupCompleted(`preview:${uid()}`);
     previewWords = [];
     previewIndex = 0;
     enterPage('preview-done');
@@ -1226,6 +1235,7 @@ function bindOutputSession(attempt: import('./types.ts').OutputAttempt): void {
             toast(r.message);
             return;
         }
+        backupCompleted(`output:${attempt.id}`);
         outputMessage = '这次写完了。会按“是不是你自己写的”记录；照抄或看完示范再写对的，不算自己写。';
         if (planTaskId) {
             const planTask = todayPlan?.initialPlan.find(t => t.id === planTaskId);
@@ -1573,6 +1583,7 @@ function bindInputSession(session: NonNullable<ReturnType<typeof inputSessionByI
             toast(r.message);
             return;
         }
+        backupCompleted(`input:${session.id}`);
         toast('这次输入已完成：只记录曝光与自评，不会自动提高能力');
         if (planTaskId) {
             const planTask = todayPlan?.initialPlan.find(t => t.id === planTaskId);
@@ -1903,7 +1914,7 @@ function settingsPage() {
     $('#main').innerHTML = title('设置', '按你的节奏来', '答题快慢、题目难度和备份，都在这里改。') + `<form id="settings-form"><div class="two-col"><section class="panel"><h2>测试与节奏</h2><div class="form-grid"><label>多快算快答（秒）<input name="fast" type="number" min="0.1" step="0.1" value="${s.fast / 1000}" required></label><label>多快算正常（秒）<input name="normal" type="number" min="0.2" step="0.1" value="${s.normal / 1000}" required></label><label>多久算没答（秒）<input name="timeout" type="number" min="0.3" max="120" step="0.1" value="${s.timeout / 1000}" required></label><label>英文题占比（%）<input name="ratio" type="number" min="0" max="100" value="${s.ratio}" required></label><label>难度<select name="difficulty">${[['easy', '简单（4 个选项）'], ['normal', '普通（4 个选项）'], ['hard', '困难（6 个选项）']].map(([v, t]) => `<option value="${v}" ${s.difficulty === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>答错反馈<select name="feedback">${[[0, '立即下一题'], [500, '停留 0.5 秒'], [1000, '停留 1 秒'], [-1, '手动继续']].map(([v, t]) => `<option value="${v}" ${s.feedback === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>复习怎么排<select name="schedulingAuthority"><option value="fsrs" ${s.schedulingAuthority === 'fsrs' ? 'selected' : ''}>默认（FSRS）</option><option value="legacy" ${s.schedulingAuthority === 'legacy' ? 'selected' : ''}>旧算法（回滚用）</option></select></label><label>希望记住的比例<input name="requestRetention" type="number" min="0.5" max="0.99" step="0.01" value="${s.requestRetention}" required></label></div><p class="hint">答对立即下一题。正常上限至超时之间为模糊。切换标签页会自动暂停计时。</p></section><section class="panel"><h2>AI 服务（可选）</h2><p class="hint">不填也能正常学，只是用不了 AI 生成和批改。</p><label>服务地址<input name="endpoint" type="url" placeholder="https://你的服务地址/v1" value="${esc(s.endpoint)}" autocomplete="off"></label><label>模型名称<input name="model" value="${esc(s.model)}" placeholder="填写供应商提供的模型名称"></label><label>API 密钥<input name="key" type="password" value="${esc(s.key)}" autocomplete="off" placeholder="仅用于你配置的地址"></label><label class="check"><input name="rememberKey" type="checkbox" ${s.rememberKey ? 'checked' : ''}> 在这台设备保存密钥</label>
 <label>返回格式<select name="structuredMode">${[['auto', '自动（先要结构化的，不支持就用普通文本）'], ['json_object', '只接受 JSON（JSON Mode）'], ['json_schema', '只接受严格 JSON 结构（JSON Schema）'], ['text', '只当纯文本处理']].map(([v, t]) => `<option value="${v}" ${(s.ai?.structuredMode ?? 'auto') === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
 <div class="form-grid"><label>最多等多久（秒）<input name="aiTimeout" type="number" min="3" max="180" value="${Math.round((s.ai?.timeoutMs ?? 45000) / 1000)}"></label><label>失败后重试次数<input name="aiRetries" type="number" min="0" max="3" value="${s.ai?.maxRetries ?? 2}"></label><label>单次输出上限（token）<input name="aiMaxTokens" type="number" min="64" max="8000" value="${s.ai?.maxOutputTokens ?? 1200}"></label><label>每天用量上限（token）<input name="aiBudget" type="number" min="0" placeholder="留空 = 不限" value="${s.ai?.dailyTokenBudget ?? ''}"></label></div>
-<p class="hint">不勾“在这台设备保存密钥”，关掉页面就清了。勾了以后密钥会明文存在这台电脑的浏览器里，导出的完整备份不会带上它。浏览器直连要求服务商支持 CORS。用量按 token 计，这里不换算成钱。token 是服务商计费的单位，1 个 token 大约是半个英文单词。浏览器直连还要求服务商允许跨域访问。</p></section></div><button class="primary" type="submit">保存设置</button></form>${originPanelHTML(origin)}<section class="panel backup-panel"><h2>备份与换地址</h2><p>导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。</p><div class="actions"><button id="backup" class="primary">导出全部学习数据</button><label class="button secondary">导入备份<input id="restore" type="file" accept=".json" hidden></label><button id="persist" class="secondary">申请持久存储</button><button id="check-integrity" class="secondary">检查数据完整性</button><button id="clear" class="danger-text">清空本地数据</button></div><p id="storage-info" class="hint">学习数据按浏览器和站点地址保存：一直用同一个地址打开，才能看到同一份数据。</p></section>`;
+<p class="hint">不勾“在这台设备保存密钥”，关掉页面就清了。勾了以后密钥会明文存在这台电脑的浏览器里，导出的完整备份不会带上它。浏览器直连要求服务商支持 CORS。用量按 token 计，这里不换算成钱。token 是服务商计费的单位，1 个 token 大约是半个英文单词。浏览器直连还要求服务商允许跨域访问。</p></section></div><button class="primary" type="submit">保存设置</button></form>${originPanelHTML(origin)}${backupPanel()}<section class="panel backup-panel"><h2>备份与换地址</h2><p>导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。</p><div class="actions"><button id="backup" class="primary">导出全部学习数据</button><label class="button secondary">导入备份<input id="restore" type="file" accept=".json" hidden></label><button id="persist" class="secondary">申请持久存储</button><button id="check-integrity" class="secondary">检查数据完整性</button><button id="clear" class="danger-text">清空本地数据</button></div><p id="storage-info" class="hint">学习数据按浏览器和站点地址保存：一直用同一个地址打开，才能看到同一份数据。</p></section>`;
     on('#settings-form', 'submit', async (e) => {
         e.preventDefault();
         const f = new FormData(e.target as HTMLFormElement);
@@ -1916,6 +1927,7 @@ function settingsPage() {
         data.settings = updated;
         toast('设置已保存');
     });
+    bindBackupPanel(autoBackup, exportBackup, toast);
     on('#backup', 'click', exportBackup);
     const integrityIssueHTML = (report: ReturnType<typeof checkDataIntegrity>) => report.issues.slice(0, 12).map(i => `<li><b>${i.severity === 'error' ? '错误' : '警告'}</b> · ${esc(i.store)}${i.recordId ? ` / ${esc(i.recordId)}` : ''} · ${esc(i.message)}</li>`).join('') + (report.issues.length > 12 ? `<li>另有 ${report.issues.length - 12} 条问题未展开。</li>` : '');
     on('#check-integrity', 'click', () => {
@@ -1942,6 +1954,7 @@ function settingsPage() {
             on('#restore-confirm', 'click', async () => {
                 try {
                     await replaceData(restored);
+                    await autoBackup.disable();
                     data = restored;
                     reindex();
                     bookFilter = '';
@@ -3030,6 +3043,7 @@ async function finishLabSession(): Promise<void> {
     if (!session)
         return;
     const finished = session.finished;
+    if (finished.length) backupCompleted(`sentence:${session.sessionId}`);
     const minutes = Math.max(0.5, Math.round((Date.now() - session.startedAt) / 30000) / 2);
     const taskId = session.planTaskId;
     const kind = session.planTaskKind;
@@ -4203,6 +4217,7 @@ function readingWhole(): void {
         const done = completeReadingSession(readSession, { summary, now: Date.now() });
         upsertReadSession(done);
         await persistReading();
+        backupCompleted(`reading:${done.id}`);
         const planTaskId = readingTask?.planTaskId ?? done.dailyPlanTaskId ?? '';
         if (planTaskId) {
             const planTask = todayPlan?.initialPlan.find(t => t.id === planTaskId);
@@ -4432,6 +4447,7 @@ async function completeExamFlow(s: ExamSession): Promise<void> {
         render();
         return;
     }
+    backupCompleted(`exam:${s.id}`);
     if (s.dailyPlanTaskId) {
         const planTask = todayPlan?.initialPlan.find(t => t.id === s.dailyPlanTaskId);
         examPlanTaskId = null;
@@ -4798,6 +4814,9 @@ async function boot() {
     installPageTestHook();
     installPressFeedback();
     await openDB();
+    autoBackup.restore(await readLocalMeta<BackupState>('auto-backup'));
+    await autoBackup.checkPermission().catch(() => { autoBackup.state.status = 'error'; autoBackup.state.error = '无法检查备份目录，请重新选择目录或手动导出。'; });
+    onStudySaved(backupCompleted);
     data = await loadData();
     try {
         await ensureExamContent();

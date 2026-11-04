@@ -184,6 +184,21 @@ export async function openDB(): Promise<void> {
     db.onversionchange = () => db.close();
 }
 export function getDB(): IDBDatabase { return db; }
+export async function readLocalMeta<T>(id: string): Promise<T | undefined> {
+    await openDB();
+    const row = await req(db.transaction('meta', 'readonly').objectStore('meta').get(id));
+    return row?.value as T | undefined;
+}
+export async function writeLocalMeta(id: string, value: unknown): Promise<void> {
+    const tx = db.transaction('meta', 'readwrite'); const p = done(tx);
+    tx.objectStore('meta').put({ id, value }); await p;
+}
+let studySaved: (event: string) => void = () => {};
+export function onStudySaved(listener: (event: string) => void) { studySaved = listener; }
+function completedStudy(session: StudySession) {
+    if (session.ended && session.index >= session.queue.length && session.answered > 0)
+        studySaved(`vocab:${session.id}`);
+}
 export function closeDB() { db?.close(); db = undefined as unknown as IDBDatabase; }
 function done(tx: IDBTransaction) { return new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onabort = () => reject(tx.error || Error('保存事务中止')); tx.onerror = () => reject(tx.error || Error('数据保存失败')); }); }
 function req<T>(r: IDBRequest<T>) { return new Promise<T>((resolve, reject) => { r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); }); }
@@ -250,8 +265,9 @@ export async function putItems(name: DataStoreName, items: unknown[]) {
     for (const x of items)
         tx.objectStore(name).put(x);
     await p;
+    if (name === 'sessions') for (const s of items) completedStudy(s as StudySession);
 }
-export async function saveAnswer(word: Word, record: ReviewRecord, session: StudySession) { const tx = db.transaction(['words', 'records', 'sessions'], 'readwrite'); const p = done(tx); tx.objectStore('words').put(word); tx.objectStore('records').put(record); tx.objectStore('sessions').put(session); await p; }
+export async function saveAnswer(word: Word, record: ReviewRecord, session: StudySession) { const tx = db.transaction(['words', 'records', 'sessions'], 'readwrite'); const p = done(tx); tx.objectStore('words').put(word); tx.objectStore('records').put(record); tx.objectStore('sessions').put(session); await p; completedStudy(session); }
 // Preview 结果落盘（Phase 2.6）：word 与可选 exposure 单事务写入
 export async function savePreview(word: Word, exposure: WordExposure | null) {
     const names = exposure ? ['words', 'wordExposures'] : ['words'];
@@ -282,7 +298,7 @@ export function backup(d: Data) {
     const data: Record<string, unknown> = {};
     for (const name of dataStores)
         data[name] = (d as unknown as Record<string, unknown>)[name] ?? [];
-    data.settings = { ...d.settings, key: '', rememberKey: false };
+    data.settings = backupSettings(d.settings);
     return JSON.stringify({ format: 'vocabulary-memory', version: DB_VERSION, exportedAt: new Date().toISOString(), data }, null, 2);
 }
 // 先校验、后进入破坏性事务。v1/v2 备份都可读入；未知版本拒绝。
@@ -429,5 +445,8 @@ export function validateBackup(value: unknown): Data {
         if (a.steps !== undefined && (!Array.isArray(a.steps) || a.steps.some(st => !st || typeof st.stepId !== 'string' || typeof st.correct !== 'boolean')))
             return fail();
     }
-    return structuredClone(normalizeData({ ...d, settings: { ...d.settings, key: '', rememberKey: false } }));
+    return structuredClone(normalizeData({ ...d, settings: backupSettings(d.settings) }));
+}
+function backupSettings(settings: Settings): Settings {
+    return { ...settings, key: '', rememberKey: false, ...(settings.ai ? { ai: { ...settings.ai, key: '' } } : {}) };
 }
