@@ -188,6 +188,7 @@ export interface AIAnalysis {
     sampleSize: number;
 }
 export interface Data {
+    spellingAttempts: SpellingAttempt[];
     books: WordBook[];
     words: Word[];
     records: ReviewRecord[];
@@ -1213,4 +1214,19 @@ export interface ReadingDifficultyReport {
     confidence: 'low' | 'medium' | 'high';
     reasons: string[];
     classification: 'comfort' | 'growth' | 'stretch' | 'too-hard';
+}
+
+/** 独立拼写证据，不属于 ReviewRecord，不参与旧调度或掌握度分数。 */
+export interface SpellingAttempt {
+    id: string;
+    sessionId: string;
+    wordId: string;
+    at: number;
+    input: string;
+    expected: string;
+    correct: boolean;
+    assisted: boolean;
+    retry: boolean;
+    ms: number;
+    normalizationVersion: 1;
 }

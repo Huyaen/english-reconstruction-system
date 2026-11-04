@@ -5,8 +5,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { build } from 'esbuild';
-import { indexedDB } from 'fake-indexeddb';
+import { indexedDB, IDBObjectStore as FakeObjectStore } from 'fake-indexeddb';
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { DB_NAME, emptyData } from '../src/db.ts';
 import { defaults } from '../src/types.ts';
 import type { SentenceRecord, Word } from '../src/types.ts';
@@ -18,7 +19,15 @@ const NOW = 1700000000000;
 const AI_TEXT = 'Although the river had risen, the engineers rebuilt the bridge before the storm arrived.';
 const AI_ID = 'sen.ai.phase163';
 let bundle: string | null = null;
-async function boot(): Promise<JSDOM> {
+let spyBundle: string | null = null;
+async function boot(captureBackups = false): Promise<JSDOM> {
+    if (captureBackups && !spyBundle) {
+        const out = await build({ entryPoints: ['src/app.ts'], bundle: true, format: 'iife', write: false, loader: { '.css': 'empty' }, plugins: [{ name: 'backup-event-observer', setup(b) {
+            b.onLoad({ filter: /[\\/]autoBackup\.ts$/ }, () => ({ contents: `globalThis.__backupEvents = []; export class AutoBackup { state = { enabled: false, status: 'off', error: '' }; restore() {} async checkPermission() {} async run(event) { globalThis.__backupEvents.push(event); } }`, loader: 'js' }));
+            b.onLoad({ filter: /[\\/]app\.ts$/ }, async args => ({ contents: await readFile(args.path, 'utf8') + '\n(globalThis as any).__testPaint = paint;', loader: 'ts', resolveDir: process.cwd() + '/src' }));
+        } }] });
+        spyBundle = out.outputFiles[0].text;
+    }
     if (!bundle) {
         const out = await build({ entryPoints: ['src/app.ts'], bundle: true, format: 'iife', write: false, loader: { '.css': 'empty' } });
         bundle = out.outputFiles[0].text;
@@ -32,7 +41,7 @@ async function boot(): Promise<JSDOM> {
     Object.defineProperty(w.navigator, 'locks', { value: { request: (_n: unknown, _o: unknown, fn: (l: object) => unknown) => fn({}) } });
     w.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
     w.HTMLDialogElement.prototype.close = function () { this.open = false; };
-    w.eval(bundle);
+    w.eval(captureBackups ? spyBundle! : bundle);
     await until(w, () => !!w.document.querySelector('#plan-setup, #plan-panel, #main'), 'boot');
     return dom;
 }
@@ -180,6 +189,45 @@ test('Phase 16.3：AI 未核验句的练习不计入语法掌握（数据库 / �
     finally {
         dom.window.close();
     }
+});
+
+test('自动备份：句子学习证据保存失败后，结束训练不能触发成功会话备份', async () => {
+    const seed = await seedAndBoot(); seed.window.close();
+    const dom = await boot(true); const w = dom.window;
+    const original = FakeObjectStore.prototype.put;
+    try {
+        FakeObjectStore.prototype.put = function (...args: Parameters<typeof original>) {
+            if (this.name === 'sentenceAttempts') throw new DOMException('isolated quota failure', 'QuotaExceededError');
+            return original.apply(this, args);
+        };
+        click(w, '[data-nav="sentence"]');
+        await until(w, () => !!w.document.querySelector('#sentence-page'));
+        click(w, `[data-sentence-start="${AI_ID}"]`);
+        await until(w, () => !!w.document.querySelector('#lab-sentence'));
+        await answerAll(w, aiSentence());
+        assert.equal((await rows(w, 'sentenceAttempts')).length, 0);
+        click(w, '#lab-next-sentence');
+        await until(w, () => !!w.document.querySelector('#sentence-page'));
+        const events = (w as unknown as { __backupEvents: string[] }).__backupEvents;
+        assert.ok(!events.some(e => e.startsWith('sentence:')), '未保存的句子训练不得宣称已进入自动备份');
+    }
+    finally { FakeObjectStore.prototype.put = original; dom.window.close(); }
+});
+
+test('拼写：后台完整重绘不能替换输入页、丢失输入或泄漏下一题', async () => {
+    const seed = await seedAndBoot(); seed.window.close();
+    const dom = await boot(true); const w = dom.window;
+    try {
+        click(w, '[data-mode="spelling"]');
+        await until(w, () => !!w.document.querySelector('#spelling-input'));
+        const input = w.document.querySelector<HTMLInputElement>('#spelling-input')!;
+        input.value = 'my partial spelling'; input.focus();
+        (w as unknown as { __testPaint: () => void }).__testPaint();
+        assert.equal(w.document.querySelector<HTMLInputElement>('#spelling-input')?.value, 'my partial spelling');
+        assert.equal(w.document.activeElement?.id, 'spelling-input');
+        assert.ok(!w.document.querySelector('#spelling-feedback')?.textContent);
+    }
+    finally { dom.window.close(); }
 });
 test('Phase 16.3：经过人工校对的练习句仍正常计分（正控）', async () => {
     const dom = await seedAndBoot();

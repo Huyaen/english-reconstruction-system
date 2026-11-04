@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import 'fake-indexeddb/auto';
-import { openDB, closeDB, loadData, replaceData, backup, validateBackup, emptyData, DB_NAME } from '../src/db.ts';
+import { openDB, closeDB, loadData, replaceData, backup, validateBackup, emptyData, DB_NAME, DB_VERSION } from '../src/db.ts';
 import { StalePlanError, latestPlan, listPlans, loadPlan, savePlan } from '../src/plannerStore.ts';
 import { createDailyPlan, planMinutes, regenerateRemaining } from '../src/planner.ts';
 import { fsrsDefaults } from '../src/types.ts';
@@ -112,8 +112,8 @@ test('IndexedDB 版本 additive 提升到 DB_VERSION（v4 sentences / v5 ai / v6
         r.onsuccess = () => resolve(r.result);
         r.onerror = () => reject(r.error);
     });
-    assert.equal(db.version, 7);
-    for (const name of ['examSpecifications', 'examMaterials', 'examItems', 'examSessions', 'examLogs']) {
+    assert.equal(db.version, DB_VERSION);
+    for (const name of ['examSpecifications', 'examMaterials', 'examItems', 'examSessions', 'examLogs', 'spellingAttempts']) {
         const t = db.transaction(name);
         assert.equal(t.objectStore(name).keyPath, 'id');
     }

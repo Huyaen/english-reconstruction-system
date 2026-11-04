@@ -5,7 +5,7 @@ import { validSettings } from './core.ts';
 // 设计依据：REFERENCE_RESEARCH.md §6.1（Dexie 版本化 schema 思想）与 §2.1（Lute migration 模式）。
 // 原则：只加不删（additive only）；逐版本迁移；升级事务原子性（失败自动回滚，旧数据安全）。
 export const DB_NAME = 'vocabulary-memory-v1';
-export const DB_VERSION = 7;
+export const DB_VERSION = 8;
 const legacyStores = ['books', 'words', 'records', 'sessions', 'analyses', 'meta'] as const;
 const legacyDataStores = ['books', 'words', 'records', 'sessions', 'analyses'] as const;
 const v2Stores = ['wordExposures', 'grammarConcepts', 'grammarAttempts', 'sentenceAttempts', 'passages', 'readingSessions', 'inputSources', 'inputSessions', 'outputAttempts', 'dailyPlans', 'miniUnits', 'skillSnapshots', 'weeklyDiagnostics', 'libraryItems'] as const;
@@ -18,7 +18,8 @@ const v6Stores = ['transcripts', 'inputEvidence'] as const;
 // v7（Phase 11）：考试规格 / 材料 / 题目 / 会话 / 学校考试记录（additive only）
 const v7Stores = ['examSpecifications', 'examMaterials', 'examItems', 'examSessions', 'examLogs'] as const;
 // 所有 Learning Model store（v2 + v4）：ID 安全性与唯一性校验共用
-const modelStores = [...v2Stores, ...v4Stores, ...v5Stores, ...v6Stores, ...v7Stores] as const;
+const v8Stores = ['spellingAttempts'] as const;
+const modelStores = [...v2Stores, ...v4Stores, ...v5Stores, ...v6Stores, ...v7Stores, ...v8Stores] as const;
 export const dataStores = [...legacyDataStores, ...modelStores] as const;
 export const stores = [...dataStores, 'meta'] as const;
 type StoreName = (typeof stores)[number];
@@ -30,6 +31,7 @@ type IndexSpec = readonly [
     IDBIndexParameters?
 ];
 const indexSpecs: Partial<Record<StoreName, readonly IndexSpec[]>> = {
+    spellingAttempts: [['wordId,at', ['wordId', 'at']], ['sessionId', 'sessionId'], ['at', 'at']],
     words: [['bookId', 'bookId'], ['schedule.due', 'schedule.due'], ['fsrs.due', 'fsrs.due']],
     records: [['wordId,at', ['wordId', 'at']], ['at', 'at']],
     wordExposures: [['wordId,at', ['wordId', 'at']], ['at', 'at']],
@@ -116,6 +118,8 @@ function runBackfills(tx: IDBTransaction, fns: Array<(w: Word) => Word>) {
     step(0);
 }
 function runMigration(database: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
+    // v8 仅新增独立证据表，不改写既有词条、复习与阅读数据。
+    if (oldVersion < 8) database.createObjectStore('spellingAttempts', { keyPath: 'id' });
     if (oldVersion < 1)
         for (const name of legacyStores as readonly string[])
             if (!database.objectStoreNames.contains(name))
@@ -202,7 +206,7 @@ function completedStudy(session: StudySession) {
 export function closeDB() { db?.close(); db = undefined as unknown as IDBDatabase; }
 function done(tx: IDBTransaction) { return new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onabort = () => reject(tx.error || Error('保存事务中止')); tx.onerror = () => reject(tx.error || Error('数据保存失败')); }); }
 function req<T>(r: IDBRequest<T>) { return new Promise<T>((resolve, reject) => { r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); }); }
-export function emptyData(): Data { return { books: [], words: [], records: [], sessions: [], analyses: [], settings: { ...defaults }, wordExposures: [], grammarConcepts: [], grammarAttempts: [], sentenceAttempts: [], sentences: [], passages: [], readingSessions: [], inputSources: [], inputSessions: [], outputAttempts: [], dailyPlans: [], miniUnits: [], skillSnapshots: [], weeklyDiagnostics: [], libraryItems: [], aiGenerations: [], transcripts: [], inputEvidence: [], examSpecifications: [], examMaterials: [], examItems: [], examSessions: [], examLogs: [], migration: null }; }
+export function emptyData(): Data { return { spellingAttempts: [], books: [], words: [], records: [], sessions: [], analyses: [], settings: { ...defaults }, wordExposures: [], grammarConcepts: [], grammarAttempts: [], sentenceAttempts: [], sentences: [], passages: [], readingSessions: [], inputSources: [], inputSessions: [], outputAttempts: [], dailyPlans: [], miniUnits: [], skillSnapshots: [], weeklyDiagnostics: [], libraryItems: [], aiGenerations: [], transcripts: [], inputEvidence: [], examSpecifications: [], examMaterials: [], examItems: [], examSessions: [], examLogs: [], migration: null }; }
 export async function loadData(): Promise<Data> {
     await openDB();
     const tx = db.transaction([...stores], 'readonly');
@@ -224,6 +228,8 @@ export async function loadData(): Promise<Data> {
 }
 export async function replaceData(d: Data): Promise<void> {
     await openDB();
+    // 目录授权属于当前设备，既不导出，也不因导词/删词等数据替换丢失。
+    const localBackup = await readLocalMeta<unknown>('auto-backup');
     const tx = db.transaction([...stores], 'readwrite');
     const p = done(tx);
     try {
@@ -231,8 +237,10 @@ export async function replaceData(d: Data): Promise<void> {
         for (const name of stores) {
             const s = tx.objectStore(name);
             s.clear();
-            if (name === 'meta')
+            if (name === 'meta') {
                 s.put({ id: 'settings', value: storedSettings(d.settings) });
+                if (localBackup) s.put({ id: 'auto-backup', value: localBackup });
+            }
             else
                 for (const item of bag[name] ?? [])
                     s.put(item);
@@ -395,6 +403,14 @@ export function validateBackup(value: unknown): Data {
                 return fail();
             ids.add(id);
         }
+    }
+    if (v.version >= 8 && !Array.isArray(bag['spellingAttempts'])) return fail();
+    for (const a of d.spellingAttempts ?? []) {
+        if (!wordIds.has(a.wordId) || typeof a.sessionId !== 'string' || !/^[a-zA-Z0-9._:-]{1,128}$/.test(a.sessionId)
+            || !num(a.at) || !num(a.ms) || typeof a.input !== 'string' || a.input.length > 500
+            || typeof a.expected !== 'string' || !a.expected.trim() || a.expected.length > 500
+            || typeof a.correct !== 'boolean' || typeof a.assisted !== 'boolean' || typeof a.retry !== 'boolean'
+            || a.normalizationVersion !== 1) return fail();
     }
     // v2 关键引用/字段抽查
     for (const e of (bag['wordExposures'] ?? []) as WordExposure[])

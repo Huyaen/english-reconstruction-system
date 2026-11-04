@@ -6,7 +6,7 @@ import { AutoBackup, type BackupDirectory } from '../src/autoBackup.ts';
 
 function directory() {
     const files = new Map<string, string>();
-    let permission = 'granted', writes = 0, broken = false;
+    let permission = 'granted', writes = 0, broken = false, corrupt = false;
     const handle = {
         name: 'isolated-backups',
         async queryPermission() { return permission; },
@@ -19,12 +19,12 @@ function directory() {
                     writes++;
                     return { async write(text: string) { if (broken) throw Error('disk full'); files.set(name, text); }, async close() {}, async abort() {} };
                 },
-                async getFile() { return { async text() { return files.get(name)!; } }; },
+                async getFile() { return { async text() { return files.get(name)! + (corrupt ? 'broken' : ''); } }; },
             };
         },
         async removeEntry(name: string) { files.delete(name); },
     } as unknown as BackupDirectory;
-    return { handle, files, writes: () => writes, deny: () => { permission = 'prompt'; }, break: () => { broken = true; } };
+    return { handle, files, writes: () => writes, deny: () => { permission = 'prompt'; }, break: () => { broken = true; }, corrupt: () => { corrupt = true; } };
 }
 
 test('完整备份排除顶层和嵌套 API Key，恢复也清除两处 Key', () => {
@@ -98,4 +98,8 @@ test('写入后内容损坏被拒绝，原文件保留，元数据保存失败�
     assert.ok(!manager.state.events.includes('b'));
     fail = false; await manager.run('b');
     assert.ok(manager.state.events.includes('b'));
+    const valid = [...disk.files]; disk.corrupt(); await manager.run('corrupted');
+    assert.equal(manager.state.status, 'error');
+    assert.deepEqual([...disk.files], valid);
+    assert.ok(!manager.state.events.includes('corrupted'));
 });

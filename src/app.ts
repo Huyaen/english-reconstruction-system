@@ -1,3 +1,5 @@
+import { buildSpellingQueue } from './spelling.ts';
+import { SpellingPractice } from './spellingView.ts';
 import { AutoBackup, type BackupState } from './autoBackup.ts';
 import { backupPanel, bindBackupPanel, updateBackupPanel } from './autoBackupView.ts';
 import { readLocalMeta, writeLocalMeta, onStudySaved } from './db.ts';
@@ -128,6 +130,7 @@ let data: Data, page = 'home', bookFilter = '', search = '', levelFilter = '', s
 let pageEpoch = 0;
 let active: StudySession | null = null, feedback = false, busy = false, started = 0, timer: ReturnType<typeof setTimeout> | null = null, paused = false;
 let startingSession = false;
+let spellingPractice: SpellingPractice | null = null;
 let wordMap = new Map<string, Word>();
 let elapsedBeforePause = 0;
 let previewWords: Word[] = [], previewIndex = 0;
@@ -156,6 +159,7 @@ let grammarCategoryFilter: string = '';
 let grammarSelectedConcept = '';
 let labSession: LabRun | null = null;
 interface LabRun {
+    saveFailed?: boolean;
     sessionId: string;
     queue: string[];
     index: number;
@@ -321,12 +325,14 @@ function render(): void {
     paint();
 }
 function paint(): void {
+    // 后台任务刷新不能替换正在输入/反馈中的拼写页及其 DOM 容器。
+    if (page === 'spelling' && spellingPractice) return;
     const prev = lastRenderKey;
     const y = window.scrollY;
     disposePageChrome();
     applyProtoAttr();
     shell();
-    ({ home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp, input: inputPageApp, output: outputPageApp, diagnostics: diagnosticsPageApp, exam: examPageApp }[page] || home)();
+    ({ spelling: () => spellingPractice?.render(), home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp, input: inputPageApp, output: outputPageApp, diagnostics: diagnosticsPageApp, exam: examPageApp }[page] || home)();
     // 原型路径：有些会话页要先异步取数据，第一帧会是空的；用一块安静的占位代替黑屏。
     if (PROTO && page !== 'home') {
         const m = document.querySelector<HTMLElement>('#main');
@@ -421,7 +427,7 @@ function humanReasons(list: string[] | undefined, max = 3): string {
 }
 function metric(label: string, value: string, note: string) { return `<div class="metric"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`; }
 function metricNum(label: string, value: number, note: string, key: string) { return `<div class="metric"><span>${label}</span><strong data-odometer="${value}" data-odometer-key="${key}">${value}</strong><small>${note}</small></div>`; }
-function rangeControls() { return `<div class="range-controls"><label>范围<select id="range-book"><option value="">全部词书</option>${data.books.map(b => `<option value="${b.id}" ${bookFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label><label>数量<select id="range-count">${[50, 100, 300, 500, 1000].map(n => `<option value="${n}" ${n === 100 ? 'selected' : ''}>${n} 词</option>`).join('')}</select></label><label>方向<select id="range-ratio">${![0, 30, 50, 70, 100].includes(data.settings.ratio) ? `<option value="${data.settings.ratio}" selected>英→中 ${data.settings.ratio}%（自定义）</option>` : ''}<option value="50" ${data.settings.ratio === 50 ? 'selected' : ''}>双向各 50%</option><option value="70" ${data.settings.ratio === 70 ? 'selected' : ''}>英→中 70%</option><option value="30" ${data.settings.ratio === 30 ? 'selected' : ''}>中→英 70%</option><option value="100" ${data.settings.ratio === 100 ? 'selected' : ''}>只看英文（英→中）</option><option value="0" ${data.settings.ratio === 0 ? 'selected' : ''}>只看中文（中→英）</option></select></label></div>`; }
+function rangeControls() { return `<div class="range-controls"><label>范围<select id="range-book"><option value="">全部词书</option>${data.books.map(b => `<option value="${b.id}" ${bookFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label><label>数量<select id="range-count">${[50, 100, 300, 500, 1000].map(n => `<option value="${n}" ${n === 100 ? 'selected' : ''}>${n} 词</option>`).join('')}</select></label><label>方向<select id="range-ratio">${![0, 30, 50, 70, 100].includes(data.settings.ratio) ? `<option value="${data.settings.ratio}" selected>英→中 ${data.settings.ratio}%（自定义）</option>` : ''}<option value="50" ${data.settings.ratio === 50 ? 'selected' : ''}>双向各 50%</option><option value="70" ${data.settings.ratio === 70 ? 'selected' : ''}>英→中 70%</option><option value="30" ${data.settings.ratio === 30 ? 'selected' : ''}>中→英 70%</option><option value="100" ${data.settings.ratio === 100 ? 'selected' : ''}>只看英文（英→中）</option><option value="0" ${data.settings.ratio === 0 ? 'selected' : ''}>只看中文（中→英）</option></select></label></div><div class="actions"><button type="button" class="secondary" data-mode="spelling">拼写练习 · 看中文写英文</button></div>`; }
 function home() {
     const s = summary(data), unfinished = data.sessions.find(x => !x.ended);
     if (PROTO) {
@@ -593,6 +599,7 @@ async function startMode(mode: string, explicit?: Word[]) {
     }
 }
 async function startModeOnce(mode: string, explicit?: Word[]) {
+    if (mode === 'spelling') { startSpelling(explicit); return; }
     if (data.sessions.some(s => !s.ended)) {
         toast('请先继续或结束首页的未完成训练');
         return;
@@ -638,6 +645,22 @@ async function startModeOnce(mode: string, explicit?: Word[]) {
         await putItems('sessions', [s]);
     }
     await startSession(s);
+}
+function startSpelling(explicit?: Word[]) {
+    const range = document.querySelector<HTMLSelectElement>('#range-book')?.value ?? bookFilter;
+    const count = Number(document.querySelector<HTMLSelectElement>('#range-count')?.value || 100);
+    bookFilter = range;
+    const selected = explicit ?? data.words.filter(w => !range || w.bookId === range);
+    const filtered = buildSpellingQueue(selected, data.words);
+    const words = explicit ? filtered.words : shuffle(filtered.words).slice(0, count);
+    if (!words.length) { toast(`此范围没有可明确判定的拼写题（排除 ${filtered.excluded.length} 个歧义或不适用词条）`); return; }
+    enterPage('spelling'); shell();
+    const practice: SpellingPractice = new SpellingPractice(words, uid(), $('#main'), async attempt => {
+        await putItems('spellingAttempts', [attempt]);
+        data.spellingAttempts.push(attempt);
+    }, id => backupCompleted(`spelling:${id}`), () => setPage('home'), () => page === 'spelling' && spellingPractice === practice, filtered.excluded.length);
+    spellingPractice = practice;
+    practice.render();
 }
 async function startSession(s: StudySession) { active = s; enterPage('quiz'); shell(); await showQuestion(); }
 async function showQuestion() {
@@ -764,7 +787,7 @@ document.addEventListener('visibilitychange', () => {
 });
 let lastKeyAt = 0;
 document.addEventListener('keydown', e => {
-    if ((e.target as HTMLElement)?.matches('input,textarea,select') || $<HTMLDialogElement>('#modal').open)
+    if (e.isComposing || (e.target as HTMLElement)?.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"])') || $<HTMLDialogElement>('#modal').open)
         return;
     if (page === 'preview') {
         const map: Record<string, PreviewResult> = { '1': 'know', '2': 'familiar', '3': 'unknown', '4': 'skip' };
@@ -962,6 +985,7 @@ function deleteBookDialog() {
         next.books = next.books.filter(x => x.id !== b.id);
         next.words = next.words.filter(w => !ids.has(w.id));
         next.wordExposures = next.wordExposures.filter(e => !ids.has(e.wordId));
+        next.spellingAttempts = next.spellingAttempts.filter(a => !ids.has(a.wordId));
         for (const w of next.words)
             for (const id of ids)
                 delete w.confusions[id];
@@ -2944,6 +2968,7 @@ async function finishLabSentence(): Promise<void> {
             await dbSaveSentenceEvidence(applied.attempt, newAttempts, applied.concepts.filter(c => applied.updatedConceptIds.includes(c.id)), updatedSentence);
         }
         catch (e) {
+            session.saveFailed = true;
             toast(`这次记录没存住（数据还在内存里）：${(e as Error).message}`);
         }
     }
@@ -3043,7 +3068,7 @@ async function finishLabSession(): Promise<void> {
     if (!session)
         return;
     const finished = session.finished;
-    if (finished.length) backupCompleted(`sentence:${session.sessionId}`);
+    if (finished.length && !session.saveFailed) backupCompleted(`sentence:${session.sessionId}`);
     const minutes = Math.max(0.5, Math.round((Date.now() - session.startedAt) / 30000) / 2);
     const taskId = session.planTaskId;
     const kind = session.planTaskKind;
@@ -3071,7 +3096,7 @@ async function finishLabSession(): Promise<void> {
         enterPage('sentence');
     }
     render();
-    toast(`本次完成 ${finished.length} 句 · 用时约 ${Math.round(minutes)} 分钟${finished.length ? ` · ${finished.map(f => `${f.correctSteps}/${f.total}`).join('、')}` : ''}`);
+    toast(`本次完成 ${finished.length} 句 · 用时约 ${Math.round(minutes)} 分钟${finished.length ? ` · ${finished.map(f => `${f.correctSteps}/${f.total}`).join('、')}` : ''}${session.saveFailed ? ' · 有记录未保存，未执行自动备份' : ''}`);
 }
 // 测试钩子：仅在测试构建（npm run build:test → dist-test）且 URL 带 ?test=1 时才暴露。
 // 生产构建里 testHooksEnabled() 是常量 false，整个钩子（含 __labTest 赋值）会被摇树移除，
