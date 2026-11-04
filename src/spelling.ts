@@ -18,29 +18,17 @@ function usable(w: Word): string | null {
     return null;
 }
 export function buildSpellingQueue(candidates: Word[], vocabulary: Word[]) {
-    // 索引所有释义中的连续子串，避免每次取题对整本词书做平方比较。
-    // 一个释义是另一释义的连续部分（至少两个字）时也保守排除。
-    const exact = new Map<string, Set<string>>(), fragments = new Map<string, Set<string>>();
+    // 共享完整释义片段才视为歧义；“激光”与“激光唱片”不能仅因子串相同而排除。
+    const exact = new Map<string, Set<string>>();
     for (const w of vocabulary) for (const sense of senses(w.zh)) {
         const answer = normalizeSpelling(w.en);
         const set = exact.get(sense) ?? new Set(); set.add(answer); exact.set(sense, set);
-        // 只索引实际出现的释义，后续用首两个字符缩小重叠检查范围。
-        for (let i = 0; i + 1 < sense.length; i++) {
-            const key = sense.slice(i, i + 2), values = fragments.get(key) ?? new Set();
-            values.add(sense); fragments.set(key, values);
-        }
     }
     const excluded: Array<{ wordId: string; reason: string }> = [];
     const words = candidates.filter(w => {
         let reason = usable(w);
         if (!reason) for (const sense of senses(w.zh)) {
-            const related = new Set([sense, ...(sense.length >= 2 ? fragments.get(sense.slice(0, 2)) ?? [] : [])]);
-            // 较短的另一释义也可能在当前释义中间出现。
-            for (let i = 0; i + 1 < sense.length; i++) for (const v of fragments.get(sense.slice(i, i + 2)) ?? []) related.add(v);
-            for (const other of related) {
-                if (sense !== other && (Math.min(sense.length, other.length) < 2 || !(sense.includes(other) || other.includes(sense)))) continue;
-                if ([...(exact.get(other) ?? [])].some(en => en !== normalizeSpelling(w.en))) { reason = '释义与其他词重叠，无法确定唯一答案'; break; }
-            }
+            if ([...(exact.get(sense) ?? [])].some(en => en !== normalizeSpelling(w.en))) reason = '释义与其他词重叠，无法确定唯一答案';
             if (reason) break;
         }
         if (reason) { excluded.push({ wordId: w.id, reason }); return false; }

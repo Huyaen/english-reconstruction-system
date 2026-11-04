@@ -12,11 +12,11 @@ test('统一首尾和连续空格、弯撇号；大小写、连字符及其他�
     }
     assert.equal(spellingAttempt(word('New York', '纽约'), 'New   York', 's', false, false, 1).correct, true);
 });
-test('共享或重叠释义、大小写合并词、释义泄漏答案均排除；不限制正常短语', () => {
+test('共享完整释义、大小写合并词、释义泄漏答案均排除；不限制正常短语', () => {
     const ws = [word('large', '大的；巨大的'), word('big', '巨大的'), word('head', '头部'), word('skull', '头部骨骼'), word('China/china', '中国；瓷器'), word('Miss/miss', '小姐；想念'), word('apple', 'apple 苹果'), word('New York', '纽约'), word("don't", '不要')];
     const result = buildSpellingQueue(ws, ws);
-    assert.deepEqual(result.words.map(w => w.en), ['New York', "don't"]);
-    assert.equal(result.excluded.length, 7);
+    assert.deepEqual(result.words.map(w => w.en), ['head', 'skull', 'New York', "don't"]);
+    assert.equal(result.excluded.length, 5);
 });
 test('辅助与重练独立留痕，生成证据不改原词任何字段', () => {
     const w = word('apple', '苹果'), before = structuredClone(w);
@@ -28,4 +28,10 @@ test('辅助与重练独立留痕，生成证据不改原词任何字段', () =>
 test('规范化后的释义和可见词性中也不能泄漏英文答案', () => {
     const ws = [word('New York', 'New   York 纽约'), word("don't", 'don’t 不要'), { ...word('apple', '苹果'), pos: 'apple' }];
     assert.equal(buildSpellingQueue(ws, ws).words.length, 0);
+});
+
+test('激光与激光唱片不是同义答案，中文子串相同不能单独造成排除', () => {
+    const ws = [word('laser', 'n. 激光'), { ...word('CD', 'abbr. 光盘，激光唱片（Compact Disc）'), pos: 'abbr.' }];
+    assert.ok(buildSpellingQueue(ws, ws).words.some(w => w.en === 'laser'));
+    assert.equal(spellingAttempt(ws[0], 'CD', 's', false, false, 1).correct, false);
 });
