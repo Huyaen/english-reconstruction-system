@@ -78,6 +78,7 @@ export interface Question {
     options: string[];
 }
 export interface StudySession {
+    catchupPlanAt?: number;
     id: string;
     started: number;
     ended: number | null;
@@ -687,6 +688,7 @@ export interface PlanEvent {
     reason: string;
 }
 export interface DailyPlan {
+    catchup?: CatchupAllocation;
     id: string;
     date: string;
     availableMinutes: number;
@@ -1237,4 +1239,9 @@ export interface ClozeAttempt extends SpellingAttempt {
     passageId: string; readingSessionId: string; markId: string; sentenceIndex: number;
     sentence: string; start: number; end: number; lemma: string; markedAt: number;
     source: 'saved-reading'; sourceType: string; sourceTitle: string; sourceUrl: string;
+}
+export interface CatchupAllocation {
+    date: string; cap: number; budgetMinutes: number; wordIds: string[];
+    dueTotal: number; createdAt: number; active: boolean;
+    planMinutes?: number;
 }

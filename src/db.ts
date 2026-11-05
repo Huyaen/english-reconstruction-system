@@ -418,6 +418,14 @@ export function validateBackup(value: unknown): Data {
     }
     if (v.version >= 9 && !Array.isArray(bag['clozeAttempts'])) return fail();
     const safeId = (id: unknown) => typeof id === 'string' && /^[a-zA-Z0-9._:-]{1,128}$/.test(id);
+    for (const plan of d.dailyPlans ?? []) {
+        const c = plan.catchup;
+        if (c && (c.date !== plan.date || !Number.isInteger(c.cap) || c.cap < 1 || c.cap > 500
+            || !num(c.budgetMinutes) || c.budgetMinutes > 240 || !num(c.dueTotal) || !num(c.createdAt)
+            || typeof c.active !== 'boolean' || !Array.isArray(c.wordIds) || c.wordIds.length > c.cap
+            || new Set(c.wordIds).size !== c.wordIds.length || !c.wordIds.every(safeId)
+            || c.planMinutes !== undefined && (!num(c.planMinutes) || c.planMinutes > 240))) return fail();
+    }
     for (const a of d.clozeAttempts ?? []) {
         if (!wordIds.has(a.wordId) || ![a.sessionId, a.passageId, a.readingSessionId, a.markId].every(safeId)
             || ![a.at, a.ms, a.markedAt].every(num) || !Number.isInteger(a.sentenceIndex) || a.sentenceIndex < 0

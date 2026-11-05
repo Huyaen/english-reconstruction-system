@@ -1,3 +1,4 @@
+import { catchupStatus, applyCatchupToPlan, remainingCatchup } from './catchup.ts';
 import { buildClozeQueue } from './readingCloze.ts';
 import { ClozePractice } from './clozeView.ts';
 import { buildSpellingQueue } from './spelling.ts';
@@ -336,7 +337,10 @@ function paint(): void {
     disposePageChrome();
     applyProtoAttr();
     shell();
+    if (page === 'home') todayPlan = data.dailyPlans.filter(p => p.date === dayKey(Date.now()))
+        .sort((a, b) => (b.revision ?? 0) - (a.revision ?? 0) || b.createdAt - a.createdAt)[0] ?? null;
     ({ cloze: () => clozePractice?.render(), spelling: () => spellingPractice?.render(), home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp, input: inputPageApp, output: outputPageApp, diagnostics: diagnosticsPageApp, exam: examPageApp }[page] || home)();
+    if (page === 'home') { $('#main').insertAdjacentHTML('afterbegin', catchupPanelHTML()); bindCatchup(); }
     // 原型路径：有些会话页要先异步取数据，第一帧会是空的；用一块安静的占位代替黑屏。
     if (PROTO && page !== 'home') {
         const m = document.querySelector<HTMLElement>('#main');
@@ -432,6 +436,68 @@ function humanReasons(list: string[] | undefined, max = 3): string {
 function metric(label: string, value: string, note: string) { return `<div class="metric"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`; }
 function metricNum(label: string, value: number, note: string, key: string) { return `<div class="metric"><span>${label}</span><strong data-odometer="${value}" data-odometer-key="${key}">${value}</strong><small>${note}</small></div>`; }
 function rangeControls() { return `<div class="range-controls"><label>范围<select id="range-book"><option value="">全部词书</option>${data.books.map(b => `<option value="${b.id}" ${bookFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label><label>数量<select id="range-count">${[50, 100, 300, 500, 1000].map(n => `<option value="${n}" ${n === 100 ? 'selected' : ''}>${n} 词</option>`).join('')}</select></label><label>方向<select id="range-ratio">${![0, 30, 50, 70, 100].includes(data.settings.ratio) ? `<option value="${data.settings.ratio}" selected>英→中 ${data.settings.ratio}%（自定义）</option>` : ''}<option value="50" ${data.settings.ratio === 50 ? 'selected' : ''}>双向各 50%</option><option value="70" ${data.settings.ratio === 70 ? 'selected' : ''}>英→中 70%</option><option value="30" ${data.settings.ratio === 30 ? 'selected' : ''}>中→英 70%</option><option value="100" ${data.settings.ratio === 100 ? 'selected' : ''}>只看英文（英→中）</option><option value="0" ${data.settings.ratio === 0 ? 'selected' : ''}>只看中文（中→英）</option></select></label></div><div class="actions"><button type="button" class="secondary" data-mode="spelling">拼写练习 · 看中文写英文</button><button type="button" class="secondary" data-mode="cloze">原句填空 · 来自阅读标记</button></div>`; }
+function currentCatchup() { return todayPlan?.date === dayKey(Date.now()) && todayPlan.catchup?.active ? todayPlan.catchup : undefined; }
+function catchupInput(cap = 50, minutes = todayPlan?.availableMinutes ?? planBudget) {
+    let latest = 0;
+    for (const list of [data.records, data.spellingAttempts, data.clozeAttempts]) for (const r of list) latest = Math.max(latest, r.at);
+    for (const r of data.readingSessions) for (const m of r.detail?.marks ?? []) latest = Math.max(latest, m.at);
+    return { words: data.words, records: data.records, settings: data.settings, now: Date.now(), cap, minutes, lastActivityAt: latest || null };
+}
+function catchupPanelHTML(): string {
+    const allocation = currentCatchup();
+    const previous = [...data.dailyPlans].filter(p => p.catchup && p.date <= dayKey(Date.now())).sort((a, b) => b.date.localeCompare(a.date))[0]?.catchup;
+    const cap = allocation?.cap ?? previous?.cap ?? 50;
+    const input = catchupInput(cap, allocation?.budgetMinutes ?? todayPlan?.availableMinutes ?? planBudget), status = catchupStatus(input);
+    if (!status.recommended && !allocation) return '';
+    const remaining = allocation ? remainingCatchup(allocation, input).length : Math.min(status.dueTotal, status.remainingCapacity);
+    const planned = allocation?.wordIds.length ?? remaining, deferred = Math.max(0, status.dueTotal - remaining);
+    const days = status.capacity ? Math.ceil(status.dueTotal / status.capacity) : null;
+    return `<section class="panel" id="catchup-panel"><h2>有一些词积压了，按你的节奏恢复学习。</h2><p id="catchup-counts">当前到期 ${status.dueTotal} 个 · 今日上限 ${cap} 个 · 今日已复习 ${status.reviewedToday} 个 · 今天计划 ${planned} 个 · 本模式剩余 ${remaining} 个 · 暂缓后续 ${deferred} 个</p><label>每日复习上限<select id="catchup-limit">${[30, 50, 100, 150].map(n => `<option value="${n}" ${cap === n ? 'selected' : ''}>${n} 词</option>`).join('')}<option value="custom" ${![30, 50, 100, 150].includes(cap) ? 'selected' : ''}>自定义</option></select></label><label>自定义（1–500）<input id="catchup-custom" type="number" min="1" max="500" step="1" value="${cap}"></label><p>复用今日时间预算；当前可分给回归复习 ${input.minutes.toFixed(1)} 分钟，按每词 ${PLANNER_CONFIG.minutesPerDueWord} 分钟估算。</p><div class="actions"><button id="catchup-start" class="primary">${allocation ? '继续回归 / 应用上限' : '回归模式'}</button><button id="catchup-normal" class="secondary">正常复习（不使用回归上限）</button></div><p class="hint">回归模式暂缓未完成的新词、额外词汇及收尾词汇任务；原任务保留并显示原因，其他模块继续。未复习的词不会修改到期日，错误作答也不会冒充成功。</p><p class="hint">${days === null ? '当前时间预算已被其他任务占用，可调整时间。' : `若每天完成 ${status.capacity} 个、不新增到期且每词只需一轮，约 ${days} 个学习日；实际可能更久，不估计精确完成日期。`}</p></section>`;
+}
+async function closePartialCatchup(s: StudySession) {
+    const ended = { ...s, ended: Date.now() };
+    await putItems('sessions', [ended]); data.sessions[data.sessions.findIndex(x => x.id === s.id)] = ended;
+}
+async function beginCatchup() {
+    if (planBusy) return;
+    const selected = document.querySelector<HTMLSelectElement>('#catchup-limit')?.value;
+    const cap = selected === 'custom' ? Number(document.querySelector<HTMLInputElement>('#catchup-custom')?.value) : Number(selected || currentCatchup()?.cap || 50);
+    catchupStatus(catchupInput(cap)); // 先校验，再写计划或结束旧轮次。
+    const pending = data.sessions.find(s => !s.ended), allocation = currentCatchup();
+    if (pending && pending.mode !== 'catchup') { toast('请先继续或结束未完成的词汇训练，再进入回归模式。'); return; }
+    if (pending && allocation?.cap === cap && pending.catchupPlanAt === allocation.createdAt) { await startSession(pending); return; }
+    if (pending) { await closePartialCatchup(pending); toast('上轮已作答记录保留；按今天日期和新上限重新分配未复习词。'); }
+    planBusy = true; let taskId = '';
+    try {
+        if (todayPlan?.date !== dayKey(Date.now())) todayPlan = (await loadPlan(dayKey(Date.now()))) ?? null;
+        const custom = document.querySelector<HTMLInputElement>('#plan-custom');
+        const minutes = todayPlan?.availableMinutes ?? Number(custom && !custom.disabled ? custom.value : planBudget);
+        const base = todayPlan ?? createDailyPlan(planInput(minutes, planEnergy)).plan;
+        const next = applyCatchupToPlan(base, catchupInput(cap, base.availableMinutes));
+        const saved = await savePlan(next, todayPlan?.revision ?? 0);
+        todayPlan = saved; data.dailyPlans = upsertPlan(data.dailyPlans, saved);
+        taskId = [...saved.initialPlan].reverse().find(t => t.source === 'catchup' && t.status === 'pending')?.id ?? '';
+        if (!remainingCatchup(saved.catchup!, catchupInput(cap, saved.catchup!.budgetMinutes)).length) { taskId = ''; toast('今天的上限或时间预算已用完；未复习词保持原到期日。'); }
+        render();
+    } finally { planBusy = false; }
+    if (taskId) await startPlanTask(taskId);
+}
+async function normalReview() {
+    if (planBusy) return;
+    const pending = data.sessions.find(s => !s.ended);
+    if (pending?.mode === 'catchup') await closePartialCatchup(pending);
+    if (currentCatchup()) {
+        const saved = await persistPlan({ ...todayPlan!, catchup: { ...currentCatchup()!, active: false } });
+        if (!saved) return;
+        await regeneratePlan(saved.availableMinutes, saved.energyState);
+    }
+    await startMode('due');
+}
+function bindCatchup() {
+    on('#catchup-start', 'click', () => void beginCatchup().catch(e => toast(e.message)));
+    on('#catchup-normal', 'click', () => void normalReview().catch(e => toast(e.message)));
+}
+
 function home() {
     const s = summary(data), unfinished = data.sessions.find(x => !x.ended);
     if (PROTO) {
@@ -517,6 +583,7 @@ function newWordsPanel(): string {
     return `<section class="panel new-words"><div class="section-title"><h2>今天的新词</h2><span class="subtle">建议 ${rec.recommended} 个</span></div><p class="hint">来自 ${pools}${fb} · 按 30 分钟估算${reflow}</p><div class="actions"><button id="preview-start" class="primary" ${q.breakdown.newCount ? '' : 'disabled'}>预览新词（${q.breakdown.newCount}）</button>${q.breakdown.forgottenCount ? `<button id="reflow-start" class="secondary">先复习忘掉的词（${q.breakdown.forgottenCount}）</button>` : ''}</div></section>`;
 }
 function startPreview() {
+    if (currentCatchup()) { toast('回归模式先处理到期词；新词任务仍保留，选择正常复习可恢复。'); return; }
     const s = summary(data);
     const rec = recommendedNewWordCount({ availableMinutes: 30, energyState: 'normal', weakLoad: s.weak, dueLoad: s.due });
     const unit = data.miniUnits.find(u => u.status === 'active') ?? null;
@@ -605,6 +672,13 @@ async function startMode(mode: string, explicit?: Word[]) {
 async function startModeOnce(mode: string, explicit?: Word[]) {
     if (mode === 'cloze') { startCloze(); return; }
     if (mode === 'spelling') { startSpelling(explicit); return; }
+    const catchup = currentCatchup();
+    if (catchup) {
+        mode = 'catchup';
+        const remaining = new Set(remainingCatchup(catchup, catchupInput(catchup.cap, catchup.budgetMinutes)));
+        explicit = data.words.filter(w => remaining.has(w.id)).sort((a, b) => catchup.wordIds.indexOf(a.id) - catchup.wordIds.indexOf(b.id));
+        if (!explicit.length) { toast('今天回归上限已完成；也可以主动选择正常复习。'); return; }
+    }
     if (data.sessions.some(s => !s.ended)) {
         toast('请先继续或结束首页的未完成训练');
         return;
@@ -642,6 +716,7 @@ async function startModeOnce(mode: string, explicit?: Word[]) {
     }
     question(words[0], data.words, ratio === 0 ? 'zh-en' : 'en-zh', data.settings.difficulty);
     const s = newSession(words, mode);
+    if (mode === 'catchup') s.catchupPlanAt = currentCatchup()?.createdAt;
     await putItems('sessions', [s]);
     data.sessions.push(s);
     if (taskExecution) {
@@ -682,7 +757,7 @@ function startSpelling(explicit?: Word[]) {
     spellingPractice = practice;
     practice.render();
 }
-async function startSession(s: StudySession) { active = s; enterPage('quiz'); shell(); await showQuestion(); }
+async function startSession(s: StudySession) { if (s.mode === 'catchup' && (!currentCatchup() || s.catchupPlanAt !== currentCatchup()!.createdAt)) { await beginCatchup(); return; } active = s; enterPage('quiz'); shell(); await showQuestion(); }
 async function showQuestion() {
     stopTimer();
     feedback = false;
@@ -2194,6 +2269,8 @@ async function persistPlan(plan: DailyPlan): Promise<DailyPlan | null> {
     if (!todayPlan)
         return null;
     try {
+        if (todayPlan.catchup?.active && !plan.catchup) plan = { ...plan, catchup: { ...todayPlan.catchup, planMinutes: undefined } };
+        if (plan.catchup?.active) plan = applyCatchupToPlan(plan, catchupInput(plan.catchup.cap, plan.availableMinutes));
         const saved = await savePlan(plan, todayPlan.revision ?? 0);
         todayPlan = saved;
         data.dailyPlans = upsertPlan(data.dailyPlans, saved);
