@@ -1,5 +1,5 @@
-import { catchupStatus, applyCatchupToPlan, remainingCatchup } from './catchup.ts';
-import { buildClozeQueue } from './readingCloze.ts';
+import { catchupStatus, applyCatchupToPlan, adjustCatchupPlan, remainingCatchup } from './catchup.ts';
+import { loadClozeQueue } from './readingCloze.ts';
 import { ClozePractice } from './clozeView.ts';
 import { buildSpellingQueue } from './spelling.ts';
 import { SpellingPractice } from './spellingView.ts';
@@ -670,7 +670,7 @@ async function startMode(mode: string, explicit?: Word[]) {
     }
 }
 async function startModeOnce(mode: string, explicit?: Word[]) {
-    if (mode === 'cloze') { startCloze(); return; }
+    if (mode === 'cloze') { await startCloze(); return; }
     if (mode === 'spelling') { startSpelling(explicit); return; }
     const catchup = currentCatchup();
     if (catchup) {
@@ -726,10 +726,12 @@ async function startModeOnce(mode: string, explicit?: Word[]) {
     }
     await startSession(s);
 }
-function startCloze() {
+async function startCloze() {
     const range = document.querySelector<HTMLSelectElement>('#range-book')?.value ?? bookFilter;
     const count = Number(document.querySelector<HTMLSelectElement>('#range-count')?.value || 100);
-    const filtered = buildClozeQueue(data.readingSessions, data.passages, data.words);
+    const token = pageToken();
+    const filtered = await loadClozeQueue();
+    if (token !== pageToken()) return;
     const questions = filtered.questions.filter(q => !range || wordMap.get(q.wordId)?.bookId === range).slice(0, count);
     if (!questions.length) { toast(`没有可可靠定位且含中文释义的阅读原句（排除 ${filtered.excluded.length} 条）。先在阅读原文标记生词。`); return; }
     enterPage('cloze'); shell();
@@ -2677,13 +2679,16 @@ async function regeneratePlan(minutes: number, energy: EnergyState) {
     }
     planBusy = true;
     try {
-        const result = regenerateRemaining(todayPlan, planInput(minutes, energy));
+        const result = todayPlan.catchup?.active
+            ? { plan: adjustCatchupPlan(todayPlan, catchupInput(todayPlan.catchup.cap, minutes), energy) }
+            : regenerateRemaining(todayPlan, planInput(minutes, energy));
         const saved = await persistPlan(result.plan);
         if (saved) {
             toast('已按当前时间重排未完成任务');
             render();
         }
     }
+    catch (e) { toast(e instanceof Error ? e.message : String(e)); }
     finally {
         planBusy = false;
     }
@@ -3669,15 +3674,17 @@ async function persistReading(extra: {
     words?: Word[];
     exposures?: WordExposure[];
     passages?: Passage[];
-} = {}): Promise<void> {
+} = {}): Promise<boolean> {
     if (!readSession)
-        return;
+        return false;
     try {
         await saveReadingProgress({ session: readSession, ...extra });
         upsertReadSession(readSession);
+        return true;
     }
     catch (e) {
         toast(`阅读进度保存失败（本地内存仍保留）：${(e as Error).message}`);
+        return false;
     }
 }
 function readingHelpText(level: number, sentenceText: string): string {
@@ -4098,7 +4105,7 @@ function readingReader(): void {
         const token = readSelectedToken, sentence = readPassage.sentences?.find(s => s.index === token.sentenceIndex);
         if (!sentence) return;
         const result = markWord(readSession, { ...token, tokenIndex: token.index, lemma, judgment: 'unknown', contextSentence: sentence.text, now: Date.now() });
-        upsertReadSession(result.session); await persistReading(); toast('原文词形已关联；仅记录阅读标记，不提高掌握度。'); render();
+        upsertReadSession(result.session); if (await persistReading()) toast('原文词形已关联；仅记录阅读标记，不提高掌握度。'); render();
     });
     document.querySelectorAll<HTMLElement>('[data-tok]').forEach(b => b.addEventListener('click', () => {
         const idx = Number(b.dataset.tok);

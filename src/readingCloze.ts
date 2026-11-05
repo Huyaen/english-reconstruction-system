@@ -2,6 +2,7 @@ import type { ClozeAttempt, Passage, ReadingSession, Word } from './types.ts';
 import { uid } from './core.ts';
 import { tokenizeSentence, normalizeToken } from './readingText.ts';
 import { normalizeSpelling, buildSpellingQueue } from './spelling.ts';
+import { loadData } from './db.ts';
 export interface ClozeQuestion {
     id: string; wordId: string; passageId: string; readingSessionId: string; markId: string;
     sentenceIndex: number; original: string; masked: string; start: number; end: number;
@@ -35,7 +36,7 @@ export function buildClozeQueue(sessions: ReadingSession[], passages: Passage[],
         const linked = mark.lemma ? vocabulary.filter(w => normalizeToken(w.en) === normalizeToken(mark.lemma!)) : matches;
         const answers = new Map(linked.map(w => [normalizeSpelling(w.en), w]));
         const w = answers.size === 1 ? [...answers.values()][0] : undefined;
-        if (!reason && (!w || !unambiguous.has(w.id))) reason = '词条关联/释义存在歧义或缺少中文释义';
+        if (!reason && (!w || !unambiguous.has(w.id) || !/\p{Script=Han}/u.test(w.zh))) reason = '词条关联/释义存在歧义或缺少中文释义';
         if (!reason) {
             const escaped = mark.surface.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             if (new RegExp(`(^|[^a-z])${escaped}([^a-z]|$)`, 'i').test(`${w?.zh} ${w?.pos}`)) reason = '提示中泄漏原文词形';
@@ -55,6 +56,11 @@ export function buildClozeQueue(sessions: ReadingSession[], passages: Passage[],
             sourceType: p.sourceType, sourceTitle: p.title, sourceUrl: p.sourceUrl });
     }
     return { questions, excluded };
+}
+export async function loadClozeQueue() {
+    // 阅读保存失败时内存可能保留草稿；正式题目只使用已提交的来源快照。
+    const saved = await loadData();
+    return buildClozeQueue(saved.readingSessions, saved.passages, saved.words);
 }
 export function clozeAttempt(q: ClozeQuestion, input: string, sessionId: string, assisted: boolean, retry: boolean, ms: number, at = Date.now()): ClozeAttempt {
     return { id: uid(), sessionId, wordId: q.wordId, passageId: q.passageId, readingSessionId: q.readingSessionId, markId: q.markId,

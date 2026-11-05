@@ -33,3 +33,5 @@ test('AI来源排除；人工词头关联可支持派生词形且不猜词根',(
  s.session.detail!.marks[0].lemma='care';assert.equal(buildClozeQueue([s.session],[s.passage],[s.word]).questions[0].expected,'careful');
  s.passage.sourceType='ai_reinforcement';assert.equal(buildClozeQueue([s.session],[s.passage],[s.word]).questions.length,0);
 });
+
+test('英文释义不能替代正式填空题所需中文释义',()=>{const s=sample();s.word.zh='effect (n.)';assert.equal(buildClozeQueue([s.session],[s.passage],[s.word]).questions.length,0)});

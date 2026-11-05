@@ -1,4 +1,4 @@
-import type { CatchupAllocation, DailyPlan, ReviewRecord, Settings, Word } from './types.ts';
+import type { CatchupAllocation, DailyPlan, EnergyState, ReviewRecord, Settings, Word } from './types.ts';
 import { effectiveDue, fsrsRetrievability } from './fsrs.ts';
 import { priority } from './core.ts';
 import { dayKey, isWeak } from './stats.ts';
@@ -44,7 +44,7 @@ export function allocateCatchup(i: CatchupInput, existing?: CatchupAllocation): 
         for (let n = 0; n < keys.length && selected.length < count; n++) { const w = groups.get(keys[(n + offset) % keys.length])!.shift(); if (w) { selected.push(w.id); progressed = true; } }
         if (!progressed) break;
     }
-    return { date, cap: i.cap, budgetMinutes: i.minutes, wordIds: selected, dueTotal: status.dueTotal, createdAt: i.now, active: true };
+    return { date, cap: i.cap, budgetMinutes: i.minutes, wordIds: selected, dueTotal: status.dueTotal, createdAt: Math.max(i.now, (existing?.createdAt ?? 0) + 1), active: true };
 }
 export function remainingCatchup(a: CatchupAllocation, i: CatchupInput): string[] {
     if (a.date !== dayKey(i.now) || !a.active) return [];
@@ -52,20 +52,31 @@ export function remainingCatchup(a: CatchupAllocation, i: CatchupInput): string[
     return a.wordIds.filter(id => available.has(id) && !done.has(id)).slice(0, catchupStatus(i).remainingCapacity);
 }
 export function applyCatchupToPlan(plan: DailyPlan, i: CatchupInput): DailyPlan {
-    if (plan.catchup?.active && plan.catchup.date === dayKey(i.now) && plan.catchup.cap === i.cap && plan.catchup.planMinutes === plan.availableMinutes) return plan;
     const lexical = (module: string) => module === 'vocabulary' || module === 'closing';
+    const unexpected = plan.initialPlan.some(t => lexical(t.module) && t.source !== 'catchup' && !['done', 'skipped', 'replaced'].includes(t.status));
+    if (!unexpected && plan.catchup?.active && plan.catchup.date === dayKey(i.now) && plan.catchup.cap === i.cap && plan.catchup.planMinutes === plan.availableMinutes) return plan;
     const kept = plan.initialPlan.filter(t => t.status === 'done' || !lexical(t.module));
     const active = kept.filter(t => !['delayed', 'skipped', 'replaced'].includes(t.status));
     const spentOrReserved = active.reduce((sum, t) => sum + (t.status === 'done' ? t.actualMinutes ?? t.minutes : t.minutes), 0);
     const minutes = Math.max(0, Math.min(i.minutes, plan.availableMinutes - spentOrReserved));
-    const allocation = { ...allocateCatchup({ ...i, minutes }), planMinutes: plan.availableMinutes };
+    const allocation = { ...allocateCatchup({ ...i, minutes }, plan.catchup), planMinutes: plan.availableMinutes };
     const tasks = plan.initialPlan.map(t => lexical(t.module) && t.status !== 'done' && t.status !== 'skipped'
         ? { ...t, status: 'replaced' as const, note: `${t.note} · 回归模式暂缓：原任务保留，恢复正常模式时重排。` } : t);
-    const dueMinutes = Math.round(allocation.wordIds.length * PLANNER_CONFIG.minutesPerDueWord * 100) / 100;
-    if (allocation.wordIds.length) tasks.push({ id: `${plan.date}.catchup.${plan.revision ?? 0}`, module: 'vocabulary', kind: 'due-review', label: '按每日上限回归复习', minutes: dueMinutes,
-        refs: allocation.wordIds, status: 'pending', note: '只分配呈现，不修改未复习词到期日。', source: 'catchup', critical: false, flexible: false, dependencies: [] });
+    const remaining = remainingCatchup(allocation, { ...i, minutes });
+    const dueMinutes = Math.round(remaining.length * PLANNER_CONFIG.minutesPerDueWord * 100) / 100;
+    if (remaining.length) tasks.push({ id: `${plan.date}.catchup.${plan.revision ?? 0}.${tasks.filter(t => t.source === 'catchup').length}`, module: 'vocabulary', kind: 'due-review', label: '按每日上限回归复习', minutes: dueMinutes,
+        refs: remaining, status: 'pending', note: '只分配呈现，不修改未复习词到期日。', source: 'catchup', critical: false, flexible: false, dependencies: [] });
     const planned = Math.round((spentOrReserved + dueMinutes) * 100) / 100;
     const prior = plan.budget && typeof plan.budget === 'object' ? plan.budget as Record<string, unknown> : {};
     return { ...plan, catchup: allocation, initialPlan: tasks, budget: { ...prior, planned, unallocated: Math.max(0, plan.availableMinutes - planned),
         catchup: { plannedWords: allocation.wordIds.length, deferred: Math.max(0, allocation.dueTotal - allocation.wordIds.length), minutes: dueMinutes, newWordsPaused: true } } };
+}
+export function adjustCatchupPlan(plan: DailyPlan, i: CatchupInput, energy: EnergyState): DailyPlan {
+    bounds(i);
+    // 回归期间只调整回归分配；正常重排会重新创建已暂缓的新词任务。
+    const reserved = plan.initialPlan.filter(t => t.status === 'done' || !['vocabulary', 'closing'].includes(t.module) && !['delayed', 'skipped', 'replaced'].includes(t.status))
+        .reduce((n, t) => n + (t.status === 'done' ? t.actualMinutes ?? t.minutes : t.minutes), 0);
+    if (i.minutes < reserved) throw Error(`其他任务及已投入时间需要 ${reserved} 分钟，请先调整这些任务。`);
+    if (plan.availableMinutes === i.minutes && plan.catchup?.cap === i.cap) return { ...plan, energyState: energy };
+    return applyCatchupToPlan({ ...plan, availableMinutes: i.minutes, energyState: energy, catchup: plan.catchup ? { ...plan.catchup, planMinutes: undefined } : undefined }, i);
 }
