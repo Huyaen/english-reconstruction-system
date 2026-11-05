@@ -10,7 +10,7 @@ test('v7→v8 只添加拼写记录，4716 词和所有既有 store 完整保留
     d.words = Array.from({ length: 4716 }, (_, i) => makeWord({ en: `word${i}`, zh: `释义${i}` }, d.books[0].id, i));
     const raw = await new Promise<IDBDatabase>((resolve, reject) => {
         const r = indexedDB.open(DB_NAME, 7);
-        r.onupgradeneeded = () => { for (const name of [...dataStores.filter(n => n !== 'spellingAttempts'), 'meta']) r.result.createObjectStore(name, { keyPath: 'id' }); };
+        r.onupgradeneeded = () => { for (const name of [...dataStores.filter(n => n !== 'spellingAttempts' && n !== 'clozeAttempts'), 'meta']) r.result.createObjectStore(name, { keyPath: 'id' }); };
         r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error);
     });
     await new Promise<void>((resolve, reject) => {
@@ -21,7 +21,7 @@ test('v7→v8 只添加拼写记录，4716 词和所有既有 store 完整保留
         tx.oncomplete = () => resolve(); tx.onabort = () => reject(tx.error);
     }); raw.close();
     await openDB(); const upgraded = await loadData();
-    assert.equal(DB_VERSION, 8);
+    assert.equal(DB_VERSION, 9);
     const byId = (words: typeof d.words) => [...words].sort((a, b) => a.id.localeCompare(b.id));
     assert.deepEqual(byId(upgraded.words), byId(d.words));
     assert.deepEqual(upgraded.books, d.books);

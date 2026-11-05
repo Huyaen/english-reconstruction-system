@@ -25,6 +25,7 @@ export interface IntegrityReport {
 }
 const ID_RE = /^[a-zA-Z0-9._:-]{1,160}$/;
 const TIMESTAMP_FIELDS: Partial<Record<DataStoreName, readonly string[]>> = {
+    clozeAttempts: ['at', 'markedAt'],
     words: ['previewedAt', 'lastEncounteredAt'],
     records: ['at'],
     sessions: ['startedAt', 'endedAt'],

@@ -189,6 +189,7 @@ export interface AIAnalysis {
 }
 export interface Data {
     spellingAttempts: SpellingAttempt[];
+    clozeAttempts: ClozeAttempt[];
     books: WordBook[];
     words: Word[];
     records: ReviewRecord[];
@@ -1229,4 +1230,11 @@ export interface SpellingAttempt {
     retry: boolean;
     ms: number;
     normalizationVersion: 1;
+}
+
+/** 阅读接触与原句回忆分账；source 快照使来源被移除后的历史仍可解释。 */
+export interface ClozeAttempt extends SpellingAttempt {
+    passageId: string; readingSessionId: string; markId: string; sentenceIndex: number;
+    sentence: string; start: number; end: number; lemma: string; markedAt: number;
+    source: 'saved-reading'; sourceType: string; sourceTitle: string; sourceUrl: string;
 }

@@ -236,7 +236,7 @@ export function markWord(session: ReadingSession, input: {
     const detail = session.detail!;
     const existing = detail.marks.find(m => !m.revokedAt && m.tokenIndex === input.tokenIndex && m.sentenceIndex === input.sentenceIndex);
     if (existing) {
-        const mark: ReadingMark = { ...existing, judgment: input.judgment, at: input.now };
+        const mark: ReadingMark = { ...existing, lemma: input.lemma ?? existing.lemma, judgment: input.judgment, at: input.now };
         const marks = detail.marks.map(m => (m.id === existing.id ? mark : m));
         return { session: { ...session, detail: { ...detail, marks } }, mark, replaced: true };
     }

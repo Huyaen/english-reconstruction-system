@@ -1,3 +1,5 @@
+import { buildClozeQueue } from './readingCloze.ts';
+import { ClozePractice } from './clozeView.ts';
 import { buildSpellingQueue } from './spelling.ts';
 import { SpellingPractice } from './spellingView.ts';
 import { AutoBackup, type BackupState } from './autoBackup.ts';
@@ -131,6 +133,7 @@ let pageEpoch = 0;
 let active: StudySession | null = null, feedback = false, busy = false, started = 0, timer: ReturnType<typeof setTimeout> | null = null, paused = false;
 let startingSession = false;
 let spellingPractice: SpellingPractice | null = null;
+let clozePractice: ClozePractice | null = null;
 let wordMap = new Map<string, Word>();
 let elapsedBeforePause = 0;
 let previewWords: Word[] = [], previewIndex = 0;
@@ -327,12 +330,13 @@ function render(): void {
 function paint(): void {
     // 后台任务刷新不能替换正在输入/反馈中的拼写页及其 DOM 容器。
     if (page === 'spelling' && spellingPractice) return;
+    if (page === 'cloze' && clozePractice) return;
     const prev = lastRenderKey;
     const y = window.scrollY;
     disposePageChrome();
     applyProtoAttr();
     shell();
-    ({ spelling: () => spellingPractice?.render(), home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp, input: inputPageApp, output: outputPageApp, diagnostics: diagnosticsPageApp, exam: examPageApp }[page] || home)();
+    ({ cloze: () => clozePractice?.render(), spelling: () => spellingPractice?.render(), home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp, input: inputPageApp, output: outputPageApp, diagnostics: diagnosticsPageApp, exam: examPageApp }[page] || home)();
     // 原型路径：有些会话页要先异步取数据，第一帧会是空的；用一块安静的占位代替黑屏。
     if (PROTO && page !== 'home') {
         const m = document.querySelector<HTMLElement>('#main');
@@ -427,7 +431,7 @@ function humanReasons(list: string[] | undefined, max = 3): string {
 }
 function metric(label: string, value: string, note: string) { return `<div class="metric"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`; }
 function metricNum(label: string, value: number, note: string, key: string) { return `<div class="metric"><span>${label}</span><strong data-odometer="${value}" data-odometer-key="${key}">${value}</strong><small>${note}</small></div>`; }
-function rangeControls() { return `<div class="range-controls"><label>范围<select id="range-book"><option value="">全部词书</option>${data.books.map(b => `<option value="${b.id}" ${bookFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label><label>数量<select id="range-count">${[50, 100, 300, 500, 1000].map(n => `<option value="${n}" ${n === 100 ? 'selected' : ''}>${n} 词</option>`).join('')}</select></label><label>方向<select id="range-ratio">${![0, 30, 50, 70, 100].includes(data.settings.ratio) ? `<option value="${data.settings.ratio}" selected>英→中 ${data.settings.ratio}%（自定义）</option>` : ''}<option value="50" ${data.settings.ratio === 50 ? 'selected' : ''}>双向各 50%</option><option value="70" ${data.settings.ratio === 70 ? 'selected' : ''}>英→中 70%</option><option value="30" ${data.settings.ratio === 30 ? 'selected' : ''}>中→英 70%</option><option value="100" ${data.settings.ratio === 100 ? 'selected' : ''}>只看英文（英→中）</option><option value="0" ${data.settings.ratio === 0 ? 'selected' : ''}>只看中文（中→英）</option></select></label></div><div class="actions"><button type="button" class="secondary" data-mode="spelling">拼写练习 · 看中文写英文</button></div>`; }
+function rangeControls() { return `<div class="range-controls"><label>范围<select id="range-book"><option value="">全部词书</option>${data.books.map(b => `<option value="${b.id}" ${bookFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label><label>数量<select id="range-count">${[50, 100, 300, 500, 1000].map(n => `<option value="${n}" ${n === 100 ? 'selected' : ''}>${n} 词</option>`).join('')}</select></label><label>方向<select id="range-ratio">${![0, 30, 50, 70, 100].includes(data.settings.ratio) ? `<option value="${data.settings.ratio}" selected>英→中 ${data.settings.ratio}%（自定义）</option>` : ''}<option value="50" ${data.settings.ratio === 50 ? 'selected' : ''}>双向各 50%</option><option value="70" ${data.settings.ratio === 70 ? 'selected' : ''}>英→中 70%</option><option value="30" ${data.settings.ratio === 30 ? 'selected' : ''}>中→英 70%</option><option value="100" ${data.settings.ratio === 100 ? 'selected' : ''}>只看英文（英→中）</option><option value="0" ${data.settings.ratio === 0 ? 'selected' : ''}>只看中文（中→英）</option></select></label></div><div class="actions"><button type="button" class="secondary" data-mode="spelling">拼写练习 · 看中文写英文</button><button type="button" class="secondary" data-mode="cloze">原句填空 · 来自阅读标记</button></div>`; }
 function home() {
     const s = summary(data), unfinished = data.sessions.find(x => !x.ended);
     if (PROTO) {
@@ -599,6 +603,7 @@ async function startMode(mode: string, explicit?: Word[]) {
     }
 }
 async function startModeOnce(mode: string, explicit?: Word[]) {
+    if (mode === 'cloze') { startCloze(); return; }
     if (mode === 'spelling') { startSpelling(explicit); return; }
     if (data.sessions.some(s => !s.ended)) {
         toast('请先继续或结束首页的未完成训练');
@@ -645,6 +650,21 @@ async function startModeOnce(mode: string, explicit?: Word[]) {
         await putItems('sessions', [s]);
     }
     await startSession(s);
+}
+function startCloze() {
+    const range = document.querySelector<HTMLSelectElement>('#range-book')?.value ?? bookFilter;
+    const count = Number(document.querySelector<HTMLSelectElement>('#range-count')?.value || 100);
+    const filtered = buildClozeQueue(data.readingSessions, data.passages, data.words);
+    const questions = filtered.questions.filter(q => !range || wordMap.get(q.wordId)?.bookId === range).slice(0, count);
+    if (!questions.length) { toast(`没有可可靠定位且含中文释义的阅读原句（排除 ${filtered.excluded.length} 条）。先在阅读原文标记生词。`); return; }
+    enterPage('cloze'); shell();
+    const practice: ClozePractice = new ClozePractice(questions, $('#main'), async a => {
+        await putItems('clozeAttempts', [a]); data.clozeAttempts.push(a);
+    }, id => backupCompleted(`cloze:${id}`), () => setPage('home'), q => {
+        const passage = data.passages.find(p => p.id === q.passageId);
+        if (passage) openReadingMaterial(passage, q.readingSessionId); else toast('原阅读材料已移除，作答历史仍保留来源快照。');
+    }, () => page === 'cloze' && clozePractice === practice, filtered.excluded.length);
+    clozePractice = practice; practice.render();
 }
 function startSpelling(explicit?: Word[]) {
     const range = document.querySelector<HTMLSelectElement>('#range-book')?.value ?? bookFilter;
@@ -986,6 +1006,7 @@ function deleteBookDialog() {
         next.words = next.words.filter(w => !ids.has(w.id));
         next.wordExposures = next.wordExposures.filter(e => !ids.has(e.wordId));
         next.spellingAttempts = next.spellingAttempts.filter(a => !ids.has(a.wordId));
+        next.clozeAttempts = next.clozeAttempts.filter(a => !ids.has(a.wordId));
         for (const w of next.words)
             for (const id of ids)
                 delete w.confusions[id];
@@ -3990,6 +4011,18 @@ function readingReader(): void {
     const chunk = readSession.detail?.chunks[readSession.detail.chunkIndex];
     const helpText = readHelpState.show ? readHelpState.text : '';
     $('#main').innerHTML = `<div id="reading-page">${readerHTML({ passage: readPassage, session: readSession, tokens: readTokens, helpText, showHelp: readHelpState.show, sideOpen: readSideOpen })}</div>`;
+    // 显式关联用于派生词等无法可靠自动还原的情况；不创建词条或掌握证据。
+    document.querySelector('#read-side')?.insertAdjacentHTML('beforeend', '<details><summary>关联原文词形到词库词头</summary><p class="hint">先点原文中的词，再填已有英文词头；用于复数、时态或派生形式，不改变掌握度。</p><label>已有词头<input id="read-cloze-lemma" autocomplete="off"></label><button id="read-cloze-link" class="secondary">关联并标记为不认识</button></details>');
+    on('#read-cloze-link', 'click', async () => {
+        if (!readSession || !readSelectedToken || !readPassage) { toast('先点原文中的一个词'); return; }
+        const lemma = document.querySelector<HTMLInputElement>('#read-cloze-lemma')!.value.trim();
+        const linked = data.words.filter(w => w.en === lemma && w.zh.trim());
+        if (!linked.length) { toast('请填写已有词库词头，保留大小写；不会猜测词根或编造释义。'); return; }
+        const token = readSelectedToken, sentence = readPassage.sentences?.find(s => s.index === token.sentenceIndex);
+        if (!sentence) return;
+        const result = markWord(readSession, { ...token, tokenIndex: token.index, lemma, judgment: 'unknown', contextSentence: sentence.text, now: Date.now() });
+        upsertReadSession(result.session); await persistReading(); toast('原文词形已关联；仅记录阅读标记，不提高掌握度。'); render();
+    });
     document.querySelectorAll<HTMLElement>('[data-tok]').forEach(b => b.addEventListener('click', () => {
         const idx = Number(b.dataset.tok);
         readSelectedToken = readTokens.find(t => t.index === idx) ?? null;
