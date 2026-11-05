@@ -35,3 +35,10 @@ test('激光与激光唱片不是同义答案，中文子串相同不能单独�
     assert.ok(buildSpellingQueue(ws, ws).words.some(w => w.en === 'laser'));
     assert.equal(spellingAttempt(ws[0], 'CD', 's', false, false, 1).correct, false);
 });
+
+test('括号内枚举不能拆成独立释义；括号外真实同义片段仍排除', () => {
+    const ws = [word('board', '板；上（船、火车、公共汽车、飞机等）'), word('bus', '公共汽车'), word('bed', '床；(湖、海的)底'), word('lake', '湖'), word('keeper', '看守人;保管人'), word('watchman', "([复] watchmen /'wɒtʃmən/) 看守人")];
+    const result = buildSpellingQueue(ws, ws);
+    assert.deepEqual(result.words.map(w => w.en), ['board', 'bus', 'bed', 'lake']);
+    assert.equal(spellingAttempt(ws[0], 'bus', 's', false, false, 1).correct, false);
+});

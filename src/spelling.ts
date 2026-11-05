@@ -6,8 +6,16 @@ export function normalizeSpelling(value: string): string {
     return value.trim().replace(/\s+/gu, ' ').replace(/[‘’]/gu, "'");
 }
 function senses(value: string): string[] {
-    return value.replace(/\b(?:vt|vi|adj|adv|n|v|prep|conj|pron|num|art|int|aux|abbr)\./gi, '')
-        .split(/[;；,，、/\n]+/u).map(s => s.replace(/[\s。.!！?？()（）【】\[\]]/gu, '')).filter(Boolean);
+    // 括号内的逗号/顿号是限定语枚举，不是独立词义（如“上（船、火车、公共汽车）”）。
+    const parts: string[] = []; let part = '', depth = 0;
+    for (const c of value.replace(/\b(?:vt|vi|adj|adv|n|v|prep|conj|pron|num|art|int|aux|abbr)\./gi, '')) {
+        if ('（(【['.includes(c)) depth++;
+        if (/[;；/\n]/u.test(c) || (!depth && /[,，、]/u.test(c))) { parts.push(part); part = ''; }
+        else part += c;
+        if ('）)】]'.includes(c)) depth = Math.max(0, depth - 1);
+    }
+    parts.push(part);
+    return parts.map(s => s.replace(/[\s。.!！?？()（）【】\[\]]/gu, '')).filter(Boolean);
 }
 function usable(w: Word): string | null {
     if (!w.en.trim() || w.en.length > 500 || /[/／;；|]/u.test(w.en)) return '合并词条无法确定唯一拼写';
