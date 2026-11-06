@@ -1,3 +1,10 @@
 .pronunciation { display: inline-flex; align-items: center; gap: 3px; vertical-align: middle; margin-inline-start: 8px; }
 .pronunciation button { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 7px; border-radius: var(--r-sm); color: var(--ink); background: var(--surface); }
 .pronunciation svg { flex: none; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.stubborn-row { display: flex; gap: var(--s-4); justify-content: space-between; align-items: center; padding-block: var(--s-3); border-top: 1px solid var(--line); }
+.stubborn-row p { font-size: var(--t-sm); margin-bottom: 0; }
+#stubborn-support { margin-top: var(--s-5); padding-top: var(--s-4); border-top: 1px solid var(--line); }
+.stubborn-contrast { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-3); }
+.stubborn-contrast > div { background: var(--surface-sunken); padding: var(--s-3); border-radius: var(--r-sm); overflow-wrap: anywhere; }
+@media (max-width: 600px) { .stubborn-row { flex-direction: column; align-items: start; } .stubborn-contrast { grid-template-columns: 1fr; } }

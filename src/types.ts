@@ -93,6 +93,7 @@ export interface StudySession {
     planTaskId?: string | null;
 }
 export interface Settings {
+    stubbornSnoozedUntil?: Record<string, number>;
     pronunciationLocale?: 'en-US' | 'en-GB';
     fast: number;
     normal: number;

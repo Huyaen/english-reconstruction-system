@@ -16,15 +16,15 @@ export class SpellingPractice {
     private assistedRound = false;
     private queue: Word[];
     private firstCount: number;
-    constructor(words: Word[], private sessionId: string, private root: HTMLElement, private save: (a: SpellingAttempt) => Promise<void>, private completed: (id: string) => void, private exit: () => void, private isCurrent: () => boolean, private excludedCount: number) {
-        this.queue = [...words]; this.firstCount = words.length;
+    constructor(words: Word[], private sessionId: string, private root: HTMLElement, private save: (a: SpellingAttempt) => Promise<void>, private completed: (id: string) => void, private exit: () => void, private isCurrent: () => boolean, private excludedCount: number, assistedRound = false) {
+        this.queue = [...words]; this.firstCount = words.length; this.assistedRound = assistedRound;
     }
     render() {
         stopPronunciation();
         if (!this.isCurrent()) return;
         if (this.index >= this.queue.length) { this.result(); return; }
         const word = this.queue[this.index];
-        this.root.innerHTML = `<div class="quiz-top"><button id="spelling-exit" class="text-button">结束并返回</button><span>${this.index + 1} / ${this.queue.length}${this.retry ? ' · 错词重练' : ''}</span></div><section class="quiz-card"><h1>拼写练习</h1><p class="question" id="spelling-prompt">${esc(word.zh)}</p>${word.pos ? `<p class="subtle">词性：${esc(word.pos)}</p>` : ''}<form id="spelling-form"><label for="spelling-input">输入英文单词或短语</label><input id="spelling-input" name="spelling" type="text" maxlength="500" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-describedby="spelling-rules"><div class="actions"><button type="submit" class="primary" id="spelling-submit">提交 <kbd>Enter</kbd></button><button type="button" class="secondary" id="spelling-reveal">查看标准拼写（辅助作答）</button></div></form><div id="spelling-feedback" role="status" aria-live="polite"></div><p id="spelling-rules" class="hint">大小写参与判定；首尾及连续空白会合并，弯撇号统一为直撇号。连字符、其他标点和词序必须一致。本模式单独记录，不改变原复习计划或掌握度。</p><p class="hint">已排除 ${this.excludedCount} 个歧义或不适用词条。判重依据词库中已有释义，无法识别所有同义表达。</p></section>`;
+        this.root.innerHTML = `<div class="quiz-top"><button id="spelling-exit" class="text-button">结束并返回</button><span>${this.index + 1} / ${this.queue.length}${this.retry ? ' · 错词重练' : ''}${this.assistedRound ? ' · 刚查看词条，辅助巩固' : ''}</span></div><section class="quiz-card"><h1>拼写练习</h1><p class="question" id="spelling-prompt">${esc(word.zh)}</p>${word.pos ? `<p class="subtle">词性：${esc(word.pos)}</p>` : ''}<form id="spelling-form"><label for="spelling-input">输入英文单词或短语</label><input id="spelling-input" name="spelling" type="text" maxlength="500" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-describedby="spelling-rules"><div class="actions"><button type="submit" class="primary" id="spelling-submit">提交 <kbd>Enter</kbd></button><button type="button" class="secondary" id="spelling-reveal">查看标准拼写（辅助作答）</button></div></form><div id="spelling-feedback" role="status" aria-live="polite"></div><p id="spelling-rules" class="hint">大小写参与判定；首尾及连续空白会合并，弯撇号统一为直撇号。连字符、其他标点和词序必须一致。本模式单独记录，不改变原复习计划或掌握度。</p><p class="hint">已排除 ${this.excludedCount} 个歧义或不适用词条。判重依据词库中已有释义，无法识别所有同义表达。</p></section>`;
         const input = this.root.querySelector<HTMLInputElement>('#spelling-input')!;
         input.addEventListener('keydown', e => { if (e.key === 'Enter' && e.isComposing) { e.preventDefault(); e.stopPropagation(); } });
         this.root.querySelector<HTMLFormElement>('#spelling-form')!.onsubmit = e => { e.preventDefault(); void this.submit(input.value); };

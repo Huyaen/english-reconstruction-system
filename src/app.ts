@@ -1,3 +1,5 @@
+import { analyzeStubborn, queueStubbornDismissals } from './stubborn.ts';
+import { stubbornListHTML, mountStubbornSupport } from './stubbornView.ts';
 import { Pronunciation, type PronunciationLocale } from './pronunciation.ts';
 import { speechControls, stopPronunciation, installPronunciation, refreshPronunciationUI, pronunciationPanel } from './pronunciationView.ts';
 import './learningSupport.css';
@@ -733,13 +735,13 @@ async function startModeOnce(mode: string, explicit?: Word[]) {
     }
     await startSession(s);
 }
-async function startCloze() {
+async function startCloze(wordId?: string) {
     const range = document.querySelector<HTMLSelectElement>('#range-book')?.value ?? bookFilter;
     const count = Number(document.querySelector<HTMLSelectElement>('#range-count')?.value || 100);
     const token = pageToken();
     const filtered = await loadClozeQueue();
     if (token !== pageToken()) return;
-    const questions = filtered.questions.filter(q => !range || wordMap.get(q.wordId)?.bookId === range).slice(0, count);
+    const questions = filtered.questions.filter(q => wordId ? q.wordId === wordId : !range || wordMap.get(q.wordId)?.bookId === range).slice(0, count);
     if (!questions.length) { toast(`没有可可靠定位且含中文释义的阅读原句（排除 ${filtered.excluded.length} 条）。先在阅读原文标记生词。`); return; }
     enterPage('cloze'); shell();
     const practice: ClozePractice = new ClozePractice(questions, $('#main'), async a => {
@@ -747,10 +749,10 @@ async function startCloze() {
     }, id => backupCompleted(`cloze:${id}`), () => setPage('home'), q => {
         const passage = data.passages.find(p => p.id === q.passageId);
         if (passage) openReadingMaterial(passage, q.readingSessionId); else toast('原阅读材料已移除，作答历史仍保留来源快照。');
-    }, () => page === 'cloze' && clozePractice === practice, filtered.excluded.length);
+    }, () => page === 'cloze' && clozePractice === practice, filtered.excluded.length, !!wordId);
     clozePractice = practice; practice.render();
 }
-function startSpelling(explicit?: Word[]) {
+function startSpelling(explicit?: Word[], assistedRound = false) {
     const range = document.querySelector<HTMLSelectElement>('#range-book')?.value ?? bookFilter;
     const count = Number(document.querySelector<HTMLSelectElement>('#range-count')?.value || 100);
     bookFilter = range;
@@ -762,7 +764,7 @@ function startSpelling(explicit?: Word[]) {
     const practice: SpellingPractice = new SpellingPractice(words, uid(), $('#main'), async attempt => {
         await putItems('spellingAttempts', [attempt]);
         data.spellingAttempts.push(attempt);
-    }, id => backupCompleted(`spelling:${id}`), () => setPage('home'), () => page === 'spelling' && spellingPractice === practice, filtered.excluded.length);
+    }, id => backupCompleted(`spelling:${id}`), () => setPage('home'), () => page === 'spelling' && spellingPractice === practice, filtered.excluded.length, assistedRound);
     spellingPractice = practice;
     practice.render();
 }
@@ -974,6 +976,7 @@ function library(weak: boolean) {
 </section>`
         : '';
     $('#main').innerHTML = title(weak ? '薄弱词' : '词库', weak ? '把没记住的词练熟' : '你的词库', weak ? '答错和选“模糊”的词，按该先练的排。' : '把要学的词导进来。所有记录只存在这台设备上。', weak ? '' : `<button id="import" class="primary">＋ 导入词书</button>`) + launcher + `${weak ? `<details class="weak-ledger"><summary>查看这 ${weakWords.length} 个词的明细</summary><div class="weak-ledger-body">` : ''}<div class="book-tabs"><button data-book="" class="${!bookFilter ? 'selected' : ''}">全部词书</button>${data.books.map(b => `<button data-book="${b.id}" class="${bookFilter === b.id ? 'selected' : ''}">${esc(b.name)} <small>${data.words.filter(w => w.bookId === b.id).length}</small></button>`).join('')}</div><div class="toolbar"><input id="search" placeholder="搜索单词、释义或标签" aria-label="搜索词库" value="${esc(search)}"><select id="level" aria-label="掌握筛选"><option value="">全部状态</option>${Object.entries(labels).filter(([k]) => !weak || k === 'unknown' || k === 'vague').map(([k, v]) => `<option value="${k}" ${k === levelFilter ? 'selected' : ''}>${v}</option>`).join('')}</select><select id="sort" aria-label="排序"><option value="priority" ${sort === 'priority' ? 'selected' : ''}>不会的排前面</option><option value="alpha" ${sort === 'alpha' ? 'selected' : ''}>按字母排</option><option value="due" ${sort === 'due' ? 'selected' : ''}>该复习的排前面</option></select><span class="toolbar-actions">${weak ? '<button id="import" class="secondary">导入词书</button>' : ''}<button id="train-filter" class="secondary">练这些词</button><button id="export-filter" class="secondary">导出</button><button id="preview-lib" class="secondary">预览新词</button></span>${bookFilter ? '<button id="rename-book" class="text-button">重命名</button><button id="delete-book" class="danger-text">删除词书</button>' : ''}</div><section class="panel no-padding" id="word-table"></section>${weak ? '</div></details>' : ''}`;
+    if (weak) $('#word-table').closest('details')?.insertAdjacentHTML('beforebegin', '<div id="stubborn-slot"></div>');
     drawTable(weak);
     on('#import', 'click', importDialog);
     on('#review-start', 'click', () => startMode('weak', filtered(true).slice(0, 1000)));
@@ -1007,16 +1010,41 @@ function drawTable(weak: boolean) {
     $('#word-table').innerHTML = `<div class="table-scroll"><table><thead><tr><th>单词 / 释义</th><th>掌握状态</th><th>优先度</th><th>答对 / 作答</th><th>平均用时</th><th>下次复习</th></tr></thead><tbody>${ws.slice(listPage * 50, listPage * 50 + 50).map(w => `<tr><td><button class="word-link" data-detail="${w.id}">${esc(w.en)}</button><small>${esc(w.zh)}</small></td><td><span class="badge ${w.state.level}">${labels[w.state.level]}</span> <small class="lifecycle">${LIFECYCLE_LABELS[lifecycleOf(w)]}</small></td><td><b class="priority-${priorityGrade(w)}" title="${PRIORITY_TEXT[priorityGrade(w)]}">${priorityGrade(w)}</b></td><td>${w.state.correct} / ${w.state.total}</td><td>${w.state.total ? seconds(w.state.meanMs) : '—'}</td><td>${w.state.total ? (effectiveDue(w, data.settings.schedulingAuthority) <= Date.now() ? '<span class="due-text">该复习了</span>' : date(effectiveDue(w, data.settings.schedulingAuthority))) : '未测试'}</td></tr>`).join('') || `<tr><td colspan="6" class="empty-cell"><div class="empty-state"><strong>没有符合条件的单词</strong><span>导入词书，或把搜索与筛选清空再看一遍。</span><div class="actions"><button id="empty-import" class="primary">导入词书</button><button id="empty-clear" class="secondary">清除筛选</button></div></div></td></tr>`}</tbody></table></div><div class="pagination"><span>共 ${ws.length} 个词 · 每页 50 个</span>${`<span class="subtle">${PRIORITY_LEGEND}</span>`}</span><div><button id="prev" ${listPage === 0 ? 'disabled' : ''}>上一页</button><span>${listPage + 1} / ${pages}</span><button id="next-page" ${listPage === pages - 1 ? 'disabled' : ''}>下一页</button></div></div>`;
     on('#prev', 'click', () => { listPage--; drawTable(weak); });
     on('#next-page', 'click', () => { listPage++; drawTable(weak); });
+    const support = document.querySelector('#stubborn-slot');
+    if (weak && support) {
+        const allowed = new Set(filtered(false).map(w => w.id));
+        support.innerHTML = stubbornListHTML(analyzeStubborn(data).filter(r => allowed.has(r.wordId)), data.words);
+    }
     bindDetails();
     on('#empty-import', 'click', importDialog);
     on('#empty-clear', 'click', () => { search = ''; bookFilter = ''; levelFilter = ''; listPage = 0; drawTable(weak); });
 }
 function bindDetails() { document.querySelectorAll<HTMLElement>('[data-detail]').forEach(b => b.onclick = () => wordDetail(wordMap.get(b.dataset.detail!)!)); }
+const dismissStubborn = queueStubbornDismissals(() => data.settings, async updated => {
+    if (!validSettings(updated)) throw Error('关闭提示设置无效');
+    await saveSettings(updated); data.settings = updated;
+});
 function wordDetail(w: Word) {
     stopPronunciation();
     const rs = data.records.filter(r => r.wordId === w.id).sort((a, b) => a.at - b.at);
     const r = fsrsRetrievability(w.fsrs, data.settings);
     modal(`<div class="eyebrow">这个词</div><h2 class="detail-word">${esc(w.en)} ${speechControls(w.en)}</h2><p>${esc(w.phonetic)} ${esc(w.pos)}</p><h3>${esc(w.zh)}</h3>${w.example ? `<blockquote>${esc(w.example)}</blockquote>` : ''}${w.collocation ? `<p>搭配：${esc(w.collocation)}</p>` : ''}${w.tags ? `<p>标签：${esc(w.tags)}</p>` : ''}<div class="detail-stats"><span>作答 <b>${w.state.total} 次</b></span><span>答对 / 答错 <b>${w.state.correct} / ${w.state.total - w.state.correct}</b></span><span>平均用时 <b>${seconds(w.state.meanMs)}</b></span><span>上次用时 <b>${seconds(w.state.lastMs)}</b></span>${Object.entries(w.state.directions).map(([k, v]) => `<span>${k === 'en-zh' ? '英→中' : '中→英'} <b>${v.total ? pct(v.correct / v.total) : '无记录'} · ${v.total} 次</b></span>`).join('')}<span>状态 <b>${labels[w.state.level]}</b></span><span>学习阶段 <b>${LIFECYCLE_LABELS[lifecycleOf(w)]}</b></span><span>看得懂 / 想得起 / 用得出 <b>${w.recognitionScore} / ${w.activeRecallScore} / ${w.productiveScore}</b></span><span>预览 <b>${w.previewedAt ? (w.previewResult === 'skip' ? '已跳过' : w.previewResult === 'know' ? '已会' : w.previewResult === 'familiar' ? '熟悉' : '陌生') : '未预览'}</b></span><span>复习节奏 <b>${hasFsrsHistory(w.fsrs) ? `稳定 ${w.fsrs.stability.toFixed(1)} 天 · 难度 ${w.fsrs.difficulty.toFixed(1)} · 现在还能想起 ${r === null ? '—' : pct(r)}` : '还没开始'}</b></span><span>下次复习 <b>${date(effectiveDue(w, data.settings.schedulingAuthority))}</b></span></div><h3>最近 20 次状态变化</h3><div class="history">${rs.slice(-20).map(r => `<span class="badge ${r.after}" title="${date(r.at)} · ${seconds(r.ms)}">${labels[r.after]}</span>`).join('') || '尚无记录'}</div><h3>常混的词</h3><p>${Object.entries(w.confusions).sort((a, b) => b[1] - a[1]).map(([id, n]) => `${esc(wordMap.get(id)?.en || '已删除')}（${n}次）`).join('、') || '还没有记录'}</p><div class="actions"><button id="detail-review" class="primary">单独再测一次</button><button id="edit-word" class="secondary">编辑词条</button></div>`);
+    const report = analyzeStubborn(data).find(r => r.wordId === w.id);
+    if (report) {
+        const dialog = $<HTMLDialogElement>('#modal'); dialog.insertAdjacentHTML('beforeend', '<section id="stubborn-support"></section>');
+        const root = dialog.querySelector<HTMLElement>('#stubborn-support')!;
+        mountStubbornSupport(root, w, report, data.words, {
+            current: () => dialog.open && dialog.querySelector('#stubborn-support') === root,
+            loadCloze: async () => (await loadClozeQueue()).questions,
+            spelling: () => { closeModal(); startSpelling([w], true); },
+            cloze: async () => { closeModal(); await startCloze(w.id); },
+            dismiss: async () => {
+                await dismissStubborn(w.id);
+                if (!dialog.open || dialog.querySelector('#stubborn-support') !== root) return;
+                closeModal(); render(); toast('7天内不提示此词，学习计划保持不变。');
+            }, error: toast,
+        });
+    }
     on('#detail-review', 'click', async () => { closeModal(); await startMode('single', [w]); });
     on('#edit-word', 'click', () => {
         modal(`<h2>编辑 ${esc(w.en)}</h2><p class="hint">修改释义不会重置学习记录。</p><label>中文释义<textarea id="edit-zh">${esc(w.zh)}</textarea></label><label>词性<input id="edit-pos" value="${esc(w.pos)}"></label><label>标签<input id="edit-tags" value="${esc(w.tags)}"></label><button id="edit-save" class="primary">保存修改</button>`);
