@@ -93,6 +93,7 @@ export interface StudySession {
     planTaskId?: string | null;
 }
 export interface Settings {
+    pronunciationLocale?: 'en-US' | 'en-GB';
     fast: number;
     normal: number;
     timeout: number;

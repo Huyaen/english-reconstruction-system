@@ -1,3 +1,6 @@
+import { Pronunciation, type PronunciationLocale } from './pronunciation.ts';
+import { speechControls, stopPronunciation, installPronunciation, refreshPronunciationUI, pronunciationPanel } from './pronunciationView.ts';
+import './learningSupport.css';
 import { catchupStatus, applyCatchupToPlan, adjustCatchupPlan, remainingCatchup } from './catchup.ts';
 import { loadClozeQueue } from './readingCloze.ts';
 import { ClozePractice } from './clozeView.ts';
@@ -127,6 +130,8 @@ const autoBackup = new AutoBackup(loadData, state => writeLocalMeta('auto-backup
     updateBackupPanel(autoBackup);
     if (autoBackup.state.status === 'error' || autoBackup.state.status === 'permission') toast(autoBackup.state.error);
 });
+const pronunciation = new Pronunciation(window.speechSynthesis, text => new SpeechSynthesisUtterance(text), toast, 'en-US', refreshPronunciationUI);
+installPronunciation(document, pronunciation);
 const backupCompleted = (event: string) => { void autoBackup.run(event).catch(e => toast(e.message)); };
 let data: Data, page = 'home', bookFilter = '', search = '', levelFilter = '', sort = 'priority', listPage = 0;
 /** 页面纪元：每次真的换页 +1。异步任务拿它作废自己，避免旧任务的收尾写进新页面。 */
@@ -237,7 +242,7 @@ let labReturn: (LabReturnTarget & {
     planTaskId?: string;
 }) | null = null;
 const navs = [['home', '◫', '今天'], ['books', '▤', '词库'], ['weak', '◎', '薄弱词'], ['sentence', '❝', '句子'], ['reading', '❖', '阅读'], ['input', '▶', '输入练习'], ['output', '✎︎', '写作练习'], ['grammar', '◈', '语法'], ['unit', '◐', '单元'], ['diagnostics', '◮', '学习报告'], ['exam', '⌘', '考试'], ['stats', '▥', '统计'], ['ai', '✧︎', 'AI 建议'], ['settings', '⚙︎', '设置']];
-function reindex() { wordMap = new Map(data.words.map(w => [w.id, w])); }
+function reindex() { wordMap = new Map(data.words.map(w => [w.id, w])); const locale = data.settings.pronunciationLocale ?? 'en-US'; if (pronunciation.locale !== locale) pronunciation.setLocale(locale); }
 function setPage(p: string) {
     if ((page === 'quiz' && busy) || startingSession) {
         toast('正在保存训练，请稍后切换');
@@ -262,6 +267,7 @@ function setPage(p: string) {
  * 这里只写属性：不重渲染、不重建会话、不碰数据。
  */
 function enterPage(next: string): number {
+    stopPronunciation();
     page = next;
     pageEpoch += 1;
     applyPageScope(next);
@@ -607,12 +613,13 @@ function startReflow() {
     void startMode('reflow', words);
 }
 function previewPage() {
+    stopPronunciation();
     if (!previewWords.length || previewIndex >= previewWords.length) {
         previewDone();
         return;
     }
     const w = previewWords[previewIndex];
-    $('#main').innerHTML = `<div class="quiz-top"><button id="quit" class="text-button">← 结束预览</button><span>${previewIndex + 1} / ${previewWords.length}</span><span></span></div><section class="quiz-card preview-card"><div class="eyebrow">新词预览</div><div class="question">${esc(w.en)}</div><p class="subtle">${esc(w.phonetic)} ${esc(w.pos)}</p><h3>${esc(w.zh)}</h3>${w.collocation ? `<p>搭配：${esc(w.collocation)}</p>` : ''}${w.example ? `<blockquote>${esc(w.example)}</blockquote>` : ''}<p class="hint">先看一眼，有个印象就好。等会儿马上会测一遍，现在不用背。</p><div class="answers preview-actions"><button class="answer" data-preview="know"><kbd>1</kbd><span>已经会</span></button><button class="answer" data-preview="familiar"><kbd>2</kbd><span>熟悉</span></button><button class="answer" data-preview="unknown"><kbd>3</kbd><span>陌生</span></button><button class="answer" data-preview="skip"><kbd>4</kbd><span>跳过</span></button></div></section>`;
+    $('#main').innerHTML = `<div class="quiz-top"><button id="quit" class="text-button">← 结束预览</button><span>${previewIndex + 1} / ${previewWords.length}</span><span></span></div><section class="quiz-card preview-card"><div class="eyebrow">新词预览</div><div class="question">${esc(w.en)} ${speechControls(w.en)}</div><p class="subtle">${esc(w.phonetic)} ${esc(w.pos)}</p><h3>${esc(w.zh)}</h3>${w.collocation ? `<p>搭配：${esc(w.collocation)}</p>` : ''}${w.example ? `<blockquote>${esc(w.example)}</blockquote>` : ''}<p class="hint">先看一眼，有个印象就好。等会儿马上会测一遍，现在不用背。</p><div class="answers preview-actions"><button class="answer" data-preview="know"><kbd>1</kbd><span>已经会</span></button><button class="answer" data-preview="familiar"><kbd>2</kbd><span>熟悉</span></button><button class="answer" data-preview="unknown"><kbd>3</kbd><span>陌生</span></button><button class="answer" data-preview="skip"><kbd>4</kbd><span>跳过</span></button></div></section>`;
     on('#quit', 'click', previewDone);
     document.querySelectorAll<HTMLElement>('[data-preview]').forEach(b => b.onclick = () => void previewAnswer(b.dataset.preview as PreviewResult));
 }
@@ -761,6 +768,7 @@ function startSpelling(explicit?: Word[]) {
 }
 async function startSession(s: StudySession) { if (s.mode === 'catchup' && (!currentCatchup() || s.catchupPlanAt !== currentCatchup()!.createdAt)) { await beginCatchup(); return; } active = s; enterPage('quiz'); shell(); await showQuestion(); }
 async function showQuestion() {
+    stopPronunciation();
     stopTimer();
     feedback = false;
     paused = false;
@@ -850,7 +858,7 @@ async function submit(selectedId: string | null, reason: ReviewRecord['reason'])
     busy = false;
     document.querySelectorAll<HTMLButtonElement>('.answer').forEach(b => { b.disabled = true; b.classList.toggle('correct', b.dataset.answer === w.id); b.classList.toggle('is-correct', b.dataset.answer === w.id); b.classList.toggle('wrong', b.dataset.answer === selectedId); b.classList.toggle('is-wrong', b.dataset.answer === selectedId); });
     $('#unknown').setAttribute('disabled', '');
-    $('#feedback').innerHTML = `<div class="answer-feedback bad" role="status"><div class="feedback-copy"><strong>${esc(w.en)} · ${esc(w.zh)}</strong><span>${reason === 'timeout' ? '没来得及答' : reason === 'unknown' ? '记成不会，已加入复习' : '答错了，已记下来'} · ${seconds(result.record.ms)}</span></div><button id="next" class="primary">下一题 <kbd>Enter</kbd></button></div>`;
+    $('#feedback').innerHTML = `<div class="answer-feedback bad" role="status"><div class="feedback-copy"><strong>${esc(w.en)} · ${esc(w.zh)}</strong>${speechControls(w.en)}<span>${reason === 'timeout' ? '没来得及答' : reason === 'unknown' ? '记成不会，已加入复习' : '答错了，已记下来'} · ${seconds(result.record.ms)}</span></div><button id="next" class="primary">下一题 <kbd>Enter</kbd></button></div>`;
     on('#next', 'click', nextQuestion);
     if (data.settings.feedback >= 0)
         timer = setTimeout(() => void nextQuestion(), data.settings.feedback);
@@ -884,7 +892,7 @@ document.addEventListener('visibilitychange', () => {
 });
 let lastKeyAt = 0;
 document.addEventListener('keydown', e => {
-    if (e.isComposing || (e.target as HTMLElement)?.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"])') || $<HTMLDialogElement>('#modal').open)
+    if (e.isComposing || (e.target as HTMLElement)?.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[data-pronunciation]') || $<HTMLDialogElement>('#modal').open)
         return;
     if (page === 'preview') {
         const map: Record<string, PreviewResult> = { '1': 'know', '2': 'familiar', '3': 'unknown', '4': 'skip' };
@@ -1005,9 +1013,10 @@ function drawTable(weak: boolean) {
 }
 function bindDetails() { document.querySelectorAll<HTMLElement>('[data-detail]').forEach(b => b.onclick = () => wordDetail(wordMap.get(b.dataset.detail!)!)); }
 function wordDetail(w: Word) {
+    stopPronunciation();
     const rs = data.records.filter(r => r.wordId === w.id).sort((a, b) => a.at - b.at);
     const r = fsrsRetrievability(w.fsrs, data.settings);
-    modal(`<div class="eyebrow">这个词</div><h2 class="detail-word">${esc(w.en)}</h2><p>${esc(w.phonetic)} ${esc(w.pos)}</p><h3>${esc(w.zh)}</h3>${w.example ? `<blockquote>${esc(w.example)}</blockquote>` : ''}${w.collocation ? `<p>搭配：${esc(w.collocation)}</p>` : ''}${w.tags ? `<p>标签：${esc(w.tags)}</p>` : ''}<div class="detail-stats"><span>作答 <b>${w.state.total} 次</b></span><span>答对 / 答错 <b>${w.state.correct} / ${w.state.total - w.state.correct}</b></span><span>平均用时 <b>${seconds(w.state.meanMs)}</b></span><span>上次用时 <b>${seconds(w.state.lastMs)}</b></span>${Object.entries(w.state.directions).map(([k, v]) => `<span>${k === 'en-zh' ? '英→中' : '中→英'} <b>${v.total ? pct(v.correct / v.total) : '无记录'} · ${v.total} 次</b></span>`).join('')}<span>状态 <b>${labels[w.state.level]}</b></span><span>学习阶段 <b>${LIFECYCLE_LABELS[lifecycleOf(w)]}</b></span><span>看得懂 / 想得起 / 用得出 <b>${w.recognitionScore} / ${w.activeRecallScore} / ${w.productiveScore}</b></span><span>预览 <b>${w.previewedAt ? (w.previewResult === 'skip' ? '已跳过' : w.previewResult === 'know' ? '已会' : w.previewResult === 'familiar' ? '熟悉' : '陌生') : '未预览'}</b></span><span>复习节奏 <b>${hasFsrsHistory(w.fsrs) ? `稳定 ${w.fsrs.stability.toFixed(1)} 天 · 难度 ${w.fsrs.difficulty.toFixed(1)} · 现在还能想起 ${r === null ? '—' : pct(r)}` : '还没开始'}</b></span><span>下次复习 <b>${date(effectiveDue(w, data.settings.schedulingAuthority))}</b></span></div><h3>最近 20 次状态变化</h3><div class="history">${rs.slice(-20).map(r => `<span class="badge ${r.after}" title="${date(r.at)} · ${seconds(r.ms)}">${labels[r.after]}</span>`).join('') || '尚无记录'}</div><h3>常混的词</h3><p>${Object.entries(w.confusions).sort((a, b) => b[1] - a[1]).map(([id, n]) => `${esc(wordMap.get(id)?.en || '已删除')}（${n}次）`).join('、') || '还没有记录'}</p><div class="actions"><button id="detail-review" class="primary">单独再测一次</button><button id="edit-word" class="secondary">编辑词条</button></div>`);
+    modal(`<div class="eyebrow">这个词</div><h2 class="detail-word">${esc(w.en)} ${speechControls(w.en)}</h2><p>${esc(w.phonetic)} ${esc(w.pos)}</p><h3>${esc(w.zh)}</h3>${w.example ? `<blockquote>${esc(w.example)}</blockquote>` : ''}${w.collocation ? `<p>搭配：${esc(w.collocation)}</p>` : ''}${w.tags ? `<p>标签：${esc(w.tags)}</p>` : ''}<div class="detail-stats"><span>作答 <b>${w.state.total} 次</b></span><span>答对 / 答错 <b>${w.state.correct} / ${w.state.total - w.state.correct}</b></span><span>平均用时 <b>${seconds(w.state.meanMs)}</b></span><span>上次用时 <b>${seconds(w.state.lastMs)}</b></span>${Object.entries(w.state.directions).map(([k, v]) => `<span>${k === 'en-zh' ? '英→中' : '中→英'} <b>${v.total ? pct(v.correct / v.total) : '无记录'} · ${v.total} 次</b></span>`).join('')}<span>状态 <b>${labels[w.state.level]}</b></span><span>学习阶段 <b>${LIFECYCLE_LABELS[lifecycleOf(w)]}</b></span><span>看得懂 / 想得起 / 用得出 <b>${w.recognitionScore} / ${w.activeRecallScore} / ${w.productiveScore}</b></span><span>预览 <b>${w.previewedAt ? (w.previewResult === 'skip' ? '已跳过' : w.previewResult === 'know' ? '已会' : w.previewResult === 'familiar' ? '熟悉' : '陌生') : '未预览'}</b></span><span>复习节奏 <b>${hasFsrsHistory(w.fsrs) ? `稳定 ${w.fsrs.stability.toFixed(1)} 天 · 难度 ${w.fsrs.difficulty.toFixed(1)} · 现在还能想起 ${r === null ? '—' : pct(r)}` : '还没开始'}</b></span><span>下次复习 <b>${date(effectiveDue(w, data.settings.schedulingAuthority))}</b></span></div><h3>最近 20 次状态变化</h3><div class="history">${rs.slice(-20).map(r => `<span class="badge ${r.after}" title="${date(r.at)} · ${seconds(r.ms)}">${labels[r.after]}</span>`).join('') || '尚无记录'}</div><h3>常混的词</h3><p>${Object.entries(w.confusions).sort((a, b) => b[1] - a[1]).map(([id, n]) => `${esc(wordMap.get(id)?.en || '已删除')}（${n}次）`).join('、') || '还没有记录'}</p><div class="actions"><button id="detail-review" class="primary">单独再测一次</button><button id="edit-word" class="secondary">编辑词条</button></div>`);
     on('#detail-review', 'click', async () => { closeModal(); await startMode('single', [w]); });
     on('#edit-word', 'click', () => {
         modal(`<h2>编辑 ${esc(w.en)}</h2><p class="hint">修改释义不会重置学习记录。</p><label>中文释义<textarea id="edit-zh">${esc(w.zh)}</textarea></label><label>词性<input id="edit-pos" value="${esc(w.pos)}"></label><label>标签<input id="edit-tags" value="${esc(w.tags)}"></label><button id="edit-save" class="primary">保存修改</button>`);
@@ -2037,6 +2046,13 @@ function settingsPage() {
 <label>返回格式<select name="structuredMode">${[['auto', '自动（先要结构化的，不支持就用普通文本）'], ['json_object', '只接受 JSON（JSON Mode）'], ['json_schema', '只接受严格 JSON 结构（JSON Schema）'], ['text', '只当纯文本处理']].map(([v, t]) => `<option value="${v}" ${(s.ai?.structuredMode ?? 'auto') === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
 <div class="form-grid"><label>最多等多久（秒）<input name="aiTimeout" type="number" min="3" max="180" value="${Math.round((s.ai?.timeoutMs ?? 45000) / 1000)}"></label><label>失败后重试次数<input name="aiRetries" type="number" min="0" max="3" value="${s.ai?.maxRetries ?? 2}"></label><label>单次输出上限（token）<input name="aiMaxTokens" type="number" min="64" max="8000" value="${s.ai?.maxOutputTokens ?? 1200}"></label><label>每天用量上限（token）<input name="aiBudget" type="number" min="0" placeholder="留空 = 不限" value="${s.ai?.dailyTokenBudget ?? ''}"></label></div>
 <p class="hint">不勾“在这台设备保存密钥”，关掉页面就清了。勾了以后密钥会明文存在这台电脑的浏览器里，导出的完整备份不会带上它。浏览器直连要求服务商支持 CORS。用量按 token 计，这里不换算成钱。token 是服务商计费的单位，1 个 token 大约是半个英文单词。浏览器直连还要求服务商允许跨域访问。</p></section></div><button class="primary" type="submit">保存设置</button></form>${originPanelHTML(origin)}${backupPanel()}<section class="panel backup-panel"><h2>备份与换地址</h2><p>导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。</p><div class="actions"><button id="backup" class="primary">导出全部学习数据</button><label class="button secondary">导入备份<input id="restore" type="file" accept=".json" hidden></label><button id="persist" class="secondary">申请持久存储</button><button id="check-integrity" class="secondary">检查数据完整性</button><button id="clear" class="danger-text">清空本地数据</button></div><p id="storage-info" class="hint">学习数据按浏览器和站点地址保存：一直用同一个地址打开，才能看到同一份数据。</p></section>`;
+    $('#settings-form').insertAdjacentHTML('afterend', pronunciationPanel(s.pronunciationLocale ?? 'en-US'));
+    refreshPronunciationUI();
+    on('#pronunciation-locale', 'change', async e => {
+        const updated = { ...data.settings, pronunciationLocale: (e.target as HTMLSelectElement).value as PronunciationLocale };
+        if (!validSettings(updated)) throw Error('英语口音设置无效');
+        await saveSettings(updated); data.settings = updated; pronunciation.setLocale(updated.pronunciationLocale);
+    });
     on('#settings-form', 'submit', async (e) => {
         e.preventDefault();
         const f = new FormData(e.target as HTMLFormElement);

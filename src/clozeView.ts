@@ -1,3 +1,4 @@
+import { speechControls, stopPronunciation } from './pronunciationView.ts';
 import type { ClozeAttempt } from './types.ts';
 import type { ClozeQuestion } from './readingCloze.ts';
 import { clozeAttempt } from './readingCloze.ts';
@@ -10,6 +11,7 @@ export class ClozePractice {
     constructor(private queue: ClozeQuestion[], private root: HTMLElement, private save: (a: ClozeAttempt) => Promise<void>, private finish: (id: string) => void,
         private exit: () => void, private source: (q: ClozeQuestion) => void, private current: () => boolean, private excluded: number) { this.queue = [...queue]; this.firstCount = queue.length; }
     render() {
+        stopPronunciation();
         if (!this.current()) return;
         if (this.index >= this.queue.length) { this.result(); return; }
         const q = this.queue[this.index], retry = this.index >= this.firstCount;
@@ -18,7 +20,7 @@ export class ClozePractice {
         const input = this.root.querySelector<HTMLInputElement>('#cloze-input')!;
         input.onkeydown = e => { if (e.key === 'Enter' && e.isComposing) { e.preventDefault(); e.stopPropagation(); } };
         this.root.querySelector<HTMLFormElement>('#cloze-form')!.onsubmit = e => { e.preventDefault(); void this.submit(input.value); };
-        for (const [id, text] of [['cloze-hint', `词头：${q.lemma}。本题记为辅助作答。`], ['cloze-reveal', `原文词形：${q.expected}。本题记为辅助作答。`]]) this.root.querySelector<HTMLButtonElement>(`#${id}`)!.onclick = () => { if (this.busy || this.submitted) return; this.assisted = true; this.root.querySelector('#cloze-feedback')!.textContent = text; input.focus(); };
+        for (const [id, text] of [['cloze-hint', `词头：${q.lemma}。本题记为辅助作答。`], ['cloze-reveal', `原文词形：${q.expected}。本题记为辅助作答。`]]) this.root.querySelector<HTMLButtonElement>(`#${id}`)!.onclick = () => { if (this.busy || this.submitted) return; this.assisted = true; this.root.querySelector('#cloze-feedback')!.innerHTML = esc(text) + (id === 'cloze-reveal' ? speechControls(q.expected) : ''); input.focus(); };
         this.root.querySelector<HTMLButtonElement>('#cloze-exit')!.onclick = () => { if (!this.busy) this.exit(); };
         this.root.querySelector<HTMLButtonElement>('#cloze-source')!.onclick = () => { if (!this.busy) this.source(q); };
         input.focus();
@@ -34,7 +36,7 @@ export class ClozePractice {
             await this.save(attempt); this.attempts.push(attempt); this.submitted = true;
             if (!this.current()) return;
             this.root.querySelector<HTMLInputElement>('#cloze-input')!.disabled = true;
-            feedback.innerHTML = `<p class="${attempt.correct ? 'green' : 'error'}">${attempt.assisted ? '辅助作答 · ' : ''}${attempt.correct ? '原文词形正确' : '与原文词形不同'} · 标准答案：${esc(q.expected)}</p><button id="cloze-next" class="primary">下一题 / 查看结果</button>${!attempt.correct ? '<button id="cloze-retry" class="secondary">加入错词重练（辅助）</button>' : ''}`;
+            feedback.innerHTML = `<p class="${attempt.correct ? 'green' : 'error'}">${attempt.assisted ? '辅助作答 · ' : ''}${attempt.correct ? '原文词形正确' : '与原文词形不同'} · 标准答案：${esc(q.expected)}${speechControls(q.expected)}</p><button id="cloze-next" class="primary">下一题 / 查看结果</button>${!attempt.correct ? '<button id="cloze-retry" class="secondary">加入错词重练（辅助）</button>' : ''}`;
             this.root.querySelector<HTMLButtonElement>('#cloze-next')!.onclick = () => { if (this.busy) return; this.index++; this.render(); };
             const retry = this.root.querySelector<HTMLButtonElement>('#cloze-retry'); if (retry) retry.onclick = () => { this.queue.push(q); retry.disabled = true; };
             this.root.querySelector<HTMLButtonElement>('#cloze-next')!.focus();

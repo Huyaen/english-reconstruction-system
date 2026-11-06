@@ -1,3 +1,4 @@
+import { speechControls, stopPronunciation } from './pronunciationView.ts';
 import type { SpellingAttempt, Word } from './types.ts';
 import { spellingAttempt } from './spelling.ts';
 import { esc, pct } from './ui.ts';
@@ -19,6 +20,7 @@ export class SpellingPractice {
         this.queue = [...words]; this.firstCount = words.length;
     }
     render() {
+        stopPronunciation();
         if (!this.isCurrent()) return;
         if (this.index >= this.queue.length) { this.result(); return; }
         const word = this.queue[this.index];
@@ -29,7 +31,7 @@ export class SpellingPractice {
         this.root.querySelector<HTMLButtonElement>('#spelling-reveal')!.onclick = () => {
             if (this.busy || this.submitted) return;
             this.assisted = true;
-            this.root.querySelector('#spelling-feedback')!.textContent = `标准拼写：${word.en}。本题已标记为辅助作答。`;
+            this.root.querySelector('#spelling-feedback')!.innerHTML = `标准拼写：${esc(word.en)}。本题已标记为辅助作答。${speechControls(word.en)}`;
             input.focus();
         };
         this.root.querySelector<HTMLButtonElement>('#spelling-exit')!.onclick = () => { if (!this.busy) this.exit(); };
@@ -49,7 +51,7 @@ export class SpellingPractice {
             if (!this.isCurrent()) return;
             const input = this.root.querySelector<HTMLInputElement>('#spelling-input')!; input.disabled = true;
             this.root.querySelector<HTMLButtonElement>('#spelling-reveal')!.disabled = true;
-            target.innerHTML = `<p class="${attempt.correct ? 'green' : 'error'}">${attempt.assisted ? '辅助作答 · ' : ''}${attempt.correct ? '拼写正确' : '拼写有误'} · 标准拼写：<strong>${esc(word.en)}</strong></p><div class="actions"><button id="spelling-next" class="primary">${this.index + 1 >= this.queue.length ? '查看本轮结果' : '下一题'}</button>${!attempt.correct ? '<button id="spelling-retry" class="secondary">本轮结束后重练此词</button>' : ''}</div>`;
+            target.innerHTML = `<p class="${attempt.correct ? 'green' : 'error'}">${attempt.assisted ? '辅助作答 · ' : ''}${attempt.correct ? '拼写正确' : '拼写有误'} · 标准拼写：<strong>${esc(word.en)}</strong>${speechControls(word.en)}</p><div class="actions"><button id="spelling-next" class="primary">${this.index + 1 >= this.queue.length ? '查看本轮结果' : '下一题'}</button>${!attempt.correct ? '<button id="spelling-retry" class="secondary">本轮结束后重练此词</button>' : ''}</div>`;
             this.root.querySelector<HTMLButtonElement>('#spelling-next')!.onclick = () => this.next();
             const retry = this.root.querySelector<HTMLButtonElement>('#spelling-retry');
             if (retry) retry.onclick = () => { this.queue.push(word); retry.disabled = true; retry.textContent = '已加入错词重练（辅助）'; };

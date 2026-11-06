@@ -1,0 +1,3 @@
+.pronunciation { display: inline-flex; align-items: center; gap: 3px; vertical-align: middle; margin-inline-start: 8px; }
+.pronunciation button { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 7px; border-radius: var(--r-sm); color: var(--ink); background: var(--surface); }
+.pronunciation svg { flex: none; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
