@@ -309,6 +309,13 @@
 [data-page="results"] .panel[open] summary::before { transform: rotate(90deg); }
 
 /* Preview 完成页：一个明确的下一步，不堆数据 */
+[data-page="cloze"] .cloze-sentence {
+  font-size: var(--t-lg);
+  line-height: 1.8;
+  color: var(--ink);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
 [data-page="preview-done"] #main { max-width: 760px; margin-inline: auto; }
 [data-page="preview-done"] .actions { margin-top: var(--s-5); }
 

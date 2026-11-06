@@ -1,11 +1,12 @@
 import type { Data, Settings, Word, WordExposure, GrammarAttempt, GrammarConcept, SentenceAttempt, SentenceRecord, ReviewRecord, StudySession, MigrationRecord } from './types.ts';
 import { defaults, fsrsDefaults } from './types.ts';
 import { validSettings } from './core.ts';
+import { normalizeSpelling } from './spelling.ts';
 // —— 数据库版本与迁移框架（Phase 1）——
 // 设计依据：REFERENCE_RESEARCH.md §6.1（Dexie 版本化 schema 思想）与 §2.1（Lute migration 模式）。
 // 原则：只加不删（additive only）；逐版本迁移；升级事务原子性（失败自动回滚，旧数据安全）。
 export const DB_NAME = 'vocabulary-memory-v1';
-export const DB_VERSION = 8;
+export const DB_VERSION = 9;
 const legacyStores = ['books', 'words', 'records', 'sessions', 'analyses', 'meta'] as const;
 const legacyDataStores = ['books', 'words', 'records', 'sessions', 'analyses'] as const;
 const v2Stores = ['wordExposures', 'grammarConcepts', 'grammarAttempts', 'sentenceAttempts', 'passages', 'readingSessions', 'inputSources', 'inputSessions', 'outputAttempts', 'dailyPlans', 'miniUnits', 'skillSnapshots', 'weeklyDiagnostics', 'libraryItems'] as const;
@@ -19,7 +20,8 @@ const v6Stores = ['transcripts', 'inputEvidence'] as const;
 const v7Stores = ['examSpecifications', 'examMaterials', 'examItems', 'examSessions', 'examLogs'] as const;
 // 所有 Learning Model store（v2 + v4）：ID 安全性与唯一性校验共用
 const v8Stores = ['spellingAttempts'] as const;
-const modelStores = [...v2Stores, ...v4Stores, ...v5Stores, ...v6Stores, ...v7Stores, ...v8Stores] as const;
+const v9Stores = ['clozeAttempts'] as const;
+const modelStores = [...v2Stores, ...v4Stores, ...v5Stores, ...v6Stores, ...v7Stores, ...v8Stores, ...v9Stores] as const;
 export const dataStores = [...legacyDataStores, ...modelStores] as const;
 export const stores = [...dataStores, 'meta'] as const;
 type StoreName = (typeof stores)[number];
@@ -31,6 +33,7 @@ type IndexSpec = readonly [
     IDBIndexParameters?
 ];
 const indexSpecs: Partial<Record<StoreName, readonly IndexSpec[]>> = {
+    clozeAttempts: [['wordId,at', ['wordId', 'at']], ['sessionId', 'sessionId'], ['at', 'at']],
     spellingAttempts: [['wordId,at', ['wordId', 'at']], ['sessionId', 'sessionId'], ['at', 'at']],
     words: [['bookId', 'bookId'], ['schedule.due', 'schedule.due'], ['fsrs.due', 'fsrs.due']],
     records: [['wordId,at', ['wordId', 'at']], ['at', 'at']],
@@ -118,6 +121,7 @@ function runBackfills(tx: IDBTransaction, fns: Array<(w: Word) => Word>) {
     step(0);
 }
 function runMigration(database: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
+    if (oldVersion < 9) database.createObjectStore('clozeAttempts', { keyPath: 'id' });
     // v8 仅新增独立证据表，不改写既有词条、复习与阅读数据。
     if (oldVersion < 8) database.createObjectStore('spellingAttempts', { keyPath: 'id' });
     if (oldVersion < 1)
@@ -206,7 +210,7 @@ function completedStudy(session: StudySession) {
 export function closeDB() { db?.close(); db = undefined as unknown as IDBDatabase; }
 function done(tx: IDBTransaction) { return new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onabort = () => reject(tx.error || Error('保存事务中止')); tx.onerror = () => reject(tx.error || Error('数据保存失败')); }); }
 function req<T>(r: IDBRequest<T>) { return new Promise<T>((resolve, reject) => { r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); }); }
-export function emptyData(): Data { return { spellingAttempts: [], books: [], words: [], records: [], sessions: [], analyses: [], settings: { ...defaults }, wordExposures: [], grammarConcepts: [], grammarAttempts: [], sentenceAttempts: [], sentences: [], passages: [], readingSessions: [], inputSources: [], inputSessions: [], outputAttempts: [], dailyPlans: [], miniUnits: [], skillSnapshots: [], weeklyDiagnostics: [], libraryItems: [], aiGenerations: [], transcripts: [], inputEvidence: [], examSpecifications: [], examMaterials: [], examItems: [], examSessions: [], examLogs: [], migration: null }; }
+export function emptyData(): Data { return { clozeAttempts: [], spellingAttempts: [], books: [], words: [], records: [], sessions: [], analyses: [], settings: { ...defaults }, wordExposures: [], grammarConcepts: [], grammarAttempts: [], sentenceAttempts: [], sentences: [], passages: [], readingSessions: [], inputSources: [], inputSessions: [], outputAttempts: [], dailyPlans: [], miniUnits: [], skillSnapshots: [], weeklyDiagnostics: [], libraryItems: [], aiGenerations: [], transcripts: [], inputEvidence: [], examSpecifications: [], examMaterials: [], examItems: [], examSessions: [], examLogs: [], migration: null }; }
 export async function loadData(): Promise<Data> {
     await openDB();
     const tx = db.transaction([...stores], 'readonly');
@@ -411,6 +415,28 @@ export function validateBackup(value: unknown): Data {
             || typeof a.expected !== 'string' || !a.expected.trim() || a.expected.length > 500
             || typeof a.correct !== 'boolean' || typeof a.assisted !== 'boolean' || typeof a.retry !== 'boolean'
             || a.normalizationVersion !== 1) return fail();
+    }
+    if (v.version >= 9 && !Array.isArray(bag['clozeAttempts'])) return fail();
+    const safeId = (id: unknown) => typeof id === 'string' && /^[a-zA-Z0-9._:-]{1,128}$/.test(id);
+    for (const plan of d.dailyPlans ?? []) {
+        const c = plan.catchup;
+        if (c && (c.date !== plan.date || !Number.isInteger(c.cap) || c.cap < 1 || c.cap > 500
+            || !num(c.budgetMinutes) || c.budgetMinutes > 240 || !num(c.dueTotal) || !num(c.createdAt)
+            || typeof c.active !== 'boolean' || !Array.isArray(c.wordIds) || c.wordIds.length > c.cap
+            || new Set(c.wordIds).size !== c.wordIds.length || !c.wordIds.every(safeId)
+            || c.planMinutes !== undefined && (!num(c.planMinutes) || c.planMinutes > 240))) return fail();
+    }
+    for (const a of d.clozeAttempts ?? []) {
+        if (!wordIds.has(a.wordId) || ![a.sessionId, a.passageId, a.readingSessionId, a.markId].every(safeId)
+            || ![a.at, a.ms, a.markedAt].every(num) || !Number.isInteger(a.sentenceIndex) || a.sentenceIndex < 0
+            || typeof a.sentence !== 'string' || !a.sentence.trim() || a.sentence.length > 2000
+            || !Number.isInteger(a.start) || !Number.isInteger(a.end) || a.start < 0 || a.end <= a.start || a.end > a.sentence.length
+            || typeof a.expected !== 'string' || a.sentence.slice(a.start, a.end) !== a.expected
+            || typeof a.input !== 'string' || a.input.length > 500 || typeof a.lemma !== 'string' || !a.lemma.trim()
+            || typeof a.assisted !== 'boolean' || typeof a.retry !== 'boolean'
+            || a.correct !== (normalizeSpelling(a.input) === normalizeSpelling(a.expected))
+            || a.source !== 'saved-reading' || ['ai', 'ai_reinforcement'].includes(a.sourceType) || a.normalizationVersion !== 1
+            || ![a.sourceType, a.sourceTitle, a.sourceUrl].every(x => typeof x === 'string' && x.length <= 2048)) return fail();
     }
     // v2 关键引用/字段抽查
     for (const e of (bag['wordExposures'] ?? []) as WordExposure[])
