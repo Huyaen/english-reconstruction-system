@@ -76,9 +76,9 @@
   margin-bottom: var(--s-5);
   padding: var(--s-5) var(--s-6);
   border: 1px solid var(--line);
-  border-left: 1px solid var(--accent-ink);
-  border-radius: 0 var(--r-lg) var(--r-lg) 0;
-  background: linear-gradient(90deg, var(--accent-wash), transparent 46%), var(--surface);
+  border-radius: var(--r-md);
+  background: var(--accent-wash);
+  box-shadow: none;
 }
 [data-page="diagnostics"] .diag-verdict .eyebrow { margin: 0; }
 [data-page="diagnostics"] .diag-verdict h2 {
@@ -340,7 +340,7 @@
   letter-spacing: 0;
   color: var(--ink-faint);
 }
-[data-page="diagnostics"] .diag-metric.is-empty .diag-def { color: var(--ink-faint); opacity: 0.86; }
+[data-page="diagnostics"] .diag-metric.is-empty .diag-def { color: var(--ink-faint); opacity: 1; }
 
 /* 1.6 折叠的其余指标：明细不抢主视线 */
 [data-page="diagnostics"] .diag-more { margin-top: var(--s-2); }
@@ -1457,3 +1457,5 @@
   outline: 2px solid var(--accent-ink);
   outline-offset: 2px;
 }
+
+[data-page="diagnostics"] .diag-retention-row > div { min-width: 0; box-shadow: none; }

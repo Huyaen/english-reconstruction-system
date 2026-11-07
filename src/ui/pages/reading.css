@@ -17,8 +17,8 @@
 
 [data-page="reading"] {
   /* 阅读页专属布局尺寸（不是颜色，不新增主题 token） */
-  --read-rail: clamp(272px, 25vw, 322px);
-  --read-sticky-top: 52px;      /* 与 .app-shell .workspace > header 同高 */
+  --read-rail: clamp(245px, 22vw, 292px);
+  --read-sticky-top: var(--topbar-height);
   --read-pad-y: clamp(26px, 3.2vw, 52px);
   --read-pad-x: clamp(22px, 3.4vw, 56px);
 }
@@ -491,8 +491,8 @@
   min-height: clamp(320px, 44vh, 560px);
   padding: var(--read-pad-y) var(--read-pad-x) var(--s-6);
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--surface-raised);
+  border-radius: var(--r-md);
+  background: var(--paper);
 }
 
 /* ── 6. 正文：不动的部分 ───────────────────────────────────────────────── */
@@ -1027,3 +1027,12 @@
 [data-page="reading"] #reading-page tbody tr[data-state="unfinished"] td:first-child b { font-weight: 600; }
 [data-page="reading"] #reading-page tbody tr[data-state="read"] td:first-child b { color: var(--ink-muted); }
 [data-page="reading"] #reading-page tbody tr[data-state="unread"] td:first-child b { color: var(--ink); }
+
+[data-page="reading"] #read-import { scroll-margin-top: calc(var(--topbar-height) + var(--s-4)); }
+[data-page="reading"] .reader-title { font-family: var(--font-reading); font-weight: 400; }
+[data-page="reading"] .reader-text .word { font-weight: inherit; }
+[data-page="reading"] .reader-text .word.mark-unknown { text-decoration: underline solid; text-underline-offset: .16em; }
+[data-page="reading"] .reader-text .word.mark-vague { text-decoration: underline dashed; text-underline-offset: .16em; }
+@media (max-width: 760px) {
+  [data-page="reading"] .reader-bar .reader-side-toggle { min-height: 44px; }
+}

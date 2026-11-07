@@ -1,12 +1,4 @@
-/* ============================================================================
-   Phase 15h · 全站设计系统 (system.css)
-   唯一权威视觉层：在 tokens.css 之后、所有 Phase 15a–15g 原型样式之后加载。
-   规则组织：材质 → 布局等级 → 组件原语 → 状态 → 动效 → 无障碍。
-   约束：
-   - 只使用 tokens.css 的变量；不新增裸色值（状态色允许 var() 组合）
-   - 不写 !important；靠 [data-level] / [data-page] 提升特异性覆盖旧原型
-   - 所有动效必须在 prefers-reduced-motion 下退化为即时
-   ========================================================================== */
+/* 词间 v1.5 · 共享外壳、控件、数据与反馈。页面专属布局放在 ui/pages。 */
 
 /* ── 0. 新增 token（本阶段专属，补充而非替换）──────────────────────────── */
 :root {
@@ -48,29 +40,21 @@
 
 /* ── 1. 页面骨架与等级 ──────────────────────────────────────────────────── */
 #main {
-  --page-pad-x: clamp(28px, 3.4vw, 56px);
-  --page-pad-y: clamp(26px, 3vw, 44px);
+  --page-pad-x: clamp(22px, 3.5vw, 56px);
+  --page-pad-y: 36px;
   --page-max: 1320px;
   padding: var(--page-pad-y) var(--page-pad-x) 96px;
-  scroll-behavior: smooth;
+  min-width: 0;
+  scroll-behavior: auto;
 }
 
 [data-level] > * {
   max-width: var(--page-max);
 }
 
-/* 统一页面进入：不是整页位移，而是"光到达"（不延迟任何 DOM） */
-#main.p15-enter > * {
-  animation: p15-arrive var(--dur-3) var(--ease-out) both;
-}
-#main.p15-enter > *:nth-child(2) { animation-delay: 40ms; }
-#main.p15-enter > *:nth-child(3) { animation-delay: 80ms; }
-#main.p15-enter > *:nth-child(n+4) { animation-delay: 110ms; }
-/* Phase 15h.3：原本 from{opacity:0} 配合"旧页同步移除"会让主内容区在导航后
-   裸露纯背景 ~200–270ms（三路取证实测），这就是审查看到的"主内容消失"的
-   应用侧成分。改为从 0.72 起步：内容第一帧就可读，"抵达"动作仍然保留。 */
+/* 保留轻量的反馈帧供现有视觉回归使用；导航保持同步。 */
 @keyframes p15-arrive {
-  from { opacity: 0.72; transform: translate3d(0, 6px, 0); }
+  from { opacity: .9; transform: translateY(2px); }
   to { opacity: 1; transform: none; }
 }
 
@@ -127,30 +111,12 @@
 [data-level] .card,
 [data-level] .surface {
   position: relative;
-  background:
-    radial-gradient(120% 90% at 14% -18%, var(--mat-glass-t1), transparent 62%),
-    radial-gradient(90% 70% at 86% 118%, var(--mat-glass-t2), transparent 60%),
-    linear-gradient(180deg, var(--surface-raised), color-mix(in srgb, var(--surface) 88%, var(--canvas)));
+  background: var(--surface-raised);
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  box-shadow:
-    inset 0 1px 0 var(--edge),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.018),
-    0 1px 0 rgba(0, 0, 0, 0.22),
-    0 14px 34px -28px rgba(0, 0, 0, 0.75);
+  border-radius: var(--r-md);
+  box-shadow: none;
   padding: var(--s-6);
-  isolation: isolate;
-}
-[data-level] .panel::after,
-[data-level] .card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(180deg, var(--mat-glass-inner), transparent 34%);
-  opacity: calc(0.9 * var(--breath-amp, 1));
-  z-index: -1;
+  min-width: 0;
 }
 
 /* 2.2 金属：只用于"承重"和主行动，不做装饰贴片 */
@@ -237,16 +203,14 @@
   padding: 0 var(--s-4);
   border-radius: var(--r-sm);
   border: 1px solid var(--line-strong);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 58%),
-    var(--surface-raised);
+  background: var(--surface-raised);
   color: var(--ink);
   font: inherit;
   font-size: var(--t-sm);
   font-weight: 500;
   letter-spacing: 0.002em;
   cursor: pointer;
-  box-shadow: var(--contact-light);
+  box-shadow: none;
   transform: translate3d(0, var(--btn-shift), 0);
   transition:
     transform var(--dur-1) var(--ease-std),
@@ -264,9 +228,7 @@
 [data-level] button:hover:not(:disabled),
 [data-level] .button:hover:not(:disabled) {
   border-color: var(--line-strong);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.09), transparent 60%),
-    var(--surface-raised);
+  background: var(--surface-sunken);
 }
 [data-level] button:active:not(:disabled),
 [data-level] button.is-pressed:not(:disabled),
@@ -281,33 +243,19 @@
   box-shadow: none;
 }
 
-/* 4.1 主行动：金属面 + 同一条 130ms 曲线（形变 / 阴影 / 亮度同步） */
+/* 主行动沿用一个实色表面，按下时只压低 1px。 */
 [data-level] button.primary,
 [data-level] .button.primary {
-  border-color: color-mix(in srgb, var(--metal-hi) 60%, var(--line-strong));
-  background:
-    linear-gradient(100deg, transparent 42%, rgba(255, 255, 255, 0.30) 47%, transparent 54%) 0 0 / 220% 100% no-repeat,
-    linear-gradient(172deg, var(--metal-hi), var(--metal-mid) 48%, var(--metal-lo));
-  color: var(--metal-ink);
-  font-weight: 600;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.62),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.28),
-    0 2px 0 rgba(0, 0, 0, 0.18),
-    0 10px 24px -14px rgba(0, 0, 0, 0.6);
+  border-color: transparent;
+  background: var(--action);
+  color: var(--action-ink);
+  font-weight: 650;
+  box-shadow: none;
 }
-[data-level] button.primary:hover:not(:disabled) {
-  background-position: 100% 0, 0 0;
-  transition: background-position 620ms var(--ease-out), transform var(--dur-1) var(--ease-std), box-shadow var(--dur-1) var(--ease-std);
-}
-[data-level] button.primary:active:not(:disabled),
-[data-level] button.primary.is-pressed:not(:disabled) {
-  --btn-shift: 1px;
-  filter: brightness(0.955);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    inset 0 2px 6px rgba(0, 0, 0, 0.30),
-    0 1px 0 rgba(0, 0, 0, 0.2);
+[data-level] button.primary:hover:not(:disabled),
+[data-level] .button.primary:hover:not(:disabled) {
+  background: var(--action-hover);
+  color: var(--action-ink);
 }
 
 /* 4.2 次级 / 文字 / 危险 / 图标 */
@@ -366,7 +314,7 @@
 /* 工具栏：搜索吃掉剩余宽度，筛选与动作紧凑排在右侧 */
 [data-level] .toolbar {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) repeat(auto-fit, minmax(120px, max-content));
+  grid-template-columns: minmax(min(100%, 164px), 1fr) repeat(auto-fit, minmax(120px, max-content));
   align-items: center;
   gap: var(--s-2);
   margin: var(--s-4) 0 var(--s-4);
@@ -407,11 +355,11 @@
   padding: 8px 12px;
   border-radius: var(--r-sm);
   border: 1px solid var(--line-strong);
-  background: var(--surface-sunken);
+  background: var(--surface);
   color: var(--ink);
   font: inherit;
   font-size: var(--t-sm);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.14);
+  box-shadow: none;
   transition: border-color var(--dur-2) var(--ease-std), box-shadow var(--dur-2) var(--ease-std), background-color var(--dur-2) linear;
 }
 [data-level] textarea { min-height: 120px; line-height: 1.62; resize: vertical; }
@@ -524,7 +472,7 @@
 /* ── 7. 数据展示 ────────────────────────────────────────────────────────── */
 [data-level] .metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 164px), 1fr));
   gap: 1px;
   margin: 0 0 var(--s-6);
   border: 1px solid var(--line);
@@ -556,7 +504,7 @@
 
 [data-level] .two-col {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: var(--s-5);
   margin-bottom: var(--s-5);
 }
@@ -857,161 +805,173 @@
 
 
 
-/* ── 13. 外壳：侧栏、导航、顶栏（全站唯一，不允许各页自造）─────────────── */
-.app-shell aside {
+/* 应用外壳。侧栏和阅读辅助是两种独立表面。 */
+html[data-level] .app-shell {
+  grid-template-columns: var(--rail-width) minmax(0, 1fr);
+  background: var(--canvas);
+}
+html[data-level] .app-shell::before,
+html[data-level] .app-shell::after { content: none; }
+.app-shell .app-rail {
   display: flex;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  min-height: 0;
   flex-direction: column;
   gap: var(--s-3);
-  padding: var(--s-4) var(--s-3);
+  padding: var(--s-5) var(--s-4) var(--s-4);
+  margin: 0;
+  border: 0;
   border-right: 1px solid var(--line);
-  background:
-    linear-gradient(180deg, var(--mat-matte-wash), transparent 30%),
-    color-mix(in srgb, var(--surface) 92%, var(--canvas));
+  border-radius: 0;
+  background: var(--rail);
+  box-shadow: none;
 }
 .app-shell .brand {
   display: flex;
   align-items: center;
   gap: var(--s-3);
-  padding: var(--s-2) var(--s-2) var(--s-4);
-  border-bottom: 1px solid var(--line);
+  padding: 0 0 var(--s-4);
+  border-bottom: 1px solid var(--line-strong);
   color: var(--ink);
   text-decoration: none;
+  font-size: 20px;
 }
 .app-shell .brand-icon {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(160deg, var(--metal-hi), var(--metal-lo));
-  color: var(--metal-ink);
-  font-weight: 700;
-  font-size: var(--t-md);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 2px 8px -4px rgba(0, 0, 0, 0.6);
+  width: 37px;
+  height: 37px;
+  border-radius: var(--r-sm);
+  background: var(--action);
+  color: var(--action-ink);
+  font-size: var(--t-lg);
+  box-shadow: none;
+  border: 0;
 }
 .app-shell .brand small {
   display: block;
-  font-size: var(--t-2xs);
-  color: var(--ink-faint);
-  letter-spacing: 0.02em;
-  margin-top: 1px;
+  font-size: var(--t-xs);
+  color: var(--ink-muted);
+  letter-spacing: .015em;
 }
-
-/* 导航项：不是按钮堆，而是"可滑动的高亮轨道" */
-.app-shell aside nav {
+.app-shell .app-rail nav {
   display: grid;
-  gap: 2px;
-  overflow-y: auto;
-  padding-right: 2px;
+  align-content: start;
+  gap: var(--s-3);
+  overflow: auto;
+  padding: 2px 3px 5px;
+  margin: 0;
+  mask-image: none;
 }
-[data-level] .app-shell aside nav button {
-  position: relative;
+.nav-group { display: grid; gap: 2px; }
+.nav-group-label {
+  padding: 0 var(--s-2) 4px;
+  color: var(--ink-muted);
+  font-size: var(--t-xs);
+}
+[data-level] .app-shell .app-rail nav button {
   justify-content: flex-start;
   gap: var(--s-3);
   min-height: 34px;
-  padding: 0 10px;
-  border: 0;
+  padding: 0 var(--s-2);
+  border: 1px solid transparent;
   border-radius: var(--r-sm);
   background: transparent;
   box-shadow: none;
-  color: var(--ink-muted);
-  font-size: var(--t-sm);
-  font-weight: 450;
-  letter-spacing: 0.006em;
-  transition: color var(--dur-2) linear, background-color var(--dur-2) linear;
-}
-[data-level] .app-shell aside nav button > span {
-  width: 16px;
-  text-align: center;
-  color: var(--ink-faint);
-  font-size: var(--t-sm);
-  transition: color var(--dur-2) linear;
-}
-[data-level] .app-shell aside nav button:hover {
-  background: var(--mat-matte-wash);
-  color: var(--ink);
+  color: var(--ink-soft);
+  font-size: var(--t-md);
+  font-weight: 500;
+  text-align: left;
   transform: none;
 }
-[data-level] .app-shell aside nav button:hover > span { color: var(--ink-muted); }
-[data-level] .app-shell aside nav button.active {
-  background:
-    linear-gradient(90deg, var(--accent-wash), transparent 78%),
-    color-mix(in srgb, var(--surface-raised) 70%, transparent);
-  color: var(--ink);
-  font-weight: 600;
-  box-shadow: inset 0 0 0 1px var(--line);
+.app-shell svg { flex: 0 0 18px; width: 18px; height: 18px; }
+[data-level] .app-shell .app-rail nav button:hover { background: var(--surface); }
+[data-level] .app-shell .app-rail nav button.active {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--accent-ink);
+  font-weight: 700;
 }
-[data-level] .app-shell aside nav button.active::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 8px;
-  bottom: 8px;
-  width: 2px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, var(--metal-hi), var(--metal-mid));
-}
-/* 旧层的导航竖条带蓝色光晕（impeccable dark-glow）；这里压掉，只留金属条本身 */
-html[data-level] .app-shell aside nav button.active::before {
-  box-shadow: none;
-  background: linear-gradient(180deg, var(--metal-hi), var(--metal-mid));
-}
-[data-level] .app-shell aside nav button.active > span { color: var(--accent-ink); }
-
+[data-level] .app-shell .app-rail nav button.active::before { content: none; }
 .app-shell .aside-foot {
   margin-top: auto;
-  display: grid;
-  gap: 2px;
-  padding: var(--s-3) var(--s-2) 0;
-  border-top: 1px solid var(--line);
+  padding: var(--s-3) 0 0;
+  border-top: 1px solid var(--line-strong);
   font-size: var(--t-xs);
   color: var(--ink-muted);
 }
-.app-shell .aside-foot small { color: var(--ink-faint); font-size: var(--t-2xs); }
-.app-shell .local-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--ok);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 0 0 3px color-mix(in srgb, var(--ok) 16%, transparent);
-  display: inline-block;
-  margin-right: 6px;
-}
-
-/* 顶栏：只留元信息，不重复页面名（页面名在 H1） */
+.app-shell .aside-foot small { display: block; color: var(--ink-muted); font-size: var(--t-xs); }
+.app-shell .local-dot { box-shadow: none; }
 .app-shell .workspace > header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--s-4);
-  height: 52px;
-  padding: 0 clamp(20px, 3vw, 44px);
+  min-height: var(--topbar-height);
+  height: var(--topbar-height);
+  padding: 0 var(--s-6);
   border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--canvas) 88%, transparent);
+  background: var(--canvas);
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
 }
-.app-shell .workspace > header > span {
-  font-size: var(--t-2xs);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
+.app-shell .workspace > header::after { content: none; }
+.workspace-location,
 .app-shell .topbar-meta {
   display: flex;
   align-items: center;
   gap: var(--s-3);
-  font-size: var(--t-xs);
-  color: var(--ink-faint);
-  font-variant-numeric: tabular-nums;
-}
-[data-level] .app-shell .icon-button {
-  border: 1px solid var(--line);
-  background: var(--surface-raised);
+  font-size: var(--t-sm);
   color: var(--ink-muted);
 }
-[data-level] .app-shell .icon-button:hover { color: var(--ink); border-color: var(--line-strong); }
+[data-level] .app-shell :is(#nav-toggle, .icon-button) {
+  padding: 0;
+  width: 38px;
+  min-height: 38px;
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+[data-level] .app-shell #nav-toggle { display: none; }
+
+@media (min-width: 761px) and (max-height: 820px) {
+  .app-shell .app-rail { padding-top: var(--s-4); }
+  .app-shell .app-rail nav { gap: var(--s-2); }
+  .nav-group-label { padding-bottom: 2px; }
+  [data-level] .app-shell .app-rail nav button { min-height: 30px; }
+}
+
+@media (max-width: 760px) {
+  html[data-level] .app-shell { display: block; }
+  .app-shell .workspace > header { padding: 0 var(--s-4); }
+  [data-level] .app-shell :is(#nav-toggle, .icon-button) { width: 44px; min-height: 44px; }
+  [data-level] .app-shell #nav-toggle { display: inline-flex; }
+  .app-shell .app-rail {
+    display: none;
+    position: fixed;
+    z-index: calc(var(--z-sticky) + 2);
+    top: var(--topbar-height);
+    left: 0;
+    width: min(320px, 100vw);
+    height: auto;
+    max-height: calc(100dvh - var(--topbar-height));
+    padding: var(--s-3) var(--s-4);
+    border: 1px solid var(--line-strong);
+    border-radius: 0 0 var(--r-lg) 0;
+    box-shadow: var(--e-pop);
+  }
+  .app-shell .app-rail.is-open { display: flex; }
+  .app-shell .app-rail .aside-foot { display: none; }
+  [data-level] .app-shell .app-rail nav button { min-height: 44px; }
+  [data-level] .panel, [data-level] .card { min-width: 0; }
+  [data-level] .page-title > div { min-width: 0; }
+  [data-level] .page-title > .actions,
+  [data-level] .page-title > div:last-child:not(:first-child) { flex-wrap: wrap; }
+}
 
 /* 词书标签：横向滚动轨道，选中态用金属下划线 */
 [data-level] .book-tabs {
@@ -1207,3 +1167,28 @@ html[data-page="home"] .d-next-label > i {
 [data-level] .weak-ledger[open] > summary::before { content: "▾"; }
 [data-level] .weak-ledger > summary:hover { color: var(--ink); }
 [data-level] .weak-ledger-body { margin-top: var(--s-3); }
+
+/* 原生弹窗在独立顶层绘制，保留 Escape、键盘约束和返回焦点。 */
+#modal {
+  width: min(680px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: clamp(20px, 4vw, 36px);
+  background: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  color: var(--ink);
+  box-shadow: var(--e-pop);
+  overflow-wrap: anywhere;
+}
+#modal::backdrop { background: var(--scrim); backdrop-filter: none; }
+#modal .close {
+  position: absolute;
+  inset: 8px 8px auto auto;
+  min-width: 44px;
+  min-height: 44px;
+}
+#modal .detail-heading { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-2); padding-right: 44px; }
+#modal .detail-word { font: 400 2.6rem/1.14 var(--font-reading); margin: 0; }
+#modal .detail-stats { background: var(--surface); border: 1px solid var(--line); box-shadow: none; }
+#toast { max-width: calc(100% - 32px); border-radius: var(--r-sm); background: var(--surface-raised); color: var(--ink); border: 1px solid var(--line-strong); backdrop-filter: none; }

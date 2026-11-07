@@ -215,3 +215,24 @@
   [data-page="unit"] .unit-steps { grid-template-columns: 1fr; }
   [data-page="settings"] .two-col { grid-template-columns: 1fr; }
 }
+
+
+[data-page="settings"] .settings-index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3) var(--s-5);
+  margin: 0 0 var(--s-5);
+}
+[data-page="settings"] .settings-index a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+[data-page="settings"] :is(#settings-form, #auto-backup-panel, #settings-data) {
+  scroll-margin-top: calc(var(--topbar-height) + var(--s-4));
+}
+@media (max-width: 760px) {
+  [data-page="settings"] .settings-index a { min-height: 44px; }
+}
