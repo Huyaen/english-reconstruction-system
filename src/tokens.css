@@ -1,38 +1,35 @@
-/* ============================================================================
-   Phase 15b · Design Tokens — 词间（Cinematic Graphite）
-   方向：高级、精致、有空间感与光影质感（Raycast 的光 / Endel 的深空间）。
-   「一束主光，其余都是材质。」
-
-   与 15a 的差别（15a 为暖纸 + 鼠尾草的单向暖调）：
-   - 底色改为中性冷石墨：空间靠明度层差 + 描光成立，不靠暖纸；
-   - 鼠尾草 #A8BEA6 降级为「状态色」（掌握度 / 通过 / 完成），不再做主视觉；
-   - 主行动改用金属面（浅色主题=深石墨金属，深色主题=亮金属），光源固定左上 45°；
-   - 新增材质层：拉丝石墨、阳极金属、磨砂玻璃、哑光陶面。
-   阅读排版数值（19px / 1.72 / 66ch）保留，不改。
-   ========================================================================== */
+/* 词间 · Editorial Learning Studio
+   工作区用暖纸和松绿。正文、控件、证据分别使用独立语义色。 */
 
 :root {
   color-scheme: light;
+  --rail: #E8EBDF;
+  --action: #28553F;
+  --action-ink: #FFFCF5;
+  --action-hover: #204533;
+  --scrim: rgb(28 37 29 / 52%);
+  --rail-width: 214px;
+  --topbar-height: 56px;
 
   /* —— 空间基底（浅色：摄影棚昼光，中性冷白，不是暖纸）—— */
-  --canvas: #E9ECF0;
-  --canvas-deep: #DFE3E9;
-  --surface: #F5F7F9;
-  --surface-raised: #FFFFFF;
-  --surface-sunken: #E3E7EC;
-  --paper: #FFFFFF;
+  --canvas: #F4F0E7;
+  --canvas-deep: #E8E3D7;
+  --surface: #F9F6EE;
+  --surface-raised: #FFFCF5;
+  --surface-sunken: #EFEADF;
+  --paper: #FFFCF5;
 
   /* —— 墨色 —— */
-  --ink: #14171B;
-  --ink-soft: #2E343B;
-  --ink-muted: #4C545E;
-  --ink-faint: #5E666F;
+  --ink: #232D25;
+  --ink-soft: #3F4C40;
+  --ink-muted: #4F5D50;
+  --ink-faint: #505D4F;
 
   /* —— 金属 / 玻璃 —— */
   --edge: rgba(255, 255, 255, 0.92);
   --edge-soft: rgba(255, 255, 255, 0.55);
-  --line: rgba(16, 20, 26, 0.12);
-  --line-strong: rgba(16, 20, 26, 0.22);
+  --line: #DCDACE;
+  --line-strong: #B7BEB0;
   --glass: rgba(247, 249, 251, 0.74);
   --glass-strong: rgba(250, 252, 254, 0.88);
   --glass-blur: blur(18px) saturate(130%);
@@ -46,10 +43,10 @@
   --spectral: linear-gradient(96deg, #9DB6D9 0%, #C9D8EA 34%, #EDF3FA 58%, #93A6BC 100%);
 
   /* —— 状态（鼠尾草在此，只表"通过 / 掌握"）—— */
-  --accent: #A8BEA6;
-  --accent-ink: #4C6147;
-  --accent-strong: #3C4E38;
-  --accent-wash: rgba(168, 190, 166, 0.20);
+  --accent: #A9C8B0;
+  --accent-ink: #315B47;
+  --accent-strong: #244733;
+  --accent-wash: #E4EAE0;
   --ok: #4C7F62;
   --ok-wash: rgba(76, 127, 98, 0.14);
   --warn: #8C6224;
@@ -103,11 +100,11 @@
   --t-4xl: 44px;
 
   /* 阅读排版：沿用 15a 实测值（18–20px / 1.65–1.8 / 60–75ch） */
-  --read-size: 19px;
-  --read-leading: 1.72;
+  --read-size: 21px;
+  --read-leading: 1.78;
   --read-measure: 66ch;
   --read-tracking: 0.004em;
-  --read-ink: #14171B;
+  --read-ink: #28352B;
 
   /* —— 间距 / 圆角 —— */
   --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px; --s-5: 22px;
@@ -121,8 +118,8 @@
   --r-pill: 999px;
 
   /* —— 动效（八类共用一套时长）—— */
-  --dur-1: 110ms;
-  --dur-2: 200ms;
+  --dur-1: 100ms;
+  --dur-2: 150ms;
   --dur-3: 360ms;
   --dur-4: 640ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -154,23 +151,28 @@
 /* —— 深色：石墨 + 冷光（主方向）—— */
 [data-theme="dark"] {
   color-scheme: dark;
+  --rail: #202923;
+  --action: #BDD7B8;
+  --action-ink: #182B1E;
+  --action-hover: #CFE5CA;
+  --scrim: rgb(7 12 8 / 68%);
 
-  --canvas: #08090B;
-  --canvas-deep: #050607;
-  --surface: #0E1116;
-  --surface-raised: #151A20;
-  --surface-sunken: #0A0C10;
-  --paper: #12161B;
+  --canvas: #1B221E;
+  --canvas-deep: #151B17;
+  --surface: #232C26;
+  --surface-raised: #2A342C;
+  --surface-sunken: #1B231D;
+  --paper: #262F27;
 
-  --ink: #E9EDF2;
-  --ink-soft: #C3CAD3;
-  --ink-muted: #A6AFBA;
-  --ink-faint: #8A939E;
+  --ink: #F0EBDD;
+  --ink-soft: #DEDCCF;
+  --ink-muted: #C0C8B8;
+  --ink-faint: #AEB9A7;
 
   --edge: rgba(255, 255, 255, 0.10);
   --edge-soft: rgba(255, 255, 255, 0.06);
-  --line: rgba(255, 255, 255, 0.075);
-  --line-strong: rgba(255, 255, 255, 0.16);
+  --line: #3B493F;
+  --line-strong: #56685A;
   --glass: rgba(14, 17, 22, 0.62);
   --glass-strong: rgba(18, 22, 28, 0.80);
   --glass-blur: blur(20px) saturate(140%);
@@ -182,10 +184,10 @@
   --metal-ink: #0C1015;
   --metal-sheen: linear-gradient(168deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0) 46%);
 
-  --accent: #A8BEA6;
-  --accent-ink: #BCD2B7;
-  --accent-strong: #D3E4CF;
-  --accent-wash: rgba(168, 190, 166, 0.16);
+  --accent: #B9D6BA;
+  --accent-ink: #B9D5B9;
+  --accent-strong: #D2E7D0;
+  --accent-wash: #34483A;
   --ok: #8CC2A4;
   --ok-wash: rgba(140, 194, 164, 0.12);
   --warn: #D8AC74;
@@ -217,7 +219,7 @@
   --e-pop: 14px 34px 80px -34px rgba(0, 0, 0, 0.92), 0 2px 10px rgba(0, 0, 0, 0.6);
   --e-inset: inset 0 1px 0 var(--edge), inset 0 -1px 0 rgba(0, 0, 0, 0.45);
 
-  --read-ink: #DDE3EA;
+  --read-ink: #F0EBDD;
 
   --bg: var(--canvas);
   --blue: var(--accent-ink);
@@ -253,7 +255,7 @@ h3 { font-size: var(--t-lg); line-height: 1.35; font-weight: 600; }
 
 /* ── 浏览器表面 ─────────────────────────────────────────────────────────── */
 ::selection { background: var(--accent); color: #10130F; }
-[data-theme="dark"] ::selection { background: #3A5039; color: #EFF4EE; }
+[data-theme="dark"] ::selection { background: var(--action); color: var(--action-ink); }
 :root { caret-color: var(--accent-ink); accent-color: var(--accent-ink); }
 * { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
 *::-webkit-scrollbar { width: 10px; height: 10px; }

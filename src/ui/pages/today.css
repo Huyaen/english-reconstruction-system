@@ -1,0 +1,112 @@
+/* 今日学习先安排时间，再沿任务顺序往下做。右侧是已发生的学习记录。 */
+[data-page="home"] .today {
+  display: grid;
+  gap: var(--s-5);
+}
+
+[data-page="home"] .today-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  height: auto;
+  gap: var(--s-4);
+  padding: 0 0 var(--s-4);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+[data-page="home"] .today-heading::after { content: none; }
+[data-page="home"] .today-heading > div { display: block; }
+[data-page="home"] .today-heading h1 { font-size: 2.5rem; margin: 0 0 var(--s-2); }
+[data-page="home"] .today-heading p { margin: 0; font-size: var(--t-base); }
+
+[data-page="home"] .today-desk {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(225px, 29%);
+  align-items: start;
+  gap: var(--s-5);
+}
+
+[data-page="home"] .today-next {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--s-4);
+  padding: var(--s-5) var(--s-6);
+  border-radius: var(--r-md);
+  background: var(--accent-wash);
+}
+
+[data-page="home"] .today-next h2 { margin: 0; font-size: var(--t-2xl); }
+[data-page="home"] .today-next p { margin-block: var(--s-1); }
+[data-page="home"] .today-next-meta { color: var(--accent-ink); font-size: var(--t-sm); }
+[data-page="home"] .today-next button { min-height: 44px; }
+
+[data-page="home"] .today-record {
+  padding: var(--s-4) var(--s-5);
+  background: var(--rail);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+[data-page="home"] .today-record h2 { font-size: var(--t-lg); margin: 0; }
+[data-page="home"] .today-record .metrics {
+  display: block;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
+}
+
+[data-page="home"] .today-record .metrics .metric {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  margin: 0;
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+[data-page="home"] .today-record .metrics .metric:last-child { border-bottom: 0; }
+[data-page="home"] .today-record .metric small { grid-column: 1 / -1; }
+[data-page="home"] .today-record .metric strong { margin: 0; font-size: var(--t-xl); }
+[data-page="home"] .today-plan .plan-panel { margin: 0; }
+[data-page="home"] .today-plan .resume { margin: var(--s-3) 0 0; }
+[data-page="home"] .plan-setup { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+[data-page="home"] .plan-setup button { min-height: 40px; }
+[data-page="home"] .plan-setup label:has(#plan-custom:disabled) { display: none; }
+[data-page="home"] .practice { margin: 0; }
+[data-page="home"] .practice .modes { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-3); }
+[data-page="home"] .practice .mode {
+  align-items: start;
+  justify-content: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  min-height: 132px;
+  text-align: left;
+  padding: var(--s-3);
+  background: var(--surface);
+  box-shadow: none;
+}
+[data-page="home"] .practice .mode:hover { background: var(--accent-wash); }
+[data-page="home"] .practice .mode h3 { margin: 0; }
+[data-page="home"] .practice .mode p { margin: 0; }
+[data-page="home"] .practice .mode-bottom { margin-top: auto; color: var(--accent-ink); }
+[data-page="home"] .practice .mode-symbol { display: none; }
+
+@media (max-width: 1020px) {
+  [data-page="home"] .practice .modes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  [data-page="home"] .today-desk { grid-template-columns: minmax(0, 1fr); }
+  [data-page="home"] .today-heading { align-items: center; }
+  [data-page="home"] .today-heading h1 { font-size: 2rem; }
+  [data-page="home"] .today-heading p { font-size: var(--t-md); }
+  [data-page="home"] .today-next { padding: var(--s-4); }
+  [data-page="home"] .today-next button { width: 100%; }
+  [data-page="home"] .plan-setup button { grid-column: 1 / -1; min-height: 44px; }
+}

@@ -406,8 +406,8 @@
 /* 面板去掉内层渐变与呼吸：写作时背景不参与，只有字在动 */
 [data-page="output"] .panel.output-editor {
   padding: var(--s-5) var(--s-6) var(--s-6);
-  background: var(--surface-raised);
-  box-shadow: var(--e-1);
+  background: var(--paper);
+  box-shadow: none;
 }
 [data-page="output"] .panel.output-editor::after { content: none; }
 [data-page="output"] .panel.output-editor .section-title { border-bottom: 1px solid var(--line); }

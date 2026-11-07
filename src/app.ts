@@ -12,29 +12,22 @@ import { AutoBackup, type BackupState } from './autoBackup.ts';
 import { backupPanel, bindBackupPanel, updateBackupPanel } from './autoBackupView.ts';
 import { readLocalMeta, writeLocalMeta, onStudySaved } from './db.ts';
 import './tokens.css';
-import { applyPageChrome, applyPageScope, disposePageChrome, installPressFeedback } from './ui/motion.ts';
+import { applyPageScope, installPressFeedback } from './ui/motion.ts';
+import { navigationHTML, navigationLabel, navIcon } from './ui/navigation.ts';
 import './style.css';
-import './proto15c.css';
-import './proto15c-v2.css';
-import './proto15c-b3.css';
-import './proto15c-b4.css';
 import './reading15c.css';
 import './reading15c-v2.css';
-import './reading15d.css';
-import './cinematic15d.css';
 import './ui/system.css';
+import './ui/pages/today.css';
+import './ui/pages/library.css';
 import './ui/pages/quiz.css';
 import './ui/pages/mgmt.css';
 import './ui/pages/reading.css';
 import './ui/pages/sentence-grammar.css';
 import './ui/pages/io.css';
 import './ui/pages/data.css';
-import { protoTodayHTML, protoTodayD, protoTaskViews, type ProtoContext, type ProtoId, type ProtoTaskInput } from './protoToday';
-import { startLiving, stopLiving, livingAllowed } from './living';
 import type { Data, Word, StudySession, Settings, ReviewRecord, Mastery, DailyPlan, PlanItem, EnergyState, GrammarConcept, SentenceRecord, SentenceStepRecord, SentenceAttempt, SentenceEvidenceClass, GrammarCategory, SentenceSourceType } from './types.ts';
 import { testHooksEnabled, pwaEnabled } from './testMode.ts';
-import { afterRender } from './motion.ts';
-import { morphNavigate, morphBusy } from './morph15d.ts';
 // —— Phase 5：阅读 ——
 import type { Passage, ReadingSession, ReadingToken, ReadingMark, ReadingDifficultyReport, WordExposure, DifficultSentence, ReadingProblemType } from './types.ts';
 import { parsePassageText, sentenceAtSpan, tokenizeSentence, countWords } from './readingText.ts';
@@ -244,7 +237,6 @@ let readingTask: {
 let labReturn: (LabReturnTarget & {
     planTaskId?: string;
 }) | null = null;
-const navs = [['home', '◫', '今天'], ['books', '▤', '词库'], ['weak', '◎', '薄弱词'], ['sentence', '❝', '句子'], ['reading', '❖', '阅读'], ['input', '▶', '输入练习'], ['output', '✎︎', '写作练习'], ['grammar', '◈', '语法'], ['unit', '◐', '单元'], ['diagnostics', '◮', '学习报告'], ['exam', '⌘', '考试'], ['stats', '▥', '统计'], ['ai', '✧︎', 'AI 建议'], ['settings', '⚙︎', '设置']];
 function reindex() { wordMap = new Map(data.words.map(w => [w.id, w])); const locale = data.settings.pronunciationLocale ?? 'en-US'; if (pronunciation.locale !== locale) pronunciation.setLocale(locale); }
 function setPage(p: string) {
     if ((page === 'quiz' && busy) || startingSession) {
@@ -259,7 +251,6 @@ function setPage(p: string) {
     }
     enterPage(p);
     listPage = 0;
-    vtPending = true;
     render();
 }
 /**
@@ -285,56 +276,51 @@ function stopTimer() {
 }
 function shell() {
     document.documentElement.dataset.theme = data.settings.theme;
-    const nav = navs.map(([id, icon, name]) => `<button data-nav="${id}" class="${page === id ? 'active' : ''}"${page === id ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${name}</button>`).join('');
+    const theme = data.settings.theme;
     $('#app').innerHTML = `<a class="skip-link" href="#main">跳到主要内容</a>
 <div class="app-shell">
-  <aside>
-    <a class="brand" href="#"><span class="brand-icon" aria-hidden="true">词</span><span>词间<small>把词留在记忆里</small></span></a>
-    <nav aria-label="主导航">${nav}</nav>
-    <div class="aside-foot"><span class="local-dot" aria-hidden="true"></span>本地学习空间<small>每次作答自动保存</small></div>
+  <aside class="app-rail" id="app-rail">
+    <a class="brand" href="#"><span class="brand-icon" aria-hidden="true">词</span><span>词间<small>英语学习工作台</small></span></a>
+    <nav aria-label="主导航">${navigationHTML(page)}</nav>
+    <div class="aside-foot"><div><span class="local-dot" aria-hidden="true"></span>本地学习空间</div><small>每次作答自动保存</small></div>
   </aside>
   <div class="workspace">
-    <header><span>${navs.find(n => n[0] === page)?.[2] || '专注训练'}</span><div class="topbar-meta"><span class="date-label">${(() => { const d = new Date(); return `${d.getMonth() + 1} 月 ${d.getDate()} 日 · ${d.toLocaleDateString('zh-CN', { weekday: 'long' })}`; })()}</span><button id="theme" class="icon-button" aria-label="切换深浅色">${data.settings.theme === 'light' ? '☾' : '☀'}</button></div></header>
+    <header>
+      <div class="workspace-location"><button type="button" id="nav-toggle" aria-label="学习导航" aria-expanded="false" aria-controls="app-rail">${navIcon('menu')}</button><span>${navigationLabel(page)}</span></div>
+      <div class="topbar-meta"><span class="date-label">${new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}</span><button id="theme" class="icon-button" aria-label="切换深浅色">${navIcon(theme === 'light' ? 'dark' : 'light')}</button></div>
+    </header>
     <main id="main" tabindex="-1"></main>
   </div>
 </div>`;
-    document.querySelectorAll<HTMLElement>('[data-nav]').forEach(b => b.onclick = () => setPage(b.dataset.nav!));
-    on('.brand', 'click', e => { e.preventDefault(); setPage('home'); });
-    on('#theme', 'click', async () => { const s = { ...data.settings, theme: data.settings.theme === 'light' ? 'dark' : 'light' } as Settings; await saveSettings(s); data.settings = s; document.documentElement.dataset.theme = s.theme; $('#theme').textContent = s.theme === 'light' ? '☾' : '☀'; });
+    const rail = $('#app-rail');
+    const toggle = $<HTMLButtonElement>('#nav-toggle');
+    function setNavigation(open: boolean) {
+        rail.classList.toggle('is-open', open);
+        toggle.setAttribute('aria-expanded', String(open));
+        if (open) (rail.querySelector<HTMLButtonElement>('[aria-current]') ?? rail.querySelector<HTMLButtonElement>('[data-nav]'))?.focus();
+        else toggle.focus();
+    }
+    on('#nav-toggle', 'click', () => setNavigation(!rail.classList.contains('is-open')));
+    rail.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && rail.classList.contains('is-open')) setNavigation(false);
+    });
+    document.querySelectorAll<HTMLElement>('[data-nav]').forEach(button => button.onclick = () => {
+        setPage(button.dataset.nav!);
+        $('#main').focus({ preventScroll: true });
+    });
+    on('.brand', 'click', e => { e.preventDefault(); setPage('home'); $('#main').focus({ preventScroll: true }); });
+    on('#theme', 'click', async () => {
+        const s = { ...data.settings, theme: data.settings.theme === 'light' ? 'dark' : 'light' } as Settings;
+        await saveSettings(s);
+        data.settings = s;
+        document.documentElement.dataset.theme = s.theme;
+        $('#theme').innerHTML = navIcon(s.theme === 'light' ? 'dark' : 'light');
+    });
 }
 let lastRenderKey = '';
-let vtPending = false;
-/** Phase 15c 原型开关：?proto=a|b。没有参数时保持 15b 界面（测试与冒烟依赖默认路径）。 */
-const PROTO: ProtoId | null = (() => {
-    try {
-        const v = new URLSearchParams(location.search).get('proto');
-        // Phase 15h：电影感界面成为默认路径；?proto=legacy 保留 15b 旧界面作为回退。
-        if (v === 'legacy' || v === 'off' || v === 'a' || v === 'b')
-            return null;
-        if (v === 'd')
-            return 'd';
-        return 'd';
-    }
-    catch {
-        return 'd';
-    }
-})();
-function applyProtoAttr(): void {
-    try {
-        const el = document.documentElement;
-        if (PROTO)
-            el.dataset.proto = PROTO;
-        else
-            delete el.dataset.proto;
-    }
-    catch {
-        /* 非浏览器实现忽略 */
-    }
-}
 function renderKey(): string { return page === 'reading' ? `${page}:${readView}` : page; }
 /** 页面过渡只在页面/子视图真的切换时发生；同一视图重绘保持滚动位置。 */
 function render(): void {
-    vtPending = false;
     paint();
 }
 function paint(): void {
@@ -343,15 +329,13 @@ function paint(): void {
     if (page === 'cloze' && clozePractice) return;
     const prev = lastRenderKey;
     const y = window.scrollY;
-    disposePageChrome();
-    applyProtoAttr();
+    applyPageScope(page);
     shell();
     if (page === 'home') todayPlan = data.dailyPlans.filter(p => p.date === dayKey(Date.now()))
         .sort((a, b) => (b.revision ?? 0) - (a.revision ?? 0) || b.createdAt - a.createdAt)[0] ?? null;
     ({ cloze: () => clozePractice?.render(), spelling: () => spellingPractice?.render(), home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp, input: inputPageApp, output: outputPageApp, diagnostics: diagnosticsPageApp, exam: examPageApp }[page] || home)();
     if (page === 'home') { $('#main').insertAdjacentHTML('afterbegin', catchupPanelHTML()); bindCatchup(); }
-    // 原型路径：有些会话页要先异步取数据，第一帧会是空的；用一块安静的占位代替黑屏。
-    if (PROTO && page !== 'home') {
+    if (page !== 'home') {
         const m = document.querySelector<HTMLElement>('#main');
         if (m && !m.textContent?.trim())
             m.innerHTML = `<div class="d-loading" role="status" aria-live="polite"><i class="d-loading-mark"></i><p>正在准备这一项…</p></div>`;
@@ -365,15 +349,6 @@ function paint(): void {
     }
     catch {
         /* 非浏览器实现（测试环境）忽略 */
-    }
-    applyPageChrome(page);
-    afterRender();
-    // 页面切换的运动：只在这一帧之后播放，不延迟任何 DOM 写入（测试与业务代码依赖同步渲染）
-    const main = document.querySelector<HTMLElement>('#main');
-    if (main && prev && prev !== lastRenderKey) {
-        main.classList.remove('p15-enter');
-        void main.offsetWidth;
-        main.classList.add('p15-enter');
     }
 }
 function title(kicker: string, title: string, sub: string, action = '') {
@@ -509,20 +484,23 @@ function bindCatchup() {
 
 function home() {
     const s = summary(data), unfinished = data.sessions.find(x => !x.ended);
-    if (PROTO) {
-        protoHome(s);
-        return;
-    }
     $('#main').innerHTML = `<div class="today">
-  ${todayHero(s)}
-  ${todaySection()}
-  <div class="metrics" data-stagger>
+  ${todayHero()}
+  <div class="today-desk">
+    <div class="today-plan">
+      ${todaySection()}
+      ${unfinished ? `<div class="resume"><span>有一轮未完成的训练 · 已答 ${unfinished.answered} 题</span><button id="resume" class="primary">继续本轮</button><button id="finish-old" class="text-button">结束本轮</button></div>` : ''}
+    </div>
+    <section class="today-record" aria-labelledby="today-record-title">
+    <h2 id="today-record-title">今天的记录</h2>
+    <div class="metrics">
     ${metricNum('今天答了', s.today.attempts, '题 · 涉及 ' + s.today.unique + ' 个词', 'today-attempts')}
     ${metric('正确率', s.today.attempts ? pct(s.today.accuracy) : '—', '两个方向一起算')}
     ${metric('平均用时', s.today.attempts ? seconds(s.today.meanMs) : '—', '从看到题目到作答')}
     ${metricNum('稳定记住', s.effective, '两个方向 · 隔几天还记得', 'effective-mastery')}
+    </div>
+    </section>
   </div>
-  ${unfinished ? `<div class="resume"><span>有一轮未完成的训练 · 已答 ${unfinished.answered} 题</span><button id="resume" class="primary">继续本轮</button><button id="finish-old" class="text-button">结束本轮</button></div>` : ''}
   <section class="panel practice">
     <div class="section-title"><h2>自己再练一轮</h2><span class="subtle">${data.words.length} 个词 · ${data.books.length} 本词书</span></div>
     ${rangeControls()}
@@ -549,36 +527,20 @@ function home() {
     on('#reflow-start', 'click', () => startReflow());
     document.querySelectorAll<HTMLElement>('[data-mode]').forEach(b => b.onclick = () => { startMode(b.dataset.mode!).catch(e => toast(e.message)); });
 }
-/** 今日 Hero：整页只有一个主角任务，其余信息退到清单里。 */
-function todayHero(s: ReturnType<typeof summary>): string {
+function todayHero(): string {
     const plan = todayPlan;
     const next = plan ? nextOpenTask(plan) : null;
     const progress = plan ? planProgress(plan) : null;
-    const done = !!plan && !next;
-    const headline = done ? '今天的任务做完了。' : plan ? `今天还剩 ${progress!.remainingMinutes} 分钟。` : '今天想学多久？';
-    const sub = done
-        ? '记录都留着。明天再答一遍，就知道还记得多少。'
-        : next
-            ? `先做这一项，因为${esc(humanReasons(next.reason) || '它最该今天复习')}。`
-            : '选一段今天真的能空出来的时间。';
-    const label = next ? esc(next.label ?? TASK_LABELS[next.kind ?? ''] ?? next.kind ?? '下一项') : '';
-    const body = next
-        ? `<div class="hero-next is-enter"><div class="next-copy"><span class="next-meta">下一项 · ${esc(moduleName(taskModule(next)))} · ${next.minutes} 分钟</span><b class="next-title">${label}</b><span class="next-note">${esc(taskTargetLabel(next))}</span></div><button id="start-today" class="primary hero-start">${next.status === 'started' ? '继续这一项' : '开始今天的训练'}</button></div>`
-        : done
-            ? `<div class="hero-next is-done"><div class="next-copy"><b class="next-title">今天的计划已完成 ${progress!.done}/${progress!.total}</b><span class="next-note">做完的都记着。跳过或替换的任务不算练习记录。</span></div><button id="hero-adjust" class="text-button">调整计划</button></div>`
-            : `<div class="hero-next is-empty"><div class="next-copy"><b class="next-title">还没有今天的计划</b><span class="next-note">在下面选好时间，生成后这里会显示第一项。</span></div></div>`;
-    return `<section class="today-hero${done ? ' is-complete' : ''}" data-specular>
-  <div class="today-hero-core">
-    <div class="hero-top">
-      <div class="hero-copy">
-        <h1 class="hero-title">${headline}</h1>
-        <p class="hero-sub">${sub}</p>
-      </div>
-      <button id="import" class="hero-quiet">＋ 导入词书</button>
-    </div>
-    ${body}
-  </div>
-</section>`;
+    return `<header class="today-heading">
+      <div><h1>今日学习</h1><p>${next ? '从下一项开始，按今天的时间往下做。' : plan ? '今天的记录已保存。' : '先选今天能用的时间，再安排要练的内容。'}</p></div>
+      <button id="import" class="secondary">导入词书</button>
+    </header>
+    ${next ? `<section class="today-next" aria-labelledby="today-next-title">
+      <div><p class="today-next-meta">下一项 · ${esc(moduleName(taskModule(next)))} · ${next.minutes} 分钟</p>
+      <h2 id="today-next-title">${esc(next.label ?? TASK_LABELS[next.kind ?? ''] ?? next.kind ?? '下一项')}</h2>
+      <p>${esc(taskTargetLabel(next))}</p></div>
+      <button id="start-today" class="primary">${next.status === 'started' ? '继续这一项' : '开始今天的训练'}</button>
+    </section>` : progress ? `<section class="today-next"><div><h2>今天的计划已完成</h2><p>完成 ${progress.done} / ${progress.total} 项${progress.skipped ? ` · 跳过 ${progress.skipped} 项` : ''}</p></div><button id="hero-adjust" class="secondary">调整计划</button></section>` : ''}`;
 }
 function distribution() { return `<div class="distribution">${(['fluent', 'normal', 'vague', 'unknown', 'new'] as Mastery[]).map(l => { const n = data.words.filter(w => w.state.level === l).length; return `<div><span class="dot ${l}"></span><span>${labels[l]}</span><div class="track"><i class="${l}" style="width:${data.words.length ? n / data.words.length * 100 : 0}%"></i></div><b>${n}</b></div>`; }).join('')}</div>`; }
 function newWordsPanel(): string {
@@ -622,7 +584,7 @@ function previewPage() {
         return;
     }
     const w = previewWords[previewIndex];
-    $('#main').innerHTML = `<div class="quiz-top"><button id="quit" class="text-button">← 结束预览</button><span>${previewIndex + 1} / ${previewWords.length}</span><span></span></div><section class="quiz-card preview-card"><div class="eyebrow">新词预览</div><div class="question">${esc(w.en)} ${speechControls(w.en)}</div><p class="subtle">${esc(w.phonetic)} ${esc(w.pos)}</p><h3>${esc(w.zh)}</h3>${w.collocation ? `<p>搭配：${esc(w.collocation)}</p>` : ''}${w.example ? `<blockquote>${esc(w.example)}</blockquote>` : ''}<p class="hint">先看一眼，有个印象就好。等会儿马上会测一遍，现在不用背。</p><div class="answers preview-actions"><button class="answer" data-preview="know"><kbd>1</kbd><span>已经会</span></button><button class="answer" data-preview="familiar"><kbd>2</kbd><span>熟悉</span></button><button class="answer" data-preview="unknown"><kbd>3</kbd><span>陌生</span></button><button class="answer" data-preview="skip"><kbd>4</kbd><span>跳过</span></button></div></section>`;
+    $('#main').innerHTML = `<div class="quiz-top"><button id="quit" class="text-button">← 结束预览</button><span>${previewIndex + 1} / ${previewWords.length}</span><span></span></div><section class="quiz-card preview-card"><div class="eyebrow">新词预览</div><div class="preview-term"><h1 class="question" lang="en">${esc(w.en)}</h1>${speechControls(w.en)}</div><p class="subtle">${esc(w.phonetic)} ${esc(w.pos)}</p><p class="preview-definition">${esc(w.zh)}</p>${w.collocation ? `<p>搭配：${esc(w.collocation)}</p>` : ''}${w.example ? `<blockquote>${esc(w.example)}</blockquote>` : ''}<p class="hint">先看一眼，有个印象就好。等会儿马上会测一遍，现在不用背。</p><div class="answers preview-actions"><button class="answer" data-preview="know"><kbd>1</kbd><span>已经会</span></button><button class="answer" data-preview="familiar"><kbd>2</kbd><span>熟悉</span></button><button class="answer" data-preview="unknown"><kbd>3</kbd><span>陌生</span></button><button class="answer" data-preview="skip"><kbd>4</kbd><span>跳过</span></button></div></section>`;
     on('#quit', 'click', previewDone);
     document.querySelectorAll<HTMLElement>('[data-preview]').forEach(b => b.onclick = () => void previewAnswer(b.dataset.preview as PreviewResult));
 }
@@ -658,15 +620,7 @@ function previewDone() {
     shell();
     $('#main').innerHTML = title('预览完成', '新词过完了', `看了 ${done.length} 个词，${remain} 个留到下次。`) + `<div class="actions"><button id="recall-now" class="primary" ${done.length ? '' : 'disabled'}>开始回忆测试（${done.length} 词）</button><button id="back-home" class="secondary">返回首页</button></div><p class="hint">预览只是先认识一下，回忆测试才算真的记住了。没看过的新词不会进测试。</p>`;
     on('#recall-now', 'click', () => { void startMode('previewed-recall', done); });
-    on('#back-home', 'click', () => backToToday('#main .preview-card, #main .quiz-card, #main .reader-main, #main .exam-card, #main .lab-card, #main > *'));
-}
-/** 学习页 → Today：反向共享元素转场（非 15d 界面时直接切页）。 */
-function backToToday(from: string): void {
-    const run = (): void => { setPage('home'); };
-    if (document.documentElement.dataset.proto === 'd')
-        void morphNavigate({ from, target: '[data-morph-dest="today"]', run, mode: 'reverse' });
-    else
-        run();
+    on('#back-home', 'click', () => setPage('home'));
 }
 async function startMode(mode: string, explicit?: Word[]) {
     if (startingSession)
@@ -801,10 +755,10 @@ async function showQuestion() {
             return;
         }
         const q = active.question, w = wordMap.get(q.wordId)!;
-        $('#main').innerHTML = `<div class="quiz-top"><button id="quit" class="text-button">← 保存并退出</button><span>${active.index + 1} / ${active.queue.length}</span><button id="pause" class="text-button">暂停</button></div><div class="quiz-progress"><i style="width:${active.index / active.queue.length * 100}%"></i></div><section class="quiz-card"><div class="eyebrow">${q.direction === 'en-zh' ? '英文 → 中文' : '中文 → 英文'}</div><div id="question-text" class="question">${esc(q.direction === 'en-zh' ? w.en : w.zh)}</div><p class="subtle">选出对应的${q.direction === 'en-zh' ? '中文释义' : '英文单词'}</p><div class="answers">${q.options.map((id, i) => { const option = wordMap.get(id)!; return `<button class="answer" data-answer="${id}"><kbd>${i + 1}</kbd><span>${esc(q.direction === 'en-zh' ? option.zh : option.en)}</span></button>`; }).join('')}</div><button id="unknown" class="unknown">不知道 <kbd>空格</kbd></button><div id="feedback" aria-live="polite"></div><div id="pause-cover" hidden><h2>已暂停</h2><p>暂停的时间不算答题用时</p><button id="continue" class="primary">继续答题</button></div></section><div class="quiz-hint">数字键选 · 空格算不知道 · 回车看下一题</div>`;
+        $('#main').innerHTML = `<div class="quiz-top"><button id="quit" class="text-button">← 保存并退出</button><span>${active.index + 1} / ${active.queue.length}</span><button id="pause" class="text-button">暂停</button></div><div class="quiz-progress" role="progressbar" aria-label="选择题进度" aria-valuemin="0" aria-valuemax="${active.queue.length}" aria-valuenow="${active.index}"><i style="width:${active.index / active.queue.length * 100}%"></i></div><section class="quiz-card"><div class="eyebrow">${q.direction === 'en-zh' ? '英文 → 中文' : '中文 → 英文'}</div><div id="question-text" class="question" lang="${q.direction === 'en-zh' ? 'en' : 'zh-CN'}">${esc(q.direction === 'en-zh' ? w.en : w.zh)}</div><p class="subtle">选出对应的${q.direction === 'en-zh' ? '中文释义' : '英文单词'}</p><div class="answers">${q.options.map((id, i) => { const option = wordMap.get(id)!; return `<button class="answer" data-answer="${id}"><kbd>${i + 1}</kbd><span>${esc(q.direction === 'en-zh' ? option.zh : option.en)}</span></button>`; }).join('')}</div><button id="unknown" class="unknown">不知道 <kbd>空格</kbd></button><div id="feedback" aria-live="polite"></div><div id="pause-cover" hidden><h2>已暂停</h2><p>暂停的时间不算答题用时</p><button id="continue" class="primary">继续答题</button></div></section><div class="quiz-hint">数字键选 · 空格算不知道 · 回车看下一题</div>`;
         document.querySelectorAll<HTMLButtonElement>('[data-answer]').forEach(b => b.onclick = () => { void submit(b.dataset.answer!, 'answer'); });
         on('#unknown', 'click', () => submit(null, 'unknown'));
-        on('#quit', 'click', () => backToToday('.quiz-card'));
+        on('#quit', 'click', () => setPage('home'));
         on('#pause', 'click', pauseQuiz);
         on('#continue', 'click', resumeQuiz);
         // Start clock only after the new DOM has reached a paint boundary.
@@ -1008,7 +962,7 @@ function library(weak: boolean) {
 function drawTable(weak: boolean) {
     const ws = filtered(weak), pages = Math.max(1, Math.ceil(ws.length / 50));
     listPage = Math.min(listPage, pages - 1);
-    $('#word-table').innerHTML = `<div class="table-scroll"><table><thead><tr><th>单词 / 释义</th><th>掌握状态</th><th>优先度</th><th>答对 / 作答</th><th>平均用时</th><th>下次复习</th></tr></thead><tbody>${ws.slice(listPage * 50, listPage * 50 + 50).map(w => `<tr><td><button class="word-link" data-detail="${w.id}">${esc(w.en)}</button><small>${esc(w.zh)}</small></td><td><span class="badge ${w.state.level}">${labels[w.state.level]}</span> <small class="lifecycle">${LIFECYCLE_LABELS[lifecycleOf(w)]}</small></td><td><b class="priority-${priorityGrade(w)}" title="${PRIORITY_TEXT[priorityGrade(w)]}">${priorityGrade(w)}</b></td><td>${w.state.correct} / ${w.state.total}</td><td>${w.state.total ? seconds(w.state.meanMs) : '—'}</td><td>${w.state.total ? (effectiveDue(w, data.settings.schedulingAuthority) <= Date.now() ? '<span class="due-text">该复习了</span>' : date(effectiveDue(w, data.settings.schedulingAuthority))) : '未测试'}</td></tr>`).join('') || `<tr><td colspan="6" class="empty-cell"><div class="empty-state"><strong>没有符合条件的单词</strong><span>导入词书，或把搜索与筛选清空再看一遍。</span><div class="actions"><button id="empty-import" class="primary">导入词书</button><button id="empty-clear" class="secondary">清除筛选</button></div></div></td></tr>`}</tbody></table></div><div class="pagination"><span>共 ${ws.length} 个词 · 每页 50 个</span>${`<span class="subtle">${PRIORITY_LEGEND}</span>`}</span><div><button id="prev" ${listPage === 0 ? 'disabled' : ''}>上一页</button><span>${listPage + 1} / ${pages}</span><button id="next-page" ${listPage === pages - 1 ? 'disabled' : ''}>下一页</button></div></div>`;
+    $('#word-table').innerHTML = `<div class="table-scroll" role="region" aria-label="词条列表" tabindex="0"><table><thead><tr><th>单词 / 释义</th><th>掌握状态</th><th>优先度</th><th>答对 / 作答</th><th>平均用时</th><th>下次复习</th></tr></thead><tbody>${ws.slice(listPage * 50, listPage * 50 + 50).map(w => `<tr><td><button class="word-link" data-detail="${w.id}">${esc(w.en)}</button><small>${esc(w.zh)}</small></td><td><span class="badge ${w.state.level}">${labels[w.state.level]}</span> <small class="lifecycle">${LIFECYCLE_LABELS[lifecycleOf(w)]}</small></td><td><b class="priority-${priorityGrade(w)}" title="${PRIORITY_TEXT[priorityGrade(w)]}">${priorityGrade(w)}</b></td><td>${w.state.correct} / ${w.state.total}</td><td>${w.state.total ? seconds(w.state.meanMs) : '—'}</td><td>${w.state.total ? (effectiveDue(w, data.settings.schedulingAuthority) <= Date.now() ? '<span class="due-text">该复习了</span>' : date(effectiveDue(w, data.settings.schedulingAuthority))) : '未测试'}</td></tr>`).join('') || `<tr><td colspan="6" class="empty-cell"><div class="empty-state"><strong>没有符合条件的单词</strong><span>导入词书，或把搜索与筛选清空再看一遍。</span><div class="actions"><button id="empty-import" class="primary">导入词书</button><button id="empty-clear" class="secondary">清除筛选</button></div></div></td></tr>`}</tbody></table></div><div class="pagination"><span>共 ${ws.length} 个词 · 每页 50 个</span>${`<span class="subtle">${PRIORITY_LEGEND}</span>`}</span><div><button id="prev" ${listPage === 0 ? 'disabled' : ''}>上一页</button><span>${listPage + 1} / ${pages}</span><button id="next-page" ${listPage === pages - 1 ? 'disabled' : ''}>下一页</button></div></div>`;
     on('#prev', 'click', () => { listPage--; drawTable(weak); });
     on('#next-page', 'click', () => { listPage++; drawTable(weak); });
     const support = document.querySelector('#stubborn-slot');
@@ -1029,7 +983,7 @@ function wordDetail(w: Word) {
     stopPronunciation();
     const rs = data.records.filter(r => r.wordId === w.id).sort((a, b) => a.at - b.at);
     const r = fsrsRetrievability(w.fsrs, data.settings);
-    modal(`<div class="eyebrow">这个词</div><h2 class="detail-word">${esc(w.en)} ${speechControls(w.en)}</h2><p>${esc(w.phonetic)} ${esc(w.pos)}</p><h3>${esc(w.zh)}</h3>${w.example ? `<blockquote>${esc(w.example)}</blockquote>` : ''}${w.collocation ? `<p>搭配：${esc(w.collocation)}</p>` : ''}${w.tags ? `<p>标签：${esc(w.tags)}</p>` : ''}<div class="detail-stats"><span>作答 <b>${w.state.total} 次</b></span><span>答对 / 答错 <b>${w.state.correct} / ${w.state.total - w.state.correct}</b></span><span>平均用时 <b>${seconds(w.state.meanMs)}</b></span><span>上次用时 <b>${seconds(w.state.lastMs)}</b></span>${Object.entries(w.state.directions).map(([k, v]) => `<span>${k === 'en-zh' ? '英→中' : '中→英'} <b>${v.total ? pct(v.correct / v.total) : '无记录'} · ${v.total} 次</b></span>`).join('')}<span>状态 <b>${labels[w.state.level]}</b></span><span>学习阶段 <b>${LIFECYCLE_LABELS[lifecycleOf(w)]}</b></span><span>看得懂 / 想得起 / 用得出 <b>${w.recognitionScore} / ${w.activeRecallScore} / ${w.productiveScore}</b></span><span>预览 <b>${w.previewedAt ? (w.previewResult === 'skip' ? '已跳过' : w.previewResult === 'know' ? '已会' : w.previewResult === 'familiar' ? '熟悉' : '陌生') : '未预览'}</b></span><span>复习节奏 <b>${hasFsrsHistory(w.fsrs) ? `稳定 ${w.fsrs.stability.toFixed(1)} 天 · 难度 ${w.fsrs.difficulty.toFixed(1)} · 现在还能想起 ${r === null ? '—' : pct(r)}` : '还没开始'}</b></span><span>下次复习 <b>${date(effectiveDue(w, data.settings.schedulingAuthority))}</b></span></div><h3>最近 20 次状态变化</h3><div class="history">${rs.slice(-20).map(r => `<span class="badge ${r.after}" title="${date(r.at)} · ${seconds(r.ms)}">${labels[r.after]}</span>`).join('') || '尚无记录'}</div><h3>常混的词</h3><p>${Object.entries(w.confusions).sort((a, b) => b[1] - a[1]).map(([id, n]) => `${esc(wordMap.get(id)?.en || '已删除')}（${n}次）`).join('、') || '还没有记录'}</p><div class="actions"><button id="detail-review" class="primary">单独再测一次</button><button id="edit-word" class="secondary">编辑词条</button></div>`);
+    modal(`<div class="detail-heading"><h2 class="detail-word" lang="en">${esc(w.en)}</h2>${speechControls(w.en)}</div><p>${esc(w.phonetic)} ${esc(w.pos)}</p><h3>${esc(w.zh)}</h3>${w.example ? `<blockquote>${esc(w.example)}</blockquote>` : ''}${w.collocation ? `<p>搭配：${esc(w.collocation)}</p>` : ''}${w.tags ? `<p>标签：${esc(w.tags)}</p>` : ''}<div class="detail-stats"><span>作答 <b>${w.state.total} 次</b></span><span>答对 / 答错 <b>${w.state.correct} / ${w.state.total - w.state.correct}</b></span><span>平均用时 <b>${seconds(w.state.meanMs)}</b></span><span>上次用时 <b>${seconds(w.state.lastMs)}</b></span>${Object.entries(w.state.directions).map(([k, v]) => `<span>${k === 'en-zh' ? '英→中' : '中→英'} <b>${v.total ? pct(v.correct / v.total) : '无记录'} · ${v.total} 次</b></span>`).join('')}<span>状态 <b>${labels[w.state.level]}</b></span><span>学习阶段 <b>${LIFECYCLE_LABELS[lifecycleOf(w)]}</b></span><span>看得懂 / 想得起 / 用得出 <b>${w.recognitionScore} / ${w.activeRecallScore} / ${w.productiveScore}</b></span><span>预览 <b>${w.previewedAt ? (w.previewResult === 'skip' ? '已跳过' : w.previewResult === 'know' ? '已会' : w.previewResult === 'familiar' ? '熟悉' : '陌生') : '未预览'}</b></span><span>复习节奏 <b>${hasFsrsHistory(w.fsrs) ? `稳定 ${w.fsrs.stability.toFixed(1)} 天 · 难度 ${w.fsrs.difficulty.toFixed(1)} · 现在还能想起 ${r === null ? '—' : pct(r)}` : '还没开始'}</b></span><span>下次复习 <b>${date(effectiveDue(w, data.settings.schedulingAuthority))}</b></span></div><h3>最近 20 次状态变化</h3><div class="history">${rs.slice(-20).map(r => `<span class="badge ${r.after}" title="${date(r.at)} · ${seconds(r.ms)}">${labels[r.after]}</span>`).join('') || '尚无记录'}</div><h3>常混的词</h3><p>${Object.entries(w.confusions).sort((a, b) => b[1] - a[1]).map(([id, n]) => `${esc(wordMap.get(id)?.en || '已删除')}（${n}次）`).join('、') || '还没有记录'}</p><div class="actions"><button id="detail-review" class="primary">单独再测一次</button><button id="edit-word" class="secondary">编辑词条</button></div>`);
     const report = analyzeStubborn(data).find(r => r.wordId === w.id);
     if (report) {
         const dialog = $<HTMLDialogElement>('#modal'); dialog.insertAdjacentHTML('beforeend', '<section id="stubborn-support"></section>');
@@ -2084,10 +2038,10 @@ function originPanelHTML(o: OriginNotice) {
 function settingsPage() {
     const s = data.settings;
     const origin = originNotice();
-    $('#main').innerHTML = title('设置', '按你的节奏来', '答题快慢、题目难度和备份，都在这里改。') + `<form id="settings-form"><div class="two-col"><section class="panel"><h2>测试与节奏</h2><div class="form-grid"><label>多快算快答（秒）<input name="fast" type="number" min="0.1" step="0.1" value="${s.fast / 1000}" required></label><label>多快算正常（秒）<input name="normal" type="number" min="0.2" step="0.1" value="${s.normal / 1000}" required></label><label>多久算没答（秒）<input name="timeout" type="number" min="0.3" max="120" step="0.1" value="${s.timeout / 1000}" required></label><label>英文题占比（%）<input name="ratio" type="number" min="0" max="100" value="${s.ratio}" required></label><label>难度<select name="difficulty">${[['easy', '简单（4 个选项）'], ['normal', '普通（4 个选项）'], ['hard', '困难（6 个选项）']].map(([v, t]) => `<option value="${v}" ${s.difficulty === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>答错反馈<select name="feedback">${[[0, '立即下一题'], [500, '停留 0.5 秒'], [1000, '停留 1 秒'], [-1, '手动继续']].map(([v, t]) => `<option value="${v}" ${s.feedback === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>复习怎么排<select name="schedulingAuthority"><option value="fsrs" ${s.schedulingAuthority === 'fsrs' ? 'selected' : ''}>默认（FSRS）</option><option value="legacy" ${s.schedulingAuthority === 'legacy' ? 'selected' : ''}>旧算法（回滚用）</option></select></label><label>希望记住的比例<input name="requestRetention" type="number" min="0.5" max="0.99" step="0.01" value="${s.requestRetention}" required></label></div><p class="hint">答对立即下一题。正常上限至超时之间为模糊。切换标签页会自动暂停计时。</p></section><section class="panel"><h2>AI 服务（可选）</h2><p class="hint">不填也能正常学，只是用不了 AI 生成和批改。</p><label>服务地址<input name="endpoint" type="url" placeholder="https://你的服务地址/v1" value="${esc(s.endpoint)}" autocomplete="off"></label><label>模型名称<input name="model" value="${esc(s.model)}" placeholder="填写供应商提供的模型名称"></label><label>API 密钥<input name="key" type="password" value="${esc(s.key)}" autocomplete="off" placeholder="仅用于你配置的地址"></label><label class="check"><input name="rememberKey" type="checkbox" ${s.rememberKey ? 'checked' : ''}> 在这台设备保存密钥</label>
+    $('#main').innerHTML = title('设置', '学习设置', '在这里调整练习节奏、AI 服务和本地备份。') + `<div class="settings-index" role="navigation" aria-label="设置分区"><a href="#settings-form">练习与 AI</a><a href="#auto-backup-panel">自动备份</a><a href="#settings-data">备份与恢复</a></div><form id="settings-form"><div class="two-col"><section class="panel"><h2>测试与节奏</h2><div class="form-grid"><label>多快算快答（秒）<input name="fast" type="number" min="0.1" step="0.1" value="${s.fast / 1000}" required></label><label>多快算正常（秒）<input name="normal" type="number" min="0.2" step="0.1" value="${s.normal / 1000}" required></label><label>多久算没答（秒）<input name="timeout" type="number" min="0.3" max="120" step="0.1" value="${s.timeout / 1000}" required></label><label>英文题占比（%）<input name="ratio" type="number" min="0" max="100" value="${s.ratio}" required></label><label>难度<select name="difficulty">${[['easy', '简单（4 个选项）'], ['normal', '普通（4 个选项）'], ['hard', '困难（6 个选项）']].map(([v, t]) => `<option value="${v}" ${s.difficulty === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>答错反馈<select name="feedback">${[[0, '立即下一题'], [500, '停留 0.5 秒'], [1000, '停留 1 秒'], [-1, '手动继续']].map(([v, t]) => `<option value="${v}" ${s.feedback === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>复习怎么排<select name="schedulingAuthority"><option value="fsrs" ${s.schedulingAuthority === 'fsrs' ? 'selected' : ''}>默认（FSRS）</option><option value="legacy" ${s.schedulingAuthority === 'legacy' ? 'selected' : ''}>旧算法（回滚用）</option></select></label><label>希望记住的比例<input name="requestRetention" type="number" min="0.5" max="0.99" step="0.01" value="${s.requestRetention}" required></label></div><p class="hint">答对立即下一题。正常上限至超时之间为模糊。切换标签页会自动暂停计时。</p></section><section class="panel"><h2>AI 服务（可选）</h2><p class="hint">不填也能正常学，只是用不了 AI 生成和批改。</p><label>服务地址<input name="endpoint" type="url" placeholder="https://你的服务地址/v1" value="${esc(s.endpoint)}" autocomplete="off"></label><label>模型名称<input name="model" value="${esc(s.model)}" placeholder="填写供应商提供的模型名称"></label><label>API 密钥<input name="key" type="password" value="${esc(s.key)}" autocomplete="off" placeholder="仅用于你配置的地址"></label><label class="check"><input name="rememberKey" type="checkbox" ${s.rememberKey ? 'checked' : ''}> 在这台设备保存密钥</label>
 <label>返回格式<select name="structuredMode">${[['auto', '自动（先要结构化的，不支持就用普通文本）'], ['json_object', '只接受 JSON（JSON Mode）'], ['json_schema', '只接受严格 JSON 结构（JSON Schema）'], ['text', '只当纯文本处理']].map(([v, t]) => `<option value="${v}" ${(s.ai?.structuredMode ?? 'auto') === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
 <div class="form-grid"><label>最多等多久（秒）<input name="aiTimeout" type="number" min="3" max="180" value="${Math.round((s.ai?.timeoutMs ?? 45000) / 1000)}"></label><label>失败后重试次数<input name="aiRetries" type="number" min="0" max="3" value="${s.ai?.maxRetries ?? 2}"></label><label>单次输出上限（token）<input name="aiMaxTokens" type="number" min="64" max="8000" value="${s.ai?.maxOutputTokens ?? 1200}"></label><label>每天用量上限（token）<input name="aiBudget" type="number" min="0" placeholder="留空 = 不限" value="${s.ai?.dailyTokenBudget ?? ''}"></label></div>
-<p class="hint">不勾“在这台设备保存密钥”，关掉页面就清了。勾了以后密钥会明文存在这台电脑的浏览器里，导出的完整备份不会带上它。浏览器直连要求服务商支持 CORS。用量按 token 计，这里不换算成钱。token 是服务商计费的单位，1 个 token 大约是半个英文单词。浏览器直连还要求服务商允许跨域访问。</p></section></div><button class="primary" type="submit">保存设置</button></form>${originPanelHTML(origin)}${backupPanel()}<section class="panel backup-panel"><h2>备份与换地址</h2><p>导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。</p><div class="actions"><button id="backup" class="primary">导出全部学习数据</button><label class="button secondary">导入备份<input id="restore" type="file" accept=".json" hidden></label><button id="persist" class="secondary">申请持久存储</button><button id="check-integrity" class="secondary">检查数据完整性</button><button id="clear" class="danger-text">清空本地数据</button></div><p id="storage-info" class="hint">学习数据按浏览器和站点地址保存：一直用同一个地址打开，才能看到同一份数据。</p></section>`;
+<p class="hint">不勾“在这台设备保存密钥”，关掉页面就清了。勾了以后密钥会明文存在这台电脑的浏览器里，导出的完整备份不会带上它。浏览器直连要求服务商支持 CORS。用量按 token 计，这里不换算成钱。token 是服务商计费的单位，1 个 token 大约是半个英文单词。浏览器直连还要求服务商允许跨域访问。</p></section></div><button class="primary" type="submit">保存设置</button></form>${originPanelHTML(origin)}${backupPanel()}<section class="panel backup-panel" id="settings-data"><h2>备份与换地址</h2><p>导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。</p><div class="actions"><button id="backup" class="primary">导出全部学习数据</button><label class="button secondary">导入备份<input id="restore" type="file" accept=".json" hidden></label><button id="persist" class="secondary">申请持久存储</button><button id="check-integrity" class="secondary">检查数据完整性</button><button id="clear" class="danger-text">清空本地数据</button></div><p id="storage-info" class="hint">学习数据按浏览器和站点地址保存：一直用同一个地址打开，才能看到同一份数据。</p></section>`;
     $('#settings-form').insertAdjacentHTML('afterend', pronunciationPanel(s.pronunciationLocale ?? 'en-US'));
     refreshPronunciationUI();
     on('#pronunciation-locale', 'change', async e => {
@@ -2282,39 +2236,11 @@ function bindPlan() {
     on('#start-today', 'click', () => void startTodayTraining());
     on('#plan-adjust', 'click', planAdjustDialog);
     document.querySelectorAll<HTMLElement>('[data-task-start]').forEach(b => b.onclick = () => {
-        if (morphBusy())
-            return;
-        void morphNavigate({
-            from: b, target: '#main .preview-card, #main .quiz-card, #main .reader-main, #main .exam-card, #main .lab-card',
-            run: () => startPlanTask(b.dataset.taskStart!),
-        });
+        void startPlanTask(b.dataset.taskStart!);
     });
     document.querySelectorAll<HTMLElement>('[data-task-skip]').forEach(b => b.onclick = () => void planAction(b.dataset.taskSkip!, 'skip'));
     document.querySelectorAll<HTMLElement>('[data-task-delay]').forEach(b => b.onclick = () => void planAction(b.dataset.taskDelay!, 'delay'));
     document.querySelectorAll<HTMLElement>('[data-task-replace]').forEach(b => b.onclick = () => void replacePlanTask(b.dataset.taskReplace!));
-}
-/** 刚完成的任务在 Today 路线上闪一次（只在回到 Today 时生效，一次性）。 */
-function pulseJustCompleted(): void {
-    let id: string | null = null;
-    try {
-        id = sessionStorage.getItem('d.justDone');
-    }
-    catch {
-        return;
-    }
-    if (!id)
-        return;
-    try {
-        sessionStorage.removeItem('d.justDone');
-    }
-    catch { /* ignore */ }
-    if (page !== 'home')
-        return;
-    const seg = document.querySelector<HTMLElement>(`.d-seg[data-seg="${CSS.escape(id)}"]`);
-    if (!seg || !livingAllowed())
-        return;
-    seg.classList.add('is-just-done');
-    window.setTimeout(() => seg.classList.remove('is-just-done'), 1250);
 }
 function upsertPlan(list: DailyPlan[], plan: DailyPlan): DailyPlan[] {
     const i = list.findIndex(p => p.id === plan.id);
@@ -2564,8 +2490,7 @@ async function startPlanTaskOnce(taskId: string, fromFlow = false): Promise<void
         taskExecution = null;
 }
 async function startTodayTraining(): Promise<void> {
-    if (morphBusy())
-        return;
+    if (taskStarting) return;
     // 录屏专用钩子：press 片段要单独展示「按下/保持/松开/回弹」，不能顺带跳页
     if ((window as unknown as {
         __noNavClick?: boolean;
@@ -2583,10 +2508,7 @@ async function startTodayTraining(): Promise<void> {
         render();
         return;
     }
-    await morphNavigate({
-        from: '#start-today', target: '#main .preview-card, #main .quiz-card, #main .reader-main, #main .exam-card, #main .lab-card',
-        run: () => startPlanTask(next.id, true),
-    });
+    await startPlanTask(next.id, true);
 }
 async function completePlanTask(exec: {
     planTaskId: string;
@@ -2633,13 +2555,6 @@ async function completePlanTask(exec: {
     const savedPlan = await persistPlan(plan);
     if (savedPlan && exec.kind === 'closing-recall')
         closingFeedback();
-    if (savedPlan) {
-        // 路线段的一次性完成反馈：只做视觉，不改任何学习证据
-        try {
-            sessionStorage.setItem('d.justDone', exec.planTaskId);
-        }
-        catch { /* 隐私模式忽略 */ }
-    }
     if (savedPlan && trainingFlow) {
         enterPage('home');
         render();
@@ -3813,15 +3728,16 @@ function readingLibrary(): void {
       </div>
       ${open ? `<section class="panel"><div class="section-title">上次没读完</div><p class="hint">${resc(open.detail?.passageTitle ?? '')} · ${esc(sessionProgress(open).label)} · ${sessionProgress(open).percent}%</p><div class="actions"><button class="primary" data-read-resume-open="${open.id}">继续阅读</button></div></section>` : ''}
       ${readMessage ? `<p class="hint warn">${resc(readMessage)}</p>` : ''}
-      ${importPanelHTML()}
-      ${aiReadingPanelHTML()}
-      <section class="panel"><div class="section-title">阅读库</div>
+      <section class="panel"><div class="section-title"><h2>阅读库</h2><a href="#read-import">导入材料</a></div>
         <div class="actions">
-          <input id="read-search" placeholder="搜索标题或正文" value="${resc(readLibraryQuery.text ?? '')}" />
-          <select id="read-filter"><option value="all"${readLibraryQuery.readState === 'all' ? ' selected' : ''}>全部</option><option value="unread"${readLibraryQuery.readState === 'unread' ? ' selected' : ''}>未读</option><option value="unfinished"${readLibraryQuery.readState === 'unfinished' ? ' selected' : ''}>未完成</option><option value="read"${readLibraryQuery.readState === 'read' ? ' selected' : ''}>已读</option></select>
+          <input id="read-search" aria-label="搜索阅读库" placeholder="搜索标题或正文" value="${resc(readLibraryQuery.text ?? '')}" />
+          <select id="read-filter" aria-label="阅读状态"><option value="all"${readLibraryQuery.readState === 'all' ? ' selected' : ''}>全部</option><option value="unread"${readLibraryQuery.readState === 'unread' ? ' selected' : ''}>未读</option><option value="unfinished"${readLibraryQuery.readState === 'unfinished' ? ' selected' : ''}>未完成</option><option value="read"${readLibraryQuery.readState === 'read' ? ' selected' : ''}>已读</option></select>
         </div>
         <div class="table-scroll"><table><thead><tr><th>文章</th><th>难度</th><th>操作</th></tr></thead><tbody>${list}</tbody></table></div>
-      </section></div>`;
+      </section>
+      ${importPanelHTML()}
+      ${aiReadingPanelHTML()}
+      </div>`;
     wireReadingLibrary();
 }
 function wireReadingLibrary(): void {
@@ -3835,7 +3751,16 @@ function wireReadingLibrary(): void {
     };
     paste?.addEventListener('input', updateCount);
     updateCount();
-    on('#read-search', 'input', e => { readLibraryQuery = { ...readLibraryQuery, text: (e.target as HTMLInputElement).value }; render(); });
+    on('#read-search', 'input', e => {
+        const field = e.target as HTMLInputElement;
+        if ((e as InputEvent).isComposing) return;
+        readLibraryQuery = { ...readLibraryQuery, text: field.value };
+        const { selectionStart, selectionEnd } = field;
+        readingLibrary();
+        const searchField = $<HTMLInputElement>('#read-search');
+        searchField.focus({ preventScroll: true });
+        searchField.setSelectionRange(selectionStart, selectionEnd);
+    });
     on('#read-filter', 'change', e => { readLibraryQuery = { ...readLibraryQuery, readState: (e.target as HTMLSelectElement).value as LibraryQuery['readState'] }; render(); });
     document.querySelectorAll<HTMLElement>('[data-read-open]').forEach(b => b.addEventListener('click', () => {
         const p = data.passages.find(x => x.id === b.dataset.readOpen);
@@ -5621,80 +5546,3 @@ function bindAI(): void {
    业务动作全部复用既有实现：bindPlan() 负责开始/跳过/延后/替换/调整，
    其余与默认首页一致，避免原型悄悄改变学习流程或数据写入。
    ════════════════════════════════════════════════════════════════════════════ */
-function protoBelow(s: ReturnType<typeof summary>, unfinished: StudySession | undefined, plan: DailyPlan | null): string {
-    return `<div class="proto-below">
-  ${plan ? '' : `<section class="proto-setup">${planSetup()}</section>`}
-  ${unfinished ? `<div class="resume"><span>有一轮未完成的训练 · 已答 ${unfinished.answered} 题</span><button id="resume" class="primary">继续本轮</button><button id="finish-old" class="text-button">结束本轮</button></div>` : ''}
-  <section class="panel practice">
-    <div class="section-title"><h2>自己再练一轮</h2><span class="subtle">${data.words.length} 个词 · ${data.books.length} 本词书</span></div>
-    ${rangeControls()}
-    <div class="modes" data-stagger>
-      <button class="mode featured" data-mode="quick"><span class="mode-symbol" aria-hidden="true">↗</span><h3>快速刷词</h3><p>快速过一遍，找出不熟的词</p><span class="mode-bottom">开始刷词 <b>→</b></span></button>
-      <button class="mode" data-mode="due"><span class="mode-symbol" aria-hidden="true">◷</span><h3>今天该复习 <em>${s.due}</em></h3><p>先过一遍今天到期的词</p><span class="mode-bottom">开始复习 <b>→</b></span></button>
-      <button class="mode" data-mode="weak"><span class="mode-symbol" aria-hidden="true">◎</span><h3>薄弱词 <em>${s.weak}</em></h3><p>专攻不会和模糊的词</p><span class="mode-bottom">开始强化 <b>→</b></span></button>
-      <button class="mode" data-mode="random"><span class="mode-symbol" aria-hidden="true">⤨</span><h3>随机抽查</h3><p>看看学过的词还记得多少</p><span class="mode-bottom">开始抽查 <b>→</b></span></button>
-    </div>
-  </section>
-  ${newWordsPanel()}
-  <div class="two-col">
-    <section class="panel"><div class="section-title"><h2>掌握情况</h2><span class="subtle">全部单词</span></div>${distribution()}<p class="hint">“熟练”要两个方向都答对，还要隔几天再答对。短时间内反复答对不算。</p></section>
-    <section class="panel"><div class="section-title"><h2>薄弱词的变化</h2></div><div class="weak-change"><div><strong>${s.newWeak}</strong><span>今天新出现</span></div><div><strong class="green">${s.resolved}</strong><span>今天补上了</span></div></div><p class="hint">答错，或者自己选了「模糊」，就会进薄弱词；过几天再答对才会离开。</p></section>
-  </div>
-</div>`;
-}
-function protoHome(s: ReturnType<typeof summary>): void {
-    const plan = todayPlan;
-    const next = plan ? nextOpenTask(plan) : null;
-    const prog = plan ? planProgress(plan) : null;
-    const unfinished = data.sessions.find(x => !x.ended);
-    const views = plan
-        ? protoTaskViews({
-            tasks: plan.initialPlan as unknown as ProtoTaskInput[],
-            nextId: next?.id ?? null,
-            labelOf: (t: ProtoTaskInput) => t.label ?? TASK_LABELS[t.kind ?? ''] ?? t.kind ?? '任务',
-            moduleOf: (t: ProtoTaskInput) => moduleName(taskModule(t as never)),
-            noteOf: (t: ProtoTaskInput) => taskTargetLabel(t as never),
-            reasonOf: (t: ProtoTaskInput) => humanReasons(t.reason),
-        })
-        : [];
-    const used = plan && prog ? Math.max(0, plan.availableMinutes - prog.remainingMinutes) : 0;
-    const ctx: ProtoContext = {
-        proto: PROTO!,
-        hasPlan: !!plan,
-        budget: plan?.availableMinutes ?? planBudget,
-        usedMinutes: used,
-        remainingMinutes: prog?.remainingMinutes ?? planBudget,
-        done: prog?.done ?? 0,
-        total: prog?.total ?? 0,
-        skipped: prog?.skipped ?? 0,
-        ratio: prog?.ratio ?? 0,
-        next: views.find(v => v.isNext) ?? null,
-        tasks: views,
-        reason: next ? humanReasons(next.reason) || '先安排该复习的，再按忘得多不多排' : '',
-        emptyNote: '',
-    };
-    if (PROTO === 'd') {
-        stopLiving();
-        $('#main').innerHTML = protoTodayD(ctx) + protoBelow(s, unfinished, plan);
-        on('#import', 'click', importDialog);
-        bindPlan();
-        on('#hero-adjust', 'click', planAdjustDialog);
-        on('#resume', 'click', () => startSession(unfinished!));
-        on('#finish-old', 'click', async () => { unfinished!.ended = Date.now(); await putItems('sessions', [unfinished]); render(); });
-        on('#preview-start', 'click', () => startPreview());
-        on('#reflow-start', 'click', () => startReflow());
-        document.querySelectorAll<HTMLElement>('[data-mode]').forEach(b => b.onclick = () => { startMode(b.dataset.mode!).catch(e => toast(e.message)); });
-        startLiving($('#main') as HTMLElement);
-        pulseJustCompleted();
-        return;
-    }
-    $('#main').innerHTML = protoTodayHTML(ctx) + protoBelow(s, unfinished, plan);
-    on('#import', 'click', importDialog);
-    bindPlan();
-    on('#hero-adjust', 'click', planAdjustDialog);
-    on('#resume', 'click', () => startSession(unfinished!));
-    on('#finish-old', 'click', async () => { unfinished!.ended = Date.now(); await putItems('sessions', [unfinished]); render(); });
-    on('#preview-start', 'click', () => startPreview());
-    on('#reflow-start', 'click', () => startReflow());
-    document.querySelectorAll<HTMLElement>('[data-mode]').forEach(b => b.onclick = () => { startMode(b.dataset.mode!).catch(e => toast(e.message)); });
-}

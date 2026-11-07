@@ -9,6 +9,14 @@ export function download(blob: Blob, name: string) { const u = URL.createObjectU
 export function modal(html: string) {
     const d = $<HTMLDialogElement>('#modal');
     d.innerHTML = `<button class="close" aria-label="关闭">×</button>${html}`;
+    const heading = d.querySelector('h1, h2, h3');
+    if (heading) {
+        heading.id ||= 'modal-title';
+        d.setAttribute('aria-labelledby', heading.id);
+    }
+    else {
+        d.removeAttribute('aria-labelledby');
+    }
     d.querySelector('.close')!.addEventListener('click', () => d.close());
     if (!d.open)
         d.showModal();
