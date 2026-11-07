@@ -5,6 +5,7 @@
 //   * 变化只在同长度窗口且两侧达标时显示；否则明确“不可比”。
 import type { Data, DiagnosticEvidenceMix, DiagnosticPayload, MetricValue, SkillSnapshot, WeeklyDiagnostic } from './types.ts';
 import { esc, date } from './ui.ts';
+import type { ObservedRetentionResult } from './diagnosticsRetention.ts';
 import { retentionLine } from './diagnosticsInsight.ts';
 import { MASTERY_DISCLAIMER } from './uiLabels.ts';
 const DOMAIN_LABEL: Record<MetricValue['domain'], string> = {
@@ -44,11 +45,14 @@ function sampleText(m: MetricValue): string {
     return `记录 ${m.sample} 条`;
 }
 function metricCard(m: MetricValue): string {
+    const legacy = m.id.startsWith('vocab.retention.');
+    const label = legacy ? `旧版 ${m.id.slice('vocab.retention.'.length).toUpperCase()} 选择题` : m.label;
+    const definition = legacy ? '按首次记录后的固定 24 小时段累计选择题作答，可包含同词多次。' : m.definition;
     return `<div class="diag-metric ${m.evaluability !== 'evaluable' ? 'is-empty' : ''}" data-quality="${esc(m.quality)}" data-evaluability="${esc(m.evaluability)}">
-      <span class="diag-metric-label">${esc(m.label)}</span>
+      <span class="diag-metric-label">${esc(label)}</span>
       <strong>${esc(valueText(m))}</strong>
       <small>${esc(sampleText(m))} · ${esc(QUALITY_LABEL[m.quality])}</small>
-      <span class="diag-def" title="${esc(m.definition)}">${esc(m.definition)}</span>
+      <span class="diag-def" title="${esc(definition)}">${esc(definition)}</span>
     </div>`;
 }
 function domainCard(domain: MetricValue['domain'], metrics: MetricValue[]): string {
@@ -149,6 +153,35 @@ function history(data: Data): string {
       ${weeks.length ? `<p class="hint">周诊断：${weeks.map(w => esc(w.weekOf)).join(' · ')}</p>` : ''}
     </section>`;
 }
+const RETENTION_MODES = {
+    recognition: '选择题识别',
+    spelling: '非辅助拼写回忆',
+    cloze: '原句语境回忆',
+} as const;
+
+function observedRetentionBlock(result: ObservedRetentionResult): string {
+    const groups = Object.entries(RETENTION_MODES).map(([mode, label]) => {
+        const points = result.points.filter(point => point.mode === mode);
+        return `<h3>${label}</h3><div class="diag-retention-row">${points.map(point => {
+            const window = point.fromDay === point.toDay ? `${point.fromDay}` : `${point.fromDay}–${point.toDay}`;
+            const value = point.rate !== null ? `${Math.round(point.rate * 100)}%` : point.denominator ? '样本不足' : '无有效复习';
+            return `<div data-retention-mode="${mode}" data-retention-window="${point.label}" class="${point.evaluable ? '' : 'is-empty'}">
+              <b>${point.label} · 第 ${window} 天</b><strong>${value}</strong>
+              <small>答对 ${point.correct} / ${point.denominator} · 至少 ${point.minSample} 个词才显示比例</small>
+              <small>有效作答 ${point.validAttempts} 次 · 独立词 ${point.uniqueWords} 个</small>
+              <small>已进入窗口 ${point.eligibleWords} 个词</small>
+            </div>`;
+        }).join('')}</div>`;
+    }).join('');
+    return `<section id="diag-observed-retention" class="panel diag-retention">
+      <div class="section-title"><h2>实测保持率</h2><span class="subtle">全历史 · 本地日历日</span></div>
+      <p>从每个词最早合格作答起，按本地日期分窗。每个词在每个窗口、每种模式只取首次符合条件的结果。</p>
+      ${groups}
+      <p class="hint">只有实际复习的词计入比例。复习对象的选择可能影响结果，不能据此推断未复习的词。三个模式独立呈现。</p>
+      ${result.notes.map(note => `<p class="hint">${esc(note)}</p>`).join('')}
+    </section>`;
+}
+
 export interface DiagnosticsPageInput {
     data: Data;
     payload: DiagnosticPayload;
@@ -156,6 +189,7 @@ export interface DiagnosticsPageInput {
     generatedAt: number | null;
     source: 'live' | 'snapshot' | 'weekly';
     weekly?: WeeklyDiagnostic;
+    observedRetention?: ObservedRetentionResult;
 }
 export function diagnosticsPage(input: DiagnosticsPageInput): string {
     const { payload } = input;
@@ -169,11 +203,12 @@ export function diagnosticsPage(input: DiagnosticsPageInput): string {
         ${evidenceBar(payload.evidence)}
         <div class="diag-evidence-row"><span title="有标准答案或可核对条目">可核对<b>${payload.evidence.verified}</b></span><span title="真实做题/阅读/表达行为留下的记录">行为<b>${payload.evidence.taskBehavior}</b></span><span title="用户自报的理解度、标记或评价">自评<b>${payload.evidence.selfReport}</b></span><span title="系统推测，仅供参考">推断<b>${payload.evidence.inferred}</b></span><span title="记录来源的种类数">来源<b>${payload.evidence.distinctSources} 类</b></span></div>
       </section>
-      <section class="panel diag-retention"><div class="section-title"><h2>还记得多少</h2><span class="subtle">1 天 / 7 天 / 30 天</span></div>
+      ${input.source === 'live' && input.observedRetention ? observedRetentionBlock(input.observedRetention) : ''}
+      <details class="panel diag-retention"><summary>旧版保持率 · 历史对照</summary>
         <p>${esc(retentionLine(payload.retention))}</p>
         <div class="diag-retention-row">${payload.retention.map(p => `<div class="${p.evaluable ? '' : 'is-empty'}"><b>${p.label}</b><strong>${p.evaluable ? `${Math.round((p.rate ?? 0) * 100)}%` : '样本不足'}</strong><small>${p.correct}/${p.total}</small></div>`).join('')}</div>
-        <p class="hint">只算第一天学过之后第 1、7、30 天前后那一次复习；错过的不补算，也不估算。</p>
-      </section>
+        <p class="hint">旧版从首次出现起按固定 24 小时段分桶，累计选择题作答，同词可计多次。历史快照和既有诊断建议沿用此口径。</p>
+      </details>
       <div class="diag-domains">${domains.map(d => domainCard(d, payload.metrics)).join('')}</div>
       ${comparisonBlock(payload)}
       ${planBlock(payload)}

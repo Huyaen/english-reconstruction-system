@@ -125,6 +125,7 @@ import { sentenceConceptIds, sentenceConceptNames, sentencesForConcept } from '.
 import { ensureGraphData, loadSentences, saveSentences, sentenceAttemptsDesc } from './sentenceStore.ts';
 import { saveSentenceEvidence as dbSaveSentenceEvidence } from './db.ts';
 import { diagnosticsPage } from './diagnosticsView.ts';
+import { observedRetentionReport } from './diagnosticsRetention.ts';
 import { SOURCE_TEXT, STRUCTURE_TEXT, CAPABILITY_NEED_TEXT, PRIORITY_TEXT, PRIORITY_LEGEND, SOURCE_SHORTAGE_TEXT, STRUCTURE_ISSUE_TEXT, CONFIDENCE_TEXT, AI_CHECK_SCOPE_NOTE, sourceMixNote } from './uiLabels.ts';
 import { buildDiagnostics, latestSnapshot } from './diagnosticsInsight.ts';
 import { generateSnapshot, generateWeekly } from './diagnosticsActions.ts';
@@ -1492,7 +1493,8 @@ function diagnosticsPageApp(): void {
     else {
         payload = buildDiagnostics(data, { now, days: diagDays, previous: latestSnapshot(data.skillSnapshots) });
     }
-    $('#main').innerHTML = diagnosticsPage({ data, payload, days: diagDays, generatedAt, source, weekly });
+    const observedRetention = source === 'live' ? observedRetentionReport(data, now) : undefined;
+    $('#main').innerHTML = diagnosticsPage({ data, payload, days: diagDays, generatedAt, source, weekly, observedRetention });
     bindDiagnostics();
 }
 function bindDiagnostics(): void {
