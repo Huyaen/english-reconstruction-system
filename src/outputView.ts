@@ -1,13 +1,15 @@
 // —— Phase 9：Output Lab 视图（纯 HTML）——
 // 原则：编辑区优先；不把巨大统计面板塞进写作页面。
 import type { Data, OutputAttempt, OutputFeedback, OutputSupportLevel, OutputTaskSpec, OutputTaskType } from './types.ts';
+import { conceptById } from './grammar.ts';
+import { sentencesForConcept } from './sentenceGraphMap.ts';
 import { esc } from './ui.ts';
 import { FEEDBACK_STATUS_TEXT } from './uiLabels.ts';
 import { OUTPUT_TASK_ORDER, OUTPUT_TASK_TYPES, taskMeta } from './outputTask.ts';
 import { SUPPORT_LEVELS, supportLevelZh } from './outputScaffolding.ts';
 import { ERROR_LABELS } from './outputFeedback.ts';
 import type { RevisionComparison } from './outputRevision.ts';
-import type { OutputAnalytics } from './outputAnalytics.ts';
+import { outputErrorSummary, type OutputAnalytics, type OutputErrorSummaryDays } from './outputAnalytics.ts';
 import type { TransferPlan } from './outputTransfer.ts';
 
 /** 精力状态：界面上只说人话，不暴露 low/normal/good */
@@ -30,6 +32,8 @@ export interface OutputHubInput {
     topicDraft: string;
     minutes: number;
     energy: 'low' | 'normal' | 'good';
+    errorSummaryDays?: OutputErrorSummaryDays;
+    errorSummaryNow?: number;
 }
 export function outputHubPage(input: OutputHubInput): string {
     const s = input.suggestion;
@@ -45,15 +49,17 @@ export function outputHubPage(input: OutputHubInput): string {
         <b>${esc(h.label)}</b><small>${esc(h.preview.slice(0, 90))}${h.preview.length > 90 ? '…' : ''}</small><span>带进写作练习 →</span></button>`).join('')}</div></section>` : '';
     const history = input.analytics.attempts ? `
       <section class="panel"><div class="section-title"><h2>以前的表达</h2><span class="subtle">看变化，不看字数</span></div>
-        <div class="output-history">${input.data.outputAttempts.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 8).map(a => `
-          <button class="history-row" data-out-open="${esc(a.id)}">
+        <div class="output-history">${input.data.outputAttempts.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 8).map(a => {
+        const tag = a.task ? 'button' : 'div';
+        return `<${tag} class="history-row"${a.task ? ` data-out-open="${esc(a.id)}"` : ''}>
             <b>${esc(taskMeta((a.taskType ?? 'free_expression') as OutputTaskType).zh)}</b>
             <span>${esc((a.finalText || a.originalText || '').slice(0, 70))}</span>
-            <small>${esc(FEEDBACK_STATUS_TEXT[a.feedbackStatus ?? 'none'] ?? '没有 AI 反馈')} · ${a.revisions?.length ?? 0} 次修改</small>
-          </button>`).join('')}</div></section>` : '';
+            <small>${esc(a.feedbackSource === 'mock' ? '模拟反馈' : FEEDBACK_STATUS_TEXT[a.feedbackStatus ?? 'none'] ?? '没有 AI 反馈')} · ${a.revisions?.length ?? 0} 次修改</small>
+          </${tag}>`;
+    }).join('')}</div></section>` : '';
     const stats = input.analytics.attempts ? `<section class="panel"><div class="section-title"><h2>表达概览</h2><span class="subtle">${esc(input.analytics.sampleNote)}</span></div>
       <div class="metrics">${metric('完成', String(input.analytics.completed), `共 ${input.analytics.attempts} 条记录`)}${metric('独立', String(input.analytics.independent), '无提示、非照抄')}${metric('辅助 / 照抄', `${input.analytics.assisted} / ${input.analytics.copied}`, '自己写的程度不同')}${metric('迁移 / 延迟', `${input.analytics.transfer} / ${input.analytics.delayed}`, '新语境 / D1')}</div>
-      <p class="hint">${esc(input.analytics.meaningDeliveredRate === null ? '意思送达率：记录还不够' : `意思送达率 ${Math.round(input.analytics.meaningDeliveredRate * 100)}%（样本很少，只看趋势）`)} · 独立产出词 ${input.analytics.productiveWords} 个</p></section>` : '';
+      <p class="hint">${esc(input.analytics.meaningDeliveredRate === null ? '意思送达率：可用的 AI 反馈还不够' : `AI 估计的意思送达率 ${Math.round(input.analytics.meaningDeliveredRate * 100)}%（仅供参考）`)} · 独立产出词 ${input.analytics.productiveWords} 个</p></section>` : '';
     return `${titleBlock('写作练习', '写作练习', '先把意思写出来，再让它更准确。写一句也算完成。')}
     ${input.note ? `<div class="notice">${esc(input.note)}</div>` : ''}
     <section class="panel output-start">
@@ -71,7 +77,53 @@ export function outputHubPage(input: OutputHubInput): string {
     <section class="panel"><div class="section-title"><h2>可选任务</h2><span class="subtle">来自你真实的阅读 / 输入 / 单元</span></div>
       <div class="output-grid">${cards}</div></section>
     ${stats}
+    ${errorSummaryBlock(outputErrorSummary(input.data, input.errorSummaryDays, input.errorSummaryNow), input.data.sentences)}
     ${history}`;
+}
+const ERROR_SUMMARY_LABELS = {
+    ...ERROR_LABELS,
+    sentence_punctuation: '句末标点', repeated_word: '相邻重复词', sentence_capitalization: '句首大写',
+    long_sentence_hint: '句子可能过长', missing_predicate_hint: '谓语可能需要复核',
+};
+const ERROR_SUMMARY_SOURCES = {
+    ai: '通过质量门的 AI', deterministic: '本地规则', heuristic: '启发式提示',
+};
+const ERROR_PRACTICE_CONCEPT: Readonly<Record<string, string>> = {
+    tense: 'verb.tense', missing_subject: 'structure.subject', missing_predicate: 'structure.predicate', reference: 'logic.reference',
+};
+function errorSummaryBlock(summary: ReturnType<typeof outputErrorSummary>, sentences: Data['sentences']): string {
+    const { days, coverage, categories, recommendations } = summary;
+    const counts = coverage.submitted
+        ? `<p>共 ${coverage.submitted} 个已提交任务，其中 ${coverage.independent} 个有无提示写作记录。</p>
+           <p class="muted">通过质量门的 AI 覆盖 ${coverage.ai} 个（独立 ${coverage.independentAi} 个） · 本地规则检查 ${coverage.deterministic} 个 · 启发式提示涉及 ${coverage.heuristic} 个 · 学习者自述 ${coverage.selfReported} 个 · AI 无法评估 ${coverage.unassessable} 个</p>`
+        : '<p class="muted">这段时间没有可用的写作提交，证据不足。</p>';
+    const details = categories.map(({ key, source, occurrences, tasks, denominator, independentTasks, independentDenominator, examples }) => `
+      <details class="output-card">
+        <summary><b>${ERROR_SUMMARY_LABELS[key]}</b> · ${ERROR_SUMMARY_SOURCES[source]} · ${occurrences} 处${source === 'heuristic' ? '待核对提示' : '记录'} · 涉及 ${tasks} / ${denominator} 个已检查任务${independentDenominator ? `（独立 ${independentTasks} / ${independentDenominator} 个）` : '（独立样本不足）'}${independentTasks >= 2 ? ' · 独立任务中重复出现' : ''}</summary>
+        <ul>${examples.map(e => `<li>
+          ${e.context !== e.original ? `<p class="muted">上下文 <q>${esc(e.context)}</q></p>` : ''}
+          <p><q>${esc(e.original)}</q>${e.proposed ? ` → <q>${esc(e.proposed)}</q>` : ''}</p>
+          <p class="muted">${esc(e.explanation)}</p>
+          ${e.canOpen ? `<button class="text-button" type="button" data-out-open="${esc(e.attemptId)}">打开原练习 · ${esc(e.topic)} · ${esc(new Date(e.at).toLocaleDateString('zh-CN'))}</button>` : `<small class="muted">${esc(e.topic)} · ${esc(new Date(e.at).toLocaleDateString('zh-CN'))}</small>`}
+        </li>`).join('')}</ul>
+      </details>`).join('');
+    const practice = recommendations.length ? `<h3>接下来复看</h3><ul>${recommendations.map(({ key, source, independentTasks, independentDenominator, example }) => {
+        const conceptId = ERROR_PRACTICE_CONCEPT[key];
+        const concept = conceptId && sentencesForConcept(conceptId, sentences).length ? conceptById(conceptId) : undefined;
+        return `<li><b>${ERROR_SUMMARY_LABELS[key]}</b> · ${ERROR_SUMMARY_SOURCES[source]}在 ${independentTasks} / ${independentDenominator} 个独立任务中发现。
+        <p><q>${esc(example.original)}</q>${example.proposed ? ` → <q>${esc(example.proposed)}</q>` : ''}。先看原练习中的上下文，再换个场景写一句，检查同类问题。</p>
+        <button class="text-button" type="button" data-out-open="${esc(example.attemptId)}">复看原练习</button>
+        ${concept ? `<button class="secondary" type="button" data-out-grammar="${esc(concept.id)}">练习${esc(concept.name)}</button>` : ''}</li>`;
+    }).join('')}</ul>`
+        : '<p class="hint">至少要有 3 个同来源检查过的独立任务，且同类问题出现在其中至少 2 个任务里，才会建议复看。</p>';
+    return `<section id="out-error-summary" class="panel" aria-labelledby="out-error-heading">
+      <div class="section-title"><h2 id="out-error-heading">表达错误复盘</h2><select id="out-error-window" aria-label="表达错误复盘时间范围">${([7, 14, 30] as const).map(n => `<option value="${n}"${days === n ? ' selected' : ''}>最近 ${n} 天</option>`).join('')}</select></div>
+      ${counts}
+      ${coverage.mockExcluded ? `<p class="muted">已排除 ${coverage.mockExcluded} 条模拟反馈记录。</p>` : ''}
+      <p class="hint">按任务创建日统计，含今天。修改和重评仍属原任务。AI 反馈的结构和原文引用通过检查，判断仅供参考。本地规则只检查可观察的形式，启发式提示需要自己核对。自述只说明学习者的感受或原意。缺少、失败或无效的反馈属于 AI 无法评估。</p>
+      ${details || (coverage.submitted ? '<p class="muted">目前没有可汇总的错误实例。缺少反馈的提交仍保留在覆盖说明中。</p>' : '')}
+      ${practice}
+    </section>`;
 }
 export interface SessionInput {
     attempt: OutputAttempt;

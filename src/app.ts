@@ -125,6 +125,7 @@ import { sentenceConceptIds, sentenceConceptNames, sentencesForConcept } from '.
 import { ensureGraphData, loadSentences, saveSentences, sentenceAttemptsDesc } from './sentenceStore.ts';
 import { saveSentenceEvidence as dbSaveSentenceEvidence } from './db.ts';
 import { diagnosticsPage } from './diagnosticsView.ts';
+import { observedRetentionReport } from './diagnosticsRetention.ts';
 import { SOURCE_TEXT, STRUCTURE_TEXT, CAPABILITY_NEED_TEXT, PRIORITY_TEXT, PRIORITY_LEGEND, SOURCE_SHORTAGE_TEXT, STRUCTURE_ISSUE_TEXT, CONFIDENCE_TEXT, AI_CHECK_SCOPE_NOTE, sourceMixNote } from './uiLabels.ts';
 import { buildDiagnostics, latestSnapshot } from './diagnosticsInsight.ts';
 import { generateSnapshot, generateWeekly } from './diagnosticsActions.ts';
@@ -1136,6 +1137,7 @@ function deleteBookDialog() {
 }
 // ===== Phase 9：Output Lab（逻辑在 output*.ts，这里只做绑定）=====
 let outputAttemptId: string | null = null;
+let outputErrorSummaryDays: 7 | 14 | 30 = 14;
 let outputSelectedType = null as import('./types.ts').OutputTaskType | null;
 let outputTopicDraft = '';
 let outputHintLevel = null as import('./types.ts').OutputSupportLevel | null;
@@ -1202,13 +1204,24 @@ function outputPageApp(): void {
     const analytics = outputAnalytics(data);
     $('#main').innerHTML = outputHubPage({
         data, suggestion: sel.task, candidates: sel.candidates, note: sel.note,
-        handoffs: outputHandoffs(), analytics,
+        handoffs: outputHandoffs(), analytics, errorSummaryDays: outputErrorSummaryDays,
         selectedType: outputSelectedType, topicDraft: outputTopicDraft,
         minutes: outputMinutesNow(), energy: planEnergy,
     });
     bindOutputHub();
 }
 function bindOutputHub(): void {
+    on('#out-error-window', 'change', e => {
+        const days = Number((e.target as HTMLSelectElement).value);
+        if (days === 7 || days === 14 || days === 30) {
+            outputErrorSummaryDays = days;
+            render();
+            document.querySelector<HTMLSelectElement>('#out-error-window')?.focus();
+        }
+    });
+    document.querySelectorAll<HTMLButtonElement>('[data-out-grammar]').forEach(button => {
+        button.onclick = () => practiceConcept(button.dataset.outGrammar ?? '');
+    });
     document.querySelectorAll<HTMLElement>('[data-out-type]').forEach(b => b.onclick = () => {
         const t = b.dataset.outType as import('./types.ts').OutputTaskType;
         outputSelectedType = outputSelectedType === t ? null : t;
@@ -1480,7 +1493,8 @@ function diagnosticsPageApp(): void {
     else {
         payload = buildDiagnostics(data, { now, days: diagDays, previous: latestSnapshot(data.skillSnapshots) });
     }
-    $('#main').innerHTML = diagnosticsPage({ data, payload, days: diagDays, generatedAt, source, weekly });
+    const observedRetention = source === 'live' ? observedRetentionReport(data, now) : undefined;
+    $('#main').innerHTML = diagnosticsPage({ data, payload, days: diagDays, generatedAt, source, weekly, observedRetention });
     bindDiagnostics();
 }
 function bindDiagnostics(): void {
