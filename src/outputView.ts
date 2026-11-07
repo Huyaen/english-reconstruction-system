@@ -54,7 +54,7 @@ export function outputHubPage(input: OutputHubInput): string {
         return `<${tag} class="history-row"${a.task ? ` data-out-open="${esc(a.id)}"` : ''}>
             <b>${esc(taskMeta((a.taskType ?? 'free_expression') as OutputTaskType).zh)}</b>
             <span>${esc((a.finalText || a.originalText || '').slice(0, 70))}</span>
-            <small>${esc(FEEDBACK_STATUS_TEXT[a.feedbackStatus ?? 'none'] ?? '没有 AI 反馈')} · ${a.revisions?.length ?? 0} 次修改</small>
+            <small>${esc(a.feedbackSource === 'mock' ? '模拟反馈' : FEEDBACK_STATUS_TEXT[a.feedbackStatus ?? 'none'] ?? '没有 AI 反馈')} · ${a.revisions?.length ?? 0} 次修改</small>
           </${tag}>`;
     }).join('')}</div></section>` : '';
     const stats = input.analytics.attempts ? `<section class="panel"><div class="section-title"><h2>表达概览</h2><span class="subtle">${esc(input.analytics.sampleNote)}</span></div>
@@ -119,7 +119,8 @@ function errorSummaryBlock(summary: ReturnType<typeof outputErrorSummary>, sente
     return `<section id="out-error-summary" class="panel" aria-labelledby="out-error-heading">
       <div class="section-title"><h2 id="out-error-heading">表达错误复盘</h2><select id="out-error-window" aria-label="表达错误复盘时间范围">${([7, 14, 30] as const).map(n => `<option value="${n}"${days === n ? ' selected' : ''}>最近 ${n} 天</option>`).join('')}</select></div>
       ${counts}
-      <p class="hint">按任务创建日统计，含今天。修改和重评仍属原任务。AI 反馈的结构和原文引用通过检查，判断仅供参考。本地规则只检查可观察的形式，启发式提示需要自己核对。自述只说明学习者的感受或原意。</p>
+      ${coverage.mockExcluded ? `<p class="muted">已排除 ${coverage.mockExcluded} 条模拟反馈记录。</p>` : ''}
+      <p class="hint">按任务创建日统计，含今天。修改和重评仍属原任务。AI 反馈的结构和原文引用通过检查，判断仅供参考。本地规则只检查可观察的形式，启发式提示需要自己核对。自述只说明学习者的感受或原意。缺少、失败或无效的反馈属于 AI 无法评估。</p>
       ${details || (coverage.submitted ? '<p class="muted">目前没有可汇总的错误实例。缺少反馈的提交仍保留在覆盖说明中。</p>' : '')}
       ${practice}
     </section>`;

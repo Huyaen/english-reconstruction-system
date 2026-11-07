@@ -158,12 +158,17 @@ export function outputErrorSummary(data: Pick<Data, 'outputAttempts' | 'aiGenera
     start.setDate(start.getDate() - (days - 1));
     const genById = new Map((data.aiGenerations ?? []).map(g => [g.id, g]));
     const seen = new Set<string>();
+    const mockIds = new Set<string>();
     const submitted: OutputAttempt[] = [];
     const sorted = [...(data.outputAttempts ?? [])].sort((a, b) => a.createdAt - b.createdAt || (b.revision ?? 0) - (a.revision ?? 0));
     for (const a of sorted) {
         if (!Number.isFinite(a.createdAt) || a.createdAt > now || a.status === 'draft' || a.status === 'abandoned'
-            || a.feedbackSource === 'mock' || !/[a-z]/i.test(a.originalText ?? ''))
+            || !/[a-z]/i.test(a.originalText ?? ''))
             continue;
+        if (a.feedbackSource === 'mock') {
+            if (a.createdAt >= start.getTime()) mockIds.add(a.id);
+            continue;
+        }
         const keys = ['attempt:' + a.id];
         if (a.dailyPlanTaskId)
             keys.push('plan:' + a.dailyPlanTaskId);
@@ -178,7 +183,7 @@ export function outputErrorSummary(data: Pick<Data, 'outputAttempts' | 'aiGenera
 
     const coverage = {
         submitted: submitted.length, independent: 0, ai: 0, independentAi: 0,
-        deterministic: 0, independentLocal: 0, heuristic: 0, selfReported: 0, unassessable: 0,
+        deterministic: 0, independentLocal: 0, heuristic: 0, selfReported: 0, unassessable: 0, mockExcluded: mockIds.size,
     };
     const groups = new Map<string, ErrorCategory & { independentExample?: ErrorExample }>();
     for (const a of submitted.reverse()) {

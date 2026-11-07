@@ -112,6 +112,7 @@ test('真实本地规则、启发式、自述和无法评估分开，排除模�
     assert.equal(summary.coverage.heuristic, 1);
     assert.equal(summary.coverage.selfReported, 1);
     assert.equal(summary.coverage.unassessable, 5);
+    assert.equal(summary.coverage.mockExcluded, 1);
     assert.deepEqual(summary.categories.map(c => [c.key, c.source]), [['sentence_punctuation', 'deterministic'], ['missing_predicate_hint', 'heuristic']]);
     assert.deepEqual(summary.recommendations, []);
 });
