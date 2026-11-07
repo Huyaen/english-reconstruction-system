@@ -9,7 +9,7 @@ import { createAttemptRecord, updateAttempt } from './outputStore.ts';
 import { classifyIndependence, type IndependenceClass } from './outputScaffolding.ts';
 import { classifyRevision } from './outputRevision.ts';
 import { localChecks } from './outputDiagnosis.ts';
-import { buildUnavailableFeedback, type FeedbackContext } from './outputFeedback.ts';
+import { buildUnavailableFeedback, outputFeedbackRequestKey, type FeedbackContext } from './outputFeedback.ts';
 import { diagnoseOutput, materialExcerptOf } from './outputAi.ts';
 import { OUTPUT_PROMPT_VERSION } from './prompts/output.ts';
 import { extractProductiveEvidence, applyEvidenceScores, mergeEvidence } from './outputEvidence.ts';
@@ -166,7 +166,7 @@ export async function requestOutputFeedback(id: string, expectedRevision: number
         targetWords: opts.targetWordIds,
     };
     // 1) 复用同一 attempt + 版本 + 文本的结果（刷新不重复付费）
-    const key = `${id}|${OUTPUT_PROMPT_VERSION}|${hash(text)}`;
+    const key = outputFeedbackRequestKey(id, OUTPUT_PROMPT_VERSION, text);
     const reusable = findReusable(opts.data.aiGenerations ?? [], 'output', key);
     if (reusable) {
         const fb = reusable.output as {

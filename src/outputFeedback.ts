@@ -4,6 +4,10 @@
 import type { OutputErrorSpan, OutputErrorType, OutputFeedback, OutputFeedbackScope, OutputMeaningBasis, OutputTaskSpec, OutputUpgrade } from './types.ts';
 import { countWords } from './outputTask.ts';
 import { LANGUAGE_ERROR_TYPES, spanIsGrounded } from './outputDiagnosis.ts';
+import { fnv1a } from './prompts/registry.ts';
+export function outputFeedbackRequestKey(attemptId: string, promptVersion: string, text: string): string {
+    return `${attemptId}|${promptVersion}|${parseInt(fnv1a(text), 16).toString(36)}`;
+}
 const ERROR_TYPES: OutputErrorType[] = ['tense', 'subject_verb_agreement', 'article', 'preposition', 'word_form', 'word_order', 'clause_structure', 'missing_subject', 'missing_predicate', 'vocabulary_choice', 'collocation', 'reference', 'coherence', 'meaning_ambiguity', 'other'];
 const SEVERITIES: OutputErrorSpan['severity'][] = ['blocking', 'major', 'minor', 'style'];
 const MEANING: OutputFeedback['meaningAssessment'][] = ['delivered', 'partly_delivered', 'not_delivered', 'unavailable'];

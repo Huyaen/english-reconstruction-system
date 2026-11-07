@@ -1136,6 +1136,7 @@ function deleteBookDialog() {
 }
 // ===== Phase 9：Output Lab（逻辑在 output*.ts，这里只做绑定）=====
 let outputAttemptId: string | null = null;
+let outputErrorSummaryDays: 7 | 14 | 30 = 14;
 let outputSelectedType = null as import('./types.ts').OutputTaskType | null;
 let outputTopicDraft = '';
 let outputHintLevel = null as import('./types.ts').OutputSupportLevel | null;
@@ -1202,13 +1203,24 @@ function outputPageApp(): void {
     const analytics = outputAnalytics(data);
     $('#main').innerHTML = outputHubPage({
         data, suggestion: sel.task, candidates: sel.candidates, note: sel.note,
-        handoffs: outputHandoffs(), analytics,
+        handoffs: outputHandoffs(), analytics, errorSummaryDays: outputErrorSummaryDays,
         selectedType: outputSelectedType, topicDraft: outputTopicDraft,
         minutes: outputMinutesNow(), energy: planEnergy,
     });
     bindOutputHub();
 }
 function bindOutputHub(): void {
+    on('#out-error-window', 'change', e => {
+        const days = Number((e.target as HTMLSelectElement).value);
+        if (days === 7 || days === 14 || days === 30) {
+            outputErrorSummaryDays = days;
+            render();
+            document.querySelector<HTMLSelectElement>('#out-error-window')?.focus();
+        }
+    });
+    document.querySelectorAll<HTMLButtonElement>('[data-out-grammar]').forEach(button => {
+        button.onclick = () => practiceConcept(button.dataset.outGrammar ?? '');
+    });
     document.querySelectorAll<HTMLElement>('[data-out-type]').forEach(b => b.onclick = () => {
         const t = b.dataset.outType as import('./types.ts').OutputTaskType;
         outputSelectedType = outputSelectedType === t ? null : t;

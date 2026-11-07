@@ -3,8 +3,14 @@
 // 所有启发式检查的 confidence ≤ 0.5，并明确标注 heuristic；不冒充 AI 诊断。
 import type { OutputErrorSpan, OutputFeedback, OutputTaskSpec } from './types.ts';
 import { countWords } from './outputTask.ts';
+export type LocalOutputFinding = {
+    key: 'sentence_punctuation' | 'repeated_word' | 'long_sentence_hint' | 'missing_predicate_hint' | 'sentence_capitalization';
+    source: 'deterministic' | 'heuristic';
+    span: OutputErrorSpan;
+};
 export interface LocalCheckResult {
     spans: OutputErrorSpan[];
+    findings: LocalOutputFinding[];
     notes: string[];
     /** 是否做了"像语法引擎"的判断：这里永远是 false，用于 UI 文案 */
     authoritative: false;
@@ -12,14 +18,15 @@ export interface LocalCheckResult {
 const VERBISH = /\b(am|is|are|was|were|be|been|being|do|does|did|have|has|had|can|could|will|would|shall|should|may|might|must|go|goes|went|make|makes|made|take|took|see|saw|like|likes|want|wants|need|needs|think|thinks|know|knows|show|shows|explain|explains|carry|carried|keep|kept|give|gave|get|got|use|used|help|helped|say|said|tell|told|become|became|seem|seems|feel|felt|look|looks|find|found|live|lived|work|worked|come|came|go|going)\b/i;
 export function localChecks(text: string, spec?: OutputTaskSpec): LocalCheckResult {
     const raw = String(text ?? '');
-    const spans: OutputErrorSpan[] = [];
+    const findings: LocalOutputFinding[] = [];
+    const add = (key: LocalOutputFinding['key'], source: LocalOutputFinding['source'], span: OutputErrorSpan) => findings.push({ key, source, span });
     const notes: string[] = ['这些是本地确定性检查，不是语法诊断；真正的语言反馈见 AI 反馈（若已配置）。'];
     if (!raw.trim())
-        return { spans, notes: ['还没有内容可检查。'], authoritative: false };
+        return { spans: [], findings, notes: ['还没有内容可检查。'], authoritative: false };
     // 1) 句末标点
     const trimmed = raw.trimEnd();
     if (trimmed && !/[.!?。！？]["')\]]?$/u.test(trimmed)) {
-        spans.push({
+        add('sentence_punctuation', 'deterministic', {
             type: 'other', original: trimmed.slice(-1), proposed: trimmed.slice(-1) + '.',
             start: raw.lastIndexOf(trimmed.slice(-1)), end: raw.lastIndexOf(trimmed.slice(-1)) + 1,
             explanation: '句子结尾缺少标点，读者难以判断句界。', severity: 'style', confidence: 0.9,
@@ -29,7 +36,7 @@ export function localChecks(text: string, spec?: OutputTaskSpec): LocalCheckResu
     const repeat = /\b([a-zA-Z']+)\s+\1\b/giu;
     let m: RegExpExecArray | null;
     while ((m = repeat.exec(raw))) {
-        spans.push({
+        add('repeated_word', 'deterministic', {
             type: 'other', original: m[0], proposed: m[1] ?? '',
             start: m.index, end: m.index + m[0].length,
             explanation: '相邻重复了同一个词。', severity: 'minor', confidence: 0.95,
@@ -39,7 +46,7 @@ export function localChecks(text: string, spec?: OutputTaskSpec): LocalCheckResu
     for (const s of splitSentences(raw)) {
         const words = countWords(s.text);
         if (words > 45) {
-            spans.push({
+            add('long_sentence_hint', 'heuristic', {
                 type: 'coherence', original: s.text.slice(0, 40) + '…', proposed: '',
                 start: s.start, end: s.end,
                 explanation: `这一句约 ${words} 个词，读起来容易失去主线；试着拆成两句。`,
@@ -56,7 +63,7 @@ export function localChecks(text: string, spec?: OutputTaskSpec): LocalCheckResu
     for (const s of splitSentences(raw)) {
         const w = countWords(s.text);
         if (w >= 4 && !VERBISH.test(s.text)) {
-            spans.push({
+            add('missing_predicate_hint', 'heuristic', {
                 type: 'missing_predicate', original: s.text, proposed: '',
                 start: s.start, end: s.end,
                 explanation: '这句里没有找到常见动词；如果确实缺谓语，读者会不知道发生了什么（启发式判断）。',
@@ -68,7 +75,7 @@ export function localChecks(text: string, spec?: OutputTaskSpec): LocalCheckResu
     const first = raw.trimStart();
     if (/^[a-z]/.test(first) && first.length > 2) {
         const at = raw.indexOf(first.charAt(0));
-        spans.push({
+        add('sentence_capitalization', 'deterministic', {
             type: 'other', original: first.charAt(0), proposed: first.charAt(0).toUpperCase(),
             start: at, end: at + 1,
             explanation: '句首字母通常大写。', severity: 'style', confidence: 0.9,
@@ -76,7 +83,7 @@ export function localChecks(text: string, spec?: OutputTaskSpec): LocalCheckResu
     }
     if (spec && spec.taskType === 'one_sentence' && wcOf(raw) > spec.maxWords)
         notes.push('这句话比较长：先确认它仍然是一个句子，而不是把几句连在一起。');
-    return { spans, notes, authoritative: false };
+    return { spans: findings.map(finding => finding.span), findings, notes, authoritative: false };
 }
 function wcOf(s: string): number {
     return countWords(s);
