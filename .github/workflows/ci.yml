@@ -58,10 +58,8 @@ jobs:
           fi
           echo "ok: PWA cache is build-stamped"
 
-      # dist 纳入 Git，但只在 Node 22 上核对一次，避免矩阵重复报同一个差异。
-      # 若 Linux 与 Windows 出现合法差异，必须先在本地定位原因，不允许直接删掉这一步。
+      # Both Node versions must reproduce the committed build byte for byte.
       - name: Verify committed build artifacts
-        if: matrix.node == 22
         run: git diff --exit-code -- dist
 
       # 测试钩子隔离的硬证据：生产产物中不得出现 __labTest（构建期开关关闭 → 摇树移除）。
