@@ -240,7 +240,7 @@ let labReturn: (LabReturnTarget & {
 const navs = [['home', '◫', '今天'], ['books', '▤', '词库'], ['weak', '◎', '薄弱词'], ['sentence', '❝', '句子'], ['reading', '❖', '阅读'], ['input', '▶', '输入练习'], ['output', '✎︎', '写作练习'], ['grammar', '◈', '语法'], ['unit', '◐', '单元'], ['diagnostics', '◮', '学习报告'], ['exam', '⌘', '考试'], ['stats', '▥', '统计'], ['ai', '✧︎', 'AI 建议'], ['settings', '⚙︎', '设置']];
 function reindex() { wordMap = new Map(data.words.map(w => [w.id, w])); const locale = data.settings.pronunciationLocale ?? 'en-US'; if (pronunciation.locale !== locale) pronunciation.setLocale(locale); }
 function setPage(p: string) {
-    if ((page === 'quiz' && busy) || (page === 'preview' && previewSaving) || startingSession) {
+    if ((page === 'quiz' && busy) || startingSession) {
         toast('正在保存训练，请稍后切换');
         return;
     }
@@ -284,12 +284,13 @@ function shell() {
     }).join('');
     const primary = ['home', 'books', 'reading', 'output', 'diagnostics'];
     const more = navs.map(n => n[0]).filter(id => !primary.includes(id));
+    const moreActive = more.includes(page);
     $('#app').innerHTML = `<a class="skip-link" href="#main">跳到主要内容</a>
 <div class="app-shell">
   <header class="ink-masthead">
     <a class="brand" href="#">词间 <small>REHEARSAL</small></a>
     <nav aria-label="主导航">${nav(primary)}</nav>
-    <details class="ink-more"><summary>更多</summary><nav aria-label="其他学习入口">${nav(more)}</nav></details>
+    <details class="ink-more"><summary class="${moreActive ? 'is-current' : ''}">更多</summary><nav aria-label="其他学习入口">${nav(more)}</nav></details>
     <button id="theme" class="text-button" aria-label="切换深浅色">${data.settings.theme === 'light' ? '深色' : '浅色'}</button>
   </header>
   <div class="workspace">
@@ -758,7 +759,7 @@ async function showQuestion(previousCorrect = false) {
             return;
         }
         const q = active.question, w = wordMap.get(q.wordId)!;
-        $('#main').innerHTML = `<div class="quiz-top"><button id="quit" class="text-button">← 保存并退出</button><span>${active.index + 1} / ${active.queue.length}</span><button id="pause" class="text-button">暂停</button></div><div class="quiz-progress"><i style="width:${active.index / active.queue.length * 100}%"></i></div><section class="quiz-card"><div class="eyebrow">${q.direction === 'en-zh' ? '英文 → 中文' : '中文 → 英文'}</div><div class="ink-wordline"><h1 id="question-text" class="question"${q.direction === 'en-zh' ? ' data-ink-word lang="en"' : ''}${q.direction === 'en-zh' && w.en.length > 22 ? ' data-ink-long' : ''}>${esc(q.direction === 'en-zh' ? w.en : w.zh)}</h1></div><p class="subtle">选出对应的${q.direction === 'en-zh' ? '中文释义' : '英文单词'}</p><div class="answers">${q.options.map((id, i) => { const option = wordMap.get(id)!; return `<button class="answer" data-answer="${id}"><kbd>${i + 1}</kbd><span>${esc(q.direction === 'en-zh' ? option.zh : option.en)}</span></button>`; }).join('')}</div><button id="unknown" class="unknown">不知道 <kbd>空格</kbd></button><div id="feedback" aria-live="polite"></div><div id="pause-cover" hidden><h2>已暂停</h2><p>暂停的时间不算答题用时</p><button id="continue" class="primary">继续答题</button></div></section><div class="quiz-hint">数字键选 · 空格算不知道 · 回车看下一题</div>`;
+        $('#main').innerHTML = `<div class="quiz-top"><button id="quit" class="text-button">← 保存并退出</button><span>${active.index + 1} / ${active.queue.length}</span><button id="pause" class="text-button">暂停</button></div><div class="quiz-progress"><i style="width:${active.index / active.queue.length * 100}%"></i></div><section class="quiz-card"><div class="eyebrow">${q.direction === 'en-zh' ? '英文 → 中文' : '中文 → 英文'}</div><div class="ink-wordline"><h1 id="question-text" class="question"${q.direction === 'en-zh' ? ' data-ink-word lang="en"' : ''}${q.direction === 'en-zh' && w.en.length > 22 ? ' data-ink-long' : ''}>${esc(q.direction === 'en-zh' ? w.en : w.zh)}</h1></div><p class="subtle">选出对应的${q.direction === 'en-zh' ? '中文释义' : '英文单词'}</p><div class="answers" aria-busy="true">${q.options.map((id, i) => { const option = wordMap.get(id)!; return `<button class="answer" data-answer="${id}"><kbd>${i + 1}</kbd><span>${esc(q.direction === 'en-zh' ? option.zh : option.en)}</span></button>`; }).join('')}</div><button id="unknown" class="unknown">不知道 <kbd>空格</kbd></button><div id="feedback" aria-live="polite"></div><div id="pause-cover" hidden><h2>已暂停</h2><p>暂停的时间不算答题用时</p><button id="continue" class="primary">继续答题</button></div></section><div class="quiz-hint">数字键选 · 空格算不知道 · 回车看下一题</div>`;
         inkMotion.mount($('#main'));
         inkMotion.beat(document.querySelector<HTMLElement>('.answers'), 'enter');
         if (previousCorrect) {
@@ -775,6 +776,7 @@ async function showQuestion(previousCorrect = false) {
         if (page !== 'quiz' || !active)
             return;
         busy = false;
+        document.querySelector('.answers')?.setAttribute('aria-busy', 'false');
         started = performance.now();
         timer = setTimeout(() => void submit(null, 'timeout'), data.settings.timeout);
     }
@@ -795,6 +797,8 @@ async function submit(selectedId: string | null, reason: ReviewRecord['reason'])
     const ms = reason === 'timeout' ? data.settings.timeout : performance.now() - started + elapsedBeforePause;
     const result = answer(s, w, selectedId, ms, reason, data.settings);
     const picked = Array.from(document.querySelectorAll<HTMLElement>('[data-answer]')).find(el => el.dataset.answer === selectedId);
+    const answers = document.querySelector('.answers');
+    answers?.setAttribute('aria-busy', 'true');
     $('#feedback').textContent = reason === 'timeout' ? '超时 · 正在保存' : reason === 'unknown' ? '标为不认识 · 正在保存' : '正在保存作答…';
     inkMotion.beat(picked ?? document.querySelector<HTMLElement>('#unknown'), result.record.correct ? 'right' : reason === 'answer' ? 'wrong' : 'neutral');
     try {
@@ -803,6 +807,7 @@ async function submit(selectedId: string | null, reason: ReviewRecord['reason'])
     catch {
         busy = false;
         paused = true;
+        answers?.setAttribute('aria-busy', 'false');
         $('#feedback').innerHTML = '<p class="error">没存上，先暂停一下。检查一下存储空间再答；这一题不算。</p>';
         $('#pause-cover').hidden = false;
         return;
@@ -825,6 +830,7 @@ async function submit(selectedId: string | null, reason: ReviewRecord['reason'])
     }
     feedback = true;
     busy = false;
+    answers?.setAttribute('aria-busy', 'false');
     document.querySelectorAll<HTMLButtonElement>('.answer').forEach(b => { b.disabled = true; b.classList.toggle('correct', b.dataset.answer === w.id); b.classList.toggle('is-correct', b.dataset.answer === w.id); b.classList.toggle('wrong', b.dataset.answer === selectedId); b.classList.toggle('is-wrong', b.dataset.answer === selectedId); });
     $('#unknown').setAttribute('disabled', '');
     $('#feedback').innerHTML = `<div class="answer-feedback bad" role="status"><div class="feedback-copy"><strong>${esc(w.en)} · ${esc(w.zh)}</strong>${speechControls(w.en)}<span>${reason === 'timeout' ? '没来得及答' : reason === 'unknown' ? '记成不会，已加入复习' : '答错了，已记下来'} · ${seconds(result.record.ms)}</span></div><button id="next" class="primary">下一题 <kbd>Enter</kbd></button></div>`;
@@ -2043,9 +2049,11 @@ function statistics() { const s = summary(data); $('#main').innerHTML = title('�
 function drawTrend(days: number) { const rows = trend(data, days), max = Math.max(1, ...rows.map(r => r.attempts)); $('#trend').innerHTML = `<div class="chart" aria-label="每日作答次数">${rows.map(r => `<div class="bar-col"><span>${r.attempts || ''}</span><div class="bar${r.attempts ? '' : ' is-zero'}" style="height:${r.attempts ? Math.max(6, r.attempts / max * 120) : 0}px" title="${r.date}：${r.attempts}次"></div><small>${r.date.slice(5)}</small></div>`).join('')}</div><div class="table-scroll"><table><thead><tr><th>日期</th><th>作答</th><th>正确率</th><th>平均用时</th><th>变熟练的次数</th><th>该复习时答错</th></tr></thead><tbody>${rows.filter(r => r.attempts).map(r => `<tr><td>${r.date}</td><td>${r.attempts}</td><td>${pct(r.accuracy)}</td><td>${seconds(r.meanMs)}</td><td>${r.gained}</td><td>${r.forgotten}</td></tr>`).join('') || '<tr><td colspan="6">这段时间还没有记录</td></tr>'}</tbody></table></div>`; }
 function aiPage() {
     const configured = !!(data.settings.endpoint && data.settings.model && data.settings.key);
-    $('#main').innerHTML = title('可选', '让 AI 看看你的记录', 'AI 分析可以不用；不联网也能正常学习和复习。') + `<section class="panel ai-intro"><div class="ai-mark">✦</div><h2>让 AI 看看你的记录</h2><p>只会发汇总数字、最近 30 天的趋势，以及最多 60 个薄弱词和常混的词。不会发整本词书，也不会发每一道题。</p><p class="hint">报告只是建议，不会自动改你的设置。调用你自己的 API，费用由服务商按规则收取。</p><div class="actions"><button id="analyze" class="primary" ${analysisBusy ? 'disabled' : ''}>${analysisBusy ? '正在分析…' : '生成分析报告'}</button><button id="payload" class="secondary">查看将发送的数据</button><button id="ai-config" class="text-button">${configured ? '修改 API 配置' : '先配置 API'}</button></div></section><div id="reports">${[...data.analyses].sort((a, b) => b.at - a.at).map(a => `<section class="panel report"><div class="section-title"><h2>${date(a.at)}</h2><span>${esc(a.model)} · ${a.sampleSize} 次作答</span></div><div class="report-text">${esc(a.text)}</div></section>`).join('') || '<div class="empty-note">还没有报告。先练一轮，再让 AI 看。</div>'}</div>`;
+    $('#main').innerHTML = title('可选', '让 AI 看看你的记录', 'AI 分析可以不用；不联网也能正常学习和复习。') + `<section class="panel ai-intro"><div class="eyebrow">可选 · 外部服务</div><h2>给 AI 的学习记录</h2><p>只会发汇总数字、最近 30 天的趋势，以及最多 60 个薄弱词和常混的词。不会发整本词书，也不会发每一道题。</p><p class="hint">报告只是建议，不会自动改你的设置。调用你自己的 API，费用由服务商按规则收取。</p><div class="actions"><button id="analyze" class="primary" ${analysisBusy ? 'disabled' : ''}>${analysisBusy ? '正在分析…' : '生成分析报告'}</button><button id="payload" class="secondary">查看将发送的数据</button><button id="ai-config" class="text-button">${configured ? '修改 API 配置' : '先配置 API'}</button></div></section><div id="reports">${[...data.analyses].sort((a, b) => b.at - a.at).map(a => `<section class="panel report"><div class="section-title"><h2>${date(a.at)}</h2><span>${esc(a.model)} · ${a.sampleSize} 次作答</span></div><div class="report-text">${esc(a.text)}</div></section>`).join('') || '<div class="empty-note">还没有报告。先练一轮，再让 AI 看。</div>'}</div>`;
     on('#ai-config', 'click', () => setPage('settings'));
-    on('#payload', 'click', () => modal(`<h2>将发送的数据</h2><pre>${esc(JSON.stringify(analysisPayload(data), null, 2))}</pre>`));
+    on('#payload', 'click', () => {
+        modal(`<h2>将发送的数据</h2><p>这是本次分析会用到的内容。关闭预览即可返回。</p><pre>${esc(JSON.stringify(analysisPayload(data), null, 2))}</pre>`);
+    });
     on('#analyze', 'click', async () => {
         if (analysisBusy)
             return;
@@ -2624,9 +2632,11 @@ async function completePlanTask(exec: {
         }
         catch { /* 隐私模式忽略 */ }
     }
-    if (savedPlan && trainingFlow) {
-        enterPage('home');
+    if (savedPlan && (trainingFlow || page === 'home')) {
+        if (page !== 'home') enterPage('home');
         render();
+        const row = Array.from(document.querySelectorAll<HTMLElement>('.plan-task.done[data-task]')).find(el => el.dataset.task === exec.planTaskId);
+        inkMotion.beat(row ?? null, 'right');
     }
     return !!savedPlan;
 }
@@ -4722,6 +4732,9 @@ function examPageApp(): void {
         examSessionId = '';
         examTab = b.dataset.examTab as typeof examTab;
         render();
+        const selected = document.querySelector<HTMLElement>('[data-exam-tab][aria-pressed="true"]');
+        selected?.focus({ preventScroll: true });
+        inkMotion.beat(selected, 'select');
     });
     on('#exam-exit', 'click', async () => {
         const cur = currentExam();
@@ -4805,6 +4818,7 @@ function examPageApp(): void {
             document.querySelectorAll<HTMLElement>('.exam-option').forEach(row => {
                 const own = row.querySelector<HTMLInputElement>('input[type="radio"]');
                 row.classList.toggle('selected', !!own?.checked);
+                if (own?.checked) inkMotion.beat(row, 'select');
             });
         });
     });

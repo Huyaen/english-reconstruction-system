@@ -38,6 +38,7 @@
 .ink-masthead button[aria-current=page] { border-bottom: 2px solid currentColor; }
 .ink-more { position: relative; }
 .ink-more summary { cursor: pointer; }
+.ink-more summary.is-current { text-decoration: underline; text-underline-offset: .42em; }
 .ink-more nav {
     position: absolute;
     right: 0;

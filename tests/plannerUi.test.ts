@@ -42,7 +42,7 @@ async function answerQuestions(w: JSDOM['window'], max: number) {
     for (let i = 0; i < max; i++) {
         if (w.document.querySelector('#back-home'))
             return;
-        await until(w, () => !!w.document.querySelector('.answers') || !!w.document.querySelector('#back-home'), 'question or results');
+        await until(w, () => !!w.document.querySelector('.answers[aria-busy="false"]') || !!w.document.querySelector('#back-home'), 'question ready or results');
         if (w.document.querySelector('#back-home'))
             return;
         const prompt = w.document.querySelector('#question-text')!.textContent!;
@@ -51,7 +51,7 @@ async function answerQuestions(w: JSDOM['window'], max: number) {
         const btn = [...w.document.querySelectorAll<HTMLButtonElement>('.answer')].find(b => b.querySelector('span')!.textContent === target);
         assert.ok(btn, '找不到正确选项：' + target);
         btn.click();
-        await new Promise(r => setTimeout(r, 60));
+        await until(w, () => !btn.isConnected || !!w.document.querySelector('#back-home'), 'answer saved and next question');
     }
 }
 async function plans() {

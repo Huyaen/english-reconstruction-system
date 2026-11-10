@@ -66,7 +66,8 @@ test('real application DOM import, double-start protection, keyboard and reload 
         click(w, '[data-nav="books"]');
         await new Promise(r => setTimeout(r, 100));
         assert.ok(w.document.querySelector('.quiz-top'), 'navigation must not replace DOM during answer commit');
-        assert.match(w.document.querySelector('header')!.textContent!, /专注训练/);
+        assert.equal(w.document.documentElement.dataset.page, 'quiz');
+        assert.equal(w.document.querySelectorAll('#main h1#question-text').length, 1, 'saving leaves a single quiz stimulus');
         await new Promise(r => setTimeout(r, 80));
         w.document.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: ' ', bubbles: true }));
         await until(() => !!w.document.querySelector('#next'));

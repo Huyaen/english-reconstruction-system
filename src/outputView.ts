@@ -179,11 +179,12 @@ export function outputSessionPage(input: SessionInput): string {
     </div>`;
 }
 function feedbackBlock(fb: OutputFeedback, a: OutputAttempt): string {
+    const assessed = fb.meaningAssessment !== 'unavailable';
     const issue = (s: typeof fb.priorityIssues[number]) => `<li><b>${esc(ERROR_LABELS[s.type])}</b>：${esc(s.explanation)}<br><span class="ink-writing-comparison"><q lang="en">${esc(s.original)}</q><span aria-hidden="true">→</span><span>${esc(s.proposed || '（自己重写）')}</span></span></li>`;
     return `<section class="panel" id="out-feedback-result">
       <div class="section-title"><h2>反馈</h2><span class="subtle">${esc(fb.sourceProvenance)} · ${esc(fb.promptVersion)}</span></div>
-      <div class="feedback-row"><span class="pill">意思</span><b>${meaningLabel(fb.meaningAssessment)}</b><small class="muted">依据 ${esc(fb.meaningBasis)} · 置信 ${Math.round(fb.meaningConfidence * 100)}%</small></div>
-      ${fb.noCorrectionNeeded ? '<p class="ok-line">不用大改：这句已经能读了。</p>' : `<div class="feedback-row"><span class="pill warn">主要问题</span><ul>${fb.priorityIssues.map(issue).join('') || '<li>没有影响理解的主要问题。</li>'}</ul></div>`}
+      <div class="feedback-row"><span class="pill">意思</span><b>${meaningLabel(fb.meaningAssessment)}</b><small class="muted">${assessed ? `依据 ${esc(fb.meaningBasis)} · 置信 ${Math.round(fb.meaningConfidence * 100)}%` : '未获得可用的意思判断'}</small></div>
+      ${fb.noCorrectionNeeded ? (assessed ? '<p class="ok-line">不用大改：这句已经能读了。</p>' : '') : `<div class="feedback-row"><span class="pill warn">主要问题</span><ul>${fb.priorityIssues.map(issue).join('') || '<li>没有影响理解的主要问题。</li>'}</ul></div>`}
       <div class="feedback-row"><span class="pill">What worked</span><ul>${fb.strengths.map(s => `<li>${esc(s)}</li>`).join('')}</ul></div>
       ${fb.upgrade ? `<div class="feedback-row"><span class="pill">Suggested revision</span><p>${esc(fb.upgrade.original)}<br>→ ${esc(fb.upgrade.suggested)}</p><p class="muted">${esc(fb.upgrade.why)}</p><small class="muted">${esc(fb.upgrade.changes.join(' · '))}</small></div>` : ''}
       <div class="feedback-row"><span class="pill">Next practice</span><p>${esc(fb.nextPractice)}</p></div>

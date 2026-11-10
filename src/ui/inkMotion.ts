@@ -90,9 +90,9 @@ class InkMotion {
   }
 
   beat(host: HTMLElement | null, kind: Beat, reverse = false, keyboard = false) {
-    if (!host || this.reduced?.matches || document.hidden || typeof host.animate !== 'function') return;
+    if (!host || this.reduced?.matches || host.ownerDocument.hidden || typeof host.animate !== 'function') return;
     this.animations.get(host)?.cancel();
-    const layer = document.createElement('i');
+    const layer = host.ownerDocument.createElement('i');
     layer.className = 'ink-beat ink-beat-' + kind;
     layer.setAttribute('aria-hidden', 'true');
     host.classList.add('ink-anchor');
@@ -235,7 +235,24 @@ class InkMotion {
         const dt = Math.min(32, now - last), left = rail.scrollLeft;
         last = now; rail.scrollLeft += velocity * dt;
         velocity *= Math.exp(-dt / 125);
-        if (Math.abs(velocity) > .025 && Math.abs(rail.scrollLeft - left) > .1) raf = requestAnimationFrame(step);
+        if (Math.abs(velocity) > .025 && Math.abs(rail.scrollLeft - left) > .1) {
+          raf = requestAnimationFrame(step);
+          return;
+        }
+        const buttons = items();
+        if (!buttons.length) return;
+        const initial = rail.scrollLeft, limit = rail.scrollWidth - rail.clientWidth;
+        const positions = buttons.map(button => Math.min(limit, button.offsetLeft - buttons[0].offsetLeft));
+        const nearest = positions.reduce((best, x) => Math.abs(x - initial) < Math.abs(best - initial) ? x : best, initial > limit / 2 ? limit : 0);
+        if (Math.abs(nearest - initial) < 2) return;
+        const snap = (time: number) => {
+          raf = 0;
+          if (document.hidden || !rail.isConnected || !this.expressive) return;
+          const t = Math.min(1, (time - now) / 210);
+          rail.scrollLeft = initial + (nearest - initial) * (1 - (1 - t) ** 3);
+          if (t < 1) raf = requestAnimationFrame(snap);
+        };
+        raf = requestAnimationFrame(snap);
       };
       raf = requestAnimationFrame(step);
     };
