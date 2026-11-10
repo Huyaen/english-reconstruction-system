@@ -1,327 +1,75 @@
-/* ============================================================================
-   Phase 15h · 词汇训练（Preview → Recall → Feedback → Results）
-   等级 B：单词是唯一视觉中心；按压有物理反馈；判分与保存不得被动画延迟。
-   范围：[data-page="quiz" | "preview" | "preview-done" | "results"]
-   ========================================================================== */
-
-/* ── 训练框架：窄栏、居中、上下留白随视口 ───────────────────────────────── */
-:is([data-page="quiz"], [data-page="preview"], [data-page="preview-done"], [data-page="results"]) #main {
-  --quiz-measure: 780px;
-  padding-top: clamp(20px, 3vw, 40px);
+/* The word is the anchor. The surface folds behind stable, immediately available controls. */
+:is([data-page=preview], [data-page=quiz]) #main { max-width: 1120px; }
+:is([data-page=preview], [data-page=quiz]) .quiz-top {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 10px;
+    align-items: center;
+    min-height: 54px;
+    margin: 0 0 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 14px;
 }
-:is([data-page="quiz"], [data-page="preview"]) #main > * { max-width: var(--quiz-measure); margin-inline: auto; }
-
-/* 顶部：退出 / 计数 / 暂停 —— 元信息，不与题目争注意力 */
-:is([data-page="quiz"], [data-page="preview"]) .quiz-top {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: var(--s-3);
-  margin-bottom: var(--s-4);
-  font-size: var(--t-xs);
-  color: var(--ink-muted);
-  font-variant-numeric: tabular-nums;
+.quiz-top > :first-child { justify-self: start; }
+.quiz-top > :last-child { justify-self: end; }
+[data-page=preview] .quiz-top { margin-bottom: 14px; }
+.quiz-progress { height: 4px; margin: 0; background: transparent; border-radius: 0; overflow: visible; }
+.quiz-progress > i { background: var(--accent); border-radius: 0; }
+:is([data-page=preview], [data-page=quiz]) .quiz-card {
+    padding: 12px 0 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    min-height: 0;
+    isolation: isolate;
+    max-width: none;
+    margin-inline: 0;
+    text-align: start;
 }
-:is([data-page="quiz"], [data-page="preview"]) .quiz-top > span {
-  letter-spacing: 0.1em;
-  color: var(--ink-faint);
+.quiz-card .eyebrow { font-size: 14px; margin: 0 0 12px; color: var(--ink-muted); }
+.ink-wordline { border-bottom: 2px solid var(--accent); width: fit-content; max-width: 100%; margin: 0 0 14px; }
+:is([data-page=preview], [data-page=quiz]) .question {
+    min-height: 0;
+    font: 400 clamp(38px, 7vw, 88px)/1.13 Georgia, "Songti SC", serif;
+    letter-spacing: -.025em;
+    text-align: start;
+    overflow-wrap: anywhere;
+    margin: 0;
 }
-:is([data-page="quiz"], [data-page="preview"]) .quiz-top > :last-child { justify-self: end; }
-
-/* 进度：一条细线，光从左边推进；不做百分比大字 */
-[data-page="quiz"] .quiz-progress {
-  height: 2px;
-  margin: 0 0 var(--s-5);
-  background: var(--line);
-  border-radius: var(--r-pill);
-  overflow: hidden;
+:is([data-page=preview], [data-page=quiz]) .question:not([lang=en]) { font-family: var(--font-display); font-size: clamp(32px, 5vw, 64px); }
+:is([data-page=preview], [data-page=quiz]) .question[data-ink-long] { font-size: clamp(34px, 5vw, 64px); }
+[data-page=preview] .quiz-card h3 { font-size: 23px; font-weight: 500; margin-block: 15px; }
+.preview-card blockquote { margin: 12px 0; padding: 0 0 0 12px; border-inline-start: 1px solid var(--line-strong); font: 20px/1.55 Georgia, serif; }
+:is([data-page=preview], [data-page=quiz]) .answers { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; margin-block: 16px; }
+[data-page=preview] .answers { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+:is([data-page=preview], [data-page=quiz]) .answer {
+    min-height: 60px;
+    width: 100%;
+    border: 0;
+    border-block: 1px solid var(--line);
+    border-block-end: 0;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    display: flex;
+    gap: 14px;
+    align-items: baseline;
+    padding: 13px 12px;
+    text-align: start;
+    font-size: clamp(16px, 1.5vw, 21px);
+    overflow-wrap: anywhere;
 }
-[data-page="quiz"] .quiz-progress > i {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, var(--metal-lo), var(--metal-hi));
-  transition: width var(--dur-3) var(--ease-out);
-}
-
-/* ── 题面卡片：玻璃 + 单一主光，无呼吸干扰 ───────────────────────────────── */
-:is([data-page="quiz"], [data-page="preview"]) .quiz-card {
-  position: relative;
-  padding: clamp(26px, 4vw, 52px);
-  border-radius: var(--r-2xl);
-  border: 1px solid var(--line);
-  background:
-    radial-gradient(90% 70% at 50% -22%, var(--mat-glass-t1), transparent 62%),
-    linear-gradient(180deg, var(--surface-raised), color-mix(in srgb, var(--surface) 90%, var(--canvas)));
-  box-shadow:
-    inset 0 1px 0 var(--edge),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.02),
-    0 1px 0 rgba(0, 0, 0, 0.24),
-    0 40px 80px -60px rgba(0, 0, 0, 0.9);
-  isolation: isolate;
-}
-:is([data-page="quiz"], [data-page="preview"]) .quiz-card .eyebrow {
-  text-align: center;
-  font-size: var(--t-2xs);
-  letter-spacing: 0.22em;
-  color: var(--ink-faint);
-  margin-bottom: var(--s-4);
-}
-
-/* 词：全站最大的字，也是唯一的高对比区域 */
-:is([data-page="quiz"], [data-page="preview"]) .question {
-  font-family: var(--font-display);
-  font-size: clamp(38px, 5.4vw, 62px);
-  line-height: 1.06;
-  letter-spacing: -0.03em;
-  font-weight: 600;
-  text-align: center;
-  color: var(--ink);
-  margin: 0 0 var(--s-3);
-  text-wrap: balance;
-  overflow-wrap: anywhere;
-}
-:is([data-page="quiz"], [data-page="preview"]) .quiz-card > .subtle,
-:is([data-page="quiz"], [data-page="preview"]) .quiz-card > p.subtle {
-  text-align: center;
-  font-size: var(--t-sm);
-  color: var(--ink-muted);
-  margin: 0 0 var(--s-6);
-  letter-spacing: 0.02em;
-}
-
-/* Preview 的释义区：仅次于词的第二层 */
-[data-page="preview"] .quiz-card h3 {
-  text-align: center;
-  font-size: clamp(20px, 2.2vw, 26px);
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  color: var(--ink-soft);
-  margin: 0 0 var(--s-4);
-}
-[data-page="preview"] .quiz-card > p { text-align: center; color: var(--ink-muted); font-size: var(--t-sm); margin: 0 0 var(--s-2); }
-[data-page="preview"] .quiz-card blockquote {
-  margin: var(--s-5) 0 0;
-  padding: var(--s-4) var(--s-5);
-  border-left: 1px solid var(--line-strong);
-  border-radius: 0 var(--r-sm) var(--r-sm) 0;
-  background: var(--mat-matte-wash);
-  font-family: var(--font-reading);
-  font-size: var(--t-lg);
-  line-height: 1.6;
-  color: var(--ink-soft);
-}
-
-/* ── 选项：四个物理键位，不是四个网页按钮 ───────────────────────────────── */
-:is([data-page="quiz"], [data-page="preview"]) .answers {
-  display: grid;
-  gap: var(--s-2);
-  margin-top: var(--s-6);
-}
-[data-page="preview"] .preview-actions { grid-template-columns: repeat(4, 1fr); }
-
-:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--s-4);
-  width: 100%;
-  min-height: 62px;
-  padding: 0 var(--s-5);
-  border-radius: var(--r-md);
-  border: 1px solid var(--line);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 62%),
-    var(--surface);
-  color: var(--ink);
-  font-size: var(--t-md);
-  font-weight: 450;
-  text-align: left;
-  box-shadow: var(--contact-light);
-  transition:
-    transform var(--dur-1) var(--ease-std),
-    box-shadow var(--dur-1) var(--ease-std),
-    border-color var(--dur-2) linear,
-    background-color var(--dur-2) linear,
-    filter var(--dur-1) linear;
-}
-:is([data-theme="dark"][data-level][data-page="quiz"], [data-theme="dark"][data-level][data-page="preview"]) .answer { box-shadow: var(--contact); }
-
-:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer kbd {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  flex: 0 0 26px;
-  border-radius: 7px;
-  border: 1px solid var(--line-strong);
-  background: var(--surface-sunken);
-  color: var(--ink-faint);
-  font-family: var(--font-num);
-  font-size: var(--t-xs);
-  font-variant-numeric: tabular-nums;
-  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.25);
-}
-:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer:hover:not(:disabled) {
-  border-color: var(--line-strong);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.075), transparent 62%),
-    var(--surface-raised);
-  transform: translateY(-1px);
-}
-:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer:hover:not(:disabled) kbd {
-  color: var(--ink-soft);
-  border-color: var(--metal-mid);
-}
-:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer:active:not(:disabled),
-:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer.is-pressed:not(:disabled) {
-  transform: translateY(1px);
-  filter: brightness(0.96);
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
-}
-/* 判分后：选中的键位下沉，未选中的退后 */
-:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer.is-correct {
-  border-color: color-mix(in srgb, var(--ok) 62%, transparent);
-  background: linear-gradient(90deg, var(--ok-wash), transparent 62%), var(--surface-raised);
-}
-:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer.is-correct::after {
-  content: "✓";
-  margin-left: auto;
-  color: var(--ok);
-  font-size: var(--t-md);
-}
-:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer.is-wrong {
-  border-color: color-mix(in srgb, var(--danger) 60%, transparent);
-  background: linear-gradient(90deg, var(--danger-wash), transparent 62%), var(--surface-raised);
-}
-:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer.is-wrong::after {
-  content: "✕";
-  margin-left: auto;
-  color: var(--danger);
-  font-size: var(--t-md);
-}
-:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer:disabled { opacity: 0.5; cursor: default; }
-:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer.is-correct:disabled,
-:is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer.is-wrong:disabled { opacity: 1; }
-
-/* 「不知道」：明确的第三条路，比选项更轻 */
-[data-level][data-page="quiz"] .unknown {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--s-2);
-  width: 100%;
-  min-height: 42px;
-  margin-top: var(--s-3);
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--r-md);
-  background: transparent;
-  color: var(--ink-muted);
-  font-size: var(--t-sm);
-  box-shadow: none;
-}
-[data-level][data-page="quiz"] .unknown:hover { color: var(--ink); border-color: var(--ink-faint); }
-[data-level][data-page="quiz"] .unknown kbd {
-  padding: 1px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--line-strong);
-  font-size: var(--t-2xs);
-  color: var(--ink-faint);
-}
-
-/* ── 判分反馈：一道左侧实心条 + 明确措辞，不只靠颜色 ────────────────────── */
-:is([data-page="quiz"], [data-page="preview"]) #feedback,
-:is([data-page="quiz"], [data-page="preview"]) .answer-feedback {
-  margin-top: var(--s-4);
-  padding-left: var(--s-4);
-  border-left: 1px solid var(--line-strong);
-  color: var(--ink-soft);
-  font-size: var(--t-sm);
-  line-height: 1.6;
-  min-height: 0;
-}
-:is([data-page="quiz"], [data-page="preview"]) #feedback:not(:empty) { min-height: 46px; padding-block: 6px; }
-:is([data-page="quiz"], [data-page="preview"]) #feedback .ok,
-:is([data-page="quiz"], [data-page="preview"]) .answer-feedback.ok { border-left-color: var(--ok); }
-:is([data-page="quiz"], [data-page="preview"]) #feedback .bad,
-:is([data-page="quiz"], [data-page="preview"]) .answer-feedback.bad { border-left-color: var(--danger); }
-:is([data-page="quiz"], [data-page="preview"]) #feedback strong { color: var(--ink); }
-:is([data-page="quiz"], [data-page="preview"]) #feedback .answer-feedback {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s-4);
-  margin: 0;
-  padding-left: var(--s-4);
-  border-left: 1px solid var(--line-strong);
-}
-:is([data-page="quiz"], [data-page="preview"]) #feedback .answer-feedback.bad { border-left-color: var(--danger); }
-:is([data-page="quiz"], [data-page="preview"]) #feedback .feedback-copy {
-  display: grid;
-  gap: 2px;
-}
-:is([data-page="quiz"], [data-page="preview"]) #feedback .feedback-copy strong { font-size: var(--t-md); }
-:is([data-page="quiz"], [data-page="preview"]) #feedback .feedback-copy span { color: var(--ink-muted); font-size: var(--t-xs); }
-
-/* 暂停：遮住题面而不是清空它 —— 恢复后位置不变 */
-[data-page="quiz"] #pause-cover {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: var(--s-3);
-  padding: var(--s-6);
-  border-radius: inherit;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  text-align: center;
-}
-[data-page="quiz"] #pause-cover[hidden] { display: none; }
-[data-page="quiz"] #pause-cover h2 { margin: 0; font-size: var(--t-xl); }
-[data-page="quiz"] #pause-cover p { margin: 0; color: var(--ink-muted); font-size: var(--t-sm); }
-
-/* 键盘提示：安静的一行 */
-:is([data-page="quiz"], [data-page="preview"]) .quiz-hint {
-  margin-top: var(--s-4);
-  text-align: center;
-  font-size: var(--t-2xs);
-  letter-spacing: 0.04em;
-  color: var(--ink-faint);
-}
-
-/* ── 结果页：数据在前，行动在后 ─────────────────────────────────────────── */
-[data-page="results"] #main { max-width: 1080px; margin-inline: auto; }
-[data-page="results"] .metrics { margin-bottom: var(--s-6); }
-[data-page="results"] .actions { margin-top: 0; margin-bottom: var(--s-6); }
-[data-page="results"] .panel summary {
-  cursor: pointer;
-  color: var(--ink-soft);
-  font-size: var(--t-sm);
-  list-style: none;
-}
-[data-page="results"] .panel summary::-webkit-details-marker { display: none; }
-[data-page="results"] .panel summary::before {
-  content: "▸";
-  display: inline-block;
-  margin-right: 8px;
-  color: var(--ink-faint);
-  transition: transform var(--dur-2) var(--ease-out);
-}
-[data-page="results"] .panel[open] summary::before { transform: rotate(90deg); }
-
-/* Preview 完成页：一个明确的下一步，不堆数据 */
-[data-page="cloze"] .cloze-sentence {
-  font-size: var(--t-lg);
-  line-height: 1.8;
-  color: var(--ink);
-  text-align: left;
-  overflow-wrap: anywhere;
-}
-[data-page="preview-done"] #main { max-width: 760px; margin-inline: auto; }
-[data-page="preview-done"] .actions { margin-top: var(--s-5); }
-
-@media (max-width: 900px) {
-  [data-page="preview"] .preview-actions { grid-template-columns: repeat(2, 1fr); }
-  :is([data-page="quiz"], [data-page="preview"]) .quiz-card { padding: 22px 18px; border-radius: var(--r-xl); }
-  :is([data-page="quiz"], [data-page="preview"]) .question { font-size: clamp(30px, 8vw, 40px); }
-  :is([data-level][data-page="quiz"], [data-level][data-page="preview"]) .answer { min-height: 54px; padding: 0 14px; }
+:is([data-page=preview], [data-page=quiz]) .answers { border-bottom: 1px solid var(--line); }
+:is([data-page=preview], [data-page=quiz]) .answer:hover:not(:disabled) { background: var(--accent-wash); }
+[data-page=quiz] .answer.is-correct { opacity: 1; background: var(--ok-wash); color: var(--ok); border-inline-start: 3px solid var(--ok); }
+[data-page=quiz] .answer.is-wrong { opacity: 1; background: var(--danger-wash); color: var(--danger); border-inline-start: 3px solid var(--danger); }
+[data-page=quiz] .answer:disabled:not(.is-correct,.is-wrong) { opacity: .7; }
+.answer kbd { font: 14px Georgia, serif; color: var(--ink-muted); min-width: 20px; }
+.answer span { min-width: 0; }
+#feedback, #preview-save-status { color: var(--ink-muted); min-height: 1.55em; font-size: 14px; }
+#feedback .answer-feedback { border-radius: 0; box-shadow: none; padding: 12px 0; border: 0; border-top: 1px solid var(--line); }
+@media (max-width: 600px) {
+    [data-page=preview] .answers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .quiz-top button { min-height: 44px; }
 }

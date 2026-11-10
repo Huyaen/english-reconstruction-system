@@ -12,29 +12,21 @@ import { AutoBackup, type BackupState } from './autoBackup.ts';
 import { backupPanel, bindBackupPanel, updateBackupPanel } from './autoBackupView.ts';
 import { readLocalMeta, writeLocalMeta, onStudySaved } from './db.ts';
 import './tokens.css';
-import { applyPageChrome, applyPageScope, disposePageChrome, installPressFeedback } from './ui/motion.ts';
+import { applyPageScope, installPressFeedback } from './ui/motion.ts';
+import { inkMotion } from './ui/inkMotion.ts';
 import './style.css';
-import './proto15c.css';
-import './proto15c-v2.css';
-import './proto15c-b3.css';
-import './proto15c-b4.css';
 import './reading15c.css';
 import './reading15c-v2.css';
-import './reading15d.css';
-import './cinematic15d.css';
 import './ui/system.css';
 import './ui/pages/quiz.css';
+import './ui/pages/ink-core.css';
 import './ui/pages/mgmt.css';
 import './ui/pages/reading.css';
 import './ui/pages/sentence-grammar.css';
 import './ui/pages/io.css';
 import './ui/pages/data.css';
-import { protoTodayHTML, protoTodayD, protoTaskViews, type ProtoContext, type ProtoId, type ProtoTaskInput } from './protoToday';
-import { startLiving, stopLiving, livingAllowed } from './living';
 import type { Data, Word, StudySession, Settings, ReviewRecord, Mastery, DailyPlan, PlanItem, EnergyState, GrammarConcept, SentenceRecord, SentenceStepRecord, SentenceAttempt, SentenceEvidenceClass, GrammarCategory, SentenceSourceType } from './types.ts';
 import { testHooksEnabled, pwaEnabled } from './testMode.ts';
-import { afterRender } from './motion.ts';
-import { morphNavigate, morphBusy } from './morph15d.ts';
 // —— Phase 5：阅读 ——
 import type { Passage, ReadingSession, ReadingToken, ReadingMark, ReadingDifficultyReport, WordExposure, DifficultSentence, ReadingProblemType } from './types.ts';
 import { parsePassageText, sentenceAtSpan, tokenizeSentence, countWords } from './readingText.ts';
@@ -247,7 +239,7 @@ let labReturn: (LabReturnTarget & {
 const navs = [['home', '◫', '今天'], ['books', '▤', '词库'], ['weak', '◎', '薄弱词'], ['sentence', '❝', '句子'], ['reading', '❖', '阅读'], ['input', '▶', '输入练习'], ['output', '✎︎', '写作练习'], ['grammar', '◈', '语法'], ['unit', '◐', '单元'], ['diagnostics', '◮', '学习报告'], ['exam', '⌘', '考试'], ['stats', '▥', '统计'], ['ai', '✧︎', 'AI 建议'], ['settings', '⚙︎', '设置']];
 function reindex() { wordMap = new Map(data.words.map(w => [w.id, w])); const locale = data.settings.pronunciationLocale ?? 'en-US'; if (pronunciation.locale !== locale) pronunciation.setLocale(locale); }
 function setPage(p: string) {
-    if ((page === 'quiz' && busy) || startingSession) {
+    if ((page === 'quiz' && busy) || (page === 'preview' && previewSaving) || startingSession) {
         toast('正在保存训练，请稍后切换');
         return;
     }
@@ -259,7 +251,6 @@ function setPage(p: string) {
     }
     enterPage(p);
     listPage = 0;
-    vtPending = true;
     render();
 }
 /**
@@ -273,6 +264,7 @@ function enterPage(next: string): number {
     stopPronunciation();
     page = next;
     pageEpoch += 1;
+    inkMotion.reset();
     applyPageScope(next);
     return pageEpoch;
 }
@@ -285,77 +277,44 @@ function stopTimer() {
 }
 function shell() {
     document.documentElement.dataset.theme = data.settings.theme;
-    const nav = navs.map(([id, icon, name]) => `<button data-nav="${id}" class="${page === id ? 'active' : ''}"${page === id ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${name}</button>`).join('');
+    const nav = (ids: string[]) => ids.map(id => {
+        const [, , name] = navs.find(n => n[0] === id)!;
+        return `<button type="button" data-nav="${id}"${page === id ? ' aria-current="page"' : ''}>${name}</button>`;
+    }).join('');
+    const primary = ['home', 'books', 'reading', 'output', 'diagnostics'];
+    const more = navs.map(n => n[0]).filter(id => !primary.includes(id));
     $('#app').innerHTML = `<a class="skip-link" href="#main">跳到主要内容</a>
 <div class="app-shell">
-  <aside>
-    <a class="brand" href="#"><span class="brand-icon" aria-hidden="true">词</span><span>词间<small>把词留在记忆里</small></span></a>
-    <nav aria-label="主导航">${nav}</nav>
-    <div class="aside-foot"><span class="local-dot" aria-hidden="true"></span>本地学习空间<small>每次作答自动保存</small></div>
-  </aside>
+  <header class="ink-masthead">
+    <a class="brand" href="#">词间 <small>REHEARSAL</small></a>
+    <nav aria-label="主导航">${nav(primary)}</nav>
+    <details class="ink-more"><summary>更多</summary><nav aria-label="其他学习入口">${nav(more)}</nav></details>
+    <button id="theme" class="text-button" aria-label="切换深浅色">${data.settings.theme === 'light' ? '深色' : '浅色'}</button>
+  </header>
   <div class="workspace">
-    <header><span>${navs.find(n => n[0] === page)?.[2] || '专注训练'}</span><div class="topbar-meta"><span class="date-label">${(() => { const d = new Date(); return `${d.getMonth() + 1} 月 ${d.getDate()} 日 · ${d.toLocaleDateString('zh-CN', { weekday: 'long' })}`; })()}</span><button id="theme" class="icon-button" aria-label="切换深浅色">${data.settings.theme === 'light' ? '☾' : '☀'}</button></div></header>
     <main id="main" tabindex="-1"></main>
   </div>
 </div>`;
-    document.querySelectorAll<HTMLElement>('[data-nav]').forEach(b => b.onclick = () => setPage(b.dataset.nav!));
+    document.querySelectorAll<HTMLElement>('[data-nav]').forEach(b => b.onclick = () => { setPage(b.dataset.nav!); $('#main').focus({ preventScroll: true }); });
+    on('.ink-more', 'keydown', e => { if ((e as KeyboardEvent).key === 'Escape') { const more = $<HTMLDetailsElement>('.ink-more'); more.open = false; more.querySelector('summary')?.focus(); } });
     on('.brand', 'click', e => { e.preventDefault(); setPage('home'); });
-    on('#theme', 'click', async () => { const s = { ...data.settings, theme: data.settings.theme === 'light' ? 'dark' : 'light' } as Settings; await saveSettings(s); data.settings = s; document.documentElement.dataset.theme = s.theme; $('#theme').textContent = s.theme === 'light' ? '☾' : '☀'; });
+    on('#theme', 'click', async () => { const s = { ...data.settings, theme: data.settings.theme === 'light' ? 'dark' : 'light' } as Settings; await saveSettings(s); data.settings = s; document.documentElement.dataset.theme = s.theme; $('#theme').textContent = s.theme === 'light' ? '深色' : '浅色'; inkMotion.mount($('#main')); });
 }
 let lastRenderKey = '';
-let vtPending = false;
-/** Phase 15c 原型开关：?proto=a|b。没有参数时保持 15b 界面（测试与冒烟依赖默认路径）。 */
-const PROTO: ProtoId | null = (() => {
-    try {
-        const v = new URLSearchParams(location.search).get('proto');
-        // Phase 15h：电影感界面成为默认路径；?proto=legacy 保留 15b 旧界面作为回退。
-        if (v === 'legacy' || v === 'off' || v === 'a' || v === 'b')
-            return null;
-        if (v === 'd')
-            return 'd';
-        return 'd';
-    }
-    catch {
-        return 'd';
-    }
-})();
-function applyProtoAttr(): void {
-    try {
-        const el = document.documentElement;
-        if (PROTO)
-            el.dataset.proto = PROTO;
-        else
-            delete el.dataset.proto;
-    }
-    catch {
-        /* 非浏览器实现忽略 */
-    }
-}
 function renderKey(): string { return page === 'reading' ? `${page}:${readView}` : page; }
-/** 页面过渡只在页面/子视图真的切换时发生；同一视图重绘保持滚动位置。 */
-function render(): void {
-    vtPending = false;
-    paint();
-}
+function render(): void { paint(); }
 function paint(): void {
     // 后台任务刷新不能替换正在输入/反馈中的拼写页及其 DOM 容器。
     if (page === 'spelling' && spellingPractice) return;
     if (page === 'cloze' && clozePractice) return;
     const prev = lastRenderKey;
     const y = window.scrollY;
-    disposePageChrome();
-    applyProtoAttr();
+    inkMotion.reset();
     shell();
     if (page === 'home') todayPlan = data.dailyPlans.filter(p => p.date === dayKey(Date.now()))
         .sort((a, b) => (b.revision ?? 0) - (a.revision ?? 0) || b.createdAt - a.createdAt)[0] ?? null;
     ({ cloze: () => clozePractice?.render(), spelling: () => spellingPractice?.render(), home: home, books: () => library(false), weak: () => library(true), stats: statistics, ai: aiPage, settings: settingsPage, preview: previewPage, sentence: sentencePage, reading: readingPage, grammar: grammarPage, lab: labPage, unit: unitPageApp, input: inputPageApp, output: outputPageApp, diagnostics: diagnosticsPageApp, exam: examPageApp }[page] || home)();
     if (page === 'home') { $('#main').insertAdjacentHTML('afterbegin', catchupPanelHTML()); bindCatchup(); }
-    // 原型路径：有些会话页要先异步取数据，第一帧会是空的；用一块安静的占位代替黑屏。
-    if (PROTO && page !== 'home') {
-        const m = document.querySelector<HTMLElement>('#main');
-        if (m && !m.textContent?.trim())
-            m.innerHTML = `<div class="d-loading" role="status" aria-live="polite"><i class="d-loading-mark"></i><p>正在准备这一项…</p></div>`;
-    }
     bindAI();
     lastRenderKey = renderKey();
     try {
@@ -366,15 +325,7 @@ function paint(): void {
     catch {
         /* 非浏览器实现（测试环境）忽略 */
     }
-    applyPageChrome(page);
-    afterRender();
-    // 页面切换的运动：只在这一帧之后播放，不延迟任何 DOM 写入（测试与业务代码依赖同步渲染）
-    const main = document.querySelector<HTMLElement>('#main');
-    if (main && prev && prev !== lastRenderKey) {
-        main.classList.remove('p15-enter');
-        void main.offsetWidth;
-        main.classList.add('p15-enter');
-    }
+    inkMotion.mount(document.querySelector<HTMLElement>('#main'));
 }
 function title(kicker: string, title: string, sub: string, action = '') {
     // 15h 复核：eyebrow 原本压在 h1 上方，占掉标题上的黄金位，且检测器判 kicker-above-heading。
@@ -509,10 +460,6 @@ function bindCatchup() {
 
 function home() {
     const s = summary(data), unfinished = data.sessions.find(x => !x.ended);
-    if (PROTO) {
-        protoHome(s);
-        return;
-    }
     $('#main').innerHTML = `<div class="today">
   ${todayHero(s)}
   ${todaySection()}
@@ -541,6 +488,7 @@ function home() {
 </div>`;
     on('#import', 'click', importDialog);
     bindPlan();
+    pulseJustCompleted();
     on('#hero-adjust', 'click', planAdjustDialog);
     on('#template', 'click', () => download(new Blob(['\ufeff英文,中文,词性\nabandon,放弃,v.\nadequate,充足的,adj.\nreluctant,不情愿的,adj.\nreliable,可靠的,adj.\nmaintain,维持,v.\nobvious,明显的,adj.']), '词书格式示例.csv'));
     on('#resume', 'click', () => startSession(unfinished!));
@@ -559,7 +507,7 @@ function todayHero(s: ReturnType<typeof summary>): string {
     const sub = done
         ? '记录都留着。明天再答一遍，就知道还记得多少。'
         : next
-            ? `先做这一项，因为${esc(humanReasons(next.reason) || '它最该今天复习')}。`
+            ? `先做这一项，因为${esc(humanReasons(next.reason) || '这是今天计划中的当前任务')}。`
             : '选一段今天真的能空出来的时间。';
     const label = next ? esc(next.label ?? TASK_LABELS[next.kind ?? ''] ?? next.kind ?? '下一项') : '';
     const body = next
@@ -567,16 +515,13 @@ function todayHero(s: ReturnType<typeof summary>): string {
         : done
             ? `<div class="hero-next is-done"><div class="next-copy"><b class="next-title">今天的计划已完成 ${progress!.done}/${progress!.total}</b><span class="next-note">做完的都记着。跳过或替换的任务不算练习记录。</span></div><button id="hero-adjust" class="text-button">调整计划</button></div>`
             : `<div class="hero-next is-empty"><div class="next-copy"><b class="next-title">还没有今天的计划</b><span class="next-note">在下面选好时间，生成后这里会显示第一项。</span></div></div>`;
-    return `<section class="today-hero${done ? ' is-complete' : ''}" data-specular>
-  <div class="today-hero-core">
-    <div class="hero-top">
-      <div class="hero-copy">
-        <h1 class="hero-title">${headline}</h1>
-        <p class="hero-sub">${sub}</p>
-      </div>
-      <button id="import" class="hero-quiet">＋ 导入词书</button>
-    </div>
-    ${body}
+    const preview = next?.kind === 'new-preview';
+    const english = done ? 'let it rest.' : preview ? 'give it meaning.' : next ? (next.status === 'started' ? 'pick it up.' : 'before the answer.') : 'make time to learn.';
+    return `<section class="today-hero ink-hero${done ? ' is-complete' : ''}">
+  <div class="ink-hero-meta"><span>今日学习</span><span>${plan ? `${plan.availableMinutes} 分钟 · ${energyLabel(plan.energyState)}` : '还未生成计划'}</span></div>
+  <div class="ink-hero-stage">
+    <h1 class="ink-headline">${preview ? '先认识新词，' : next ? '先试着回忆，' : done ? '今天学到这里，' : '今天想学多久？'}<em data-ink-word lang="en">${english}</em>${preview ? '再试着回忆。' : next ? '再看答案。' : done ? '下次，再提取。' : '从一项开始。'}</h1>
+    <div class="ink-hero-note"><p>${headline}</p><p>${sub}</p>${body}<button id="import" class="text-button">＋ 导入词书</button></div>
   </div>
 </section>`;
 }
@@ -615,24 +560,38 @@ function startReflow() {
     }
     void startMode('reflow', words);
 }
+let previewSaving = false;
 function previewPage() {
+    inkMotion.reset();
     stopPronunciation();
     if (!previewWords.length || previewIndex >= previewWords.length) {
         previewDone();
         return;
     }
     const w = previewWords[previewIndex];
-    $('#main').innerHTML = `<div class="quiz-top"><button id="quit" class="text-button">← 结束预览</button><span>${previewIndex + 1} / ${previewWords.length}</span><span></span></div><section class="quiz-card preview-card"><div class="eyebrow">新词预览</div><div class="question">${esc(w.en)} ${speechControls(w.en)}</div><p class="subtle">${esc(w.phonetic)} ${esc(w.pos)}</p><h3>${esc(w.zh)}</h3>${w.collocation ? `<p>搭配：${esc(w.collocation)}</p>` : ''}${w.example ? `<blockquote>${esc(w.example)}</blockquote>` : ''}<p class="hint">先看一眼，有个印象就好。等会儿马上会测一遍，现在不用背。</p><div class="answers preview-actions"><button class="answer" data-preview="know"><kbd>1</kbd><span>已经会</span></button><button class="answer" data-preview="familiar"><kbd>2</kbd><span>熟悉</span></button><button class="answer" data-preview="unknown"><kbd>3</kbd><span>陌生</span></button><button class="answer" data-preview="skip"><kbd>4</kbd><span>跳过</span></button></div></section>`;
-    on('#quit', 'click', previewDone);
+    $('#main').innerHTML = `<div class="quiz-top"><button id="quit" class="text-button">← 结束预览</button><span>${previewIndex + 1} / ${previewWords.length}</span><span></span></div><section class="quiz-card preview-card"><div class="eyebrow">新词预览</div><div class="ink-wordline"><h1 class="question" data-ink-word lang="en" ${w.en.length > 22 ? 'data-ink-long' : ''}>${esc(w.en)}</h1></div><p class="subtle">${esc(w.phonetic)} ${esc(w.pos)} ${speechControls(w.en)}</p><h3>${esc(w.zh)}</h3>${w.collocation ? `<p>搭配：${esc(w.collocation)}</p>` : ''}${w.example ? `<blockquote>${esc(w.example)}</blockquote>` : ''}<p class="hint">先看一眼，有个印象就好。等会儿马上会测一遍，现在不用背。</p><div class="answers preview-actions"><button class="answer" data-preview="know"><kbd>1</kbd><span>已经会</span></button><button class="answer" data-preview="familiar"><kbd>2</kbd><span>熟悉</span></button><button class="answer" data-preview="unknown"><kbd>3</kbd><span>陌生</span></button><button class="answer" data-preview="skip"><kbd>4</kbd><span>跳过</span></button></div><p id="preview-save-status" role="status"></p></section>`;
+    inkMotion.mount($('#main'));
+    on('#quit', 'click', () => { if (!previewSaving) previewDone(); });
     document.querySelectorAll<HTMLElement>('[data-preview]').forEach(b => b.onclick = () => void previewAnswer(b.dataset.preview as PreviewResult));
 }
 async function previewAnswer(result: PreviewResult) {
     const w = previewWords[previewIndex];
-    if (!w)
+    if (previewSaving || !w)
         return;
     const token = pageToken();
     const { word, exposure } = applyPreview(w, result, Date.now(), uid());
-    await savePreview(word, exposure);
+    previewSaving = true;
+    const view = document.querySelector<HTMLElement>('#preview-save-status');
+    if (view) view.textContent = '正在保存预览…';
+    inkMotion.beat(document.querySelector<HTMLElement>('.preview-actions'), 'select');
+    try {
+        await savePreview(word, exposure);
+    } catch {
+        if (view?.isConnected) view.textContent = '预览没有保存，可以再选一次。';
+        return;
+    } finally {
+        previewSaving = false;
+    }
     // 预览记录已保存；换页之后不要再推进/重绘预览页。
     if (token !== pageToken() || page !== 'preview')
         return;
@@ -640,6 +599,7 @@ async function previewAnswer(result: PreviewResult) {
     wordMap.set(w.id, word);
     previewIndex++;
     previewPage();
+    inkMotion.pulse();
 }
 function previewDone() {
     const done = previewWords.slice(0, previewIndex);
@@ -660,14 +620,9 @@ function previewDone() {
     on('#recall-now', 'click', () => { void startMode('previewed-recall', done); });
     on('#back-home', 'click', () => backToToday('#main .preview-card, #main .quiz-card, #main .reader-main, #main .exam-card, #main .lab-card, #main > *'));
 }
-/** 学习页 → Today：反向共享元素转场（非 15d 界面时直接切页）。 */
-function backToToday(from: string): void {
-    const run = (): void => { setPage('home'); };
-    if (document.documentElement.dataset.proto === 'd')
-        void morphNavigate({ from, target: '[data-morph-dest="today"]', run, mode: 'reverse' });
-    else
-        run();
-}
+/** Return using the current state. There is no snapshot of the previous page. */
+function backToToday(_from: string): void { setPage('home'); }
+
 async function startMode(mode: string, explicit?: Word[]) {
     if (startingSession)
         return;
@@ -770,7 +725,8 @@ function startSpelling(explicit?: Word[], assistedRound = false) {
     practice.render();
 }
 async function startSession(s: StudySession) { if (s.mode === 'catchup' && (!currentCatchup() || s.catchupPlanAt !== currentCatchup()!.createdAt)) { await beginCatchup(); return; } active = s; enterPage('quiz'); shell(); await showQuestion(); }
-async function showQuestion() {
+async function showQuestion(previousCorrect = false) {
+    inkMotion.reset();
     stopPronunciation();
     stopTimer();
     feedback = false;
@@ -801,7 +757,13 @@ async function showQuestion() {
             return;
         }
         const q = active.question, w = wordMap.get(q.wordId)!;
-        $('#main').innerHTML = `<div class="quiz-top"><button id="quit" class="text-button">← 保存并退出</button><span>${active.index + 1} / ${active.queue.length}</span><button id="pause" class="text-button">暂停</button></div><div class="quiz-progress"><i style="width:${active.index / active.queue.length * 100}%"></i></div><section class="quiz-card"><div class="eyebrow">${q.direction === 'en-zh' ? '英文 → 中文' : '中文 → 英文'}</div><div id="question-text" class="question">${esc(q.direction === 'en-zh' ? w.en : w.zh)}</div><p class="subtle">选出对应的${q.direction === 'en-zh' ? '中文释义' : '英文单词'}</p><div class="answers">${q.options.map((id, i) => { const option = wordMap.get(id)!; return `<button class="answer" data-answer="${id}"><kbd>${i + 1}</kbd><span>${esc(q.direction === 'en-zh' ? option.zh : option.en)}</span></button>`; }).join('')}</div><button id="unknown" class="unknown">不知道 <kbd>空格</kbd></button><div id="feedback" aria-live="polite"></div><div id="pause-cover" hidden><h2>已暂停</h2><p>暂停的时间不算答题用时</p><button id="continue" class="primary">继续答题</button></div></section><div class="quiz-hint">数字键选 · 空格算不知道 · 回车看下一题</div>`;
+        $('#main').innerHTML = `<div class="quiz-top"><button id="quit" class="text-button">← 保存并退出</button><span>${active.index + 1} / ${active.queue.length}</span><button id="pause" class="text-button">暂停</button></div><div class="quiz-progress"><i style="width:${active.index / active.queue.length * 100}%"></i></div><section class="quiz-card"><div class="eyebrow">${q.direction === 'en-zh' ? '英文 → 中文' : '中文 → 英文'}</div><div class="ink-wordline"><h1 id="question-text" class="question"${q.direction === 'en-zh' ? ' data-ink-word lang="en"' : ''}${q.direction === 'en-zh' && w.en.length > 22 ? ' data-ink-long' : ''}>${esc(q.direction === 'en-zh' ? w.en : w.zh)}</h1></div><p class="subtle">选出对应的${q.direction === 'en-zh' ? '中文释义' : '英文单词'}</p><div class="answers">${q.options.map((id, i) => { const option = wordMap.get(id)!; return `<button class="answer" data-answer="${id}"><kbd>${i + 1}</kbd><span>${esc(q.direction === 'en-zh' ? option.zh : option.en)}</span></button>`; }).join('')}</div><button id="unknown" class="unknown">不知道 <kbd>空格</kbd></button><div id="feedback" aria-live="polite"></div><div id="pause-cover" hidden><h2>已暂停</h2><p>暂停的时间不算答题用时</p><button id="continue" class="primary">继续答题</button></div></section><div class="quiz-hint">数字键选 · 空格算不知道 · 回车看下一题</div>`;
+        inkMotion.mount($('#main'));
+        inkMotion.beat(document.querySelector<HTMLElement>('.answers'), 'enter');
+        if (previousCorrect) {
+            $('#feedback').textContent = '上一题答对 · 已保存';
+            inkMotion.beat(document.querySelector<HTMLElement>('.quiz-progress'), 'right');
+        }
         document.querySelectorAll<HTMLButtonElement>('[data-answer]').forEach(b => b.onclick = () => { void submit(b.dataset.answer!, 'answer'); });
         on('#unknown', 'click', () => submit(null, 'unknown'));
         on('#quit', 'click', () => backToToday('.quiz-card'));
@@ -831,6 +793,9 @@ async function submit(selectedId: string | null, reason: ReviewRecord['reason'])
     const token = pageToken();
     const ms = reason === 'timeout' ? data.settings.timeout : performance.now() - started + elapsedBeforePause;
     const result = answer(s, w, selectedId, ms, reason, data.settings);
+    const picked = Array.from(document.querySelectorAll<HTMLElement>('[data-answer]')).find(el => el.dataset.answer === selectedId);
+    $('#feedback').textContent = reason === 'timeout' ? '超时 · 正在保存' : reason === 'unknown' ? '标为不认识 · 正在保存' : '正在保存作答…';
+    inkMotion.beat(picked ?? document.querySelector<HTMLElement>('#unknown'), result.record.correct ? 'right' : reason === 'answer' ? 'wrong' : 'neutral');
     try {
         await saveAnswer(result.word, result.record, result.session);
     }
@@ -854,7 +819,7 @@ async function submit(selectedId: string | null, reason: ReviewRecord['reason'])
     active = result.session;
     if (result.record.correct) {
         busy = false;
-        await showQuestion();
+        await showQuestion(true);
         return;
     }
     feedback = true;
@@ -863,6 +828,7 @@ async function submit(selectedId: string | null, reason: ReviewRecord['reason'])
     $('#unknown').setAttribute('disabled', '');
     $('#feedback').innerHTML = `<div class="answer-feedback bad" role="status"><div class="feedback-copy"><strong>${esc(w.en)} · ${esc(w.zh)}</strong>${speechControls(w.en)}<span>${reason === 'timeout' ? '没来得及答' : reason === 'unknown' ? '记成不会，已加入复习' : '答错了，已记下来'} · ${seconds(result.record.ms)}</span></div><button id="next" class="primary">下一题 <kbd>Enter</kbd></button></div>`;
     on('#next', 'click', nextQuestion);
+    inkMotion.beat(picked ?? document.querySelector<HTMLElement>('#feedback'), reason === 'answer' ? 'wrong' : 'neutral');
     if (data.settings.feedback >= 0)
         timer = setTimeout(() => void nextQuestion(), data.settings.feedback);
 }
@@ -895,7 +861,7 @@ document.addEventListener('visibilitychange', () => {
 });
 let lastKeyAt = 0;
 document.addEventListener('keydown', e => {
-    if (e.isComposing || (e.target as HTMLElement)?.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[data-pronunciation]') || $<HTMLDialogElement>('#modal').open)
+    if (e.isComposing || e.ctrlKey || e.metaKey || e.altKey || (e.target as HTMLElement)?.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[data-pronunciation],nav,summary') || $<HTMLDialogElement>('#modal').open)
         return;
     if (page === 'preview') {
         const map: Record<string, PreviewResult> = { '1': 'know', '2': 'familiar', '3': 'unknown', '4': 'skip' };
@@ -907,6 +873,8 @@ document.addEventListener('keydown', e => {
         return;
     }
     if (page !== 'quiz')
+        return;
+    if ((e.key === 'Enter' || e.key === ' ') && (e.target as HTMLElement)?.closest('button'))
         return;
     if (!['1', '2', '3', '4', '5', '6', ' ', 'Enter'].includes(e.key))
         return;
@@ -2087,7 +2055,7 @@ function settingsPage() {
     $('#main').innerHTML = title('设置', '按你的节奏来', '答题快慢、题目难度和备份，都在这里改。') + `<form id="settings-form"><div class="two-col"><section class="panel"><h2>测试与节奏</h2><div class="form-grid"><label>多快算快答（秒）<input name="fast" type="number" min="0.1" step="0.1" value="${s.fast / 1000}" required></label><label>多快算正常（秒）<input name="normal" type="number" min="0.2" step="0.1" value="${s.normal / 1000}" required></label><label>多久算没答（秒）<input name="timeout" type="number" min="0.3" max="120" step="0.1" value="${s.timeout / 1000}" required></label><label>英文题占比（%）<input name="ratio" type="number" min="0" max="100" value="${s.ratio}" required></label><label>难度<select name="difficulty">${[['easy', '简单（4 个选项）'], ['normal', '普通（4 个选项）'], ['hard', '困难（6 个选项）']].map(([v, t]) => `<option value="${v}" ${s.difficulty === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>答错反馈<select name="feedback">${[[0, '立即下一题'], [500, '停留 0.5 秒'], [1000, '停留 1 秒'], [-1, '手动继续']].map(([v, t]) => `<option value="${v}" ${s.feedback === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>复习怎么排<select name="schedulingAuthority"><option value="fsrs" ${s.schedulingAuthority === 'fsrs' ? 'selected' : ''}>默认（FSRS）</option><option value="legacy" ${s.schedulingAuthority === 'legacy' ? 'selected' : ''}>旧算法（回滚用）</option></select></label><label>希望记住的比例<input name="requestRetention" type="number" min="0.5" max="0.99" step="0.01" value="${s.requestRetention}" required></label></div><p class="hint">答对立即下一题。正常上限至超时之间为模糊。切换标签页会自动暂停计时。</p></section><section class="panel"><h2>AI 服务（可选）</h2><p class="hint">不填也能正常学，只是用不了 AI 生成和批改。</p><label>服务地址<input name="endpoint" type="url" placeholder="https://你的服务地址/v1" value="${esc(s.endpoint)}" autocomplete="off"></label><label>模型名称<input name="model" value="${esc(s.model)}" placeholder="填写供应商提供的模型名称"></label><label>API 密钥<input name="key" type="password" value="${esc(s.key)}" autocomplete="off" placeholder="仅用于你配置的地址"></label><label class="check"><input name="rememberKey" type="checkbox" ${s.rememberKey ? 'checked' : ''}> 在这台设备保存密钥</label>
 <label>返回格式<select name="structuredMode">${[['auto', '自动（先要结构化的，不支持就用普通文本）'], ['json_object', '只接受 JSON（JSON Mode）'], ['json_schema', '只接受严格 JSON 结构（JSON Schema）'], ['text', '只当纯文本处理']].map(([v, t]) => `<option value="${v}" ${(s.ai?.structuredMode ?? 'auto') === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
 <div class="form-grid"><label>最多等多久（秒）<input name="aiTimeout" type="number" min="3" max="180" value="${Math.round((s.ai?.timeoutMs ?? 45000) / 1000)}"></label><label>失败后重试次数<input name="aiRetries" type="number" min="0" max="3" value="${s.ai?.maxRetries ?? 2}"></label><label>单次输出上限（token）<input name="aiMaxTokens" type="number" min="64" max="8000" value="${s.ai?.maxOutputTokens ?? 1200}"></label><label>每天用量上限（token）<input name="aiBudget" type="number" min="0" placeholder="留空 = 不限" value="${s.ai?.dailyTokenBudget ?? ''}"></label></div>
-<p class="hint">不勾“在这台设备保存密钥”，关掉页面就清了。勾了以后密钥会明文存在这台电脑的浏览器里，导出的完整备份不会带上它。浏览器直连要求服务商支持 CORS。用量按 token 计，这里不换算成钱。token 是服务商计费的单位，1 个 token 大约是半个英文单词。浏览器直连还要求服务商允许跨域访问。</p></section></div><button class="primary" type="submit">保存设置</button></form>${originPanelHTML(origin)}${backupPanel()}<section class="panel backup-panel"><h2>备份与换地址</h2><p>导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。</p><div class="actions"><button id="backup" class="primary">导出全部学习数据</button><label class="button secondary">导入备份<input id="restore" type="file" accept=".json" hidden></label><button id="persist" class="secondary">申请持久存储</button><button id="check-integrity" class="secondary">检查数据完整性</button><button id="clear" class="danger-text">清空本地数据</button></div><p id="storage-info" class="hint">学习数据按浏览器和站点地址保存：一直用同一个地址打开，才能看到同一份数据。</p></section>`;
+<p class="hint">不勾“在这台设备保存密钥”，关掉页面就清了。勾了以后密钥会明文存在这台电脑的浏览器里，导出的完整备份不会带上它。浏览器直连要求服务商支持 CORS。用量按 token 计，这里不换算成钱。token 是服务商计费的单位，1 个 token 大约是半个英文单词。浏览器直连还要求服务商允许跨域访问。</p></section></div><button class="primary" type="submit">保存设置</button></form><section class="panel"><h2>墨场动效</h2><label for="ink-preference">动态强度</label><select id="ink-preference"><option value="expressive" ${inkMotion.preference === 'expressive' ? 'selected' : ''}>Expressive · 完整动效</option><option value="focus" ${inkMotion.preference === 'focus' ? 'selected' : ''}>Focus · 专注反馈</option></select><p class="hint">此设备自动保存选择。系统减少动态优先。</p></section>${originPanelHTML(origin)}${backupPanel()}<section class="panel backup-panel"><h2>备份与换地址</h2><p>导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。</p><div class="actions"><button id="backup" class="primary">导出全部学习数据</button><label class="button secondary">导入备份<input id="restore" type="file" accept=".json" hidden></label><button id="persist" class="secondary">申请持久存储</button><button id="check-integrity" class="secondary">检查数据完整性</button><button id="clear" class="danger-text">清空本地数据</button></div><p id="storage-info" class="hint">学习数据按浏览器和站点地址保存：一直用同一个地址打开，才能看到同一份数据。</p></section>`;
     $('#settings-form').insertAdjacentHTML('afterend', pronunciationPanel(s.pronunciationLocale ?? 'en-US'));
     refreshPronunciationUI();
     on('#pronunciation-locale', 'change', async e => {
@@ -2095,6 +2063,7 @@ function settingsPage() {
         if (!validSettings(updated)) throw Error('英语口音设置无效');
         await saveSettings(updated); data.settings = updated; pronunciation.setLocale(updated.pronunciationLocale);
     });
+    on('#ink-preference', 'change', e => inkMotion.setPreference((e.target as HTMLSelectElement).value === 'focus' ? 'focus' : 'expressive'));
     on('#settings-form', 'submit', async (e) => {
         e.preventDefault();
         const f = new FormData(e.target as HTMLFormElement);
@@ -2243,18 +2212,19 @@ function planOverview(plan: DailyPlan): string {
   <div class="plan-progress" role="progressbar" aria-valuenow="${Math.round(progress.ratio * 100)}" aria-valuemin="0" aria-valuemax="100" aria-label="今日计划进度"><i style="width:${Math.round(progress.ratio * 100)}%"></i></div>
   <p class="hint">可用 ${plan.availableMinutes} 分钟 · 状态 ${energyLabel(plan.energyState)} · ${esc(humanReasons(budgetReasons) || '先安排该复习的，再按忘得多不多排')}</p>
   ${recallLine}
-  <div class="plan-tasks" data-stagger>${(() => { const nextId = nextOpenTask(plan)?.id; return plan.initialPlan.map(t => taskCard(t, nextId)).join(''); })() || '<p class="subtle">今天没有需要安排的任务。</p>'}</div>
+  ${plan.initialPlan.length ? `<div class="ink-task-score" data-ink-rail aria-label="今日任务谱，可拖动浏览">${plan.initialPlan.map((t, i) => `<button type="button" data-ink-stop="ink-task-${i}" aria-pressed="${t.id === nextOpenTask(plan)?.id}"><small>${String(i + 1).padStart(2, '0')} · ${t.minutes} 分钟</small><span>${esc(t.label ?? TASK_LABELS[t.kind ?? ''] ?? '任务')}</span><small>${t.status === 'done' ? '已完成 ✓' : t.status === 'skipped' ? '已跳过' : t.status === 'replaced' ? '已替换' : t.status === 'started' ? '进行中' : '待处理'}</small></button>`).join('')}</div>` : ''}
+  <div class="plan-tasks">${(() => { const nextId = nextOpenTask(plan)?.id; return plan.initialPlan.map((t, i) => taskCard(t, nextId, i)).join(''); })() || '<p class="subtle">今天没有需要安排的任务。</p>'}</div>
   <div class="actions"><button id="plan-regenerate" class="secondary">重排没做完的</button><button id="plan-adjust" class="text-button">改时间或状态</button></div>
   <p class="hint">做完的不会重排。延后只影响今天，不会堆到明天。</p>
   <p class="hint">${esc(unavailableTasksText())}。</p>
 </section>`;
 }
-function taskCard(t: PlanItem, nextId?: string): string {
+function taskCard(t: PlanItem, nextId: string | undefined, index: number): string {
     const statusText: Record<string, string> = { done: '已完成', started: '进行中', skipped: '已跳过', delayed: '已延后', replaced: '已替换' };
     const badge = t.status === 'done' ? 'fluent' : t.status === 'skipped' || t.status === 'replaced' ? 'unknown' : 'vague';
     const startLabel = t.status === 'started' ? '继续' : '开始';
     const actions = t.status === 'done' || t.status === 'replaced' || t.status === 'skipped' ? '' : `<div class="task-buttons"><button class="secondary" data-task-start="${esc(t.id)}">${startLabel}</button>${t.flexible ? `<button class="text-button" data-task-replace="${esc(t.id)}">替换</button>` : ''}<button class="text-button" data-task-delay="${esc(t.id)}">延后</button><button class="text-button" data-task-skip="${esc(t.id)}">跳过</button></div>`;
-    return `<div class="plan-task ${esc(t.status)}" data-task="${esc(t.id)}">
+    return `<div class="plan-task ${esc(t.status)}" data-task="${esc(t.id)}" id="ink-task-${index}" tabindex="-1">
   <span class="task-state" aria-hidden="true"></span>
   <div class="task-main">
     <div class="task-head"><b>${esc(t.label ?? TASK_LABELS[t.kind ?? ''] ?? t.kind ?? '任务')}</b>${nextId && t.id === nextId ? '<span class="badge is-next">下一项</span>' : ''}<span class="task-minute">${t.minutes} 分钟</span><span class="badge normal">${esc(moduleName(taskModule(t)))}</span>${t.critical ? '<span class="badge vague">今天必须练</span>' : ''}${t.flexible ? '<span class="badge normal badge-flex">可以换</span>' : ''}${statusText[t.status] ? `<span class="badge ${badge}">${statusText[t.status]}</span>` : ''}</div>
@@ -2282,12 +2252,7 @@ function bindPlan() {
     on('#start-today', 'click', () => void startTodayTraining());
     on('#plan-adjust', 'click', planAdjustDialog);
     document.querySelectorAll<HTMLElement>('[data-task-start]').forEach(b => b.onclick = () => {
-        if (morphBusy())
-            return;
-        void morphNavigate({
-            from: b, target: '#main .preview-card, #main .quiz-card, #main .reader-main, #main .exam-card, #main .lab-card',
-            run: () => startPlanTask(b.dataset.taskStart!),
-        });
+        void startPlanTask(b.dataset.taskStart!);
     });
     document.querySelectorAll<HTMLElement>('[data-task-skip]').forEach(b => b.onclick = () => void planAction(b.dataset.taskSkip!, 'skip'));
     document.querySelectorAll<HTMLElement>('[data-task-delay]').forEach(b => b.onclick = () => void planAction(b.dataset.taskDelay!, 'delay'));
@@ -2310,11 +2275,8 @@ function pulseJustCompleted(): void {
     catch { /* ignore */ }
     if (page !== 'home')
         return;
-    const seg = document.querySelector<HTMLElement>(`.d-seg[data-seg="${CSS.escape(id)}"]`);
-    if (!seg || !livingAllowed())
-        return;
-    seg.classList.add('is-just-done');
-    window.setTimeout(() => seg.classList.remove('is-just-done'), 1250);
+    const row = Array.from(document.querySelectorAll<HTMLElement>('.plan-task[data-task]')).find(el => el.dataset.task === id);
+    inkMotion.beat(row ?? null, 'right');
 }
 function upsertPlan(list: DailyPlan[], plan: DailyPlan): DailyPlan[] {
     const i = list.findIndex(p => p.id === plan.id);
@@ -2564,8 +2526,6 @@ async function startPlanTaskOnce(taskId: string, fromFlow = false): Promise<void
         taskExecution = null;
 }
 async function startTodayTraining(): Promise<void> {
-    if (morphBusy())
-        return;
     // 录屏专用钩子：press 片段要单独展示「按下/保持/松开/回弹」，不能顺带跳页
     if ((window as unknown as {
         __noNavClick?: boolean;
@@ -2583,10 +2543,7 @@ async function startTodayTraining(): Promise<void> {
         render();
         return;
     }
-    await morphNavigate({
-        from: '#start-today', target: '#main .preview-card, #main .quiz-card, #main .reader-main, #main .exam-card, #main .lab-card',
-        run: () => startPlanTask(next.id, true),
-    });
+    await startPlanTask(next.id, true);
 }
 async function completePlanTask(exec: {
     planTaskId: string;
@@ -5013,6 +4970,7 @@ async function boot() {
     installTestHook();
     installPageTestHook();
     installPressFeedback();
+    inkMotion.init();
     await openDB();
     autoBackup.restore(await readLocalMeta<BackupState>('auto-backup'));
     await autoBackup.checkPermission().catch(() => { autoBackup.state.status = 'error'; autoBackup.state.error = '无法检查备份目录，请重新选择目录或手动导出。'; });
@@ -5615,86 +5573,4 @@ function bindAI(): void {
         else if (t.closest('[data-ai-reading]'))
             void aiGenerateReading();
     });
-}
-/* ════════════════════════════════════════════════════════════════════════════
-   Phase 15c · 原型页装配（只在 ?proto=a|b 时走到这里）
-   业务动作全部复用既有实现：bindPlan() 负责开始/跳过/延后/替换/调整，
-   其余与默认首页一致，避免原型悄悄改变学习流程或数据写入。
-   ════════════════════════════════════════════════════════════════════════════ */
-function protoBelow(s: ReturnType<typeof summary>, unfinished: StudySession | undefined, plan: DailyPlan | null): string {
-    return `<div class="proto-below">
-  ${plan ? '' : `<section class="proto-setup">${planSetup()}</section>`}
-  ${unfinished ? `<div class="resume"><span>有一轮未完成的训练 · 已答 ${unfinished.answered} 题</span><button id="resume" class="primary">继续本轮</button><button id="finish-old" class="text-button">结束本轮</button></div>` : ''}
-  <section class="panel practice">
-    <div class="section-title"><h2>自己再练一轮</h2><span class="subtle">${data.words.length} 个词 · ${data.books.length} 本词书</span></div>
-    ${rangeControls()}
-    <div class="modes" data-stagger>
-      <button class="mode featured" data-mode="quick"><span class="mode-symbol" aria-hidden="true">↗</span><h3>快速刷词</h3><p>快速过一遍，找出不熟的词</p><span class="mode-bottom">开始刷词 <b>→</b></span></button>
-      <button class="mode" data-mode="due"><span class="mode-symbol" aria-hidden="true">◷</span><h3>今天该复习 <em>${s.due}</em></h3><p>先过一遍今天到期的词</p><span class="mode-bottom">开始复习 <b>→</b></span></button>
-      <button class="mode" data-mode="weak"><span class="mode-symbol" aria-hidden="true">◎</span><h3>薄弱词 <em>${s.weak}</em></h3><p>专攻不会和模糊的词</p><span class="mode-bottom">开始强化 <b>→</b></span></button>
-      <button class="mode" data-mode="random"><span class="mode-symbol" aria-hidden="true">⤨</span><h3>随机抽查</h3><p>看看学过的词还记得多少</p><span class="mode-bottom">开始抽查 <b>→</b></span></button>
-    </div>
-  </section>
-  ${newWordsPanel()}
-  <div class="two-col">
-    <section class="panel"><div class="section-title"><h2>掌握情况</h2><span class="subtle">全部单词</span></div>${distribution()}<p class="hint">“熟练”要两个方向都答对，还要隔几天再答对。短时间内反复答对不算。</p></section>
-    <section class="panel"><div class="section-title"><h2>薄弱词的变化</h2></div><div class="weak-change"><div><strong>${s.newWeak}</strong><span>今天新出现</span></div><div><strong class="green">${s.resolved}</strong><span>今天补上了</span></div></div><p class="hint">答错，或者自己选了「模糊」，就会进薄弱词；过几天再答对才会离开。</p></section>
-  </div>
-</div>`;
-}
-function protoHome(s: ReturnType<typeof summary>): void {
-    const plan = todayPlan;
-    const next = plan ? nextOpenTask(plan) : null;
-    const prog = plan ? planProgress(plan) : null;
-    const unfinished = data.sessions.find(x => !x.ended);
-    const views = plan
-        ? protoTaskViews({
-            tasks: plan.initialPlan as unknown as ProtoTaskInput[],
-            nextId: next?.id ?? null,
-            labelOf: (t: ProtoTaskInput) => t.label ?? TASK_LABELS[t.kind ?? ''] ?? t.kind ?? '任务',
-            moduleOf: (t: ProtoTaskInput) => moduleName(taskModule(t as never)),
-            noteOf: (t: ProtoTaskInput) => taskTargetLabel(t as never),
-            reasonOf: (t: ProtoTaskInput) => humanReasons(t.reason),
-        })
-        : [];
-    const used = plan && prog ? Math.max(0, plan.availableMinutes - prog.remainingMinutes) : 0;
-    const ctx: ProtoContext = {
-        proto: PROTO!,
-        hasPlan: !!plan,
-        budget: plan?.availableMinutes ?? planBudget,
-        usedMinutes: used,
-        remainingMinutes: prog?.remainingMinutes ?? planBudget,
-        done: prog?.done ?? 0,
-        total: prog?.total ?? 0,
-        skipped: prog?.skipped ?? 0,
-        ratio: prog?.ratio ?? 0,
-        next: views.find(v => v.isNext) ?? null,
-        tasks: views,
-        reason: next ? humanReasons(next.reason) || '先安排该复习的，再按忘得多不多排' : '',
-        emptyNote: '',
-    };
-    if (PROTO === 'd') {
-        stopLiving();
-        $('#main').innerHTML = protoTodayD(ctx) + protoBelow(s, unfinished, plan);
-        on('#import', 'click', importDialog);
-        bindPlan();
-        on('#hero-adjust', 'click', planAdjustDialog);
-        on('#resume', 'click', () => startSession(unfinished!));
-        on('#finish-old', 'click', async () => { unfinished!.ended = Date.now(); await putItems('sessions', [unfinished]); render(); });
-        on('#preview-start', 'click', () => startPreview());
-        on('#reflow-start', 'click', () => startReflow());
-        document.querySelectorAll<HTMLElement>('[data-mode]').forEach(b => b.onclick = () => { startMode(b.dataset.mode!).catch(e => toast(e.message)); });
-        startLiving($('#main') as HTMLElement);
-        pulseJustCompleted();
-        return;
-    }
-    $('#main').innerHTML = protoTodayHTML(ctx) + protoBelow(s, unfinished, plan);
-    on('#import', 'click', importDialog);
-    bindPlan();
-    on('#hero-adjust', 'click', planAdjustDialog);
-    on('#resume', 'click', () => startSession(unfinished!));
-    on('#finish-old', 'click', async () => { unfinished!.ended = Date.now(); await putItems('sessions', [unfinished]); render(); });
-    on('#preview-start', 'click', () => startPreview());
-    on('#reflow-start', 'click', () => startReflow());
-    document.querySelectorAll<HTMLElement>('[data-mode]').forEach(b => b.onclick = () => { startMode(b.dataset.mode!).catch(e => toast(e.message)); });
 }

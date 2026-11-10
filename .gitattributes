@@ -1,0 +1,6 @@
+# Vite uses these files as the HTML entry and copies public files verbatim.
+/index.html text eol=lf
+/public/** text=auto eol=lf
+
+# Generated artifacts are compared byte for byte, including line endings.
+/dist/** -text
