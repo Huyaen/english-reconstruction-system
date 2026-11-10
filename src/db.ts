@@ -1,6 +1,6 @@
 import type { Data, Settings, Word, WordExposure, GrammarAttempt, GrammarConcept, SentenceAttempt, SentenceRecord, ReviewRecord, StudySession, MigrationRecord } from './types.ts';
 import { defaults, fsrsDefaults } from './types.ts';
-import { validSettings } from './core.ts';
+import { validSettings, validNewWordGoal } from './core.ts';
 import { normalizeSpelling } from './spelling.ts';
 // —— 数据库版本与迁移框架（Phase 1）——
 // 设计依据：REFERENCE_RESEARCH.md §6.1（Dexie 版本化 schema 思想）与 §2.1（Lute migration 模式）。
@@ -419,6 +419,7 @@ export function validateBackup(value: unknown): Data {
     if (v.version >= 9 && !Array.isArray(bag['clozeAttempts'])) return fail();
     const safeId = (id: unknown) => typeof id === 'string' && /^[a-zA-Z0-9._:-]{1,128}$/.test(id);
     for (const plan of d.dailyPlans ?? []) {
+        if (plan.newWordGoal != null && !validNewWordGoal(plan.newWordGoal)) return fail();
         const c = plan.catchup;
         if (c && (c.date !== plan.date || !Number.isInteger(c.cap) || c.cap < 1 || c.cap > 500
             || !num(c.budgetMinutes) || c.budgetMinutes > 240 || !num(c.dueTotal) || !num(c.createdAt)

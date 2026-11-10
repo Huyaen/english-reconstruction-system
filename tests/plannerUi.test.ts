@@ -103,8 +103,9 @@ test('Phase 3 UI：生成计划 → 预览 → Recall → 校准/重排 → Clos
         clickInCard(w, '新词预览', 'start');
         await until(w, () => !!w.document.querySelector('[data-preview]'), 'preview page');
         for (let i = 0; i < 6; i++) {
-            click(w, '[data-preview="know"]');
-            await new Promise(r => setTimeout(r, 30));
+            const choice = w.document.querySelector<HTMLButtonElement>('[data-preview="know"]')!;
+            choice.click();
+            await until(w, () => !choice.isConnected, 'preview saved and advanced');
         }
         await until(w, () => !!w.document.querySelector('#back-home'), 'preview done');
         click(w, '#back-home');
