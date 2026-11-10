@@ -126,6 +126,33 @@ class InkMotion {
     });
   }
 
+  /** Capture only the visible working set. Stable IDs link old and new rows. */
+  rows(root: HTMLElement) {
+    const boxes = new Map<string, number>();
+    if (!this.expressive || document.hidden) return boxes;
+    for (const row of root.querySelectorAll<HTMLElement>('[data-ink-row]')) {
+      if (boxes.size === 14) break;
+      const box = row.getBoundingClientRect();
+      if (box.height && box.bottom >= 0 && box.top <= innerHeight) boxes.set(row.dataset.inkRow!, box.top);
+    }
+    return boxes;
+  }
+
+  reflow(root: HTMLElement, previous: Map<string, number>) {
+    if (!this.expressive || !previous.size) return;
+    for (const row of root.querySelectorAll<HTMLElement>('[data-ink-row]')) {
+      const before = previous.get(row.dataset.inkRow!);
+      if (before === undefined || typeof row.animate !== 'function') continue;
+      const delta = before - row.getBoundingClientRect().top;
+      if (Math.abs(delta) < 1 || Math.abs(delta) > 240) continue;
+      const motion = row.animate([{ transform: `translateY(${delta}px)` }, { transform: 'none' }], { duration: 320, easing: ease });
+      this.animations.set(row, motion);
+      void motion.finished.catch(() => {}).finally(() => {
+        if (this.animations.get(row) === motion) this.animations.delete(row);
+      });
+    }
+  }
+
   quiet() {
     this.field?.stop();
     for (const [host, animation] of this.animations) {
