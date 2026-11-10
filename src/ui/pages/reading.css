@@ -1027,3 +1027,18 @@
 [data-page="reading"] #reading-page tbody tr[data-state="unfinished"] td:first-child b { font-weight: 600; }
 [data-page="reading"] #reading-page tbody tr[data-state="read"] td:first-child b { color: var(--ink-muted); }
 [data-page="reading"] #reading-page tbody tr[data-state="unread"] td:first-child b { color: var(--ink); }
+
+/* Rehearsal reading margin: the selected word cues the tools, outside the text. */
+#read-word-cue {
+  margin-block: var(--s-2) var(--s-3);
+  border-block-end: 1px solid var(--line);
+  padding-block: var(--s-2);
+  color: var(--accent);
+  font-family: var(--font-reading);
+  font-size: var(--t-lg);
+  overflow-wrap: anywhere;
+}
+[data-page="reading"] #read-text [aria-pressed="true"] {
+  text-decoration: underline solid var(--accent) .12em;
+  text-underline-offset: .19em;
+}

@@ -1884,8 +1884,11 @@ function unitPageApp() {
         });
         document.querySelectorAll<HTMLElement>('[data-unit-preview]').forEach(b => b.onclick = () => {
             const box = document.querySelector<HTMLElement>(`#unit-preview-${b.dataset.unitPreview}`);
-            if (box)
+            if (box) {
                 box.hidden = !box.hidden;
+                b.setAttribute('aria-expanded', String(!box.hidden));
+                if (!box.hidden) inkMotion.beat(box, 'select');
+            }
         });
         on('#unit-custom-topic', 'input', (e) => { unitCustomTopic = (e.target as HTMLInputElement).value; });
         document.querySelectorAll<HTMLElement>('[data-unit-custom]').forEach(b => b.onclick = () => {
@@ -2802,7 +2805,7 @@ function grammarPage(): void {
         + metrics + weakPanel + `<section class="panel"><h2>按类别看</h2><div class="chips">${filters}</div></section>` + groups
         + `<p class="hint">概念之间的关系检查${taxonomy.ok ? '通过' : `发现 ${taxonomy.issues.length} 个问题`}</p></div>`;
     document.querySelectorAll<HTMLElement>('[data-gcat]').forEach(b => b.addEventListener('click', () => { grammarCategoryFilter = b.dataset.gcat ?? ''; render(); }));
-    document.querySelectorAll<HTMLElement>('[data-concept]').forEach(b => b.addEventListener('click', () => { grammarSelectedConcept = b.dataset.concept ?? ''; render(); }));
+    document.querySelectorAll<HTMLElement>('[data-concept]').forEach(b => b.addEventListener('click', () => { grammarSelectedConcept = b.dataset.concept ?? ''; render(); inkMotion.beat(document.querySelector<HTMLElement>('.ink-dependencies'), 'select'); }));
     document.querySelectorAll<HTMLElement>('[data-concept-practice]').forEach(b => b.addEventListener('click', () => practiceConcept(b.dataset.conceptPractice ?? '')));
 }
 function conceptDetail(conceptId: string, states: GrammarConceptState[]): void {
@@ -2826,7 +2829,7 @@ function conceptDetail(conceptId: string, states: GrammarConceptState[]): void {
     const card = def.card;
     $('#main').innerHTML = `<div id="concept-detail">` + title('语法点', def.name, `${GRAMMAR_CATEGORY_LABELS[def.category]} · 难度 ${def.difficulty}/3`)
         + `<div class="actions"><button class="secondary" data-concept-back="1">← 返回语法</button><button class="primary" data-concept-practice="${def.id}">用真实句子练这个概念</button></div>`
-        + `<div class="two-col"><section class="panel"><h2>练习情况</h2><div class="metrics compact">${metric('大概掌握', grammarMastery(st).value, grammarMastery(st).note)}${metric('练过几次', String(st.attempts), `答对 ${st.correct}`)}${metric('独立正确', String(st.independentCorrect), '不看提示、不试错')}${metric('主要错误', errorSummary(st), `${st.delayedAttempts} 次延迟复测`)}</div><p class="hint">判定理由：${esc(st.reasons.join('；') || '还没有足够的练习记录。')}</p><p class="hint">先修状态：${readiness.ok ? '已具备' : `缺少「${readiness.missing.map(id => conceptById(id)?.name ?? id).join('、')}」`}</p><h3>先修概念</h3><ul class="plain-list">${prereq}</ul>${chain.length ? `<p class="hint">完整先修链：${esc(chain.join(' → '))}</p>` : ''}${related.length ? `<p class="hint">易混概念：${esc(related.join('、'))}</p>` : ''}</section>`
+        + `<div class="two-col"><section class="panel"><h2>练习情况</h2><div class="metrics compact">${metric('大概掌握', grammarMastery(st).value, grammarMastery(st).note)}${metric('练过几次', String(st.attempts), `答对 ${st.correct}`)}${metric('独立正确', String(st.independentCorrect), '不看提示、不试错')}${metric('主要错误', errorSummary(st), `${st.delayedAttempts} 次延迟复测`)}</div><p class="hint">判定理由：${esc(st.reasons.join('；') || '还没有足够的练习记录。')}</p><p class="hint">先修状态：${readiness.ok ? '已具备' : `缺少「${readiness.missing.map(id => conceptById(id)?.name ?? id).join('、')}」`}</p><h3>先修概念</h3><ul class="plain-list ink-dependencies">${prereq}</ul>${chain.length ? `<p class="hint">完整先修链：${esc(chain.join(' → '))}</p>` : ''}${related.length ? `<p class="hint">易混概念：${esc(related.join('、'))}</p>` : ''}</section>`
         + `<section class="panel"><h2>知识卡（20–60 秒读完）</h2><div class="grammar-card"><p><b>规则</b> ${esc(card.rule)}</p><p><b>为什么</b> ${esc(card.why)}</p><blockquote>${esc(card.example.ok)}${card.example.bad ? `<br><small class="bad-line">✗ ${esc(card.example.bad)}</small>` : ''}${card.example.note ? `<br><small>${esc(card.example.note)}</small>` : ''}</blockquote><p><b>常见错误</b></p><ul class="plain-list">${card.commonErrors.map(e => `<li>${esc(e)}</li>`).join('')}</ul><p><b>换个场景怎么用</b> ${esc(card.transfer)}</p></div></section></div>`
         + `<section class="panel"><h2>真实训练句（${sentences.length}）</h2>${sentences.length ? `<ul class="sentence-mini">${sentences.map(s => `<li><span class="src-badge src-${s.sourceType}">${esc(SOURCE_TEXT[s.sourceType])}</span> ${esc(s.text)}<button class="secondary small" data-sentence-start="${s.id}">练这句</button></li>`).join('')}</ul>` : '<p class="hint">句库中还没有挂这个概念的句子。可以到「句子训练」粘贴你遇到的真实句子。</p>'}</section>`
         + `<section class="panel"><h2>最近练过</h2>${attempts.length ? `<ul class="plain-list">${attempts.map(a => `<li>${date(a.at)} · ${a.correct ? '正确' : '错误'}${a.independent ? ' · 独立' : ` · 辅助 L${a.supportLevel ?? 0}`}${a.transfer ? ' · 换题' : ''}${a.delayed ? ' · 延迟' : ''}${a.errorType ? ` · ${ERROR_LABELS[a.errorType] ?? a.errorType}` : ''}</li>`).join('')}</ul>` : '<p class="hint">还没有练习记录。</p>'}</section></div>`;
@@ -3024,6 +3027,8 @@ async function labAnswer(optionId: string): Promise<void> {
     cur.answered = optionId;
     cur.evaluation = evaluation;
     render();
+    inkMotion.beat(document.querySelector<HTMLElement>('.lab-option.picked'), evaluation.correct ? 'right' : 'wrong');
+    document.querySelector<HTMLElement>('#lab-next')?.focus({ preventScroll: true });
 }
 function labAdvance(): void {
     const session = labSession;
@@ -4136,7 +4141,13 @@ function readingReader(): void {
         readSelectedToken = readTokens.find(t => t.index === idx) ?? null;
         document.querySelectorAll<HTMLElement>('[data-tok]').forEach(x => x.classList.remove('selected'));
         b.classList.add('selected');
-        toast(readSelectedToken ? `已选中「${readSelectedToken.surface}」，再点一个标记` : '');
+        document.querySelectorAll<HTMLElement>('[data-tok][aria-pressed="true"]').forEach(x => x.setAttribute('aria-pressed', 'false'));
+        b.setAttribute('aria-pressed', 'true');
+        const cue = document.querySelector<HTMLElement>('#read-word-cue');
+        if (cue) {
+            cue.textContent = readSelectedToken?.surface ?? '先选正文中的词';
+            inkMotion.beat(cue, 'select');
+        }
     }));
     document.querySelectorAll<HTMLElement>('[data-mark]').forEach(b => b.addEventListener('click', async () => {
         if (!readSession || !readSelectedToken) {
@@ -4151,9 +4162,20 @@ function readingReader(): void {
             contextSentence: sentence?.text ?? '', judgment, now: Date.now(),
         });
         upsertReadSession(result.session);
-        await persistReading();
-        toast(result.replaced ? `已把「${readSelectedToken.surface}」改成「${judgment === 'unknown' ? '不知道' : judgment === 'vague' ? '模糊' : judgment === 'known' ? '知道' : '猜出'}」` : '已记录');
+        const token = pageToken();
+        const selection = readSelectedToken;
+        if (!await persistReading() || pageToken() !== token) return;
+        toast(result.replaced ? `已把「${selection.surface}」改成「${judgment === 'unknown' ? '不知道' : judgment === 'vague' ? '模糊' : judgment === 'known' ? '知道' : '猜出'}」` : '已记录');
         render();
+        const current = document.querySelector<HTMLElement>(`[data-tok="${selection.index}"]`);
+        if (current) {
+            current.classList.add('selected');
+            current.setAttribute('aria-pressed', 'true');
+        }
+        const cue = document.querySelector<HTMLElement>('#read-word-cue');
+        if (cue) cue.textContent = selection.surface;
+        inkMotion.beat(document.querySelector<HTMLElement>('#read-marks'), 'right');
+        document.querySelector<HTMLElement>(`[data-mark="${judgment}"]`)?.focus({ preventScroll: true });
     }));
     document.querySelectorAll<HTMLElement>('[data-unmark]').forEach(b => b.addEventListener('click', async () => {
         if (!readSession)
@@ -4239,9 +4261,10 @@ function readingReader(): void {
         if (surface)
             surface.dataset.side = readSideOpen ? 'open' : 'closed';
         document.querySelectorAll<HTMLElement>('[data-reader-side-toggle]').forEach(x => x.setAttribute('aria-expanded', String(readSideOpen)));
-        if (readSideOpen)
-            document.querySelector<HTMLElement>('#read-side button, #read-side a, #read-side input')?.focus();
-        else
+        if (readSideOpen) {
+            document.querySelector<HTMLElement>('#read-side button, #read-side a, #read-side input')?.focus({ preventScroll: true });
+            inkMotion.beat(document.querySelector<HTMLElement>('#read-word-cue'), 'select');
+        } else
             document.querySelector<HTMLElement>('.reader-bar [data-reader-side-toggle]')?.focus();
     }));
     // 视口变化时，未被用户手动开合过的面板跟随"桌面展开 / 窄屏收起"
@@ -5011,6 +5034,7 @@ async function boot() {
         todayPlan = null;
     }
     installPlanTestHook();
+    applyPageScope(page);
     render();
     if (data.migration && Date.now() - data.migration.at < 10 * 60 * 1000)
         setTimeout(() => toast(`本地数据库已从 v${data.migration!.from} 升级到 v${data.migration!.to}；建议立即导出一次完整备份`), 600);

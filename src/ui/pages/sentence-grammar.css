@@ -1170,3 +1170,12 @@
 [data-page="lab"] .lab-option[data-verdict] small {
   color: var(--ink-muted);
 }
+
+/* The prerequisite path and the chosen clause share the same accent rule. */
+#concept-detail .ink-dependencies {
+  border-inline-start: 2px solid var(--accent);
+  padding-inline-start: var(--s-5);
+}
+#concept-detail .ink-dependencies li { padding-block: var(--s-1); }
+#lab-page .lab-option.picked { border-inline-start: 3px solid var(--accent); }
+#lab-page .lab-option[data-verdict="wrong"] { border-inline-start-color: var(--red); }
