@@ -173,14 +173,14 @@ export function outputSessionPage(input: SessionInput): string {
           <p>你本来想说：${esc(a.repair.blockedExpression || a.repair.intendedMeaning)}</p>
           <p>你写的替代：${esc(a.repair.userAlternative)}</p>
           <p class="muted">${a.repair.meaningPreserved === true ? '主要意思保住了（按现有记录判断）' : a.repair.meaningPreserved === false ? '这次没有把主要意思送到' : '记录不够，判断不了意思是否保留'}</p></section>` : ''}
-        ${a.revisions?.length ? revisionBlock(a, input.compare) : ''}
+        ${fb || a.revisions?.length ? revisionBlock(a, input.compare) : ''}
         ${input.transfer ? transferBlock(input.transfer) : ''}
       </div>
     </div>`;
 }
 function feedbackBlock(fb: OutputFeedback, a: OutputAttempt): string {
-    const issue = (s: typeof fb.priorityIssues[number]) => `<li><b>${esc(ERROR_LABELS[s.type])}</b>：${esc(s.explanation)}<br><span class="muted">${esc(s.original)} → ${esc(s.proposed || '（自己重写）')}</span></li>`;
-    return `<section class="panel">
+    const issue = (s: typeof fb.priorityIssues[number]) => `<li><b>${esc(ERROR_LABELS[s.type])}</b>：${esc(s.explanation)}<br><span class="ink-writing-comparison"><q lang="en">${esc(s.original)}</q><span aria-hidden="true">→</span><span>${esc(s.proposed || '（自己重写）')}</span></span></li>`;
+    return `<section class="panel" id="out-feedback-result">
       <div class="section-title"><h2>反馈</h2><span class="subtle">${esc(fb.sourceProvenance)} · ${esc(fb.promptVersion)}</span></div>
       <div class="feedback-row"><span class="pill">意思</span><b>${meaningLabel(fb.meaningAssessment)}</b><small class="muted">依据 ${esc(fb.meaningBasis)} · 置信 ${Math.round(fb.meaningConfidence * 100)}%</small></div>
       ${fb.noCorrectionNeeded ? '<p class="ok-line">不用大改：这句已经能读了。</p>' : `<div class="feedback-row"><span class="pill warn">主要问题</span><ul>${fb.priorityIssues.map(issue).join('') || '<li>没有影响理解的主要问题。</li>'}</ul></div>`}
@@ -193,10 +193,10 @@ function feedbackBlock(fb: OutputFeedback, a: OutputAttempt): string {
 }
 function revisionBlock(a: OutputAttempt, cmp: RevisionComparison | null): string {
     const revisions = a.revisions ?? [];
-    const last = revisions[revisions.length - 1]!;
-    const kindZh = { self: '自己修改', after_hint: '提示后修改', copied: '照抄建议（不算自己写的）', after_model: '看示范后改写' }[last.kind];
+    const last = revisions.at(-1);
+    const kindZh = last ? { self: '自己修改', after_hint: '提示后修改', copied: '照抄建议（不算自己写的）', after_model: '看示范后改写' }[last.kind] : '基于初稿修改';
     return `<section class="panel"><div class="section-title"><h2>修改</h2><span class="subtle">${esc(kindZh)}</span></div>
-      <textarea id="out-revision" rows="7" ${a.status === 'completed' ? 'readonly' : ''}>${esc(a.finalText || a.revisionText || '')}</textarea>
+      <textarea id="out-revision" aria-label="修改稿" rows="7" ${a.status === 'completed' ? 'readonly' : ''}>${esc(a.finalText || a.revisionText || a.originalText || '')}</textarea>
       <div class="actions"><button class="primary" id="out-revise" ${a.status === 'completed' ? 'disabled' : ''}>保存修改</button></div>
       ${cmp ? `<p class="muted">修改后 ${cmp.afterWords} 词（原 ${cmp.beforeWords} 词）· 已解决 ${cmp.resolved.length} 处 · 仍有 ${cmp.remaining.length} 处</p>` : ''}
     </section>`;

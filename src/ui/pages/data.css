@@ -1457,3 +1457,7 @@
   outline: 2px solid var(--accent-ink);
   outline-offset: 2px;
 }
+
+[data-page="stats"] .chart .bar { transform-origin: center bottom; }
+.diag-retention-row > :not(.is-empty) { border-block-start: 2px solid var(--accent); }
+.diag-retention-row > .is-empty strong { font-size: var(--t-sm); font-weight: 500; }

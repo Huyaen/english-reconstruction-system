@@ -1193,7 +1193,8 @@ function bindOutputHub(): void {
         if (days === 7 || days === 14 || days === 30) {
             outputErrorSummaryDays = days;
             render();
-            document.querySelector<HTMLSelectElement>('#out-error-window')?.focus();
+            document.querySelector<HTMLSelectElement>('#out-error-window')?.focus({ preventScroll: true });
+            inkMotion.beat(document.querySelector<HTMLElement>('#out-error-summary .section-title'), 'select');
         }
     });
     document.querySelectorAll<HTMLButtonElement>('[data-out-grammar]').forEach(button => {
@@ -1281,13 +1282,16 @@ function bindOutputSession(attempt: import('./types.ts').OutputAttempt): void {
         if (!editor || attempt.status === 'completed')
             return;
         const text = editor.value;
-        const r = await saveDraft(attempt.id, attempt.revision, text);
+        const latest = (await loadData()).outputAttempts.find(a => a.id === attempt.id);
+        if (!latest) return false;
+        const r = await saveDraft(attempt.id, latest.revision, text);
         if (r.ok) {
             outputMessage = '';
             data = await loadData();
         }
         else
             outputMessage = r.message;
+        return r.ok;
     };
     if (editor) {
         editor.oninput = () => {
@@ -1300,10 +1304,12 @@ function bindOutputSession(attempt: import('./types.ts').OutputAttempt): void {
             if (outputSaveTimer)
                 clearTimeout(outputSaveTimer);
             outputSaveTimer = setTimeout(async () => {
-                await flush();
-                const s2 = document.querySelector('#out-save-state');
-                if (s2)
-                    s2.textContent = '已保存到本地';
+                const draft = editor.value;
+                const saved = await flush();
+                const state = document.querySelector<HTMLElement>('#out-save-state');
+                if (!state || !editor.isConnected || editor.value !== draft) return;
+                state.textContent = saved ? '已保存到本地' : '草稿未保存 · 可继续编辑或重试提交';
+                if (saved) inkMotion.beat(state, 'right');
             }, 600);
         };
     }
@@ -1361,6 +1367,7 @@ function bindOutputSession(attempt: import('./types.ts').OutputAttempt): void {
         }
         outputMessage = r.value.message;
         await unitRefresh();
+        inkMotion.beat(document.querySelector<HTMLElement>('#out-feedback-result .section-title'), 'select');
     });
     on('#out-revise', 'click', async () => {
         const fresh = data.outputAttempts.find(a => a.id === attempt.id);
@@ -1373,6 +1380,7 @@ function bindOutputSession(attempt: import('./types.ts').OutputAttempt): void {
         }
         outputMessage = '修改已保存。';
         await unitRefresh();
+        inkMotion.beat(document.querySelector<HTMLElement>('.output-editor .notice'), 'right');
     });
     on('#out-finish', 'click', async () => {
         const fresh = data.outputAttempts.find(a => a.id === attempt.id);
@@ -1479,6 +1487,8 @@ function bindDiagnostics(): void {
         diagDays = Number((e.target as HTMLSelectElement).value) || 7;
         diagSource = 'live';
         render();
+        document.querySelector<HTMLElement>('#diag-days')?.focus({ preventScroll: true });
+        inkMotion.beat(document.querySelector<HTMLElement>('.diag-evidence-bar[data-total]:not([data-total="0"])'), 'select');
     });
     on('#diag-snapshot', 'click', async () => {
         if (diagBusy)
@@ -1604,11 +1614,13 @@ function bindInputHub(): void {
         inputSessionId = started.value.id;
         inputModeDraft = started.value.mode;
         await refresh();
+        inkMotion.beat(document.querySelector<HTMLElement>('#input-playback'), 'select');
     });
     document.querySelectorAll<HTMLElement>('[data-input-open]').forEach(b => b.onclick = async () => {
         inputSessionId = b.dataset.inputOpen!;
         inputModeDraft = null;
         render();
+        inkMotion.beat(document.querySelector<HTMLElement>('#input-playback'), 'select');
     });
     document.querySelectorAll<HTMLElement>('[data-input-library]').forEach(b => b.onclick = async () => {
         const result = await inputActions.saveLibraryAction(data, b.dataset.inputLibrary!);
@@ -2024,7 +2036,10 @@ function unitPageApp() {
             setPage(aiBtn.dataset.unitAi === 'reading' ? 'reading' : 'sentence');
         };
 }
-function statistics() { const s = summary(data); $('#main').innerHTML = title('统计', '看自己记住了多少', '数字都来自你自己的作答；没学的日子留空。') + `<div class="metrics">${metric('累计作答', String(data.records.length), '全部历史')}${metric('练过的词', String(data.words.filter(w => w.state.total).length), '至少答过一次')}${metric('稳定记住', String(s.effective), '还没到复习时间的熟练词')}${metric('该复习', String(s.due), '每个词单独算')}</div><div class="two-col"><section class="panel"><h2>两个方向</h2>${Object.entries(s.directions).map(([k, v]) => `<div class="direction-stat"><b>${k === 'en-zh' ? '英文 → 中文' : '中文 → 英文'}</b><strong>${v.attempts ? pct(v.accuracy) : '—'}</strong><span>${v.attempts ? `${v.attempts} 次 · ${seconds(v.meanMs)}` : '还没有记录'}</span></div>`).join('')}<p class="hint">两个方向都是选择题，所以中→英答对，不代表能独立拼写。</p></section><section class="panel"><h2>掌握情况</h2>${distribution()}</section></div><section class="panel"><div class="section-title"><h2>最近的变化</h2><select id="trend-days" aria-label="趋势时间"><option value="7">最近 7 天</option><option value="30">最近 30 天</option></select></div><div id="trend"></div></section><p class="hint">“稳定记住”是估算：要两个方向都答对，还要隔几天再答对。它不是词汇量测试成绩。</p>`; drawTrend(7); on('#trend-days', 'change', e => drawTrend(Number((e.target as HTMLSelectElement).value))); }
+function statistics() { const s = summary(data); $('#main').innerHTML = title('统计', '看自己记住了多少', '数字都来自你自己的作答；没学的日子留空。') + `<div class="metrics">${metric('累计作答', String(data.records.length), '全部历史')}${metric('练过的词', String(data.words.filter(w => w.state.total).length), '至少答过一次')}${metric('稳定记住', String(s.effective), '还没到复习时间的熟练词')}${metric('该复习', String(s.due), '每个词单独算')}</div><div class="two-col"><section class="panel"><h2>两个方向</h2>${Object.entries(s.directions).map(([k, v]) => `<div class="direction-stat"><b>${k === 'en-zh' ? '英文 → 中文' : '中文 → 英文'}</b><strong>${v.attempts ? pct(v.accuracy) : '—'}</strong><span>${v.attempts ? `${v.attempts} 次 · ${seconds(v.meanMs)}` : '还没有记录'}</span></div>`).join('')}<p class="hint">两个方向都是选择题，所以中→英答对，不代表能独立拼写。</p></section><section class="panel"><h2>掌握情况</h2>${distribution()}</section></div><section class="panel"><div class="section-title"><h2>最近的变化</h2><select id="trend-days" aria-label="趋势时间"><option value="7">最近 7 天</option><option value="30">最近 30 天</option></select></div><div id="trend"></div></section><p class="hint">“稳定记住”是估算：要两个方向都答对，还要隔几天再答对。它不是词汇量测试成绩。</p>`; drawTrend(7); on('#trend-days', 'change', e => {
+    drawTrend(Number((e.target as HTMLSelectElement).value));
+    inkMotion.series($('#trend'));
+}); }
 function drawTrend(days: number) { const rows = trend(data, days), max = Math.max(1, ...rows.map(r => r.attempts)); $('#trend').innerHTML = `<div class="chart" aria-label="每日作答次数">${rows.map(r => `<div class="bar-col"><span>${r.attempts || ''}</span><div class="bar${r.attempts ? '' : ' is-zero'}" style="height:${r.attempts ? Math.max(6, r.attempts / max * 120) : 0}px" title="${r.date}：${r.attempts}次"></div><small>${r.date.slice(5)}</small></div>`).join('')}</div><div class="table-scroll"><table><thead><tr><th>日期</th><th>作答</th><th>正确率</th><th>平均用时</th><th>变熟练的次数</th><th>该复习时答错</th></tr></thead><tbody>${rows.filter(r => r.attempts).map(r => `<tr><td>${r.date}</td><td>${r.attempts}</td><td>${pct(r.accuracy)}</td><td>${seconds(r.meanMs)}</td><td>${r.gained}</td><td>${r.forgotten}</td></tr>`).join('') || '<tr><td colspan="6">这段时间还没有记录</td></tr>'}</tbody></table></div>`; }
 function aiPage() {
     const configured = !!(data.settings.endpoint && data.settings.model && data.settings.key);

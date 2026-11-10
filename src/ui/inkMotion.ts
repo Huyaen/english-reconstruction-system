@@ -126,6 +126,21 @@ class InkMotion {
     });
   }
 
+  /** Only render real, non-zero counts on a changed statistics window. */
+  series(root: HTMLElement) {
+    if (!this.expressive || document.hidden) return;
+    this.quiet();
+    root.querySelectorAll<HTMLElement>('.chart .bar:not(.is-zero)').forEach((bar, index) => {
+      const motion = bar.animate([{ transform: 'scaleY(.55)' }, { transform: 'none' }], {
+        duration: 320, delay: Math.min(index * 12, 72), easing: ease,
+      });
+      this.animations.set(bar, motion);
+      void motion.finished.catch(() => {}).finally(() => {
+        if (this.animations.get(bar) === motion) this.animations.delete(bar);
+      });
+    });
+  }
+
   /** Capture only the visible working set. Stable IDs link old and new rows. */
   rows(root: HTMLElement) {
     const boxes = new Map<string, number>();

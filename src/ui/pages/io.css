@@ -598,3 +598,16 @@
 
 /* 自动保存是 live region：保存中给出可感知但不闪的态 */
 [data-page="output"] #out-save-state { min-width: 9ch; }
+
+/* Keep draft and feedback on separate planes, and compare quoted text inline. */
+.ink-writing-comparison {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-2);
+  margin-block: var(--s-2);
+  font-family: var(--font-reading);
+  overflow-wrap: anywhere;
+}
+.ink-writing-comparison q { text-decoration: underline dotted var(--warn); text-underline-offset: .15em; }
+#input-playback { border-block-start: 2px solid var(--accent); }
