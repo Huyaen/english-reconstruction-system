@@ -93,6 +93,7 @@ export interface StudySession {
     planTaskId?: string | null;
 }
 export interface Settings {
+    newWordGoal?: number | null;
     stubbornSnoozedUntil?: Record<string, number>;
     pronunciationLocale?: 'en-US' | 'en-GB';
     fast: number;
@@ -714,6 +715,7 @@ export interface DailyPlan {
         label?: string;
     }>;
     planRequest?: unknown;
+    newWordGoal?: number | null;
     budget?: unknown;
     recovery?: unknown;
     calibration?: unknown;

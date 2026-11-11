@@ -187,7 +187,8 @@ test('页面状态同步：五个页面转换都让 html[data-page] 与真实渲
   assert.equal(htmlPage(), 'quiz', '内部页面是 quiz 时根节点必须同步为 quiz');
   assert.equal(htmlLevel(), 'b', 'quiz 等级应为 b');
   assert.ok(doc.querySelectorAll('.answer').length >= 2, '应渲染出选项');
-  assert.equal(doc.querySelector('#main h1'), null, 'quiz 使用自己的题面结构，不应残留上一页标题');
+  assert.equal(doc.querySelectorAll('#main h1').length, 1, '答题只有一个标题，不应残留上一页标题');
+  assert.ok(doc.querySelector('.quiz-card h1#question-text'), '题面就是答题的页面标题');
   assert.equal(doc.querySelector('#train-filter'), null, '训练页不应残留词库的工具条');
 
   const d1 = await db.loadData();
@@ -214,7 +215,7 @@ test('页面状态同步：五个页面转换都让 html[data-page] 与真实渲
 
   // ——— results → home ———
   assert.equal(click('#back-home'), true, '结果页应有返回首页');
-  await waitUntil(() => htmlPage() === 'home' && !!doc.querySelector('[data-nav].active'), 8000, '回到首页');
+  await waitUntil(() => htmlPage() === 'home' && !!doc.querySelector('[data-nav="home"][aria-current="page"]'), 8000, '回到首页');
   assert.equal(htmlPage(), 'home');
   assert.equal(htmlLevel(), 'a', '首页等级应为 a');
 

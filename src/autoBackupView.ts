@@ -8,6 +8,7 @@ export function updateBackupPanel(manager: AutoBackup) {
     const target = document.querySelector('#auto-backup-state');
     if (!target) return;
     const s = manager.state;
+    target.setAttribute('data-backup-status', s.status);
     const supported = typeof (window as unknown as { showDirectoryPicker?: unknown }).showDirectoryPicker === 'function';
     const statuses = { off: '已关闭', ready: '等待下一轮完成', writing: '正在写入并校验', success: '备份成功', permission: '需要重新授权', error: '备份失败' };
     target.innerHTML = supported ? `目录：${esc(s.handle?.name ?? '尚未选择')} · ${statuses[s.status]}<br>最近成功：${s.lastSuccess ? date(s.lastSuccess) : '尚未成功'}${s.error ? `<br><span class="error">${esc(s.error)}</span>` : ''}` : '当前浏览器不支持授权目录写入。请使用桌面 Chrome / Edge，或手动导出完整备份。';

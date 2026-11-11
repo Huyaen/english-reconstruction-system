@@ -10,9 +10,9 @@ import { inputUnavailableReason, planInputTask } from './inputPlanner.ts';
 import type { DailyPlan, Direction, EnergyState, InputSession, InputSource, MiniUnit, Passage, PlanEvent, PlanItem, ReadingSession, ReviewRecord, Word } from './types.ts';
 import { effectiveDue } from './fsrs.ts';
 import { dayKey, isWeak } from './stats.ts';
-import { priority } from './core.ts';
+import { priority, validNewWordGoal } from './core.ts';
 import { buildNewWordQueue, recommendedNewWordCount } from './pools.ts';
-import { isUnseen } from './evidence.ts';
+import { isUnseen, recallEligible } from './evidence.ts';
 import type { SentenceRecord } from './types.ts';
 import { SENTENCE_TASK_LABELS, planSentenceTasks, type SentencePlanInput, type SentenceTaskDescriptor, type SentenceTaskKind } from './sentenceSelection.ts';
 import { planOutputTask } from './outputPlanner.ts';
@@ -103,6 +103,7 @@ function stableKey(seed: string, id: string): number {
 const round1 = (n: number) => Math.round(n * 10) / 10;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 export interface PlannerInput {
+    newWordGoal?: number | null;
     now: number;
     availableMinutes: number;
     energy: EnergyState;
@@ -482,7 +483,15 @@ export function planProgress(plan: DailyPlan) {
     const remainingMinutes = round1(openTasks(plan).reduce((n, t) => n + t.minutes, 0));
     return { total, done: done.length, skipped, doneMinutes, remainingMinutes, plannedMinutes: round1(doneMinutes + remainingMinutes), ratio: total ? done.length / total : 0, remainingTaskIds: openTasks(plan).map(t => t.id) };
 }
-export function createDailyPlan(input: PlannerInput): PlanBuildResult {
+export function firstAttemptedOn(records: ReviewRecord[], date: string): Set<string> {
+    const first = new Map<string, ReviewRecord>();
+    for (const r of records) {
+        const prior = first.get(r.wordId);
+        if (!prior || r.at < prior.at) first.set(r.wordId, r);
+    }
+    return new Set([...first.values()].filter(r => r.before === 'new' && dayKey(r.at) === date).map(r => r.wordId));
+}
+export function createDailyPlan(input: PlannerInput, reservedNew: ReadonlySet<string> = new Set(), reservedDue: ReadonlySet<string> = new Set()): PlanBuildResult {
     const now = input.now;
     const date = dayKey(now);
     const budgetNorm = normalizeBudget(input.availableMinutes);
@@ -496,7 +505,7 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
     const lastActivityAt = input.lastActivityAt === undefined ? latestLearningAt(input.records) : input.lastActivityAt;
     const recovery = decideRecovery(lastActivityAt, now);
     reasons.push(...recovery.reasons);
-    const dueAll = input.words.filter(w => w.state.total > 0 && effectiveDue(w, auth) <= now);
+    const dueAll = input.words.filter(w => !reservedDue.has(w.id) && w.state.total > 0 && effectiveDue(w, auth) <= now);
     const dueIds = new Set(dueAll.map(w => w.id));
     const weakAll = input.words.filter(w => w.state.total > 0 && isWeak(w) && !dueIds.has(w.id));
     const retention = estimateRetention(input.records, now);
@@ -535,22 +544,28 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
         weakLoad: weakAll.length,
         dueLoad: dueAll.length,
     });
-    reasons.push(...recommendation.reasons);
-    const newCapByBudget = Math.floor(remaining * PLANNER_CONFIG.newWordShareCap / PLANNER_CONFIG.minutesPerNewWord);
-    let newCount = Math.min(recommendation.recommended, Math.max(0, newCapByBudget));
-    if (newCount < 2) {
+    const goal = validNewWordGoal(input.newWordGoal) ? input.newWordGoal : null;
+    const requested = goal === null ? recommendation.recommended
+        : Math.max(0, goal - new Set([...firstAttemptedOn(input.records, date), ...reservedNew]).size);
+    if (goal === null) reasons.push(...recommendation.reasons);
+    const dueReserve = goal === null ? 0 : Math.min(remaining, Math.ceil(dueAll.length * PLANNER_CONFIG.minutesPerDueWord));
+    const newBudget = goal === null ? remaining * PLANNER_CONFIG.newWordShareCap : remaining - dueReserve;
+    const newCapByBudget = newBudget >= (goal === null ? 0 : 2) ? Math.floor(newBudget / PLANNER_CONFIG.minutesPerNewWord) : 0;
+    let newCount = Math.min(requested, Math.max(0, newCapByBudget));
+    if (goal !== null && newCount < requested) reasons.push('new-goal-budget');
+    if (goal === null && newCount < 2) {
         newCount = 0;
         if (remaining > 0)
             reasons.push('new-deferred-budget');
     }
-    const queue = buildNewWordQueue(input.words, { count: newCount, miniUnit: input.miniUnit ?? null, now });
+    const queue = buildNewWordQueue(reservedNew.size ? input.words.filter(w => !reservedNew.has(w.id)) : input.words, { count: newCount, miniUnit: input.miniUnit ?? null, now });
     const newIds = queue.items.filter(i => i.kind === 'new').map(i => i.wordId);
     const forgottenIds = queue.items.filter(i => i.kind === 'forgotten').map(i => i.wordId);
     if (queue.breakdown.fallbackReasons.length)
         reasons.push(...queue.breakdown.fallbackReasons);
     if (newIds.length < newCount)
         reasons.push(`pool-limited-${newIds.length}/${newCount}`);
-    let newMinutes = newIds.length ? Math.ceil(newIds.length * PLANNER_CONFIG.minutesPerNewWord) : 0;
+    let newMinutes = newIds.length ? Math.max(goal === null ? 0 : 2, Math.ceil(newIds.length * PLANNER_CONFIG.minutesPerNewWord)) : 0;
     let dueBudget = Math.max(0, remaining - newMinutes);
     let dueTarget = Math.min(dueAll.length, Math.floor(dueBudget / PLANNER_CONFIG.minutesPerDueWord));
     let dueMinutes = dueTarget ? Math.ceil(dueTarget * PLANNER_CONFIG.minutesPerDueWord) : 0;
@@ -700,7 +715,7 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
         ? makeTask(date, 'due-review', dueMinutes, dueWords.map(w => w.id), { priority: 90, critical: true, flexible: false, source: 'due', reason: [`due-${dueAll.length}`, `planned-${dueWords.length}`] })
         : null;
     const previewTask = newIds.length
-        ? makeTask(date, 'new-preview', Math.max(1, Math.ceil(newMinutes * PLANNER_CONFIG.previewShare)), newIds, { priority: 70, critical: false, flexible: true, source: 'pool', reason: [`new-${newIds.length}`, `recommended-${recommendation.recommended}`] })
+        ? makeTask(date, 'new-preview', Math.max(1, Math.ceil(newMinutes * PLANNER_CONFIG.previewShare)), newIds, { priority: 70, critical: false, flexible: true, source: 'pool', reason: [`new-${newIds.length}`, `${goal === null ? 'recommended' : 'manual'}-${goal ?? recommendation.recommended}`] })
         : null;
     const recallTask = newIds.length && previewTask
         ? makeTask(date, 'new-recall', Math.max(1, newMinutes - previewTask.minutes), newIds, { priority: 68, critical: false, flexible: true, source: 'pool', reason: ['preview-then-recall'], dependencies: [previewTask.id] })
@@ -746,7 +761,7 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
         availableMinutes: available, closing: closingMinutes, yesterdayRecall: recallMinutes, recovery: recoveryMinutes,
         newPreview: previewTask?.minutes ?? 0, newRecall: recallTask?.minutes ?? 0, due: dueMinutes, weak: weakMinutes, sentence: round1(sentenceMinutesUsed), reading: round1(readingMinutesUsed), input: round1(inputMinutesUsed), output: round1(outputMinutesUsed), exam: round1(examTasks.reduce((n, t) => n + t.minutes, 0)),
         planned, unallocated: round1(Math.max(0, available - planned)),
-        load: { dueTotal: dueAll.length, duePlanned: dueWords.length, weakTotal: weakAll.length, weakPlanned: weakWords.length, newRequested: recommendation.recommended, newPlanned: newIds.length, forgottenPlanned: forgottenIds.length, memoryDebt: Math.max(0, dueAll.length - dueWords.length), sentenceTasks: sentenceTasks.length, sentenceSentences: sentenceTasks.reduce((n, t) => n + (t.refs ?? []).length, 0), readingTasks: readingTasks.length, readingMinutes: round1(readingMinutesUsed), inputTasks: inputTasks.length, inputMinutes: round1(inputMinutesUsed), outputTasks: outputTasks.length, outputMinutes: round1(outputMinutesUsed), examTasks: examTasks.length, examMinutes: round1(examTasks.reduce((n, t) => n + t.minutes, 0)) },
+        load: { dueTotal: dueAll.length, duePlanned: dueWords.length, weakTotal: weakAll.length, weakPlanned: weakWords.length, newRequested: goal ?? recommendation.recommended, newPlanned: newIds.length, forgottenPlanned: forgottenIds.length, memoryDebt: Math.max(0, dueAll.length - dueWords.length), sentenceTasks: sentenceTasks.length, sentenceSentences: sentenceTasks.reduce((n, t) => n + (t.refs ?? []).length, 0), readingTasks: readingTasks.length, readingMinutes: round1(readingMinutesUsed), inputTasks: inputTasks.length, inputMinutes: round1(inputMinutesUsed), outputTasks: outputTasks.length, outputMinutes: round1(outputMinutesUsed), examTasks: examTasks.length, examMinutes: round1(examTasks.reduce((n, t) => n + t.minutes, 0)) },
         reasons,
     };
     const plan: DailyPlan = {
@@ -761,6 +776,7 @@ export function createDailyPlan(input: PlannerInput): PlanBuildResult {
         revision: 0, updatedAt: now, status: 'planned',
         capabilities: caps,
         planRequest: { availableMinutes: available, energyState: energy, lastActivityAt, recovery, retention, sampleSize: sample.length },
+        ...(input.newWordGoal !== undefined ? { newWordGoal: goal } : {}),
         budget, recovery, calibration: null, taskActions: [],
     };
     return { plan, budget, reasons };
@@ -1003,7 +1019,7 @@ export function calibrateAfterRecall(plan: DailyPlan, evaluation: RecallEvaluati
         touch(next);
         return { ok: true, plan: next, event: ev, reasons: ['retention-unavailable'] };
     }
-    const factor = retention < 0.6 ? 0.7 : retention >= 0.8 ? 1.15 : 1;
+    const factor = validNewWordGoal(plan.newWordGoal) ? 1 : retention < 0.6 ? 0.7 : retention >= 0.8 ? 1.15 : 1;
     const preview = next.initialPlan.find(t => t.kind === 'new-preview');
     const recall = next.initialPlan.find(t => t.kind === 'new-recall');
     const previewRefs = preview?.refs ?? [];
@@ -1077,7 +1093,27 @@ export function regenerateRemaining(plan: DailyPlan, input: PlannerInput): PlanA
     const spent = round1(preserved.reduce((n, t) => n + (t.actualMinutes ?? t.minutes), 0));
     const totalBudget = Math.max(input.availableMinutes, spent + PLANNER_CONFIG.budget.min);
     const remainingBudget = Math.max(PLANNER_CONFIG.budget.min, round1(totalBudget - spent));
-    const rebuilt = createDailyPlan({ ...input, now, availableMinutes: remainingBudget, energy: input.energy ?? plan.energyState });
+    const goal = input.newWordGoal === undefined ? plan.newWordGoal : input.newWordGoal;
+    const trackGoal = goal !== undefined || plan.newWordGoal !== undefined;
+    const isNew = (t: PlanItem) => t.kind === 'new-preview' || t.kind === 'new-recall';
+    const previewed = new Set(input.words.filter(w => recallEligible(w) && w.previewResult !== 'skip').map(w => w.id));
+    const reserved = new Set(trackGoal ? preserved.filter(isNew).flatMap(t => (t.refs ?? [])
+        .filter(id => t.kind !== 'new-preview' || t.status === 'started' || previewed.has(id))) : []);
+    const reservedDue = new Set(trackGoal ? preserved.filter(t => t.kind === 'due-review').flatMap(t => t.refs ?? []) : []);
+    const preservedIds = new Set(preserved.map(t => t.id));
+    const carry = trackGoal ? plan.initialPlan.filter(t => t.kind === 'new-recall'
+        && (t.status === 'pending' || t.status === 'delayed' || (t.status === 'replaced' && t.note?.includes('回归模式暂缓')))
+        && t.dependencies?.some(id => preservedIds.has(id))).map(t => {
+        const dependencyStarted = started.some(p => t.dependencies?.includes(p.id));
+        return { ...t, status: 'pending' as const, note: '', refs: dependencyStarted ? t.refs : (t.refs ?? []).filter(id => previewed.has(id)) };
+    }).filter(t => t.refs?.length) : [];
+    const carryMinutes = carry.reduce((sum, t) => sum + t.minutes, 0);
+    if (trackGoal && input.availableMinutes < spent + carryMinutes) {
+        const reason = `已投入及保留的新词回忆共需 ${round1(spent + carryMinutes)} 分钟，请增加总时间。`;
+        return { ok: false, plan, event: event(plan, '', 'regenerate', 0, reason, now), reasons: [reason] };
+    }
+    const room = trackGoal ? round1(input.availableMinutes - spent - carryMinutes) : remainingBudget;
+    const rebuilt = createDailyPlan({ ...input, newWordGoal: goal, now, availableMinutes: room, energy: input.energy ?? plan.energyState }, reserved, reservedDue);
     const preservedKinds = new Set(preserved.map(t => t.kind));
     const recallDone = (plan.yesterdayRecallResult as {
         status?: string;
@@ -1086,6 +1122,8 @@ export function regenerateRemaining(plan: DailyPlan, input: PlannerInput): PlanA
         status?: string;
     } | null)?.status === 'completed';
     const fresh = rebuilt.plan.initialPlan.filter(t => {
+        if (trackGoal && room < PLANNER_CONFIG.budget.min) return false;
+        if (trackGoal && (isNew(t) || t.kind === 'due-review')) return true;
         if (preservedKinds.has(t.kind))
             return false;
         if (t.kind === 'yesterday-recall' && recallDone)
@@ -1094,11 +1132,18 @@ export function regenerateRemaining(plan: DailyPlan, input: PlannerInput): PlanA
             return false;
         return true;
     });
-    const tasks = [...preserved, ...fresh];
-    trimToBudget(tasks, totalBudget, []);
+    const kept = [...preserved, ...carry];
+    const ids = new Set(kept.map(t => t.id));
+    const remap = new Map(fresh.filter(t => ids.has(t.id)).map(t => [t.id, `${t.id}:r${(plan.revision ?? 0) + 1}`]));
+    for (const t of fresh) {
+        t.id = remap.get(t.id) ?? t.id;
+        t.dependencies = t.dependencies?.map(id => remap.get(id) ?? id);
+    }
+    const tasks = [...kept, ...fresh];
+    if (!trackGoal) trimToBudget(tasks, totalBudget, []);
     const next: DailyPlan = {
         ...plan,
-        availableMinutes: totalBudget,
+        availableMinutes: trackGoal ? input.availableMinutes : totalBudget,
         energyState: rebuilt.plan.energyState,
         initialPlan: tasks,
         status: 'active',
@@ -1106,6 +1151,7 @@ export function regenerateRemaining(plan: DailyPlan, input: PlannerInput): PlanA
         adjustments: [...plan.adjustments, { at: now, module: 'plan', deltaMinutes: round1(tasks.reduce((n, t) => n + t.minutes, 0) - (planMinutes(plan) - done.reduce((n, t) => n + t.minutes, 0))), reason: 'regenerate-remaining' }],
         budget: rebuilt.budget,
         planRequest: rebuilt.plan.planRequest,
+        newWordGoal: goal,
         recovery: rebuilt.plan.recovery,
         capabilities: rebuilt.plan.capabilities,
     };
@@ -1117,6 +1163,7 @@ export function regenerateRemaining(plan: DailyPlan, input: PlannerInput): PlanA
 }
 // 同目标替换候选：仍由真实词库与到期/弱词状态决定；无候选则明确返回 null。
 export function buildReplacement(plan: DailyPlan, task: PlanItem, words: Word[], now: number, auth: 'legacy' | 'fsrs' = 'fsrs', sentencePool: SentenceRecord[] = []): PlanItem | null {
+    if (validNewWordGoal(plan.newWordGoal) && (task.kind === 'new-preview' || task.kind === 'new-recall')) return null;
     const used = new Set(plan.initialPlan.flatMap(t => t.refs ?? []));
     if (task.module === 'sentence' || task.kind?.startsWith('sentence-')) {
         const pool = sentencePool.filter(s => task.targetGrammar?.some(g => s.grammarTags.includes(g)) && !used.has(s.id));

@@ -117,7 +117,7 @@ export function inputSessionPage(input: SessionPageInput): string {
     return `
     <div class="page-title"><div><div class="eyebrow">这次输入</div><h1>${esc(s.title)}</h1><p>${esc(s.topic)} · ${s.durationMinutes ? s.durationMinutes + ' 分钟' : '时长未知'} · 计划 ${s.plannedMinutes ?? '—'} 分钟 · 状态 ${INPUT_SESSION_STATUS_TEXT[status] ?? '进行中'}</p></div>
       <button class="secondary" data-input-back>返回材料库</button></div>
-    <section class="panel">
+    <section class="panel" id="input-playback">
       <div class="actions">
         <a class="button primary" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer" data-input-external>在外部打开并观看</a>
         <button class="secondary" data-input-mark-open>我已打开</button>

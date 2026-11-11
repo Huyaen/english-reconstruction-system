@@ -110,34 +110,29 @@ test('CSS：训练态（quiz）与预览态（preview）的选项规则在真实
     assert.equal(stray.length, 0, `quiz.css 不应命中首页的 .answer：${stray.slice(0, 3).join(' | ')}`)
 })
 
-test('CSS：深色按钮默认接触阴影是低特异性默认值，不得压过组件自身阴影', () => {
+test('CSS：两套主题共享低特异性的按钮表面，不压过专用交互状态', () => {
     const root = parse('src/ui/system.css')
-    let found = false
-    root.walkRules(rule => {
-        if (!/--contact/.test(rule.toString())) return
-        if (!/data-theme="dark"/.test(rule.selector)) return
-        found = true
-        // Today 主按钮的辉光在 cinematic15d.css，特异性 (0,2,1)；
-        // 默认阴影必须更低，否则每次导航都会把辉光抹掉。
-        assert.match(rule.selector, /:where\(/, '深色按钮默认阴影必须用 :where() 降低特异性')
+    let plainButton = false
+    root.walkDecls('box-shadow', declaration => {
+        const rule = declaration.parent
+        if (rule?.type !== 'rule') return
+        assert.doesNotMatch(rule.selector, /data-theme.*button/, '主题规则不得覆盖组件自身的表面')
+        if (rule.selector === 'button' && declaration.value === 'none') plainButton = true
     })
-    assert.ok(found, '应当存在深色主题默认接触阴影规则')
+    assert.ok(plainButton, '默认按钮表面必须是低特异性的平面')
 })
 
-test('CSS：导航入场动画不得从完全透明开始（否则主内容区会裸露背景）', () => {
-    // 两条入场动画都会让主内容区从 opacity:0 起步：
-    //   p15-enter 动的是 <main> 本身（style.css），p15-arrive 动 #main 的直接子块（system.css）。
-    // 实测：只要任一条从 0 开始，导航后主内容区就会裸露背景 200ms 以上。
-    const cases: Array<[string, RegExp]> = [
-        ['src/ui/system.css', /@keyframes p15-arrive\s*\{[\s\S]*?\n\}/],
-        ['src/style.css', /@keyframes p15-enter\{[\s\S]*?to\{[^}]*\}\}/]
-    ]
-    for (const [file, re] of cases) {
-        const src = readFileSync(file, 'utf8')
-        const block = src.match(re)
-        assert.ok(block, `${file} 中应当存在入场关键帧`)
-        const opacity = block![0].match(/(?:from|0%)\s*\{[^}]*opacity:\s*([\d.]+)/)
-        assert.ok(opacity, `${file} 入场起点应当声明 opacity`)
-        assert.ok(Number(opacity![1]) >= 0.6, `${file} 入场首帧 opacity 不应低于 0.6（实测 ${opacity![1]}）`)
+test('CSS：导航保持正文可见，局部墨层不拦截交互', () => {
+    for (const file of ['src/style.css', 'src/ui/system.css']) {
+        assert.doesNotMatch(readFileSync(file, 'utf8'), /p15-enter|p15-arrive/)
     }
+    const app = readFileSync('src/app.ts', 'utf8')
+    assert.doesNotMatch(app, /startViewTransition|cloneNode/)
+    const layers = parse('src/ui/pages/ink-core.css')
+    let passive = false
+    layers.walkRules(rule => {
+        if (!splitSelectors(rule.selector).includes('.ink-beat')) return
+        rule.walkDecls('pointer-events', declaration => { passive ||= declaration.value === 'none' })
+    })
+    assert.ok(passive, '反馈图层必须允许直接操作其下控件')
 })

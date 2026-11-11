@@ -1,0 +1,16 @@
+:is([data-page=books], [data-page=weak]) #word-table { border: 0; }
+#word-table th { background: transparent; color: var(--ink-muted); border-bottom: 2px solid var(--ink); }
+#word-table td { background: transparent; }
+#word-table tr:focus-within, #word-table tbody tr:hover { background: var(--accent-wash); }
+#word-table .word-link { font: 22px Georgia, serif; color: var(--ink); }
+#word-table .word-link:hover { color: var(--accent); text-decoration: underline; text-underline-offset: .2em; }
+.detail-word [data-ink-word] { font: 400 clamp(34px, 5vw, 62px)/1.12 Georgia, serif; overflow-wrap: anywhere; }
+.ink-confusions > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 16px; border-top: 1px solid var(--line); padding: 9px 0; }
+.ink-confusions dt { font: 19px Georgia, serif; overflow-wrap: anywhere; }
+.ink-confusions dd { margin: 0; }
+.ink-confusions small { color: var(--ink-muted); }
+:is([data-page=spelling], [data-page=cloze]) .quiz-card { background: transparent; box-shadow: none; border: 0; border-top: 1px solid var(--line); text-align: start; margin-inline: 0; }
+:is(#spelling-form, #cloze-form) { max-width: 65ch; }
+:is(#spelling-input, #cloze-input) { display: block; width: 100%; min-height: 44px; border-color: var(--line-strong); }
+#cloze-sentence { font: 23px/1.75 Georgia, serif; }
+:is(#cloze-feedback, #spelling-feedback) { min-height: 1.5em; border-bottom: 1px solid var(--line); }

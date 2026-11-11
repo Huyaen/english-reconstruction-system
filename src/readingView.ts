@@ -93,7 +93,7 @@ export function previewHTML(input: {
 function tokenHTML(t: ReadingToken, marks: ReadingMark[]): string {
     const mark = marks.find(m => !m.revokedAt && m.tokenIndex === t.index && m.sentenceIndex === t.sentenceIndex);
     const cls = mark ? `word marked mark-${mark.judgment}` : 'word';
-    return `<button class="${cls}" data-tok="${t.index}" data-sent="${t.sentenceIndex}" data-word="${esc(t.normalized)}" title="${mark ? MARK_LABELS[mark.judgment] : '点击标记这个词'}">${esc(t.surface)}</button>`;
+    return `<button class="${cls}" aria-pressed="false" data-tok="${t.index}" data-sent="${t.sentenceIndex}" data-word="${esc(t.normalized)}" title="${mark ? MARK_LABELS[mark.judgment] : '点击标记这个词'}">${esc(t.surface)}</button>`;
 }
 function sentenceHTML(sentence: ReadingSentence, tokens: ReadingToken[], marks: ReadingMark[]): string {
     const own = tokens.filter(t => t.sentenceIndex === sentence.index);
@@ -163,6 +163,7 @@ export function readerHTML(input: {
     <button class="reader-side-toggle reader-sheet-close" data-reader-side-toggle="1" aria-label="收起辅助面板">收起</button>
     <div class="section-title"><b>这一段</b></div>
     <p class="hint">点词标记：知道 / 模糊 / 不知道 / 猜出。标记只记成“见过”，不会直接改变掌握程度。</p>
+    <p id="read-word-cue" aria-live="polite">先选正文中的词</p>
     <div class="actions" id="read-mark-tools">
       ${Object.entries(MARK_LABELS).map(([k, v]) => `<button class="chip" data-mark="${k}">${v}</button>`).join('')}
       <button class="chip" data-mark-undo="1">撤销</button>
