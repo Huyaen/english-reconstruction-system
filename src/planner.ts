@@ -1094,7 +1094,7 @@ export function regenerateRemaining(plan: DailyPlan, input: PlannerInput): PlanA
     const totalBudget = Math.max(input.availableMinutes, spent + PLANNER_CONFIG.budget.min);
     const remainingBudget = Math.max(PLANNER_CONFIG.budget.min, round1(totalBudget - spent));
     const goal = input.newWordGoal === undefined ? plan.newWordGoal : input.newWordGoal;
-    const trackGoal = validNewWordGoal(goal) || validNewWordGoal(plan.newWordGoal);
+    const trackGoal = goal !== undefined || plan.newWordGoal !== undefined;
     const isNew = (t: PlanItem) => t.kind === 'new-preview' || t.kind === 'new-recall';
     const previewed = new Set(input.words.filter(w => recallEligible(w) && w.previewResult !== 'skip').map(w => w.id));
     const reserved = new Set(trackGoal ? preserved.filter(isNew).flatMap(t => (t.refs ?? [])

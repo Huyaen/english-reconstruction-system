@@ -2416,6 +2416,7 @@ async function persistPlan(plan: DailyPlan): Promise<DailyPlan | null> {
         if (e instanceof StalePlanError) {
             toast(e.message);
             todayPlan = (await loadPlan(dayKey(Date.now()))) ?? todayPlan;
+            if (todayPlan) data.dailyPlans = upsertPlan(data.dailyPlans, todayPlan);
             render();
         }
         else
@@ -2731,6 +2732,7 @@ async function reconcilePlanEvidence(): Promise<void> {
     let plan = todayPlan;
     let changed = false;
     for (const task of todayPlan.initialPlan.filter(t => t.status === 'started')) {
+        if (data.sessions.some(s => s.planTaskId === task.id && !s.ended)) continue;
         const evidence = taskEvidence(task, data, { planTaskId: task.id, startedAt: task.startedAt ?? 0, sessionId: '' });
         if (!evidence.ok)
             continue;

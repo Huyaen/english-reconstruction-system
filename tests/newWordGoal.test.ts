@@ -88,3 +88,23 @@ test('DB9 backup round-trips a default distinct from the daily override and read
     exported.data.dailyPlans[0].newWordGoal = 101;
     assert.throws(() => validateBackup(exported));
 });
+test('release: repeated smart/manual changes preserve the preview-to-recall contract', () => {
+    let plan = createDailyPlan({ ...input, newWordGoal: 20 }).plan;
+    const preview = plan.initialPlan.find(t => t.kind === 'new-preview')!;
+    preview.status = 'done';
+    const introduced = new Set(preview.refs);
+    const seen = words.map(w => introduced.has(w.id) ? applyPreview(w, 'know', now, w.id).word : w);
+    for (const goal of [null, null, 0, 30, null, 30]) {
+        const result = regenerateRemaining(plan, { ...input, words: seen, newWordGoal: goal });
+        assert.ok(result.ok);
+        plan = result.plan;
+        for (const recall of plan.initialPlan.filter(t => t.kind === 'new-recall' && t.status === 'pending')) {
+            const linked = plan.initialPlan.find(t => recall.dependencies?.includes(t.id));
+            assert.ok(linked && linked.kind === 'new-preview');
+            assert.ok(recall.refs?.every(id => linked.refs?.includes(id)), 'recall must use the linked preview words');
+        }
+        const oldRecall = plan.initialPlan.find(t => t.kind === 'new-recall' && t.dependencies?.includes(preview.id) && t.status === 'pending');
+        assert.deepEqual(new Set(oldRecall?.refs), introduced, 'the unfinished original recall stays available across toggles');
+        assert.equal(new Set(plan.initialPlan.map(t => t.id)).size, plan.initialPlan.length);
+    }
+});
