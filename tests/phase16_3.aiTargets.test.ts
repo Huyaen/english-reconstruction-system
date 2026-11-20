@@ -79,7 +79,7 @@ test('真实请求与保存：面板写的目标 = 发出去的目标 = 存进�
         open.onsuccess = () => {
             const db = open.result;
             const tx = db.transaction(['meta', 'words'], 'readwrite');
-            tx.objectStore('meta').put({ id: 'settings', value: { ...defaults, endpoint: 'http://ai.local/v1', model: 'mock-model', key: 'k' } });
+            tx.objectStore('meta').put({ id: 'settings', value: { ...defaults, endpoint: 'http://ai.local/v1', model: 'mock-model', key: 'k', rememberKey: true } });
             tx.objectStore('words').put(word());
             tx.oncomplete = () => { db.close(); resolve(); };
             tx.onerror = () => { db.close(); reject(tx.error); };

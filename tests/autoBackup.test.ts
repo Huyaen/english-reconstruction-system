@@ -27,6 +27,16 @@ function directory() {
     return { handle, files, writes: () => writes, deny: () => { permission = 'prompt'; }, break: () => { broken = true; }, corrupt: () => { corrupt = true; } };
 }
 
+test('重新打开后真实权限恢复时清除旧授权提示，不请求用户手势', async () => {
+    const disk = directory();
+    const manager = new AutoBackup(async () => emptyData(), async () => {}, () => {});
+    await manager.select(disk.handle);
+    manager.state.status = 'permission'; manager.state.error = 'stale permission';
+    await manager.checkPermission();
+    assert.equal(manager.state.status, 'ready');
+    assert.equal(manager.state.error, '');
+});
+
 test('完整备份排除顶层和嵌套 API Key，恢复也清除两处 Key', () => {
     const d = emptyData();
     d.settings.key = 'TOP-TEST-SECRET';

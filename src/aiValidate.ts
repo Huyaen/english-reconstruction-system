@@ -46,6 +46,7 @@ export interface SentenceSpec {
 }
 export interface ReadingSpec {
     allowedGrammar: string[];
+    expectedWords?: string[];
     minWords: number;
     maxWords: number;
     minExercises: number;
@@ -189,6 +190,9 @@ export function validateReading(v: unknown, spec: ReadingSpec): {
     if (/<\/?[a-z][^>]*>/i.test(passage) || /javascript:/i.test(passage))
         issues.push({ path: '$.passage', message: '正文包含 HTML/脚本片段（必须纯文本）' });
     const targetWords = strArray(v.targetWords, '$.targetWords', issues, 1, 12);
+    if (spec.expectedWords && (new Set(targetWords.map(w => w.toLowerCase())).size !== spec.expectedWords.length
+        || spec.expectedWords.some(w => !targetWords.some(t => t.toLowerCase() === w.toLowerCase()) || !containsWord(passage, w))))
+        issues.push({ path: '$.targetWords', message: '目标词清单要和这次练习一致，并且每个词都必须出现在正文。' });
     const targetGrammar = strArray(v.targetGrammar, '$.targetGrammar', issues, 1, 8);
     const grammarSet = new Set(spec.allowedGrammar);
     for (const g of targetGrammar)

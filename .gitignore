@@ -24,3 +24,5 @@ screenshots/phase15h3/rec/
 # 启动器日志（本机运行产物）
 cijian-server.log
 cijian-server.log.err
+.cijian-backup-directory.json
+.cijian-backup-directory.*.tmp

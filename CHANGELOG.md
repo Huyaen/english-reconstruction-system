@@ -1,5 +1,12 @@
 # 变更记录
 
+## v1.5.1
+
+- 自动备份可由词间启动器写入用户一次性确认的目录。继续支持浏览器授权和手动导出。
+- 定向训练根据实际的词义混淆和阅读错题选材。AI 阅读题在独立作答后给出解析，并保留练习结果。
+- 学情报告、生成与写作反馈共用请求限制。设置页显示服务商回报用量和 DeepSeek 费用估算。
+- 沿用 DB9 和原有 FSRS 调度。
+
 ## v1.5.0 — B「动字排练场」与「墨场」交互（2026-11-11）
 
 正式版本：[v1.5.0 标签](https://github.com/Huyaen/english-reconstruction-system/tree/v1.5.0) · [合并 PR #7](https://github.com/Huyaen/english-reconstruction-system/pull/7)

@@ -36,6 +36,38 @@ test('配置校验：缺 endpoint / model / key 都是明确错误，且不静�
     assert.equal(isConfigured({ endpoint: CFG.endpoint, model: CFG.model, key: CFG.key } as never), true);
     assert.equal(isConfigured({ endpoint: '', model: '', key: '' } as never), false);
 });
+
+test('DeepSeek 官方调用显式关闭默认思考，保留可切换模型和输出上限', async () => {
+    let sent: Record<string, unknown> = {};
+    await chat({ ...CFG, endpoint: 'https://api.deepseek.com', model: 'deepseek-flash' }, { system: 'Return JSON', user: '{}' }, {
+        fetchImpl: (async (_url: string, init: RequestInit) => { sent = JSON.parse(String(init?.body)); return okRes(content('{}')); }) as unknown as typeof fetch,
+    });
+    assert.deepEqual(sent.thinking, { type: 'disabled' });
+    assert.equal(sent.max_tokens, 500);
+});
+
+test('余额不足不可重试；服务商正文和 URL 参数不能泄露凭据', () => {
+    assert.equal(classifyStatus(402, '').code, 'balance');
+    assert.equal(classifyStatus(402, '').retryable, false);
+    assert.ok(!classifyStatus(400, 'private-secret-value').message.includes('private-secret-value'));
+    assert.equal(endpointIssue('https://api.example.com?api_key=private'), 'parameters');
+});
+
+test('已取消的请求不发送到服务商', async () => {
+    let calls = 0;
+    const abort = new AbortController(); abort.abort();
+    await assert.rejects(chat(CFG, { system: 's', user: 'u' }, {
+        fetchImpl: (async () => { calls++; return okRes(content('{}')); }) as unknown as typeof fetch,
+    }, abort.signal));
+    assert.equal(calls, 0);
+});
+
+test('DeepSeek 缓存命中与思考用量保留；null 用量不冒充真实零消耗', () => {
+    const u = readUsage({ usage: { prompt_tokens: 100, completion_tokens: 30, prompt_cache_hit_tokens: 60, completion_tokens_details: { reasoning_tokens: 20 } } }, '', '');
+    assert.equal(u.cacheHitTokens, 60);
+    assert.equal(u.reasoningTokens, 20);
+    assert.equal(readUsage({ usage: { prompt_tokens: null, completion_tokens: null } }, 'abc', 'xyz').estimated, true);
+});
 test('配置归一化会夹紧危险数值（超时/重试/长度）', () => {
     const c = normalizeAIConfig({ endpoint: 'https://a/v1', model: 'm', key: 'k', timeoutMs: 1, maxRetries: 99, maxOutputTokens: 999999, temperature: 9 } as never);
     assert.equal(c.timeoutMs, 3000);

@@ -237,6 +237,16 @@ export function rereadHTML(input: {
   <div class="actions"><button class="primary" data-read-reread-done="1">完成重读</button></div>
 </section>`;
 }
+export function aiExercisesHTML(passage: Passage | null, session: ReadingSession): string {
+    if (passage?.sourceType !== 'ai_reinforcement' || !passage.aiExercises?.length) return '';
+    return `<section class="panel"><h2>AI 定向理解练习</h2><p class="hint">每题作答后显示解析。题目和答案由 AI 生成，作答只用于调整这类练习。</p>
+    ${passage.aiExercises.map((q, index) => {
+        const answer = session.detail?.comprehension.find(r => r.aiPractice?.index === index)?.aiPractice;
+        return `<div class="ai-ex"><p><strong>${index + 1}. ${esc(q.question)}</strong></p>${answer
+            ? (answer.correct ? '<p>回答正确。</p>' : `<p>你的选择：${esc(q.options[answer.selected])}。参考答案：${esc(q.options[q.answerIndex])}。</p><p>${esc(q.explanation)}</p><blockquote>${esc(q.evidenceQuote)}</blockquote>`)
+            : `<div class="actions">${q.options.map((option, choice) => `<button type="button" class="secondary" data-ai-exercise="${index}" data-ai-choice="${choice}">${esc(option)}</button>`).join('')}</div>`}</div>`;
+    }).join('')}</section>`;
+}
 export function wholeTextHTML(): string {
     return `<section class="panel" id="read-whole">
   <div class="section-title">全文理解</div>

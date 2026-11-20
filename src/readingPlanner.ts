@@ -113,7 +113,7 @@ export function planReadingTasks(input: ReadingPlanInput): ReadingTaskDescriptor
             priority: 75,
             critical: false,
             flexible: true,
-            label: `阅读《${passage.title}》`,
+            label: passage.sourceType === 'ai_reinforcement' ? `定向阅读《${passage.title}》（AI · ${passage.sourceMetadata?.targetWords || '练习理解'}）` : `阅读《${passage.title}》`,
         });
     }
     return out.slice(0, READING_PLAN.maxTasks);

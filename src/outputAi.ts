@@ -1,6 +1,6 @@
 // —— Phase 9：AI 诊断编排（复用 Phase 6 传输层与质量门）——
 // 不新建 SDK、不无限重试；校验失败只做有限次修正重试；失败时原文仍在。
-import { AIError, chat, classifyThrown, privacySummary, type AIErrorInfo, type AIProviderConfig, type AIUsage } from './aiProvider.ts';
+import { AIError, addUsage, chat, classifyThrown, privacySummary, type AIErrorInfo, type AIProviderConfig, type AIUsage } from './aiProvider.ts';
 import { parseModelJson } from './aiJson.ts';
 import { fence, fnv1a } from './prompts/registry.ts';
 import { OUTPUT_DIAGNOSE_PROMPT, OUTPUT_PROMPT_VERSION, type OutputPromptInput } from './prompts/output.ts';
@@ -31,6 +31,23 @@ function hostOf(endpoint: string): string {
 }
 function repairSuffix(issues: string[]): string {
     return `上一份输出没有通过契约校验，问题如下：\n${issues.slice(0, 8).map((x, i) => `${i + 1}. ${x}`).join('\n')}\n\n只输出修正后的 JSON 对象；不要解释；所有 original 必须逐字来自学习者的 TEXT，start/end 必须精确对应。`;
+}
+function groundUniqueQuotes(value: unknown, text: string): unknown {
+    if (!value || typeof value !== 'object') return value;
+    const result = { ...value } as Record<string, unknown>;
+    for (const field of ['priorityIssues', 'corrections']) {
+        if (!Array.isArray(result[field])) continue;
+        result[field] = result[field].map((span: unknown) => {
+            if (!span || typeof span !== 'object') return span;
+            const row = span as Record<string, unknown>;
+            const quote = typeof row.original === 'string' ? row.original.trim() : '';
+            if (!quote) return row;
+            const start = text.indexOf(quote);
+            if (start < 0 || text.indexOf(quote, start + 1) >= 0) return row;
+            return { ...row, start, end: start + quote.length };
+        });
+    }
+    return result;
 }
 export interface DiagnoseInput extends OutputPromptInput {
     spec: FeedbackContext['spec'];
@@ -72,17 +89,13 @@ export async function diagnoseOutput(input: DiagnoseInput, cfg: AIProviderConfig
                 jsonSchema: OUTPUT_DIAGNOSE_PROMPT.outputSchema,
                 schemaName: OUTPUT_DIAGNOSE_PROMPT.schemaName,
             }, { ...deps, knownMode: deps.knownMode }, signal);
-            usage = {
-                promptTokens: usage.promptTokens + res.usage.promptTokens,
-                completionTokens: usage.completionTokens + res.usage.completionTokens,
-                estimated: usage.estimated || res.usage.estimated,
-            };
+            usage = addUsage(usage, res.usage);
             const parsed = parseModelJson(res.text);
             if (!parsed.ok) {
                 lastIssues = [parsed.error ?? '输出不是 JSON'];
                 continue;
             }
-            const checked = validateOutputFeedback(parsed.value, { ...ctx, sourceProvenance: ctx.sourceProvenance });
+            const checked = validateOutputFeedback(groundUniqueQuotes(parsed.value, input.text), ctx);
             if (!checked.ok) {
                 lastIssues = checked.issues;
                 continue;
@@ -104,6 +117,7 @@ export async function diagnoseOutput(input: DiagnoseInput, cfg: AIProviderConfig
                 generatedAt: now(),
                 contentHash: fnv1a(`${input.text.trim().toLowerCase()}|${OUTPUT_PROMPT_VERSION}`),
                 privacy,
+                metered: !!cfg.meterAttempt,
             };
             return { ok: true, feedback: checked.value, meta, warnings: [...checked.warnings, ...gate.warnings, ...local.notes] };
         }
@@ -111,7 +125,7 @@ export async function diagnoseOutput(input: DiagnoseInput, cfg: AIProviderConfig
             const info = err instanceof AIError ? err.info : classifyThrown(err);
             lastError = info;
             // 只有"输出不可用/格式不支持"才值得重试；鉴权/限流直接结束，避免重复扣费
-            if (info.code !== 'invalid-response' && info.code !== 'unsupported-mode') {
+            if (!info.retryable || info.code !== 'invalid-response') {
                 return { ok: false, error: info, attempts, issues: [info.message], localSpans: local.spans };
             }
         }
