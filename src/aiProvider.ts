@@ -6,7 +6,7 @@
 // 4. Key 不写入日志、不写入错误消息、不进入 prompt。
 import type { AISettings } from './types.ts';
 export type StructuredMode = 'auto' | 'json_schema' | 'json_object' | 'text';
-export type AIFailureCode = 'missing-key' | 'missing-model' | 'invalid-endpoint' | 'auth' | 'model-not-found' | 'rate-limit' | 'server' | 'timeout' | 'network' | 'cors' | 'aborted' | 'invalid-response' | 'unsupported-mode' | 'budget-exceeded';
+export type AIFailureCode = 'missing-key' | 'missing-model' | 'invalid-endpoint' | 'auth' | 'balance' | 'model-not-found' | 'rate-limit' | 'server' | 'timeout' | 'network' | 'cors' | 'aborted' | 'invalid-response' | 'unsupported-mode' | 'budget-exceeded' | 'busy' | 'usage-storage';
 export interface AIErrorInfo {
     code: AIFailureCode;
     message: string;
@@ -33,11 +33,14 @@ export interface AIProviderConfig {
     temperature: number;
     concurrency: number;
     dailyTokenBudget: number | null;
+    meterAttempt?: (reservation: AIUsage) => Promise<(usage: AIUsage | null, result: string) => Promise<void>>;
 }
 export interface AIUsage {
     promptTokens: number;
     completionTokens: number;
     estimated: boolean;
+    cacheHitTokens?: number;
+    reasoningTokens?: number;
 }
 export interface ChatResult {
     text: string;
@@ -46,6 +49,12 @@ export interface ChatResult {
     model: string;
     /** Provider 明确拒绝过的模式（用于降级记忆，不落任何 text） */
     downgradedFrom?: Exclude<StructuredMode, 'auto'>;
+}
+export function addUsage(a: AIUsage, b: AIUsage): AIUsage {
+    return { promptTokens: a.promptTokens + b.promptTokens, completionTokens: a.completionTokens + b.completionTokens, estimated: a.estimated || b.estimated,
+        ...(a.cacheHitTokens !== undefined || b.cacheHitTokens !== undefined ? { cacheHitTokens: (a.cacheHitTokens ?? 0) + (b.cacheHitTokens ?? 0) } : {}),
+        ...(a.reasoningTokens !== undefined || b.reasoningTokens !== undefined ? { reasoningTokens: (a.reasoningTokens ?? 0) + (b.reasoningTokens ?? 0) } : {}),
+    };
 }
 export interface ChatRequest {
     system: string;
@@ -60,6 +69,7 @@ const HINTS: Record<AIFailureCode, string> = {
     'missing-model': '还没有填模型名：在设置里填服务商给的模型名称。',
     'invalid-endpoint': '服务地址不是有效的 http(s) 地址：填到 /v1 这一层即可（不要带 /chat/completions）。',
     auth: '鉴权失败：检查密钥是否正确、是否过期，或这个密钥有没有该模型的权限。',
+    balance: 'DeepSeek 余额不足（402）：请在官方控制台检查余额，本次不会自动重试。',
     'model-not-found': '服务商找不到这个模型：确认模型名拼写与账号可用的模型列表。',
     'rate-limit': '服务商限流（429）：稍后重试，或缩短一次生成的长度。',
     server: '服务商那边出错（5xx）：这是对方的问题，稍后再试。',
@@ -70,9 +80,14 @@ const HINTS: Record<AIFailureCode, string> = {
     'invalid-response': '服务商返回的内容不是预期的 JSON：已拒绝写入，可重试或换个模型。',
     'unsupported-mode': '该模型不支持任何可用的结构化输出方式：请换用支持 JSON 输出的模型。',
     'budget-exceeded': '已达到你设置的每日预算上限：今天不再自动生成（可调高上限或明天再用）。',
+    busy: '正在处理另一项 AI 请求，等它结束后再试。',
+    'usage-storage': '无法保存本地用量记录。请检查词间的存储状态。',
 };
-export function normalizeAIConfig(s: AISettings | undefined | null): AIProviderConfig {
-    const d = s ?? ({} as AISettings);
+export function aiError(code: AIFailureCode): AIError {
+    return new AIError({ code, message: HINTS[code], hint: '', retryable: false, status: null });
+}
+export function normalizeAIConfig(s: Partial<AISettings> | undefined | null): AIProviderConfig {
+    const d = s ?? {};
     return {
         endpoint: String(d.endpoint ?? '').trim(),
         model: String(d.model ?? '').trim(),
@@ -101,6 +116,8 @@ export function endpointIssue(endpoint: string): string | null {
         return 'protocol';
     if (url.username || url.password)
         return 'credentials';
+    if (url.search || url.hash)
+        return 'parameters';
     return null;
 }
 export function validateAIConfig(cfg: AIProviderConfig): AIErrorInfo | null {
@@ -135,6 +152,8 @@ export function classifyStatus(status: number, body: string): AIErrorInfo {
     const snippet = body.replace(/\s+/g, ' ').slice(0, 200);
     if (status === 401 || status === 403)
         return { code: 'auth', message: `鉴权失败（HTTP ${status}）。`, hint: HINTS.auth, retryable: false, status };
+    if (status === 402)
+        return { code: 'balance', message: '服务商账户余额不足（HTTP 402）。', hint: HINTS.balance, retryable: false, status };
     if (status === 404)
         return { code: 'model-not-found', message: `服务商找不到模型或接口（HTTP 404）。`, hint: HINTS['model-not-found'], retryable: false, status };
     if (status === 429)
@@ -144,7 +163,7 @@ export function classifyStatus(status: number, body: string): AIErrorInfo {
     // 400/422 里如果明说 response_format / json，就是“该模型不支持这种结构化方式”，交给降级逻辑处理
     if (/response_format|json_schema|json mode|structured/i.test(snippet))
         return { code: 'unsupported-mode', message: `该模型不接受这种结构化输出方式（HTTP ${status}）。`, hint: HINTS['unsupported-mode'], retryable: false, status };
-    return { code: 'invalid-response', message: `请求被服务商拒绝（HTTP ${status}）：${snippet}`, hint: HINTS['invalid-response'], retryable: false, status };
+    return { code: 'invalid-response', message: `请求被服务商拒绝（HTTP ${status}）。`, hint: HINTS['invalid-response'], retryable: false, status };
 }
 export function classifyThrown(err: unknown): AIErrorInfo {
     if (err instanceof AIError)
@@ -174,6 +193,8 @@ export interface ChatDeps {
 function modeOrder(cfg: AIProviderConfig, known?: Exclude<StructuredMode, 'auto'>): Array<Exclude<StructuredMode, 'auto'>> {
     if (cfg.structuredMode !== 'auto')
         return [cfg.structuredMode];
+    if (new URL(cfg.endpoint).hostname === 'api.deepseek.com')
+        return ['json_object', 'text'];
     if (known)
         return [known, ...(['json_object', 'text'] as const).filter(m => m !== known)];
     if (cfg.structuredMode === 'auto')
@@ -190,6 +211,9 @@ function bodyFor(cfg: AIProviderConfig, req: ChatRequest, mode: Exclude<Structur
             { role: 'user', content: req.user },
         ],
     };
+    // 官方默认开启思考，短练习显式关闭，避免额度只消耗在 reasoning_content。
+    if (new URL(cfg.endpoint).hostname === 'api.deepseek.com')
+        body.thinking = { type: 'disabled' };
     if (mode === 'json_schema' && req.jsonSchema)
         body.response_format = {
             type: 'json_schema',
@@ -207,30 +231,46 @@ export function readUsage(raw: unknown, promptText: string, completionText: stri
         usage?: {
             prompt_tokens?: number;
             completion_tokens?: number;
+            prompt_cache_hit_tokens?: number;
+            completion_tokens_details?: { reasoning_tokens?: number };
         };
     } | null)?.usage;
     const p = Number(u?.prompt_tokens);
     const c = Number(u?.completion_tokens);
-    if (Number.isFinite(p) && Number.isFinite(c) && p >= 0 && c >= 0)
-        return { promptTokens: p, completionTokens: c, estimated: false };
+    if (typeof u?.prompt_tokens === 'number' && typeof u?.completion_tokens === 'number' && Number.isFinite(p) && Number.isFinite(c) && p >= 0 && c >= 0)
+        return { promptTokens: p, completionTokens: c, estimated: false,
+            ...(Number.isFinite(u.prompt_cache_hit_tokens) ? { cacheHitTokens: Math.max(0, Math.min(p, u.prompt_cache_hit_tokens!)) } : {}),
+            ...(Number.isFinite(u.completion_tokens_details?.reasoning_tokens) ? { reasoningTokens: Math.max(0, Math.min(c, u.completion_tokens_details!.reasoning_tokens!)) } : {}),
+        };
     return { promptTokens: estimateTokens(promptText), completionTokens: estimateTokens(completionText), estimated: true };
 }
 // 单次尝试（不重试）
 async function attempt(cfg: AIProviderConfig, req: ChatRequest, mode: Exclude<StructuredMode, 'auto'>, deps: ChatDeps, signal?: AbortSignal): Promise<ChatResult> {
+    if (signal?.aborted)
+        throw new DOMException('aborted', 'AbortError');
     const fetchImpl = deps.fetchImpl ?? fetch;
+    const body = bodyFor(cfg, req, mode);
+    // Conservatively reserve prompt bytes and the output cap before contacting the provider.
+    const json = JSON.stringify(body);
+    const settle = await cfg.meterAttempt?.({ promptTokens: new TextEncoder().encode(json).length, completionTokens: Number(body.max_tokens), estimated: true });
+    let usage: AIUsage | null = null;
+    let outcome = 'interrupted';
     const ctrl = new AbortController();
     const onAbort = () => ctrl.abort();
     signal?.addEventListener('abort', onAbort, { once: true });
+    if (signal?.aborted) ctrl.abort();
     let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; ctrl.abort(new DOMException('timeout', 'AbortError')); }, cfg.timeoutMs);
     try {
         const res = await fetchImpl(chatURL(cfg.endpoint), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cfg.key}` },
-            body: JSON.stringify(bodyFor(cfg, req, mode)),
+            redirect: 'error',
+            body: json,
             signal: ctrl.signal,
         });
         const text = await res.text();
+        outcome = `HTTP ${res.status}`;
         if (!res.ok)
             throw new AIError(classifyStatus(res.status, text));
         let raw: unknown;
@@ -255,11 +295,14 @@ async function attempt(cfg: AIProviderConfig, req: ChatRequest, mode: Exclude<St
                     text?: string;
                 }>).map(x => x?.text ?? '').join('')
                 : '';
+        usage = readUsage(raw, req.system + req.user, content);
+        if (choice?.finish_reason === 'length')
+            throw new AIError({ code: 'invalid-response', message: '输出超过单次 token 上限。请缩短材料或调高单次输出上限。', hint: '', retryable: false, status: res.status });
         if (!content.trim())
             throw new AIError({ code: 'invalid-response', message: '服务商返回了空内容。', hint: HINTS['invalid-response'], retryable: true, status: res.status });
         return {
             text: content,
-            usage: readUsage(raw, req.system + req.user, content),
+            usage,
             mode,
             model: String((raw as {
                 model?: string;
@@ -268,13 +311,17 @@ async function attempt(cfg: AIProviderConfig, req: ChatRequest, mode: Exclude<St
     }
     catch (e) {
         // 自己触发的超时要与“用户取消”区分：超时可重试，取消不可
-        if (timedOut)
+        if (timedOut) {
+            outcome = 'timeout';
             throw new AIError({ code: 'timeout', message: '请求超时。', hint: HINTS.timeout, retryable: true, status: null });
+        }
+        if (outcome === 'interrupted') outcome = classifyThrown(e).code;
         throw e;
     }
     finally {
         clearTimeout(timer);
         signal?.removeEventListener('abort', onAbort);
+        await settle?.(usage, outcome);
     }
 }
 // 带降级与有界重试的主入口

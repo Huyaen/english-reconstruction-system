@@ -163,11 +163,13 @@ export interface AIUsageRecord {
     promptTokens: number;
     completionTokens: number;
     estimated: boolean;
+    cacheHitTokens?: number;
+    reasoningTokens?: number;
 }
 // AI 生成物：永远标 ai_unverified，绝不冒充真实语料或 gold 结构
 export interface AIGeneration {
     id: string;
-    kind: 'sentence' | 'reading' | 'output';
+    kind: 'sentence' | 'reading' | 'output' | 'request';
     createdAt: number;
     promptId: string;
     promptVersion: string;
@@ -384,6 +386,7 @@ export interface Passage {
     userEdited?: boolean;
     importedAt?: number;
     sourceMetadata?: Record<string, string>;
+    aiExercises?: import('./aiValidate.ts').ExerciseTarget[];
 }
 export interface ReadingSession {
     id: string;
@@ -1169,6 +1172,7 @@ export interface ReadingComprehensionRecord {
     assisted: boolean;
     translationDependence: TranslationDependenceGrade | null;
     at: number;
+    aiPractice?: { index: number; selected: number; correct: boolean; type: import('./aiValidate.ts').ExerciseTarget['type'] };
 }
 export interface ReadingEvidence {
     id: string;

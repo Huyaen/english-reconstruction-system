@@ -4,6 +4,7 @@
 //   ② 生成时用默认目标，保存时又回头用 `aiWeakGrammar()` 重算，结果句库里的目标语法变成「—」。
 // 纪律：目标只在发起请求时确定一次，随后一直带着走（面板、请求、校验、保存都用同一份）。
 import { conceptById } from './grammar.ts';
+import type { Word } from './types.ts';
 export interface AiGrammarTarget {
     id: string;
     name: string;
@@ -23,6 +24,18 @@ export const AI_DEFAULT_GRAMMAR: AiGrammarTarget = {
 };
 /** 生成契约要求 targetWords ≥ 1：没有任何弱词时（只可能在阅读侧发生）用这两个可观察的常用词 */
 export const AI_DEFAULT_WORDS = ['notebook', 'current'] as const;
+export function topConfusion(targets: Word[], words: Word[]) {
+    const byId = new Map(words.map(w => [w.id, w]));
+    let pair: { word: Word; mistaken: Word; times: number } | undefined;
+    for (const word of targets) {
+        for (const [id, times] of Object.entries(word.confusions)) {
+            const mistaken = byId.get(id);
+            if (mistaken && mistaken.en !== word.en && times > (pair?.times ?? 0))
+                pair = { word, mistaken, times };
+        }
+    }
+    return pair;
+}
 export interface AiTargetInput {
     words: Array<{
         id: string;

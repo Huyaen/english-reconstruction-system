@@ -40,6 +40,18 @@ const seq = (items: Array<ReturnType<typeof reply> | ReturnType<typeof err>>) =>
     let i = 0;
     return (async () => items[Math.min(i++, items.length - 1)]) as unknown as typeof fetch;
 };
+
+test('句子和阅读传输层耗尽 429/5xx 重试后不再整轮重试', async () => {
+    for (const status of [429, 503]) {
+        for (const kind of ['sentence', 'reading']) {
+            let calls = 0;
+            const deps = { fetchImpl: (async () => { calls++; return err(status, 'busy'); }) as unknown as typeof fetch, sleep: async () => {} };
+            const r = kind === 'sentence' ? await generateSentence(sentenceJob, CFG, deps) : await generateReading(readingJob, CFG, deps);
+            assert.equal(r.ok, false);
+            assert.equal(calls, CFG.maxRetries + 1, `${kind}: HTTP ${status}`);
+        }
+    }
+});
 test('Prompt 注册表：两个 Prompt 有 id/版本/指纹，版本写在结果元数据里', () => {
     const ids = PROMPT_INDEX.map(p => p.promptId);
     assert.ok(ids.includes('sentence.generate'));

@@ -52,7 +52,7 @@ if (Test-PortBusy) {
 
 Write-Host '  正在启动本地服务……'
 $log = Join-Path $root 'cijian-server.log'
-Start-Process -FilePath 'node' -ArgumentList 'server.mjs','--dir=dist','--port=4173' -WorkingDirectory $root -WindowStyle Hidden -RedirectStandardOutput $log -RedirectStandardError "$log.err"
+Start-Process -FilePath 'node' -ArgumentList 'server.mjs','--dir=dist','--port=4173','--backup-config=.cijian-backup-directory.json' -WorkingDirectory $root -WindowStyle Hidden -RedirectStandardOutput $log -RedirectStandardError "$log.err"
 
 for ($i = 0; $i -lt 40; $i++) {
     Start-Sleep -Milliseconds 700

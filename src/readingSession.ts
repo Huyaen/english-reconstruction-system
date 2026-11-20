@@ -374,6 +374,19 @@ export function finishReread(session: ReadingSession, input: {
         detail: { ...detail, stage: 'whole-text', rereadStartedAt: started, rereadEndedAt: input.now, comprehension: [...detail.comprehension, record], evidence },
     };
 }
+export function submitAIReadingChoice(session: ReadingSession, passage: Passage, index: number, selected: number, now: number): ReadingSession {
+    const question = passage.sourceType === 'ai_reinforcement' && passage.aiExercises?.[index];
+    if (!question || session.passageId !== passage.id || session.detail?.stage !== 'whole-text'
+        || session.detail.comprehension.some(r => r.aiPractice?.index === index) || !Number.isInteger(selected) || !question.options[selected])
+        return session;
+    const record: ReadingComprehensionRecord = {
+        id: uid(), stage: 'whole-text', kind: 'self-report', prompt: question.question, answer: question.options[selected],
+        language: 'en', score: null, scoredBy: 'none', assisted: false, translationDependence: null, at: now,
+        aiPractice: { index, selected, correct: selected === question.answerIndex, type: question.type },
+    };
+    return withDetail(session, { comprehension: [...session.detail.comprehension, record] });
+}
+
 // 全文理解：可验证题（有标准答案）与自评分开；没有可靠答案时 score=null
 export function submitWholeTextItem(session: ReadingSession, input: {
     kind: 'main-idea' | 'detail' | 'inference';

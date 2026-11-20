@@ -1,11 +1,12 @@
 // 静态服务器（无依赖）。用法：node server.mjs [--dir=dist] [--port=4173]
 //   --dir ：托管目录（默认 dist；测试构建用 dist-test）——Phase 5.0 测试环境隔离
 //   --port：监听端口（默认 4173）
-// Phase 13：只接受 GET/HEAD；错误请求明确 400/405；补齐安全响应头；不泄露文件系统路径。
+// 静态资源只接受 GET/HEAD。本机备份路由仅在启动器提供配置路径时启用。
 import http from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { localBackup } from './local-backup.mjs';
 
 const TYPES = {
     '.html': 'text/html; charset=utf-8',
@@ -29,9 +30,12 @@ const SECURITY_HEADERS = {
     'Cross-Origin-Opener-Policy': 'same-origin',
     'Cross-Origin-Resource-Policy': 'same-origin',
 };
-export function createStaticServer(rootDir) {
+export function createStaticServer(rootDir, { backupConfig } = {}) {
     const root = path.resolve(rootDir);
+    const handleBackup = backupConfig && localBackup(backupConfig, root);
     return http.createServer(async (req, res) => {
+        if (handleBackup && await handleBackup(req, res))
+            return;
         const method = req.method || 'GET';
         if (method !== 'GET' && method !== 'HEAD') {
             res.writeHead(405, { ...SECURITY_HEADERS, Allow: 'GET, HEAD', 'Content-Type': 'text/plain; charset=utf-8' });
@@ -87,9 +91,11 @@ export function createStaticServer(rootDir) {
         }
     });
 }
-export function startServer({ dir = 'dist', port = 4173, host = '127.0.0.1' } = {}) {
+export function startServer({ dir = 'dist', port = 4173, host = '127.0.0.1', backupConfig } = {}) {
     const root = path.isAbsolute(dir) ? dir : path.join(import.meta.dirname, dir);
-    const server = createStaticServer(root);
+    if (backupConfig && host !== '127.0.0.1' && host !== '::1')
+        throw Error('本机备份服务仅允许回环地址');
+    const server = createStaticServer(root, { backupConfig });
     server.listen(port, host, () => console.log(`词间已启动：http://localhost:${port} （目录 ${dir}，按 Ctrl+C 停止）`));
     return server;
 }
@@ -99,5 +105,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         const hit = argv.find(a => a.startsWith(`--${name}=`));
         return hit ? hit.slice(name.length + 3) : fallback;
     };
-    startServer({ dir: arg('dir', 'dist'), port: Number(arg('port', '4173')) });
+    startServer({ dir: arg('dir', 'dist'), port: Number(arg('port', '4173')), backupConfig: arg('backup-config', undefined) });
 }

@@ -14,6 +14,8 @@ import { exposureFromMark, selectStudyCandidates, readingWordSeed } from '../src
 import { evidenceKey } from '../src/readingEvidence.ts';
 import { makeWord } from '../src/core.ts';
 import type { Passage, ReadingSession, Word } from '../src/types.ts';
+import { submitAIReadingChoice } from '../src/readingSession.ts';
+import { aiExercisesHTML } from '../src/readingView.ts';
 const NOW = new Date(2026, 9, 19, 10, 0, 0).getTime();
 const MIN = 60000;
 const ARTICLE = `Learning to read in a second language is not a matter of memorising every single word you meet.
@@ -42,6 +44,23 @@ function passageOf(raw = ARTICLE, title = '测试文章'): Passage {
 function freshSession(passage = passageOf()): ReadingSession {
     return createReadingSession({ passage, now: NOW, sessionId: 'session-1' });
 }
+test('AI 阅读题先独立作答，错题解析随后显示，结果不充当已验证分数', () => {
+    const passage: Passage = { ...passageOf(), sourceType: 'ai_reinforcement', aiExercises: [{
+        type: 'detail', question: 'What can a reader guess from context?', options: ['An unfamiliar word', 'A date', 'A name', 'A page number'],
+        answerIndex: 0, explanation: 'The context helps infer unfamiliar vocabulary.', evidenceQuote: 'guess the meaning of an unfamiliar word',
+    }] };
+    const opened = freshSession(passage);
+    const whole = { ...opened, detail: { ...opened.detail!, stage: 'whole-text' as const } };
+    assert.doesNotMatch(aiExercisesHTML(passage, whole), /context helps infer/);
+    const answered = submitAIReadingChoice(whole, passage, 0, 1, NOW);
+    const row = answered.detail!.comprehension.at(-1)!;
+    assert.equal(row.aiPractice?.correct, false);
+    assert.equal(row.score, null);
+    assert.equal(answered.detail!.evidence.length, whole.detail.evidence.length);
+    assert.match(aiExercisesHTML(passage, answered), /context helps infer/);
+    assert.equal(submitAIReadingChoice(answered, passage, 0, 0, NOW + 1), answered);
+    assert.match(planReadingTasks({ passages: [passage], sessions: [], now: NOW, energy: 'normal', availableMinutes: 30 })[0]!.label, /定向阅读/);
+});
 async function freshDB() {
     await openDB();
     await replaceData(emptyData());

@@ -165,7 +165,7 @@ async function put(w: JSDOM['window'], store: string, items: unknown[]): Promise
 
 test('真实页面：AI 已配置且有 1 句时，句源说明按真实数量说话', async () => {
     const first = await boot();
-    await put(first.window, 'meta', [{ id: 'settings', value: { ...defaults, endpoint: 'http://127.0.0.1:9/v1', model: 'mock-model', key: 'test-key' } }]);
+    await put(first.window, 'meta', [{ id: 'settings', value: { ...defaults, endpoint: 'http://127.0.0.1:9/v1', model: 'mock-model', key: 'test-key', rememberKey: true } }]);
     await put(first.window, 'sentences', [aiRecord()]);
     first.window.close();
 

@@ -36,9 +36,11 @@ import { checkImage, classifyOcrFailure } from './ocr.ts';
 import { OcrError, ocrService, ocrServiceWithPaths } from './ocrEngine.ts';
 // —— Phase 6：AI 强化（Provider / 生成 / 质量门 / 记录）——
 import { AIError, normalizeAIConfig, validateAIConfig, type AIErrorInfo, type AIProviderConfig } from './aiProvider.ts';
+import { validateReading, validateSentence } from './aiValidate.ts';
+import { fnv1a } from './prompts/registry.ts';
 import { generateReading, generateSentence, EVIDENCE_NOTE } from './aiGenerate.ts';
 import { summarize as summarizeQuality } from './aiQuality.ts';
-import { budgetState, buildGeneration, contentHashes } from './aiStore.ts';
+import { budgetState, buildGeneration, contentHashes, findReusable, startOfDay, usageTotals, withUsageBudget } from './aiStore.ts';
 import type { AIGeneration, AISettings } from './types.ts';
 import { estimateReadingDifficulty, classificationLabel } from './readingDifficulty.ts';
 // —— Phase 7：单元（跨学习日主题单元）——
@@ -82,12 +84,12 @@ import { sentenceCandidates, transcriptSentenceRecord } from './inputHandoff.ts'
 import { providerLabel } from './inputUrl.ts';
 import type { CaptionMode, InputMode } from './types.ts';
 import type { InterestProfile } from './types.ts';
-import { createReadingSession, submitColdTest, startReading, submitMainIdea, markWord, revokeMark, requestHelp, captureDifficultSentence, linkDifficultSentenceAttempt, finishFirstPass, startReread, finishReread, submitWholeTextItem, submitOutput, completeReadingSession, sessionProgress, nextChunk, goToChunk, isResumable, stageLabel, maxHelpLevelUsed } from './readingSession.ts';
+import { createReadingSession, submitColdTest, startReading, submitMainIdea, markWord, revokeMark, requestHelp, captureDifficultSentence, linkDifficultSentenceAttempt, finishFirstPass, startReread, finishReread, submitAIReadingChoice, submitWholeTextItem, submitOutput, completeReadingSession, sessionProgress, nextChunk, goToChunk, isResumable, stageLabel, maxHelpLevelUsed } from './readingSession.ts';
 import { selectStudyCandidates, buildHandoffPlan, exposureFromMark, readingWordSeed, readyForTraining, explicitUnknownRate, type StudyCandidate } from './readingVocabulary.ts';
 import { difficultSentenceRecord, PROBLEM_TYPE_LABELS, returnTarget, type LabReturnTarget } from './readingSentences.ts';
 import { computeReadingMetrics, computeReadingTrend, targetDifficultyBand } from './readingAnalytics.ts';
 import { queryLibrary, savePassage, saveReadingProgress, latestOpenSession, passageOf, type LibraryQuery } from './readingStore.ts';
-import { importPanelHTML, previewHTML, coldTestHTML, readerHTML, rereadHTML, wholeTextHTML, resultHTML, studyWordsHTML, esc as resc, sourceLabel } from './readingView.ts';
+import { importPanelHTML, previewHTML, coldTestHTML, readerHTML, rereadHTML, aiExercisesHTML, wholeTextHTML, resultHTML, studyWordsHTML, esc as resc, sourceLabel } from './readingView.ts';
 import { openDB, getDB, loadData, replaceData, saveSettings, putItems, saveAnswer, savePreview, backup, validateBackup, emptyData } from './db.ts';
 import { originNotice, type OriginNotice } from './origin.ts';
 import { checkDataIntegrity, integritySummary } from './integrity.ts';
@@ -112,7 +114,7 @@ import { EVIDENCE_LABELS, STEP_LABELS, SUPPORT_LABELS, MAX_SUPPORT_LEVEL, buildL
 import { applyEvidence, justInTimeCard, stepConceptMap, type AttemptDraft } from './sentenceEvidence.ts';
 import { aiGenerationNotice, curatedSentenceRecords, sentenceGenerationFallback, sourceCapabilities, userSentenceRecord } from './sentenceSources.ts';
 import { SENTENCE_TASK_LABELS, selectSentenceBatch } from './sentenceSelection.ts';
-import { AI_DEFAULT_GRAMMAR, aiTargetPlan, targetRowText, type AiGrammarTarget, type AiTargetPlan } from './aiTargets.ts';
+import { AI_DEFAULT_GRAMMAR, aiTargetPlan, topConfusion, targetRowText, type AiGrammarTarget, type AiTargetPlan } from './aiTargets.ts';
 import { STRUCTURE_TRUST_REASON_TEXT, assessStructureTrust, unverifiedStructureNote, type StructureTrustAssessment } from './sentenceTrust.ts';
 import { sentenceConceptIds, sentenceConceptNames, sentencesForConcept } from './sentenceGraphMap.ts';
 import { ensureGraphData, loadSentences, saveSentences, sentenceAttemptsDesc } from './sentenceStore.ts';
@@ -1398,7 +1400,7 @@ function bindOutputSession(attempt: import('./types.ts').OutputAttempt): void {
         if (!fresh)
             return;
         const r = await requestOutputFeedback(attempt.id, fresh.revision, {
-            data,
+            data, cfg: aiConfig(),
             materialText: outputMaterial(fresh),
             grammarConceptIds: data.grammarConcepts.map(c => c.id),
             targetWordIds: (fresh.targetWords ?? []).map(en => data.words.find(w => w.en.toLowerCase() === en.toLowerCase())?.id).filter((x): x is string => !!x),
@@ -2084,8 +2086,8 @@ function statistics() { const s = summary(data); $('#main').innerHTML = title('�
 }); }
 function drawTrend(days: number) { const rows = trend(data, days), max = Math.max(1, ...rows.map(r => r.attempts)); $('#trend').innerHTML = `<div class="chart" aria-label="每日作答次数">${rows.map(r => `<div class="bar-col"><span>${r.attempts || ''}</span><div class="bar${r.attempts ? '' : ' is-zero'}" style="height:${r.attempts ? Math.max(6, r.attempts / max * 120) : 0}px" title="${r.date}：${r.attempts}次"></div><small>${r.date.slice(5)}</small></div>`).join('')}</div><div class="table-scroll"><table><thead><tr><th>日期</th><th>作答</th><th>正确率</th><th>平均用时</th><th>变熟练的次数</th><th>该复习时答错</th></tr></thead><tbody>${rows.filter(r => r.attempts).map(r => `<tr><td>${r.date}</td><td>${r.attempts}</td><td>${pct(r.accuracy)}</td><td>${seconds(r.meanMs)}</td><td>${r.gained}</td><td>${r.forgotten}</td></tr>`).join('') || '<tr><td colspan="6">这段时间还没有记录</td></tr>'}</tbody></table></div>`; }
 function aiPage() {
-    const configured = !!(data.settings.endpoint && data.settings.model && data.settings.key);
-    $('#main').innerHTML = title('可选', '让 AI 看看你的记录', 'AI 分析可以不用；不联网也能正常学习和复习。') + `<section class="panel ai-intro"><div class="eyebrow">可选 · 外部服务</div><h2>给 AI 的学习记录</h2><p>只会发汇总数字、最近 30 天的趋势，以及最多 60 个薄弱词和常混的词。不会发整本词书，也不会发每一道题。</p><p class="hint">报告只是建议，不会自动改你的设置。调用你自己的 API，费用由服务商按规则收取。</p><div class="actions"><button id="analyze" class="primary" ${analysisBusy ? 'disabled' : ''}>${analysisBusy ? '正在分析…' : '生成分析报告'}</button><button id="payload" class="secondary">查看将发送的数据</button><button id="ai-config" class="text-button">${configured ? '修改 API 配置' : '先配置 API'}</button></div></section><div id="reports">${[...data.analyses].sort((a, b) => b.at - a.at).map(a => `<section class="panel report"><div class="section-title"><h2>${date(a.at)}</h2><span>${esc(a.model)} · ${a.sampleSize} 次作答</span></div><div class="report-text">${esc(a.text)}</div></section>`).join('') || '<div class="empty-note">还没有报告。先练一轮，再让 AI 看。</div>'}</div>`;
+    const configured = aiReady().ok;
+    $('#main').innerHTML = title('可选', '让 AI 看看你的记录', 'AI 分析可以不用；不联网也能正常学习和复习。') + `<section class="panel ai-intro"><div class="eyebrow">可选 · 外部服务</div><h2>给 AI 的学习记录</h2><p>将发送最近 30 天的汇总和趋势、最多 20 个薄弱词及常混的词。拼写、阅读和写作只发送次数和错误类型。</p><p class="hint">报告只是建议，不会自动改你的设置。调用你自己的 API，费用由服务商按规则收取。</p><div class="actions"><button id="analyze" class="primary" ${analysisBusy ? 'disabled' : ''}>${analysisBusy ? '正在分析…' : '生成分析报告'}</button><button id="payload" class="secondary">查看将发送的数据</button><button id="ai-config" class="text-button">${configured ? '修改 API 配置' : '先配置 API'}</button></div></section><div id="reports">${[...data.analyses].sort((a, b) => b.at - a.at).map(a => `<section class="panel report"><div class="section-title"><h2>${date(a.at)}</h2><span>${esc(a.model)} · ${a.sampleSize} 次作答</span></div><div class="report-text">${esc(a.text)}</div></section>`).join('') || '<div class="empty-note">还没有报告。先练一轮，再让 AI 看。</div>'}</div>`;
     on('#ai-config', 'click', () => setPage('settings'));
     on('#payload', 'click', () => {
         modal(`<h2>将发送的数据</h2><p>这是本次分析会用到的内容。关闭预览即可返回。</p><pre>${esc(JSON.stringify(analysisPayload(data), null, 2))}</pre>`);
@@ -2101,7 +2103,7 @@ function aiPage() {
         aiPage();
         try {
             const sourceData = data;
-            const report = await analyze(sourceData);
+            const report = await analyze(sourceData, fetch, aiConfig());
             if (data !== sourceData) {
                 toast('数据已发生替换，请基于当前数据重新分析');
                 return;
@@ -2120,13 +2122,22 @@ function aiPage() {
 function originPanelHTML(o: OriginNotice) {
     return `<section class="panel" id="origin-panel" data-origin-current="${esc(o.current)}" data-origin-canonical="${esc(o.canonical)}" data-origin-same="${o.same}"><h2>数据地址</h2><p>${esc(o.message)}</p>${o.same ? '' : `<p class="hint warn">不同地址的学习数据不会自动合并；换地址之前，先在现在的地址导出完整备份，再到推荐地址导入。应用不会自动跳转或搬动数据。</p><div class="actions"><a class="button secondary" href="${esc(o.canonical)}/">在推荐地址打开</a></div>`}</section>`;
 }
+function aiUsageHTML(): string {
+    const now = new Date();
+    const day = usageTotals(data.aiGenerations, startOfDay(+now));
+    const month = usageTotals(data.aiGenerations, +new Date(now.getFullYear(), now.getMonth(), 1));
+    const budget = budgetState(data.aiGenerations, aiConfig().dailyTokenBudget, +now);
+    const left = Math.max(0, (budget.limitTokens ?? 0) - budget.usedTokens);
+    return `<p class="hint">今日请求 ${day.requests} 次 · 服务商回报输入 ${day.input}、输出 ${day.output} token，包含缓存命中 ${day.cached}、思考 ${day.reasoning}。未确认用量 ${day.estimated} 次。今日本机预算剩余 ${left} token。${budget.limitTokens && left <= budget.limitTokens * 0.2 ? ' 今日预算所剩不多。' : ''}</p>
+        <p class="hint">DeepSeek 估算费用（按高峰单价）：今日 US$${day.peakUsd.toFixed(6)}，本月 US$${month.peakUsd.toFixed(6)}。本月已有 ${month.estimated + month.unpriced} 次缺少可计价数据。<a href="https://api-docs.deepseek.com/quick_start/pricing/" target="_blank" rel="noopener noreferrer">官方计价</a>（2026-11-17 核对）。</p>`;
+}
 function settingsPage() {
     const s = data.settings;
     const origin = originNotice();
     $('#main').innerHTML = title('设置', '按你的节奏来', '答题快慢、题目难度和备份，都在这里改。') + `<form id="settings-form"><div class="two-col"><section class="panel"><h2>测试与节奏</h2><div class="form-grid"><label>多快算快答（秒）<input name="fast" type="number" min="0.1" step="0.1" value="${s.fast / 1000}" required></label><label>多快算正常（秒）<input name="normal" type="number" min="0.2" step="0.1" value="${s.normal / 1000}" required></label><label>多久算没答（秒）<input name="timeout" type="number" min="0.3" max="120" step="0.1" value="${s.timeout / 1000}" required></label><label>英文题占比（%）<input name="ratio" type="number" min="0" max="100" value="${s.ratio}" required></label><label>难度<select name="difficulty">${[['easy', '简单（4 个选项）'], ['normal', '普通（4 个选项）'], ['hard', '困难（6 个选项）']].map(([v, t]) => `<option value="${v}" ${s.difficulty === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>答错反馈<select name="feedback">${[[0, '立即下一题'], [500, '停留 0.5 秒'], [1000, '停留 1 秒'], [-1, '手动继续']].map(([v, t]) => `<option value="${v}" ${s.feedback === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label>复习怎么排<select name="schedulingAuthority"><option value="fsrs" ${s.schedulingAuthority === 'fsrs' ? 'selected' : ''}>默认（FSRS）</option><option value="legacy" ${s.schedulingAuthority === 'legacy' ? 'selected' : ''}>旧算法（回滚用）</option></select></label><label>希望记住的比例<input name="requestRetention" type="number" min="0.5" max="0.99" step="0.01" value="${s.requestRetention}" required></label></div> ${newWordGoalFields('settings-new', s.newWordGoal)}<p class="hint">默认目标用于新的一天；已有计划可在首页单独调整。0 词时照常复习。</p><p class="hint">答对立即下一题。正常上限至超时之间为模糊。切换标签页会自动暂停计时。</p></section><section class="panel"><h2>AI 服务（可选）</h2><p class="hint">不填也能正常学，只是用不了 AI 生成和批改。</p><label>服务地址<input name="endpoint" type="url" placeholder="https://你的服务地址/v1" value="${esc(s.endpoint)}" autocomplete="off"></label><label>模型名称<input name="model" value="${esc(s.model)}" placeholder="填写供应商提供的模型名称"></label><label>API 密钥<input name="key" type="password" value="${esc(s.key)}" autocomplete="off" placeholder="仅用于你配置的地址"></label><label class="check"><input name="rememberKey" type="checkbox" ${s.rememberKey ? 'checked' : ''}> 在这台设备保存密钥</label>
 <label>返回格式<select name="structuredMode">${[['auto', '自动（先要结构化的，不支持就用普通文本）'], ['json_object', '只接受 JSON（JSON Mode）'], ['json_schema', '只接受严格 JSON 结构（JSON Schema）'], ['text', '只当纯文本处理']].map(([v, t]) => `<option value="${v}" ${(s.ai?.structuredMode ?? 'auto') === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
-<div class="form-grid"><label>最多等多久（秒）<input name="aiTimeout" type="number" min="3" max="180" value="${Math.round((s.ai?.timeoutMs ?? 45000) / 1000)}"></label><label>失败后重试次数<input name="aiRetries" type="number" min="0" max="3" value="${s.ai?.maxRetries ?? 2}"></label><label>单次输出上限（token）<input name="aiMaxTokens" type="number" min="64" max="8000" value="${s.ai?.maxOutputTokens ?? 1200}"></label><label>每天用量上限（token）<input name="aiBudget" type="number" min="0" placeholder="留空 = 不限" value="${s.ai?.dailyTokenBudget ?? ''}"></label></div>
-<p class="hint">不勾“在这台设备保存密钥”，关掉页面就清了。勾了以后密钥会明文存在这台电脑的浏览器里，导出的完整备份不会带上它。浏览器直连要求服务商支持 CORS。用量按 token 计，这里不换算成钱。token 是服务商计费的单位，1 个 token 大约是半个英文单词。浏览器直连还要求服务商允许跨域访问。</p></section></div><button class="primary" type="submit">保存设置</button></form><section class="panel"><h2>墨场动效</h2><label for="ink-preference">动态强度</label><select id="ink-preference"><option value="expressive" ${inkMotion.preference === 'expressive' ? 'selected' : ''}>Expressive · 完整动效</option><option value="focus" ${inkMotion.preference === 'focus' ? 'selected' : ''}>Focus · 专注反馈</option></select><p class="hint">此设备自动保存选择。系统减少动态优先。</p></section>${originPanelHTML(origin)}${backupPanel()}<section class="panel backup-panel"><h2>备份与换地址</h2><p>导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。</p><div class="actions"><button id="backup" class="primary">导出全部学习数据</button><label class="button secondary">导入备份<input id="restore" type="file" accept=".json" hidden></label><button id="persist" class="secondary">申请持久存储</button><button id="check-integrity" class="secondary">检查数据完整性</button><button id="clear" class="danger-text">清空本地数据</button></div><p id="storage-info" class="hint">学习数据按浏览器和站点地址保存：一直用同一个地址打开，才能看到同一份数据。</p></section>`;
+<div class="form-grid"><label>最多等多久（秒）<input name="aiTimeout" type="number" min="3" max="180" value="${Math.round((s.ai?.timeoutMs ?? 45000) / 1000)}"></label><label>失败后重试次数<input name="aiRetries" type="number" min="0" max="3" value="${s.ai?.maxRetries ?? 2}"></label><label>单次输出上限（token）<input name="aiMaxTokens" type="number" min="64" max="8000" value="${s.ai?.maxOutputTokens ?? 1200}"></label><label>每天用量上限（token）<input name="aiBudget" type="number" min="0" placeholder="默认 20000" value="${s.ai?.dailyTokenBudget ?? 20000}"></label></div>
+<p class="hint">不勾“在这台设备保存密钥”，关掉页面就清了。勾了以后密钥会明文存在这台电脑的浏览器里，导出的完整备份不会带上它。浏览器直连要求服务商支持 CORS。本机上限根据调用前预留量判断。失败、超时或未返回用量的请求会保留预留量，实际扣费以服务商账单为准。</p>${aiUsageHTML()}</section></div><button class="primary" type="submit">保存设置</button></form><section class="panel"><h2>墨场动效</h2><label for="ink-preference">动态强度</label><select id="ink-preference"><option value="expressive" ${inkMotion.preference === 'expressive' ? 'selected' : ''}>Expressive · 完整动效</option><option value="focus" ${inkMotion.preference === 'focus' ? 'selected' : ''}>Focus · 专注反馈</option></select><p class="hint">此设备自动保存选择。系统减少动态优先。</p></section>${originPanelHTML(origin)}${backupPanel()}<section class="panel backup-panel"><h2>备份与换地址</h2><p>导出完整 JSON 后可换电脑恢复。请定期备份，浏览器清理和无痕模式可能移除本地数据。</p><div class="actions"><button id="backup" class="primary">导出全部学习数据</button><label class="button secondary">导入备份<input id="restore" type="file" accept=".json" hidden></label><button id="persist" class="secondary">申请持久存储</button><button id="check-integrity" class="secondary">检查数据完整性</button><button id="clear" class="danger-text">清空本地数据</button></div><p id="storage-info" class="hint">学习数据按浏览器和站点地址保存：一直用同一个地址打开，才能看到同一份数据。</p></section>`;
     $('#settings-form').insertAdjacentHTML('afterend', pronunciationPanel(s.pronunciationLocale ?? 'en-US'));
     refreshPronunciationUI();
     on('#pronunciation-locale', 'change', async e => {
@@ -4495,7 +4506,25 @@ function readingReread(): void {
 function readingWhole(): void {
     if (!readSession)
         return readingLibrary();
-    $('#main').innerHTML = `<div id="reading-page">${title('阅读', '整篇理解', '没有标准答案的地方只记你自己的回答，不会硬给你打分。')}${wholeTextHTML()}</div>`;
+    $('#main').innerHTML = `<div id="reading-page">${title('阅读', '整篇理解', '没有标准答案的地方只记你自己的回答，不会硬给你打分。')}${aiExercisesHTML(readPassage, readSession)}${wholeTextHTML()}</div>`;
+    document.querySelectorAll<HTMLButtonElement>('[data-ai-exercise]').forEach(button => button.addEventListener('click', async () => {
+        if (!readSession || !readPassage) return;
+        const previous = readSession;
+        const next = submitAIReadingChoice(previous, readPassage, Number(button.dataset.aiExercise), Number(button.dataset.aiChoice), Date.now());
+        if (next === previous) return;
+        const choices = document.querySelectorAll<HTMLButtonElement>('[data-ai-exercise], [data-read-complete], [data-read-whole-submit]');
+        choices.forEach(choice => { choice.disabled = true; });
+        try {
+            await putItems('readingSessions', [next]);
+            if (readSession === previous) {
+                upsertReadSession(next);
+                if (page === 'reading') render();
+            }
+        } catch {
+            choices.forEach(choice => { choice.disabled = false; });
+            toast('没有保存这次作答，请检查本地存储后重试。');
+        }
+    }));
     on('[data-read-whole-submit]', 'click', async () => {
         if (!readSession)
             return;
@@ -5352,12 +5381,7 @@ let aiReadingResult: {
     passage: string;
     /** Phase 16.3：这次请求真正用的目标（面板 / 请求 / 校验 / 保存一致） */
     targets: AiTargetPlan;
-    exercises: Array<{
-        question: string;
-        options: string[];
-        answerIndex: number;
-        evidenceQuote: string;
-    }>;
+    exercises: import('./aiValidate.ts').ExerciseTarget[];
     meta: Record<string, unknown>;
     quality: string;
     contentHash: string;
@@ -5375,12 +5399,12 @@ function aiSettings(): AISettings {
         maxOutputTokens: s.ai?.maxOutputTokens ?? 1200,
         temperature: s.ai?.temperature ?? 0.7,
         concurrency: s.ai?.concurrency ?? 1,
-        dailyTokenBudget: s.ai?.dailyTokenBudget ?? null,
+        dailyTokenBudget: s.ai?.dailyTokenBudget ?? 20000,
         knownMode: s.ai?.knownMode,
     };
 }
 function aiConfig(): AIProviderConfig {
-    return normalizeAIConfig(aiSettings());
+    return withUsageBudget(normalizeAIConfig(aiSettings()), data.aiGenerations);
 }
 function aiReady(): {
     ok: boolean;
@@ -5415,8 +5439,15 @@ function aiWeakGrammar(): Array<{
  * Phase 16.3：以前面板写「定语从句（默认）」而阅读实际发 `clause.adverbial`，保存时又回头重算薄弱语法，
  * 于是句库里的目标语法会变成「—」。现在目标只在这里定一次。
  */
+function aiConfusionNote(): string {
+    const pair = topConfusion(aiWeakWords(), data.words);
+    return pair ? `你练习「${pair.word.en}」时选成「${pair.mistaken.en}」${pair.times} 次，这次用语境区分两者。` : '';
+}
 function aiTargets(): AiTargetPlan {
-    return aiTargetPlan({ words: aiWeakWords().map(w => ({ id: w.id, en: w.en })), grammar: aiWeakGrammar() as AiGrammarTarget[] });
+    const weak = aiWeakWords();
+    const pair = topConfusion(weak, data.words);
+    const targets = pair ? [pair.word, pair.mistaken, ...weak.filter(w => w.en !== pair.word.en && w.en !== pair.mistaken.en)] : weak;
+    return aiTargetPlan({ words: targets, grammar: aiWeakGrammar() as AiGrammarTarget[] });
 }
 function aiErrorBlock(info: AIErrorInfo, issues: string[] = []): string {
     return `<div class="ai-error"><strong>${esc(info.message)}</strong><p>${esc(info.hint)}</p>${issues.length ? `<ul>${issues.slice(0, 6).map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}<p class="hint">本地功能不受影响：词库、复习、练习句、真实阅读材料与今日计划仍然可用。</p></div>`;
@@ -5438,7 +5469,8 @@ function aiSentencePanelHTML(): string {
     return `<section class="panel" id="ai-sentence-panel">
     <div class="section-title"><h2>AI 定向句</h2><span class="chip">AI 生成 · 结构未验证</span></div>
     <p class="hint">用你当前的真实薄弱词与语法点造一句练习句。${esc(EVIDENCE_NOTE)}</p>
-    <div class="ai-targets">目标词：${weak.length ? weak.map(w => `<span class="chip">${esc(w.en)}</span>`).join('') : '<em>无</em>'}　语法：${plan.grammar.map(g => `<span class="chip">${esc(g.name)}${plan.grammarIsDefault ? '（默认）' : ''}</span>`).join('')}${plan.grammarIsDefault ? '<em class="muted">还没有薄弱语法，这次先用一个常见结构</em>' : ''}</div>
+    <div class="ai-targets">目标词：${weak.length ? plan.words.map(w => `<span class="chip">${esc(w)}</span>`).join('') : '<em>无</em>'}　语法：${plan.grammar.map(g => `<span class="chip">${esc(g.name)}${plan.grammarIsDefault ? '（默认）' : ''}</span>`).join('')}${plan.grammarIsDefault ? '<em class="muted">还没有薄弱语法，这次先用一个常见结构</em>' : ''}</div>
+    ${aiConfusionNote() ? `<p class="hint">${esc(aiConfusionNote())}</p>` : ''}
     <label>场景 / 主题<input id="ai-sentence-theme" maxlength="60" placeholder="例如：修一座旧桥" value="${esc(aiTheme)}"></label>
     <div class="actions"><button class="primary" data-ai-sentence ${disabled ? 'disabled' : ''}>生成定向句</button><button class="secondary" data-ai-cancel hidden>取消</button></div>
     ${why ? `<p class="hint">${esc(why)}</p>` : `<p class="hint">将发送：目标词 ${plan.words.length} 个、语法点 ${plan.grammar.length} 个（${esc(targetRowText(plan).grammar)}）、主题与你填写的场景。不会发送完整词库、学习历史或备份。</p>`}
@@ -5461,7 +5493,7 @@ function aiReadingPanelHTML(): string {
     const grammar = aiWeakGrammar();
     const plan = aiTargets();
     const obstacles = aiObstacles();
-    const disabled = !ready.ok || (weak.length === 0 && grammar.length === 0);
+    const disabled = !ready.ok || (weak.length === 0 && grammar.length === 0 && !obstacles.length);
     const why = !ready.ok ? ready.reason : disabled ? '还没有可用的薄弱词/语法点：先读一篇真实文章并标记障碍。' : '';
     return `<section class="panel" id="ai-reading-panel">
     <div class="section-title"><h2>AI 强化阅读</h2><span class="chip">AI 生成 · 不是真文章</span></div>
@@ -5480,30 +5512,21 @@ function aiReadingResultHTML(): string {
     return `<div class="ai-result"><h3>${esc(r.title)}</h3>
     <p class="hint"><span class="chip">AI 生成强化材料</span> 来源：AI 生成，不是真实出版物</p>
     <div class="ai-passage">${r.passage.split(/\n{2,}/).map(p => `<p>${esc(p)}</p>`).join('')}</div>
-    <details><summary>阅读题（${r.exercises.length}）</summary>${r.exercises.map((e, i) => `<div class="ai-ex"><strong>${i + 1}. ${esc(e.question)}</strong><ol>${e.options.map((o, j) => `<li${j === e.answerIndex ? ' class="ok"' : ''}>${esc(o)}</li>`).join('')}</ol><p class="hint">原句：${esc(e.evidenceQuote)}</p></div>`).join('')}</details>
+    <p class="hint">保存后在「全文理解」作答，共 ${r.exercises.length} 题。</p>
     <p class="hint" id="ai-quality-note">基础格式与规则检查：${esc(r.quality)}。${esc(AI_CHECK_SCOPE_NOTE)}</p>
     <p class="hint">这次的目标：${esc(targetRowText(r.targets).words)} · ${esc(targetRowText(r.targets).grammar)}</p>${aiMetaLine(r.meta)}
     <div class="actions"><button class="primary" data-ai-reading-save>保存并开始阅读</button></div></div>`;
 }
 function aiObstacles(): string[] {
-    const last = [...data.readingSessions].filter(s => (s as unknown as {
-        detail?: {
-            difficult?: Array<{
-                problemType?: string;
-            }>;
-        };
-    }).detail).pop();
-    const detail = (last as unknown as {
-        detail?: {
-            difficult?: Array<{
-                problemType?: string;
-            }>;
-        };
-    } | undefined)?.detail;
-    const types = (detail?.difficult ?? []).map(d => d.problemType).filter(Boolean) as string[];
-    return [...new Set(types)].slice(0, 3).map(t => PROBLEM_TYPE_LABELS[t as keyof typeof PROBLEM_TYPE_LABELS] ?? t);
+    const recentWrong = data.readingSessions.flatMap(s => s.detail?.comprehension ?? [])
+        .filter(r => r.aiPractice && !r.aiPractice.correct).sort((a, b) => b.at - a.at).slice(0, 6)
+        .map(r => `近期 AI 定向阅读答错题型：${r.aiPractice!.type}`);
+    const last = [...data.readingSessions].sort((a, b) => b.at - a.at).find(s => s.detail?.difficultSentences?.length);
+    const types = last?.detail?.difficultSentences.flatMap(d => d.problemTypes) ?? [];
+    return [...new Set([aiConfusionNote(), ...recentWrong, ...types.map(t => PROBLEM_TYPE_LABELS[t as keyof typeof PROBLEM_TYPE_LABELS] ?? t)].filter(Boolean))].slice(0, 3);
 }
 async function aiGenerateSentence(): Promise<void> {
+    if (aiRunning) return;
     const cfg = aiConfig();
     const bad = validateAIConfig(cfg);
     const box = $('#ai-sentence-result');
@@ -5513,11 +5536,6 @@ async function aiGenerateSentence(): Promise<void> {
         box.innerHTML = aiErrorBlock(bad);
         return;
     }
-    const budget = budgetState(data.aiGenerations, cfg.dailyTokenBudget, Date.now());
-    if (!budget.allowed) {
-        box.innerHTML = aiErrorBlock({ code: 'budget-exceeded', message: '今天的 AI 用量已达上限。', hint: `已用 ${budget.usedTokens} / ${budget.limitTokens} tokens；可调高上限或明天再用。`, retryable: false, status: null });
-        return;
-    }
     const weak = aiWeakWords();
     const grammar = aiWeakGrammar();
     if (!weak.length) {
@@ -5525,6 +5543,24 @@ async function aiGenerateSentence(): Promise<void> {
         return;
     }
     const plan = aiTargets();
+    const requestKey = fnv1a(JSON.stringify(['sentence-1', cfg.endpoint, cfg.model, plan, aiTheme, aiConfusionNote()]));
+    const cached = findReusable(data.aiGenerations, 'sentence', requestKey);
+    const material = (cached?.output as { material?: unknown } | null)?.material;
+    const sentence = cached?.quality.ok && validateSentence(material, {
+        allowedWords: plan.words, grammarConceptIds: plan.grammar.map(g => g.id), minWords: 8, maxWords: 22,
+    }).value;
+    if (sentence && cached) {
+        aiSentenceResult = { text: sentence.sentence, zh: sentence.chinese ?? '', targets: plan,
+            quality: cached.quality.notes[0] ?? '', meta: { ...cached, attempts: cached.sourceMetadata.attempts } };
+        box.innerHTML = aiSentenceResultHTML();
+        toast('已复用这组目标的练习句。');
+        return;
+    }
+    const budget = budgetState(data.aiGenerations, cfg.dailyTokenBudget, Date.now());
+    if (!budget.allowed) {
+        box.innerHTML = aiErrorBlock({ code: 'budget-exceeded', message: '今天的 AI 用量已达上限。', hint: `已用 ${budget.usedTokens} / ${budget.limitTokens} tokens；可调高上限或明天再用。`, retryable: false, status: null });
+        return;
+    }
     aiRunning = new AbortController();
     const btn = document.querySelector<HTMLButtonElement>('[data-ai-sentence]');
     const cancel = document.querySelector<HTMLElement>('[data-ai-cancel]');
@@ -5538,7 +5574,7 @@ async function aiGenerateSentence(): Promise<void> {
         const r = await generateSentence({
             targetWords: plan.words,
             targetGrammar: plan.grammar.map(g => ({ id: g.id, name: g.name, description: g.description })),
-            theme: aiTheme || 'daily life',
+            theme: [aiTheme || 'daily life', aiConfusionNote()].filter(Boolean).join(' · '),
             level: 'B1',
             minWords: 8, maxWords: 22,
             knownSample: data.words.filter(w => (w.state?.total ?? 0) > 0).slice(0, 20).map(w => w.en),
@@ -5556,7 +5592,7 @@ async function aiGenerateSentence(): Promise<void> {
         }
         aiSentenceResult = { text: r.value.sentence, zh: r.value.chinese ?? '', meta: r.meta as unknown as Record<string, unknown>, quality: summarizeQuality(r.quality), targets: plan };
         const now = Date.now();
-        const rec = buildGeneration('sentence', { ...r.value }, r.meta, { ok: true, notes: [summarizeQuality(r.quality)] }, now);
+        const rec = buildGeneration('sentence', { requestKey, material: r.value }, r.meta, { ok: true, notes: [summarizeQuality(r.quality)] }, now);
         await putItems('aiGenerations', [rec]);
         data.aiGenerations.push(rec);
         box.innerHTML = aiSentenceResultHTML();
@@ -5580,8 +5616,9 @@ async function aiAdoptSentence(): Promise<void> {
     const text = aiSentenceResult.text.trim();
     const now = Date.now();
     const id = `sen.ai.${Math.abs([...text].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7)).toString(36)}`;
-    if (sentenceRecords.some(x => x.id === id || x.text === text)) {
-        toast('这句已经在句库里了');
+    const existing = sentenceRecords.find(x => x.id === id || x.text === text);
+    if (existing) {
+        startLab([existing.id], null, null);
         return;
     }
     // Phase 16.3：目标用「这次生成时真正发出去的那一份」，不再回头重算薄弱语法——
@@ -5605,6 +5642,7 @@ async function aiAdoptSentence(): Promise<void> {
     startLab([record.id], null, null);
 }
 async function aiGenerateReading(): Promise<void> {
+    if (aiRunning) return;
     const cfg = aiConfig();
     const bad = validateAIConfig(cfg);
     const box = $('#ai-reading-result');
@@ -5614,16 +5652,30 @@ async function aiGenerateReading(): Promise<void> {
         box.innerHTML = aiErrorBlock(bad);
         return;
     }
-    const budget = budgetState(data.aiGenerations, cfg.dailyTokenBudget, Date.now());
-    if (!budget.allowed) {
-        box.innerHTML = aiErrorBlock({ code: 'budget-exceeded', message: '今天的 AI 用量已达上限。', hint: `已用 ${budget.usedTokens} / ${budget.limitTokens} tokens。`, retryable: false, status: null });
-        return;
-    }
     const weak = aiWeakWords();
     const grammar = aiWeakGrammar();
     const plan = aiTargets();
-    if (!weak.length && !grammar.length) {
+    if (!weak.length && !grammar.length && !aiObstacles().length) {
         box.innerHTML = aiErrorBlock({ code: 'missing-model', message: '还没有阅读障碍或弱项。', hint: '先读一篇真实文章，标记不会的词与读不懂的句子。', retryable: false, status: null });
+        return;
+    }
+    const obstacles = aiObstacles();
+    const requestKey = fnv1a(JSON.stringify(['reading-1', cfg.endpoint, cfg.model, plan, aiReadingTopic, obstacles]));
+    const cached = findReusable(data.aiGenerations, 'reading', requestKey);
+    const material = (cached?.output as { material?: unknown } | null)?.material;
+    const reading = cached?.quality.ok && validateReading(material, {
+        allowedGrammar: plan.grammar.map(g => g.id), expectedWords: plan.words, minWords: 90, maxWords: 230, minExercises: 3, maxExercises: 4,
+    }).value;
+    if (reading && cached) {
+        aiReadingResult = { ...reading, targets: plan, quality: cached.quality.notes[0] ?? '', contentHash: cached.contentHash,
+            meta: { ...cached, attempts: cached.sourceMetadata.attempts } };
+        box.innerHTML = aiReadingResultHTML();
+        toast('已复用这组目标的练习文章。');
+        return;
+    }
+    const budget = budgetState(data.aiGenerations, cfg.dailyTokenBudget, Date.now());
+    if (!budget.allowed) {
+        box.innerHTML = aiErrorBlock({ code: 'budget-exceeded', message: '今天的 AI 用量已达上限。', hint: `已用 ${budget.usedTokens} / ${budget.limitTokens} tokens。`, retryable: false, status: null });
         return;
     }
     aiRunning = new AbortController();
@@ -5637,7 +5689,7 @@ async function aiGenerateReading(): Promise<void> {
     try {
         const r = await generateReading({
             topic: aiReadingTopic || 'a small town by a river',
-            obstacles: aiObstacles(),
+            obstacles,
             targetWords: plan.words,
             targetGrammar: plan.grammar.map(g => ({ id: g.id, name: g.name })),
             targetWordCount: 150, level: 'B1',
@@ -5646,7 +5698,8 @@ async function aiGenerateReading(): Promise<void> {
             grammarIds: plan.grammar.map(g => g.id),
             minWords: 90, maxWords: 230, minExercises: 3, maxExercises: 4,
             maxUnknownWords: 8, desired: 'medium',
-            unknownWords: [], existingHashes: contentHashes(data.aiGenerations, 'reading'),
+            unknownWords: data.words.filter(w => w.previewResult === 'unknown' || (w.state.total > 0 && isWeak(w))).map(w => w.en),
+            existingHashes: contentHashes(data.aiGenerations, 'reading'),
         }, cfg, { knownMode: aiSettings().knownMode }, aiRunning.signal);
         if (!r.ok) {
             box.innerHTML = aiErrorBlock(r.error, r.issues);
@@ -5655,10 +5708,10 @@ async function aiGenerateReading(): Promise<void> {
         }
         aiReadingResult = {
             title: r.value.title, topic: r.value.topic, passage: r.value.passage,
-            exercises: r.value.exercises.map(e => ({ question: e.question, options: e.options, answerIndex: e.answerIndex, evidenceQuote: e.evidenceQuote })),
+            exercises: r.value.exercises,
             meta: r.meta as unknown as Record<string, unknown>, quality: summarizeQuality(r.quality), contentHash: r.meta.contentHash, targets: plan,
         };
-        const rec = buildGeneration('reading', { ...r.value }, r.meta, { ok: true, notes: [summarizeQuality(r.quality)] }, Date.now());
+        const rec = buildGeneration('reading', { requestKey, material: r.value }, r.meta, { ok: true, notes: [summarizeQuality(r.quality)] }, Date.now());
         await putItems('aiGenerations', [rec]);
         data.aiGenerations.push(rec);
         box.innerHTML = aiReadingResultHTML();
@@ -5678,6 +5731,12 @@ async function aiGenerateReading(): Promise<void> {
 async function aiSaveReading(): Promise<void> {
     if (!aiReadingResult)
         return;
+    const existing = data.passages.find(p => p.sourceType === 'ai_reinforcement' && p.contentHash === aiReadingResult?.contentHash);
+    if (existing) {
+        aiReadingResult = null;
+        openReadingMaterial(existing, null);
+        return;
+    }
     const now = Date.now();
     const parsed = parsePassageText(aiReadingResult.passage);
     const passage: Passage = {
@@ -5687,7 +5746,7 @@ async function aiSaveReading(): Promise<void> {
         sourceName: 'AI 强化生成（非真实文章）', language: 'en',
         paragraphs: parsed.paragraphs, sentences: parsed.sentences,
         sourceReliability: 'ai_generated', extractionMethod: 'ai_generated',
-        contentHash: aiReadingResult.contentHash, userEdited: false, importedAt: now,
+        contentHash: aiReadingResult.contentHash, userEdited: false, importedAt: now, aiExercises: aiReadingResult.exercises,
         sourceMetadata: {
             origin: 'ai_reinforcement', prompt: String(aiReadingResult.meta.promptVersion ?? ''), model: String(aiReadingResult.meta.model ?? ''),
             grammarTargets: aiReadingResult.targets.grammar.map(g => g.id).join(','),
