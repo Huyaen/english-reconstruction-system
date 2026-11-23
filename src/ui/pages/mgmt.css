@@ -176,10 +176,8 @@
 
 /* 备份区：数据安全的事，视觉上必须比别的设置更重 */
 [data-page="settings"] .backup-panel {
-  border-color: color-mix(in srgb, var(--line-strong) 80%, var(--accent-ink));
-  background:
-    radial-gradient(120% 90% at 88% -20%, var(--accent-wash), transparent 62%),
-    linear-gradient(180deg, var(--surface-raised), var(--surface));
+  border-color: var(--line-strong);
+  background: var(--surface);
 }
 [data-page="settings"] .integrity-issues {
   margin-top: var(--s-3);
@@ -213,9 +211,16 @@
 }
 
 #auto-backup-state {
-  padding-inline-start: var(--s-3);
-  border-inline-start: 2px solid var(--line-strong);
+  padding: var(--s-3) var(--s-4);
+  background: var(--surface-sunken);
+  border-inline-start: 1px solid var(--line-strong);
 }
-#auto-backup-state[data-backup-status="success"] { border-color: var(--ok); }
-#auto-backup-state[data-backup-status="permission"] { border-color: var(--warn); }
-#auto-backup-state[data-backup-status="error"] { border-color: var(--danger); }
+#auto-backup-state[data-backup-status="success"] { border-color: var(--ok); background: var(--ok-wash); }
+#auto-backup-state[data-backup-status="permission"] { border-color: var(--warn); background: var(--warn-wash); }
+#auto-backup-state[data-backup-status="error"] { border-color: var(--danger); background: var(--danger-wash); }
+.backup-options summary { min-height: 44px; padding-block: var(--s-3); }
+[data-page="settings"] .ai-usage { font-variant-numeric: tabular-nums; border-block-start: 1px solid var(--line); padding-block-start: var(--s-3); }
+[data-page] :is(#ai-reading-panel, #ai-sentence-panel, .ai-intro) .chip {
+  color: var(--ai-evidence);
+  background: var(--ai-evidence-wash);
+}

@@ -69,10 +69,7 @@
   max-width: var(--stem-measure);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
-  background:
-    linear-gradient(180deg, var(--mat-matte-wash), transparent 58%),
-    var(--surface-sunken);
-  box-shadow: inset 0 1px 0 var(--edge-soft);
+  background: var(--paper);
   font-family: var(--font-reading);
   font-size: var(--stem-size);
   line-height: 1.52;
@@ -90,7 +87,7 @@
   bottom: var(--s-4);
   width: 3px;
   border-radius: var(--r-pill);
-  background: linear-gradient(180deg, var(--metal-hi), var(--metal-mid));
+  background: var(--brass);
 }
 
 /* 步骤条：三段元信息，用竖线分隔，不做百分比进度 */
@@ -1116,6 +1113,7 @@
 /* 概念卡掌握度分档：data-band 来自 conceptStates 的 band，不再只靠 badge 文字 */
 [data-page="grammar"] .concept-card[data-band="unknown"] { border-color: var(--line-strong); }
 [data-page="grammar"] .concept-card[data-band="unknown"] > header { color: var(--ink); }
+[data-page="grammar"] .concept-card[data-band="unknown"] .badge { color: var(--ink-muted); border-color: var(--line-strong); }
 [data-page="grammar"] .concept-card[data-band="likely-mastered"] { opacity: .82; }
 [data-page="grammar"] .concept-card[data-band="likely-mastered"]:hover,
 [data-page="grammar"] .concept-card[data-band="likely-mastered"]:focus-within { opacity: 1; }

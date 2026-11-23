@@ -8,7 +8,16 @@ export function toast(text: string) { $('#toast').textContent = text; $('#toast'
 export function download(blob: Blob, name: string) { const u = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = u; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(u), 1000); }
 export function modal(html: string) {
     const d = $<HTMLDialogElement>('#modal');
-    d.innerHTML = `<button class="close" aria-label="关闭">×</button>${html}`;
+    d.innerHTML = `<button class="close" aria-label="关闭对话框">×</button>${html}`;
+    const heading = d.querySelector('h1, h2, h3');
+    if (heading) {
+        heading.id ||= 'modal-title';
+        d.setAttribute('aria-labelledby', heading.id);
+        d.removeAttribute('aria-label');
+    } else {
+        d.removeAttribute('aria-labelledby');
+        d.setAttribute('aria-label', '词间对话框');
+    }
     d.querySelector('.close')!.addEventListener('click', () => d.close());
     if (!d.open)
         d.showModal();

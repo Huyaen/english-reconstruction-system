@@ -17,7 +17,7 @@
 
 [data-page="reading"] {
   /* 阅读页专属布局尺寸（不是颜色，不新增主题 token） */
-  --read-rail: clamp(272px, 25vw, 322px);
+  --read-rail: clamp(240px, 22vw, 286px);
   --read-sticky-top: 52px;      /* 与 .app-shell .workspace > header 同高 */
   --read-pad-y: clamp(26px, 3.2vw, 52px);
   --read-pad-x: clamp(22px, 3.4vw, 56px);
@@ -285,7 +285,7 @@
    并且标题自己写明状态 —— 不靠颜色单独传达。 */
 [data-page="reading"] #read-cold {
   display: grid;
-  gap: var(--s-4);
+  gap: var(--s-5);
   border-left: 1px solid var(--accent-ink);
 }
 [data-page="reading"] #read-reread {
@@ -490,9 +490,9 @@
 [data-page="reading"] .reader-main {
   min-height: clamp(320px, 44vh, 560px);
   padding: var(--read-pad-y) var(--read-pad-x) var(--s-6);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--surface-raised);
+  border-block: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  background: var(--paper);
 }
 
 /* ── 6. 正文：不动的部分 ───────────────────────────────────────────────── */
@@ -502,7 +502,7 @@
   font-family: var(--font-reading);
   font-size: var(--read-size);
   line-height: var(--read-leading);
-  letter-spacing: 0.004em;
+  letter-spacing: normal;
   color: var(--read-ink);
   text-wrap: pretty;
   animation: none;
@@ -994,26 +994,22 @@
 /* ── 阅读导入：让"入口"看得见出口（复核 P2）─────────────────────────────────
    实测问题：正文 textarea 约 995px 宽、超出首屏，提交按钮落在折叠线以下；
    产品定位是"真实材料是唯一入口"，入口却看不见出口。
-   处理：正文框限宽到阅读测量宽度（760px / 1.72），操作条吸底常驻。 */
+   正文框限宽到 760px，操作条在正文框之后，保留自然焦点顺序。 */
 [data-page="reading"] #read-paste {
+  display: block;
   max-width: 760px;
   min-height: 220px;
   line-height: 1.72;
   font-size: 15px;
 }
 [data-page="reading"] .read-import-bar {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-top: var(--s-4);
   padding: 10px 0 max(10px, env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, transparent, var(--surface) 42%);
 }
-[data-page="reading"] .read-import-bar .primary { order: -1; }
 
 /* ── 15h.1 语义状态 ── */
 /* 侧栏标记复用正文的四种判读形状（mark-row 的类来自 m.judgment） */

@@ -37,7 +37,7 @@ export function importPanelHTML(duplicateHint = ''): string {
   <label class="hint"><input type="checkbox" id="read-allow-short" /> 不足 60 词也按短文导入（仍要用它练完整流程）</label>
   <div class="actions read-import-bar">
     <button class="primary" data-read-save="paste">预览并保存</button>
-    <label class="secondary" style="display:inline-flex;align-items:center;gap:6px">上传文件<input type="file" id="read-file" accept=".txt,.md,.markdown,.text,.html,.htm" hidden /><span data-read-file-label>选一个文件</span></label>
+    <label class="button secondary file-action">上传文件<input type="file" id="read-file" accept=".txt,.md,.markdown,.text,.html,.htm" /></label>
     <button class="secondary" data-read-url-open="1">从网址导入</button>
     <button class="secondary" data-read-ocr-open="1">截图取字</button>
   </div>

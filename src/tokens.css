@@ -1,50 +1,63 @@
-/* B · 动字排练场语义色与阅读字号。旧变量名保留给业务组件。 */
+/* 墨序语义色、排版与空间尺度。旧变量名保留给现有页面。 */
 :root {
   --action-on: #FFF9F0;
   color-scheme: light;
+  --nav: #203E34;
+  --nav-quiet: #263D34;
+  --nav-hover: #315347;
+  --nav-on: #FFF9ED;
+  --nav-muted: #D4E1D5;
+  --nav-mark: #E2C18A;
+  --nav-rule: #557267;
+  --nav-width: clamp(12rem, 16vw, 14rem);
+  --brass: #765725;
+  --red-ink: #9A4135;
+  --ai-evidence: #335B69;
+  --ai-evidence-wash: #E4EEF0;
+  --font-title: "Noto Serif CJK SC", "Songti SC", STSong, SimSun, serif;
 
-  /* —— 空间基底（浅色：摄影棚昼光，中性冷白，不是暖纸）—— */
-  --canvas: #F7F2E8;
-  --canvas-deep: #F7F2E8;
-  --surface: #FFFBF4;
-  --surface-raised: #FFFBF4;
-  --surface-sunken: #EEE3E5;
-  --paper: #FFFBF4;
+  /* —— 暖纸与工作面 —— */
+  --canvas: #F4F0E8;
+  --canvas-deep: #EBE6DA;
+  --surface: #FBF8F0;
+  --surface-raised: #FFFCF5;
+  --surface-sunken: #EAE7DB;
+  --paper: #FDF9F0;
 
   /* —— 墨色 —— */
-  --ink: #302339;
-  --ink-soft: #302339;
-  --ink-muted: #716274;
-  --ink-faint: #716274;
+  --ink: #242824;
+  --ink-soft: #393D36;
+  --ink-muted: #565F53;
+  --ink-faint: #626A5D;
 
   /* —— 金属 / 玻璃 —— */
   --edge: rgba(255, 255, 255, 0.92);
   --edge-soft: rgba(255, 255, 255, 0.55);
-  --line: #D5C9D4;
-  --line-strong: #867486;
+  --line: #D4CDBD;
+  --line-strong: #726F60;
   --glass: rgba(247, 249, 251, 0.74);
   --glass-strong: rgba(250, 252, 254, 0.88);
   --glass-blur: blur(18px) saturate(130%);
 
   /* 阳极金属：主行动面 */
-  --metal-hi: #34273F;
-  --metal-mid: #34273F;
-  --metal-lo: #34273F;
+  --metal-hi: #203E34;
+  --metal-mid: #203E34;
+  --metal-lo: #203E34;
   --metal-ink: #FFF9F0;
   --metal-sheen: linear-gradient(168deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0) 44%);
   --spectral: linear-gradient(96deg, #9DB6D9 0%, #C9D8EA 34%, #EDF3FA 58%, #93A6BC 100%);
 
   /* —— 状态（鼠尾草在此，只表"通过 / 掌握"）—— */
-  --accent: #AA342C;
-  --accent-ink: #AA342C;
-  --accent-strong: #862B2C;
-  --accent-wash: #EEE3E5;
+  --accent: #285747;
+  --accent-ink: #285747;
+  --accent-strong: #1B4638;
+  --accent-wash: #E2EBDF;
   --ok: #246346;
   --ok-wash: #E5EFE5;
-  --warn: #805312;
-  --warn-wash: rgba(140, 98, 36, 0.14);
-  --danger: #9F303E;
-  --danger-wash: #F5E1E4;
+  --warn: #79551F;
+  --warn-wash: #F0E4CE;
+  --danger: var(--red-ink);
+  --danger-wash: #F6E4DD;
   --m-fluent: #3C6F57;
   --m-normal: #4A5C82;
   --m-vague: #7A5518;
@@ -70,7 +83,7 @@
   --e-1: none;
   --e-2: none;
   --e-3: none;
-  --e-pop: 10px 30px 70px -30px rgba(12, 16, 22, 0.38), 0 2px 8px rgba(12, 16, 22, 0.14);
+  --e-pop: 0 10px 24px -12px rgb(26 31 25 / 24%), 0 24px 48px -20px rgb(26 31 25 / 20%);
   --e-inset: none;
 
   /* —— 字体 —— */
@@ -92,11 +105,11 @@
   --t-4xl: 44px;
 
   /* 阅读排版：沿用 15a 实测值（18–20px / 1.65–1.8 / 60–75ch） */
-  --read-size: 22px;
-  --read-leading: 1.85;
+  --read-size: 1.3125rem;
+  --read-leading: 1.8;
   --read-measure: 68ch;
   --read-tracking: 0;
-  --read-ink: #302339;
+  --read-ink: #242824;
 
   /* —— 间距 / 圆角 —— */
   --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px; --s-5: 22px;
@@ -140,48 +153,56 @@
   --muted: var(--ink-muted);
 }
 
-/* —— 深色：石墨 + 冷光（主方向）—— */
+/* —— 独立墨绿深色主题 —— */
 [data-theme="dark"] {
-  --action-on: #211A28;
+  --action-on: #18241C;
   color-scheme: dark;
+  --nav: #17291F;
+  --nav-quiet: #192920;
+  --nav-hover: #2B4839;
+  --nav-rule: #476655;
+  --brass: #DDB977;
+  --red-ink: #FFB3A5;
+  --ai-evidence: #9DCBDA;
+  --ai-evidence-wash: #243A41;
 
-  --canvas: #211A28;
-  --canvas-deep: #211A28;
-  --surface: #302637;
-  --surface-raised: #302637;
-  --surface-sunken: #3D2A3C;
-  --paper: #302637;
+  --canvas: #151E19;
+  --canvas-deep: #111913;
+  --surface: #1C2820;
+  --surface-raised: #243329;
+  --surface-sunken: #27362D;
+  --paper: #1B271F;
 
-  --ink: #F3EAF4;
-  --ink-soft: #F3EAF4;
-  --ink-muted: #BBAAC2;
-  --ink-faint: #BBAAC2;
+  --ink: #F4F0E5;
+  --ink-soft: #E5E5D8;
+  --ink-muted: #BBC6B7;
+  --ink-faint: #A8B6A7;
 
   --edge: rgba(255, 255, 255, 0.10);
   --edge-soft: rgba(255, 255, 255, 0.06);
-  --line: #524257;
-  --line-strong: #9A839F;
+  --line: #425347;
+  --line-strong: #859787;
   --glass: rgba(14, 17, 22, 0.62);
   --glass-strong: rgba(18, 22, 28, 0.80);
   --glass-blur: blur(20px) saturate(140%);
 
   /* 深色主题的主行动是"亮金属" */
-  --metal-hi: #302339;
-  --metal-mid: #302339;
-  --metal-lo: #302339;
-  --metal-ink: #F3EAF4;
+  --metal-hi: #23392E;
+  --metal-mid: #23392E;
+  --metal-lo: #23392E;
+  --metal-ink: #FFF9ED;
   --metal-sheen: linear-gradient(168deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0) 46%);
 
-  --accent: #FF9D8B;
-  --accent-ink: #FF9D8B;
-  --accent-strong: #FFC0B4;
-  --accent-wash: #3D2A3C;
+  --accent: #A9D3B5;
+  --accent-ink: #A9D3B5;
+  --accent-strong: #C4E5CD;
+  --accent-wash: #2B4335;
   --ok: #A4D8B5;
   --ok-wash: #233B30;
   --warn: #F0C97A;
   --warn-wash: rgba(216, 172, 116, 0.12);
-  --danger: #FFB1BF;
-  --danger-wash: #482630;
+  --danger: var(--red-ink);
+  --danger-wash: #472E28;
   --m-fluent: #7FBB9D;
   --m-normal: #93A8D2;
   --m-vague: #D9AE6A;
@@ -204,10 +225,10 @@
   --e-1: none;
   --e-2: none;
   --e-3: none;
-  --e-pop: 14px 34px 80px -34px rgba(0, 0, 0, 0.92), 0 2px 10px rgba(0, 0, 0, 0.6);
+  --e-pop: 0 10px 24px -12px rgb(0 0 0 / 52%), 0 24px 48px -20px rgb(0 0 0 / 58%);
   --e-inset: none;
 
-  --read-ink: #F3EAF4;
+  --read-ink: #F4F0E5;
 
   --bg: var(--canvas);
   --blue: var(--accent-ink);

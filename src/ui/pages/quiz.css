@@ -28,10 +28,10 @@
     text-align: start;
 }
 .quiz-card .eyebrow { font-size: 14px; margin: 0 0 12px; color: var(--ink-muted); }
-.ink-wordline { border-bottom: 2px solid var(--accent); width: fit-content; max-width: 100%; margin: 0 0 14px; }
+.ink-wordline { border-bottom: 1px solid var(--brass); width: fit-content; max-width: 100%; margin: 0 0 var(--s-4); }
 :is([data-page=preview], [data-page=quiz]) .question {
     min-height: 0;
-    font: 400 clamp(38px, 7vw, 88px)/1.13 Georgia, "Songti SC", serif;
+    font: 400 clamp(2.375rem, 7vw, 5.5rem)/1.13 var(--font-reading);
     letter-spacing: -.025em;
     text-align: start;
     overflow-wrap: anywhere;

@@ -286,7 +286,7 @@
 /* 任务类型：可选轨道，选中只是"我现在想写这个"，不是难度分级 */
 [data-page="output"] .output-types { gap: var(--s-2); margin: var(--s-3) 0 var(--s-2); }
 [data-page="output"] .output-types .chip { height: 28px; padding: 0 12px; font-size: var(--t-xs); }
-[data-page="output"] .output-start .form-grid { margin-top: var(--s-4); }
+[data-page="output"] .output-start .form-grid { margin-top: var(--s-4); grid-template-columns: minmax(0, 34rem); }
 
 /* 建议任务：本页唯一被推荐的入口，用一条左侧光区分于普通卡片 */
 [data-page="output"] .output-suggestion {
@@ -394,7 +394,7 @@
 /* ══ 7. 表达 · 会话版式：编辑器在左，证据在右 ═══════════════════════════ */
 [data-page="output"] .output-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 344px);
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 30%);
   gap: var(--s-5);
   align-items: start;
 }
@@ -421,7 +421,7 @@
   min-height: clamp(280px, 42vh, 460px);
   margin: var(--s-3) 0 0;
   padding: var(--s-4) var(--s-5);
-  background: var(--surface);
+  background: var(--paper);
   color: var(--read-ink);
   font-family: var(--font-reading);
   font-size: var(--read-size);

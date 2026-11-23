@@ -209,7 +209,7 @@ function transferBlock(t: TransferPlan): string {
       <div class="actions"><button class="secondary" data-out-transfer-start="${esc(t.task.id)}">换场景再写一次</button></div></section>`;
 }
 function titleBlock(kicker: string, title: string, sub: string, action = ''): string {
-    return `<div class="page-title"><div><div class="eyebrow">${esc(kicker)}</div><h1>${esc(title)}</h1><p>${esc(sub)}</p></div>${action}</div>`;
+    return `<div class="page-title"><div>${kicker !== title ? `<div class="eyebrow">${esc(kicker)}</div>` : ''}<h1>${esc(title)}</h1><p>${esc(sub)}</p></div>${action}</div>`;
 }
 function metric(label: string, value: string, note: string): string {
     return `<div class="metric"><span>${esc(label)}</span><strong>${esc(value)}</strong><small>${esc(note)}</small></div>`;
