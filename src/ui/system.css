@@ -57,7 +57,7 @@
 .ink-more summary { display: list-item; padding-block: var(--s-3); list-style-position: inside; margin: 0; }
 .ink-more nav { margin: 0 0 0 var(--s-3); padding: 0 0 0 var(--s-2); border-inline-start: 1px solid var(--nav-rule); }
 .ink-more:not([open]) nav { display: none; }
-.ink-masthead :is(button, summary):hover:not(:disabled) { background: var(--nav-hover); }
+.ink-masthead :is(button, summary):hover:not(:disabled) { color: var(--nav-on); background: var(--nav-hover); }
 .ink-masthead button[aria-current=page], .ink-more summary.is-current {
     color: var(--nav-on);
     background: var(--nav-hover);

@@ -1085,7 +1085,7 @@ function wordDetail(w: Word) {
 function exportDialog(ws: Word[]) { modal(`<h2>导出 ${ws.length} 个单词</h2><p>导出当前筛选出来的词。要换设备，请用设置里的完整备份。</p><div class="actions">${['txt', 'csv', 'xlsx'].map(ext => `<button data-export="${ext}" class="secondary">${ext.toUpperCase()}</button>`).join('')}</div>`); document.querySelectorAll<HTMLElement>('[data-export]').forEach(b => b.onclick = () => { download(exportWords(ws, b.dataset.export!), '词间词表.' + b.dataset.export); closeModal(); }); }
 function importDialog() {
     let parsed: Parsed | null = null;
-    modal(`<h2>导入你的词书</h2><p>支持 TXT、CSV、XLSX、JSON；Excel 只读第一个工作表。</p><label>词书名称<input id="import-name" placeholder="例如：高中核心词汇" maxlength="100"></label><label class="file-box">选择词书文件<input id="import-file" type="file" accept=".txt,.csv,.tsv,.xlsx,.xls,.json"></label><details><summary>也可以直接粘贴词表</summary><textarea id="paste-words" rows="6" placeholder="abandon 放弃&#10;adequate 充足的"></textarea><button id="parse-paste" class="secondary">预览粘贴内容</button></details><div id="import-preview"></div><div class="actions"><button id="import-confirm" class="primary" disabled>确认导入</button></div>`);
+    modal(`<h2>导入你的词书</h2><p>支持 TXT、CSV、XLSX、JSON；Excel 只读第一个工作表。</p><label>词书名称<input id="import-name" placeholder="例如：高中核心词汇" maxlength="100"></label><label class="file-box">选择词书文件<input id="import-file" type="file" accept=".txt,.csv,.tsv,.xlsx,.xls,.json"></label><details><summary>也可以直接粘贴词表</summary><textarea id="paste-words" aria-label="粘贴词表" rows="6" placeholder="abandon 放弃&#10;adequate 充足的"></textarea><button id="parse-paste" class="secondary">预览粘贴内容</button></details><div id="import-preview"></div><div class="actions"><button id="import-confirm" class="primary" disabled>确认导入</button></div>`);
     const preview = (p: Parsed) => { parsed = p; $('#import-preview').innerHTML = `<p><b>${p.rows.length}</b> 个有效词 · ${p.duplicates} 个重复已跳过 · ${p.errors.length} 个格式问题</p><div class="preview-list">${p.rows.slice(0, 8).map(r => `<div><b>${esc(r.en)}</b><span>${esc(r.zh)}</span></div>`).join('')}</div>${p.errors.length ? `<details><summary>查看格式问题</summary><pre>${esc(p.errors.slice(0, 100).join('\n'))}</pre></details>` : ''}<p class="hint">同一个英文词只保留第一条。每本词书的进度分开记。</p>`; $<HTMLButtonElement>('#import-confirm').disabled = !p.rows.length; };
     on('#import-file', 'change', async () => {
         parsed = null;
@@ -3925,10 +3925,10 @@ function readingLibrary(): void {
       ${aiReadingPanelHTML()}
       <section class="panel"><div class="section-title">阅读库</div>
         <div class="actions">
-          <input id="read-search" placeholder="搜索标题或正文" value="${resc(readLibraryQuery.text ?? '')}" />
-          <select id="read-filter"><option value="all"${readLibraryQuery.readState === 'all' ? ' selected' : ''}>全部</option><option value="unread"${readLibraryQuery.readState === 'unread' ? ' selected' : ''}>未读</option><option value="unfinished"${readLibraryQuery.readState === 'unfinished' ? ' selected' : ''}>未完成</option><option value="read"${readLibraryQuery.readState === 'read' ? ' selected' : ''}>已读</option></select>
+          <input id="read-search" aria-label="搜索标题或正文" placeholder="搜索标题或正文" value="${resc(readLibraryQuery.text ?? '')}" />
+          <select id="read-filter" aria-label="阅读进度筛选"><option value="all"${readLibraryQuery.readState === 'all' ? ' selected' : ''}>全部</option><option value="unread"${readLibraryQuery.readState === 'unread' ? ' selected' : ''}>未读</option><option value="unfinished"${readLibraryQuery.readState === 'unfinished' ? ' selected' : ''}>未完成</option><option value="read"${readLibraryQuery.readState === 'read' ? ' selected' : ''}>已读</option></select>
         </div>
-        <div class="table-scroll"><table><thead><tr><th>文章</th><th>难度</th><th>操作</th></tr></thead><tbody>${list}</tbody></table></div>
+        <div class="table-scroll" role="region" aria-label="阅读材料列表" tabindex="0"><table><thead><tr><th>文章</th><th>难度</th><th>操作</th></tr></thead><tbody>${list}</tbody></table></div>
       </section></div>`;
     wireReadingLibrary();
 }

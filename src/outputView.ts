@@ -147,7 +147,7 @@ export function outputSessionPage(input: SessionInput): string {
       <section class="panel output-editor">
         <div class="section-title"><h2>${esc(task.topic)}</h2><span class="subtle">${esc(srcLabel(task.sourceType))} · 建议 ${task.minWords}–${task.maxWords} 词</span></div>
         <p class="hint">先写你的意思。不会的词可以绕开；写一句也可以提交。</p>
-        <textarea id="out-editor" rows="10" ${a.status === 'completed' ? 'readonly' : ''} placeholder="先写一句最简单的，也算开始……">${esc(text)}</textarea>
+        <textarea id="out-editor" aria-label="英语草稿" rows="10" ${a.status === 'completed' ? 'readonly' : ''} placeholder="先写一句最简单的，也算开始……">${esc(text)}</textarea>
         <div class="row spread"><small class="muted" id="out-count">${countWords(text)} 词</small><small class="muted" id="out-save-state" role="status" aria-live="polite">${input.saving ? '保存中…' : '自动保存到本地'}</small></div>
         <div class="actions">
           <button class="secondary" data-out-support="1">关键词</button>

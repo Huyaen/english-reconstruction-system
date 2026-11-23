@@ -1391,7 +1391,8 @@
   [data-page="diagnostics"] .diag-domains { grid-template-columns: minmax(0, 1fr); }
   [data-page="diagnostics"] :is(.diag-evidence-row, .diag-compare-row) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   [data-page="diagnostics"] :is(.diag-evidence-row, .diag-compare-row) > * { min-width: 0; overflow-wrap: anywhere; }
-  [data-page="diagnostics"] .diag-metric { min-width: 0; }
+  [data-page="diagnostics"] .diag-metric { min-width: 0; grid-template-columns: minmax(0, 1fr) minmax(0, 60%); }
+  [data-page="diagnostics"] .diag-metric > * { min-width: 0; overflow-wrap: anywhere; }
 }
 
 @media (prefers-reduced-motion: reduce) {
