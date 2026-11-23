@@ -14,6 +14,7 @@ export interface BackupDirectory {
 }
 export interface BackupState {
     enabled: boolean;
+    local?: boolean;
     handle?: BackupDirectory;
     owner: string;
     files: string[];
@@ -26,11 +27,26 @@ export class AutoBackup {
     state: BackupState = { enabled: false, owner: crypto.randomUUID(), files: [], events: [], lastSuccess: 0, status: 'off', error: '' };
     private tail: Promise<void> = Promise.resolve();
     private running = false;
-    constructor(private load: () => Promise<Data>, private save: (state: BackupState) => Promise<void>, private changed: () => void) {}
+    constructor(private load: () => Promise<Data>, private save: (state: BackupState) => Promise<void>, private changed: () => void, private request: typeof fetch = (...args) => fetch(...args)) {}
     restore(state?: BackupState) { if (state) this.state = { ...state, status: state.enabled ? (state.status === 'writing' ? 'ready' : state.status) : 'off' }; }
     async checkPermission() {
-        if (this.state.enabled && this.state.handle && await this.state.handle.queryPermission({ mode: 'readwrite' }) !== 'granted') {
-            this.state.status = 'permission'; this.state.error = '目录权限已失效，请点击重新授权，或手动导出完整备份。';
+        if (this.state.enabled && this.state.local) {
+            try {
+                await this.localToken();
+            } catch (e) {
+                this.state.status = 'error';
+                this.state.error ||= (e as Error).message;
+            }
+            await this.persist();
+            return;
+        }
+        if (this.state.enabled && this.state.handle) {
+            const permission = await this.state.handle.queryPermission({ mode: 'readwrite' });
+            if (permission !== 'granted') {
+                this.state.status = 'permission'; this.state.error = '目录当前未获读写权限，请点击重新授权，或手动导出完整备份。';
+            } else if (this.state.status === 'permission') {
+                this.state.status = 'ready'; this.state.error = '';
+            }
             await this.persist();
         }
     }
@@ -40,11 +56,19 @@ export class AutoBackup {
         this.state = { enabled: true, handle, owner: crypto.randomUUID(), files: [], events: [], lastSuccess: 0, status: 'ready', error: '' };
         await this.persist();
     }
+    async useLocal() {
+        if (this.running) throw Error('备份正在进行，请稍后切换');
+        await this.localToken();
+        if (this.running) throw Error('备份正在进行，请稍后切换');
+        this.state = { ...this.state, local: true, enabled: true, events: [], lastSuccess: 0, status: 'ready', error: '' };
+        await this.persist();
+    }
     async disable() { this.state.enabled = false; this.state.status = 'off'; await this.persist(); }
     async authorize() {
         const permission = await this.state.handle?.requestPermission({ mode: 'readwrite' });
         if (permission !== 'granted') throw Error('目录未获授权，请选择目录或手动导出备份');
         this.state.enabled = true;
+        this.state.local = false;
         this.state.status = 'ready';
         this.state.error = '';
         await this.persist();
@@ -56,9 +80,45 @@ export class AutoBackup {
         return task;
     }
     private async persist() { await this.save({ ...this.state, files: [...this.state.files], events: [...this.state.events] }); this.changed(); }
+    private async localToken(): Promise<string> {
+        const response = await this.request('/__cijian/backup', { headers: { 'X-Cijian-Backup': 'status' }, cache: 'no-store', signal: AbortSignal.timeout(15000) })
+            .catch(() => { throw Error('词间本机服务未运行，请通过启动器打开。'); });
+        if (!response.ok) throw Error('本机备份目录未配置或不可用。请运行「配置词间备份目录」，或手动导出。');
+        const { token } = await response.json();
+        if (typeof token !== 'string' || !token) throw Error('本机备份服务未就绪。');
+        return token;
+    }
     private async write(event: string) {
         const state = this.state, dir = state.handle;
-        if (!state.enabled || !dir || state.events.includes(event)) return;
+        if (!state.enabled || (!state.local && !dir) || state.events.includes(event)) return;
+        if (state.local) {
+            this.running = true;
+            const previousSuccess = state.lastSuccess;
+            try {
+                state.status = 'writing'; state.error = ''; this.changed();
+                const raw = backup(await this.load());
+                validateBackup(JSON.parse(raw));
+                const token = await this.localToken();
+                const res = await this.request('/__cijian/backup', {
+                    method: 'POST', headers: { 'X-Cijian-Backup': token, 'Content-Type': 'application/json' }, body: raw, signal: AbortSignal.timeout(120000),
+                });
+                if (!res.ok) throw Error('本机服务未确认写入，请检查目录、空间和权限。');
+                const result = await res.json();
+                if (typeof result.filename !== 'string' || !Number.isFinite(result.at) || result.at <= 0) throw Error('未收到有效的写入确认。');
+                state.events.push(event);
+                state.lastSuccess = result.at; state.status = state.enabled ? 'success' : 'off';
+                if (!result.retained) state.error = '本次写入成功，旧备份清理未完成。';
+                await this.persist();
+            } catch (e) {
+                state.events = state.events.filter(id => id !== event);
+                state.lastSuccess = previousSuccess;
+                state.status = state.enabled ? 'error' : 'off';
+                state.error = `自动备份未完成：${(e as Error).message} 可手动导出。`;
+                await this.persist().catch(() => this.changed());
+            } finally { this.running = false; }
+            return;
+        }
+        if (!dir) return;
         this.running = true;
         let created = '';
         let committed = false;

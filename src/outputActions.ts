@@ -146,7 +146,14 @@ export interface FeedbackOutcome {
     message: string;
 }
 /** 请求反馈：同一初稿 + prompt 版本只调用一次；AI 不可用则本地确定性反馈 */
+const feedbackRunning = new Set<string>();
 export async function requestOutputFeedback(id: string, expectedRevision: number | undefined, opts: FeedbackOptions): Promise<ActionResult<FeedbackOutcome>> {
+    if (feedbackRunning.has(id)) return { ok: false, message: '这份初稿的反馈正在生成。' };
+    feedbackRunning.add(id);
+    try { return await requestFeedback(id, expectedRevision, opts); }
+    finally { feedbackRunning.delete(id); }
+}
+async function requestFeedback(id: string, expectedRevision: number | undefined, opts: FeedbackOptions): Promise<ActionResult<FeedbackOutcome>> {
     const now = opts.now ?? Date.now();
     const cfg = opts.cfg ?? normalizeAIConfig(opts.data.settings.ai);
     const current = opts.data.outputAttempts.find(a => a.id === id);
@@ -205,6 +212,7 @@ export async function requestOutputFeedback(id: string, expectedRevision: number
         targetWordIds: opts.targetWordIds ?? [],
     }, cfg, opts.deps ?? {}, opts.signal);
     if (!res.ok) {
+        if (res.error.code === 'busy' || res.error.code === 'budget-exceeded') return { ok: false, message: res.error.message };
         const local = localChecks(text, ctx.spec);
         const feedback = buildUnavailableFeedback(ctx, local.spans, `AI 反馈失败（${res.error.code}）：${res.error.message}。原文与你的修改都已保存，可以稍后重试。`);
         const saved = await updateAttempt(id, expectedRevision, cur => ({ ...cur, feedback, feedbackStatus: 'invalid', feedbackSource: 'none', updatedAt: now }));

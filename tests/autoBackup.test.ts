@@ -27,6 +27,30 @@ function directory() {
     return { handle, files, writes: () => writes, deny: () => { permission = 'prompt'; }, break: () => { broken = true; }, corrupt: () => { corrupt = true; } };
 }
 
+test('重新打开后真实权限恢复时清除旧授权提示，不请求用户手势', async () => {
+    const disk = directory();
+    const manager = new AutoBackup(async () => emptyData(), async () => {}, () => {});
+    await manager.select(disk.handle);
+    manager.state.status = 'permission'; manager.state.error = 'stale permission';
+    await manager.checkPermission();
+    assert.equal(manager.state.status, 'ready');
+    assert.equal(manager.state.error, '');
+});
+
+test('本机目录可访问不能清除最近的写入失败', async () => {
+    const request = (async (_url: unknown, init?: RequestInit) => init?.method === 'POST'
+        ? new Response(null, { status: 503 })
+        : Response.json({ token: 'test-token' })) as typeof fetch;
+    const manager = new AutoBackup(async () => emptyData(), async () => {}, () => {}, request);
+    await manager.useLocal();
+    manager.state.lastSuccess = 1000;
+    await manager.run('write-failure');
+    await manager.checkPermission();
+    assert.equal(manager.state.status, 'error');
+    assert.match(manager.state.error, /未完成/);
+    assert.equal(manager.state.lastSuccess, 1000);
+});
+
 test('完整备份排除顶层和嵌套 API Key，恢复也清除两处 Key', () => {
     const d = emptyData();
     d.settings.key = 'TOP-TEST-SECRET';

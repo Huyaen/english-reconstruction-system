@@ -202,12 +202,13 @@ export async function writeLocalMeta(id: string, value: unknown): Promise<void> 
     tx.objectStore('meta').put({ id, value }); await p;
 }
 let studySaved: (event: string) => void = () => {};
+let sessionAIKey: { endpoint: string; model: string; key: string } | null = null;
 export function onStudySaved(listener: (event: string) => void) { studySaved = listener; }
 function completedStudy(session: StudySession) {
     if (session.ended && session.index >= session.queue.length && session.answered > 0)
         studySaved(`vocab:${session.id}`);
 }
-export function closeDB() { db?.close(); db = undefined as unknown as IDBDatabase; }
+export function closeDB() { db?.close(); db = undefined as unknown as IDBDatabase; sessionAIKey = null; }
 function done(tx: IDBTransaction) { return new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onabort = () => reject(tx.error || Error('保存事务中止')); tx.onerror = () => reject(tx.error || Error('数据保存失败')); }); }
 function req<T>(r: IDBRequest<T>) { return new Promise<T>((resolve, reject) => { r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); }); }
 export function emptyData(): Data { return { clozeAttempts: [], spellingAttempts: [], books: [], words: [], records: [], sessions: [], analyses: [], settings: { ...defaults }, wordExposures: [], grammarConcepts: [], grammarAttempts: [], sentenceAttempts: [], sentences: [], passages: [], readingSessions: [], inputSources: [], inputSessions: [], outputAttempts: [], dailyPlans: [], miniUnits: [], skillSnapshots: [], weeklyDiagnostics: [], libraryItems: [], aiGenerations: [], transcripts: [], inputEvidence: [], examSpecifications: [], examMaterials: [], examItems: [], examSessions: [], examLogs: [], migration: null }; }
@@ -228,6 +229,13 @@ export async function loadData(): Promise<Data> {
         else
             (d as unknown as Record<string, unknown>)[name] = rows;
     }));
+    if (!d.settings.rememberKey) {
+        const provider = d.settings.ai ?? d.settings;
+        const session = sessionAIKey;
+        const key = session && session.endpoint === provider.endpoint && session.model === provider.model ? session.key : '';
+        d.settings.key = key;
+        if (d.settings.ai) d.settings.ai.key = key;
+    }
     return d;
 }
 export async function replaceData(d: Data): Promise<void> {
@@ -262,7 +270,10 @@ export async function replaceData(d: Data): Promise<void> {
     }
     await p;
 }
-const storedSettings = (s: Settings) => ({ ...s, key: s.rememberKey ? s.key : '' });
+const storedSettings = (s: Settings) => ({
+    ...s, key: s.rememberKey ? s.key : '',
+    ...(s.ai ? { ai: { ...s.ai, key: s.rememberKey ? s.ai.key : '' } } : {}),
+});
 export async function saveSettings(s: Settings) {
     if (!validSettings(s))
         throw Error('时间阈值必须递增，且不超过120秒');
@@ -270,6 +281,8 @@ export async function saveSettings(s: Settings) {
     const p = done(tx);
     tx.objectStore('meta').put({ id: 'settings', value: storedSettings(s) });
     await p;
+    const provider = s.ai ?? s;
+    sessionAIKey = s.rememberKey ? null : { endpoint: provider.endpoint, model: provider.model, key: provider.key };
 }
 export async function putItems(name: DataStoreName, items: unknown[]) {
     const tx = db.transaction(name, 'readwrite');

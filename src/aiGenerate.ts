@@ -3,7 +3,7 @@
 // * 校验失败不落库，只允许“有限次”修正重试（默认 ≤ 3 次，绝不无限循环）。
 // * AI 生成的句法结构一律 ai_unverified：可用于有提示的探索，不用于自动语法评分。
 // * 生成成功 ≠ 用户掌握：这里只产出材料与元数据，不写任何掌握。
-import { AIError, chat, classifyThrown, privacySummary, type AIErrorInfo, type AIProviderConfig, type AIUsage } from './aiProvider.ts';
+import { AIError, addUsage, chat, classifyThrown, privacySummary, type AIErrorInfo, type AIProviderConfig, type AIUsage } from './aiProvider.ts';
 import { parseModelJson } from './aiJson.ts';
 import { checkReadingQuality, checkSentenceQuality, summarize, type DifficultyBand, type QualityReport } from './aiQuality.ts';
 import { validateReading, validateSentence, type ReadingTarget, type SentenceTarget } from './aiValidate.ts';
@@ -22,6 +22,7 @@ export interface GenMeta {
     generatedAt: number;
     contentHash: string;
     privacy: string;
+    metered?: boolean;
 }
 export type GenResult<T> = {
     ok: true;
@@ -46,7 +47,7 @@ function metaOf(cfg: AIProviderConfig, usage: AIUsage, mode: string, attempts: n
     return {
         promptId, promptVersion: version, promptHash,
         providerHost: hostOf(cfg.endpoint), model: cfg.model, structuredMode: mode,
-        attempts, usage, generatedAt: now, contentHash: hash, privacy,
+        attempts, usage, generatedAt: now, contentHash: hash, privacy, metered: !!cfg.meterAttempt,
     };
 }
 function hostOf(endpoint: string): string {
@@ -86,11 +87,7 @@ export async function generateSentence(input: SentencePromptInput & {
                 jsonSchema: SENTENCE_PROMPT.outputSchema,
                 schemaName: SENTENCE_PROMPT.schemaName,
             }, { ...deps, knownMode: deps.knownMode }, signal);
-            usage = {
-                promptTokens: usage.promptTokens + res.usage.promptTokens,
-                completionTokens: usage.completionTokens + res.usage.completionTokens,
-                estimated: usage.estimated || res.usage.estimated,
-            };
+            usage = addUsage(usage, res.usage);
             const parsed = parseModelJson(res.text);
             lastRaw = parsed.value;
             if (!parsed.ok) {
@@ -134,7 +131,7 @@ export async function generateSentence(input: SentencePromptInput & {
             lastError = e instanceof AIError ? e.info : classifyThrown(e);
             // 不可重试的失败（鉴权/参数/取消）直接返回；限流已在传输层退避重试过，
             // 再整轮重试只会成倍扣费，所以也直接结束。
-            if (!lastError.retryable || signal?.aborted || lastError.code === 'rate-limit')
+            if (!lastError.retryable || signal?.aborted || ['rate-limit', 'server', 'timeout', 'network', 'cors'].includes(lastError.code))
                 return { ok: false, error: lastError, attempts: attempt, issues: lastIssues, partial: lastRaw };
         }
     }
@@ -181,11 +178,7 @@ export async function generateReading(input: ReadingPromptInput & {
                 jsonSchema: READING_PROMPT.outputSchema,
                 schemaName: READING_PROMPT.schemaName,
             }, { ...deps, knownMode: deps.knownMode }, signal);
-            usage = {
-                promptTokens: usage.promptTokens + res.usage.promptTokens,
-                completionTokens: usage.completionTokens + res.usage.completionTokens,
-                estimated: usage.estimated || res.usage.estimated,
-            };
+            usage = addUsage(usage, res.usage);
             const parsed = parseModelJson(res.text);
             lastRaw = parsed.value;
             if (!parsed.ok) {
@@ -194,6 +187,7 @@ export async function generateReading(input: ReadingPromptInput & {
             }
             const checked = validateReading(parsed.value, {
                 allowedGrammar: input.grammarIds,
+                expectedWords: input.targetWords,
                 minWords: input.minWords,
                 maxWords: input.maxWords,
                 minExercises: input.minExercises,
@@ -227,7 +221,7 @@ export async function generateReading(input: ReadingPromptInput & {
         }
         catch (e) {
             lastError = e instanceof AIError ? e.info : classifyThrown(e);
-            if (!lastError.retryable || signal?.aborted)
+            if (!lastError.retryable || signal?.aborted || ['rate-limit', 'server', 'timeout', 'network', 'cors'].includes(lastError.code))
                 return { ok: false, error: lastError, attempts: attempt, issues: lastIssues, partial: lastRaw };
         }
     }
