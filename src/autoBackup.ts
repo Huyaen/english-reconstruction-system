@@ -33,13 +33,9 @@ export class AutoBackup {
         if (this.state.enabled && this.state.local) {
             try {
                 await this.localToken();
-                if (this.state.status === 'error' || this.state.status === 'permission') {
-                    this.state.status = this.state.lastSuccess ? 'success' : 'ready';
-                    this.state.error = '';
-                }
             } catch (e) {
                 this.state.status = 'error';
-                this.state.error = (e as Error).message;
+                this.state.error ||= (e as Error).message;
             }
             await this.persist();
             return;
