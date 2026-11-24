@@ -1069,6 +1069,7 @@
     max-block-size: min(68dvh, 46rem);
     padding: var(--s-4) var(--s-5);
     background: var(--surface-raised);
+    opacity: 1;
     border: 0;
     box-shadow: var(--e-pop);
     overflow-y: auto;
