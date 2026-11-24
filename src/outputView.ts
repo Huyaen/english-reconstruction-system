@@ -136,6 +136,7 @@ export interface SessionInput {
     compare: RevisionComparison | null;
     transfer: TransferPlan | null;
     saving: boolean;
+    feedbackPending?: boolean;
 }
 export function outputSessionPage(input: SessionInput): string {
     const a = input.attempt;
@@ -144,17 +145,21 @@ export function outputSessionPage(input: SessionInput): string {
     const fb = a.feedback ?? null;
     return `${titleBlock('写作练习', taskMeta(task.taskType).zh, task.communicationGoal, `<button id="out-back" class="secondary">返回写作列表</button>`)}
     <div class="output-layout">
-      <section class="panel output-editor">
+      <div class="output-writing-column"><section class="panel output-editor">
         <div class="section-title"><h2>${esc(task.topic)}</h2><span class="subtle">${esc(srcLabel(task.sourceType))} · 建议 ${task.minWords}–${task.maxWords} 词</span></div>
         <p class="hint">先写你的意思。不会的词可以绕开；写一句也可以提交。</p>
-        <textarea id="out-editor" aria-label="英语草稿" rows="10" ${a.status === 'completed' ? 'readonly' : ''} placeholder="先写一句最简单的，也算开始……">${esc(text)}</textarea>
-        <div class="row spread"><small class="muted" id="out-count">${countWords(text)} 词</small><small class="muted" id="out-save-state" role="status" aria-live="polite">${input.saving ? '保存中…' : '自动保存到本地'}</small></div>
-        <div class="actions">
-          <button class="secondary" data-out-support="1">关键词</button>
-          <button class="secondary" data-out-support="2">句型骨架</button>
-          <button class="secondary" data-out-support="3">部分示例</button>
-          <button class="text-button" data-out-support="4">完整示范（用过就不算独立写）</button>
+        <div class="output-draft">
+          <div class="draft-bar"><label for="out-editor">英语草稿</label><small id="out-count">${countWords(text)} 词</small><small id="out-save-state" role="status" aria-live="polite">${input.saving ? '正在保存…' : '自动保存到本地'}</small></div>
+          <textarea id="out-editor" lang="en" rows="7" ${a.status === 'completed' ? 'readonly' : ''} placeholder="I noticed…">${esc(text)}</textarea>
         </div>
+        <details class="draft-support"><summary>写作提示</summary>
+          <div class="actions">
+            <button class="secondary" data-out-support="1">查看关键词</button>
+            <button class="secondary" data-out-support="2">查看句型骨架</button>
+            <button class="secondary" data-out-support="3">查看部分示例</button>
+            <button class="text-button" data-out-support="4">查看完整示范（计为辅助）</button>
+          </div>
+        </details>
         ${input.hint ? `<div class="hint-box"><b>L${input.hint.level} · ${esc(input.hint.title)}</b><pre>${esc(input.hint.content)}</pre></div>` : ''}
         ${task.taskType === 'repair' ? `<div class="form-grid">
           <label>你本来想说什么（中文可以）<input id="out-repair-meaning" placeholder="例如：有人暗杀了政治领袖"></label>
@@ -163,34 +168,62 @@ export function outputSessionPage(input: SessionInput): string {
         ${input.message ? `<div class="notice">${esc(input.message)}</div>` : ''}
         <div class="actions">
           <button class="primary" id="out-submit" ${a.status === 'completed' ? 'disabled' : ''}>提交并检查意思</button>
-          <button class="secondary" id="out-feedback" ${a.status === 'completed' ? 'disabled' : ''}>请求语言反馈${a.feedbackStatus === 'ai' ? '（已有）' : ''}</button>
+          <button class="secondary" id="out-feedback" aria-controls="out-feedback-result" ${a.status === 'completed' || input.feedbackPending ? 'disabled' : ''}>${input.feedbackPending ? '正在请求反馈…' : a.feedbackStatus === 'invalid' ? '重试 AI 反馈' : '请求语言反馈'}</button>
           <button class="text-button" id="out-finish" ${a.status === 'completed' ? 'disabled' : ''}>完成这次表达</button>
         </div>
       </section>
+      ${fb || a.revisions?.length ? revisionBlock(a, input.compare) : ''}
+      </div>
       <div class="output-side">
-        ${fb ? feedbackBlock(fb, a) : `<section class="panel"><div class="section-title"><h2>反馈</h2></div><p class="muted">提交后会先检查意思是否传达到，再给最多 3 个重点。没有 AI 时也会保留原文并给出本地格式检查。</p></section>`}
+        <p id="out-feedback-status" role="status" class="output-feedback-status">${input.feedbackPending ? '正在生成反馈，草稿已保留。' : ''}</p>
+        <section class="panel" id="out-feedback-result" aria-busy="${!!input.feedbackPending}">
+          <h2>反馈与批注</h2>
+          ${fb ? feedbackBlock(fb, a, text) : '<p class="hint">写好后请求反馈。这里会列出原句、建议及其依据。</p>'}
+        </section>
         ${a.repair ? `<section class="panel"><div class="section-title"><h2>Communication Repair</h2></div>
           <p>你本来想说：${esc(a.repair.blockedExpression || a.repair.intendedMeaning)}</p>
           <p>你写的替代：${esc(a.repair.userAlternative)}</p>
           <p class="muted">${a.repair.meaningPreserved === true ? '主要意思保住了（按现有记录判断）' : a.repair.meaningPreserved === false ? '这次没有把主要意思送到' : '记录不够，判断不了意思是否保留'}</p></section>` : ''}
-        ${fb || a.revisions?.length ? revisionBlock(a, input.compare) : ''}
         ${input.transfer ? transferBlock(input.transfer) : ''}
       </div>
     </div>`;
 }
-function feedbackBlock(fb: OutputFeedback, a: OutputAttempt): string {
-    const assessed = fb.meaningAssessment !== 'unavailable';
-    const issue = (s: typeof fb.priorityIssues[number]) => `<li><b>${esc(ERROR_LABELS[s.type])}</b>：${esc(s.explanation)}<br><span class="ink-writing-comparison"><q lang="en">${esc(s.original)}</q><span aria-hidden="true">→</span><span>${esc(s.proposed || '（自己重写）')}</span></span></li>`;
-    return `<section class="panel" id="out-feedback-result">
-      <div class="section-title"><h2>反馈</h2><span class="subtle">${esc(fb.sourceProvenance)} · ${esc(fb.promptVersion)}</span></div>
-      <div class="feedback-row"><span class="pill">意思</span><b>${meaningLabel(fb.meaningAssessment)}</b><small class="muted">${assessed ? `依据 ${esc(fb.meaningBasis)} · 置信 ${Math.round(fb.meaningConfidence * 100)}%` : '未获得可用的意思判断'}</small></div>
-      ${fb.noCorrectionNeeded ? (assessed ? '<p class="ok-line">不用大改：这句已经能读了。</p>' : '') : `<div class="feedback-row"><span class="pill warn">主要问题</span><ul>${fb.priorityIssues.map(issue).join('') || '<li>没有影响理解的主要问题。</li>'}</ul></div>`}
-      <div class="feedback-row"><span class="pill">What worked</span><ul>${fb.strengths.map(s => `<li>${esc(s)}</li>`).join('')}</ul></div>
-      ${fb.upgrade ? `<div class="feedback-row"><span class="pill">Suggested revision</span><p>${esc(fb.upgrade.original)}<br>→ ${esc(fb.upgrade.suggested)}</p><p class="muted">${esc(fb.upgrade.why)}</p><small class="muted">${esc(fb.upgrade.changes.join(' · '))}</small></div>` : ''}
-      <div class="feedback-row"><span class="pill">Next practice</span><p>${esc(fb.nextPractice)}</p></div>
-      <p class="hint">${esc(fb.uncertainty)}</p>
-      ${a.feedbackStatus === 'unavailable' || a.feedbackStatus === 'invalid' ? '<p class="warn-line">AI 反馈这次不可用：上面只有本机做的确定性检查，不是语法诊断。原文已保存。</p>' : ''}
-    </section>`;
+function feedbackBlock(fb: OutputFeedback, a: OutputAttempt, visibleDraft: string): string {
+    const fromAI = a.feedbackSource === 'ai' || a.feedbackSource === 'mock';
+    const basis = {
+        verified: '已核对', supported_by_source: '有材料支持', ai_estimated: 'AI 推测',
+        self_reported: '学习者自述', unknown: '依据不足',
+    }[fb.meaningBasis];
+    const notes = [...new Map([...fb.priorityIssues, ...fb.corrections].map(item => [
+        `${item.start}:${item.end}:${item.type}:${item.original}`, item,
+    ])).values()];
+    const issue = (item: typeof notes[number], index: number) => {
+        const heuristic = !fromAI && (item.type === 'missing_predicate' || item.type === 'coherence');
+        const label = heuristic ? '本地启发式提示 · 需核对'
+            : !fromAI ? '本地格式检查'
+            : item.severity === 'style' ? '表达建议' : 'AI 指出的可能错误';
+        const anchored = a.originalText && a.originalText === visibleDraft && item.end > item.start
+            && item.start >= 0 && item.end <= visibleDraft.length
+            && visibleDraft.slice(item.start, item.end) === item.original;
+        return `<li class="draft-note"><div class="draft-note-meta"><span>${index + 1}</span><b>${label}</b></div>
+          <h3>${heuristic && item.type === 'missing_predicate' ? '检查动词' : esc(ERROR_LABELS[item.type])}</h3>
+          <blockquote lang="en">${esc(item.original)}</blockquote>
+          <p>${esc(item.explanation)}</p>
+          ${item.proposed ? `<p class="draft-proposal">建议 <span lang="en">${esc(item.proposed)}</span></p>` : ''}
+          ${anchored ? `<button class="text-button draft-jump" data-out-anchor="${item.start}:${item.end}" data-quote="${esc(item.original)}">定位到初稿</button>` : '<small>初稿引文</small>'}
+        </li>`;
+    };
+    const failure = a.feedbackStatus === 'invalid'
+        ? (/鉴权|\(auth\)/i.test(fb.uncertainty) ? 'AI 无法验证凭据。请在设置中检查密钥和模型权限。'
+            : /超时|\(timeout\)/i.test(fb.uncertainty) ? 'AI 回应超时。草稿仍在，可以重试。'
+                : 'AI 暂时未能给出可用反馈。草稿仍在，可以重试。')
+        : a.feedbackStatus === 'unavailable' ? '尚未配置 AI。草稿已保存，本地检查仅供自查。' : '';
+    return `${failure ? `<div class="output-provider-note"><b>${failure}</b></div>` : ''}
+      ${fromAI ? `<div class="feedback-overview"><small>${a.feedbackSource === 'mock' ? '模拟反馈' : 'AI 教学反馈'} · ${esc(basis)}</small><b>${meaningLabel(fb.meaningAssessment)}</b>
+          ${fb.strengths.length ? `<p>${esc(fb.strengths[0])}</p>` : ''}</div>` : ''}
+      ${notes.length ? `<ol class="draft-notes">${notes.map(issue).join('')}</ol>` : '<p class="hint">这次没有可显示的批注。</p>'}
+      ${fb.upgrade ? `<div class="draft-suggestion"><h3>另一种表达</h3><p lang="en">${esc(fb.upgrade.suggested)}</p><p>${esc(fb.upgrade.why)}</p></div>` : ''}
+      ${fromAI && fb.nextPractice ? `<div class="draft-suggestion"><h3>下次可以练</h3><p>${esc(fb.nextPractice)}</p></div>` : ''}`;
 }
 function revisionBlock(a: OutputAttempt, cmp: RevisionComparison | null): string {
     const revisions = a.revisions ?? [];

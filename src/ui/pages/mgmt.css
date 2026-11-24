@@ -225,3 +225,7 @@
   color: var(--ai-evidence);
   background: var(--ai-evidence-wash);
 }
+
+#auto-backup-state > span, #auto-backup-state > .backup-health { display: block; }
+#auto-backup-state > .backup-health { color: var(--ink); margin-block-end: var(--s-2); }
+[data-page=settings] #main #settings-form > .two-col { align-items: start; column-gap: clamp(1.25rem, 4vw, 4rem); }

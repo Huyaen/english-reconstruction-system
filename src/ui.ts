@@ -4,7 +4,14 @@ export const $ = <T extends HTMLElement = HTMLElement>(q: string) => document.qu
 export const pct = (v: number) => `${Math.round(v * 100)}%`;
 export const seconds = (v: number) => `${(v / 1000).toFixed(2)} 秒`;
 export const date = (v: number) => v ? new Date(v).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '尚未测试';
-export function toast(text: string) { $('#toast').textContent = text; $('#toast').classList.add('show'); setTimeout(() => $('#toast').classList.remove('show'), 5000); }
+let toastTimer: ReturnType<typeof setTimeout>;
+export function toast(text: string) {
+    const current = $('#toast');
+    current.textContent = text;
+    current.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => current.classList.remove('show'), 5000);
+}
 export function download(blob: Blob, name: string) { const u = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = u; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(u), 1000); }
 export function modal(html: string) {
     const d = $<HTMLDialogElement>('#modal');

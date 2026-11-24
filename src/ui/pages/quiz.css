@@ -73,3 +73,44 @@
     [data-page=preview] .answers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .quiz-top button { min-height: 44px; }
 }
+
+/* 每一道题共用同一条阅读轴。横向空间给长释义留足，上方和选项不抢焦点。 */
+:is([data-page=preview], [data-page=quiz]) #main { max-width: 880px; }
+:is([data-page=preview], [data-page=quiz]) .quiz-card { padding-block-start: clamp(1.25rem, 3vw, 2.5rem); }
+:is([data-page=preview], [data-page=quiz]) .ink-wordline { margin-block: var(--s-2) var(--s-3); }
+:is([data-page=preview], [data-page=quiz]) .question { font-size: clamp(2.85rem, 7vw, 5.65rem); line-height: 1.03; }
+[data-page=quiz] .answers { border: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); }
+[data-page=quiz] .answer {
+    background: var(--paper);
+    align-items: center;
+    min-height: 58px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+}
+[data-page=quiz] .answer.is-correct, [data-page=quiz] .answer.is-wrong { border-inline-start-width: 1px; }
+[data-page=quiz] .unknown { min-block-size: 44px; margin: 0 0 var(--s-2); }
+#feedback .answer-feedback {
+    display: flex;
+    flex-direction: row;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--s-4);
+    padding: var(--s-3) var(--s-4);
+    background: var(--surface-raised);
+    border-block: 1px solid var(--line);
+}
+#feedback .feedback-copy { min-width: 0; }
+#feedback .feedback-copy dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2) var(--s-4); margin: var(--s-2) 0; }
+#feedback .feedback-copy dt { color: var(--ink-muted); font-size: .8125rem; }
+#feedback .feedback-copy dd { margin: 0; color: var(--ink); font-size: 1rem; overflow-wrap: anywhere; }
+#feedback .feedback-copy p { margin: .2rem 0 0; color: var(--ink); }
+#feedback #next { flex: 0 0 auto; }
+[data-page=preview] .quiz-card .subtle { margin-block: var(--s-3) var(--s-4); }
+[data-page=preview] .answer { min-height: 52px; }
+@media (max-width: 550px) {
+    :is([data-page=quiz], [data-page=preview]) #main { padding-block-start: var(--s-4); }
+    [data-page=quiz] .answers { grid-template-columns: minmax(0, 1fr); }
+    [data-page=quiz] .answer { min-height: 48px; padding-block: var(--s-2); }
+    #feedback .answer-feedback { align-items: stretch; flex-direction: column; }
+    #feedback #next { align-self: start; }
+}

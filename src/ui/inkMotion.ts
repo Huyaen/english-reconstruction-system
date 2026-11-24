@@ -16,6 +16,8 @@ class InkMotion {
   private initialized = false;
   private resize: ResizeObserver | null = null;
   private stored: MotionPreference = 'expressive';
+  private todayHeading = '';
+  private todayProgress = '';
 
   init() {
     if (this.initialized) return;
@@ -84,9 +86,17 @@ class InkMotion {
     if (!this.expressive || !this.target?.isConnected || document.hidden || typeof requestAnimationFrame !== 'function') return;
     const box = this.target.getBoundingClientRect();
     if (!box.width || !box.height) return;
-    this.field ??= new InkField();
-    this.field.fit(this.target);
-    this.field.input(box.left + box.width * .4, box.top + box.height * .6, true);
+    const word = this.target;
+    if (typeof word.animate !== 'function') return;
+    this.animations.get(word)?.cancel();
+    const motion = word.animate([
+      { transform: 'translateY(3px) scaleX(.985)', opacity: .76 },
+      { transform: 'translateY(0) scaleX(1)', opacity: 1 },
+    ], { duration: 185, easing: ease });
+    this.animations.set(word, motion);
+    void motion.finished.catch(() => {}).finally(() => {
+      if (this.animations.get(word) === motion) this.animations.delete(word);
+    });
   }
 
   beat(host: HTMLElement | null, kind: Beat, reverse = false, keyboard = false) {
@@ -123,6 +133,27 @@ class InkMotion {
     void animation.finished.catch(() => {}).finally(() => {
       layer.remove();
       if (this.animations.get(host) === animation) this.animations.delete(host);
+    });
+  }
+
+  /** Play once when the actual plan changes, never on an incidental repaint. */
+  today(heading: HTMLElement | null, progress: HTMLElement | null) {
+    const title = heading?.textContent ?? '';
+    const count = progress?.textContent ?? '';
+    const changed = this.todayHeading !== '' && this.todayHeading !== title;
+    const advanced = this.todayProgress !== '' && this.todayProgress !== count;
+    this.todayHeading = title;
+    this.todayProgress = count;
+    if (this.reduced?.matches || document.hidden) return;
+    const target = changed && this.expressive ? heading : advanced ? progress : null;
+    if (!target || typeof target.animate !== 'function') return;
+    const frames = this.expressive
+      ? [{ transform: 'translateY(8px)', opacity: .62 }, { transform: 'translateY(0)', opacity: 1 }]
+      : [{ opacity: .68 }, { opacity: 1 }];
+    const motion = target.animate(frames, { duration: this.expressive ? 245 : 140, easing: ease });
+    this.animations.set(target, motion);
+    void motion.finished.catch(() => {}).finally(() => {
+      if (this.animations.get(target) === motion) this.animations.delete(target);
     });
   }
 

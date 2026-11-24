@@ -135,7 +135,39 @@ dialog#modal .close { min-inline-size: 44px; min-block-size: 44px; }
     #main .actions > :is(button, .button) { min-height: 44px; white-space: normal; }
     .ink-masthead > nav button { font-size: .75rem; }
 }
+#main :is(input:not([type=checkbox],[type=radio],[type=file],[type=range]), select, textarea) {
+    border-color: var(--line-strong);
+    caret-color: var(--accent-ink);
+}
+#main input:disabled, #main select:disabled { opacity: .68; }
+dialog#modal .file-box { border-color: var(--line-strong); background: var(--paper); }
+dialog#modal input[type=file]::file-selector-button {
+    min-height: 36px;
+    margin-inline-end: var(--s-3);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-xs);
+    color: var(--ink);
+    background: var(--surface-raised);
+}
+#toast { border-radius: var(--r-sm); box-shadow: var(--e-pop); }
+@media (max-width: 600px) {
+    body { display: flex; flex-direction: column; }
+    #app { inline-size: 100%; min-inline-size: 0; }
+    #toast, #toast.show {
+        order: -1;
+        position: relative;
+        inset: auto;
+        max-width: none;
+        width: 100%;
+        transform: none;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    #toast:not(.show) { block-size: 0; padding: 0; overflow: hidden; }
+    #toast.show { padding: var(--s-2) var(--s-4); }
+}
 @media (prefers-reduced-motion: reduce) {
+    #toast { transition: none; }
     .ink-field, .ink-beat { display: none; }
     [data-ink-motion=reduced] :is(button, .quiz-progress > i, .plan-progress > i) { transition: none; }
 }

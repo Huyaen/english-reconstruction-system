@@ -194,7 +194,7 @@ export interface DiagnosticsPageInput {
 export function diagnosticsPage(input: DiagnosticsPageInput): string {
     const { payload } = input;
     const domains = (['vocabulary', 'grammar', 'reading', 'input', 'output', 'translation', 'exam'] as const);
-    return `${`<div class="page-title"><div><div class="eyebrow">学习报告</div><h1>学习报告</h1><p>看最近 ${input.days} 天 · 只看你做了什么，不给英语总分</p></div><div class="actions"><button id="diag-snapshot" class="secondary">保存今天的报告</button><button id="diag-week" class="primary">生成本周报告</button></div></div>`}
+    return `${`<div class="page-title"><div><h1>学习报告</h1><p>最近 ${input.days} 天的练习、复习与表达记录</p></div><div class="actions"><button id="diag-snapshot" class="secondary">保存今天的报告</button><button id="diag-week" class="primary">生成本周报告</button></div></div>`}
       <div class="diag-range"><label>看最近<select id="diag-days">${[7, 14, 30].map(d => `<option value="${d}" ${d === input.days ? 'selected' : ''}>最近 ${d} 天</option>`).join('')}</select></label>
         <span class="muted">${input.source === 'snapshot' ? '正在看当时存下的报告' : input.source === 'weekly' ? `本周报告（${esc(input.weekly?.weekOf ?? '')}）` : '实时预览，不另存报告'}${input.generatedAt ? ` · 生成于 ${date(input.generatedAt)}` : ''}</span></div>
       ${verdict(payload)}

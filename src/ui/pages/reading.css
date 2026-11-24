@@ -1038,3 +1038,46 @@
   text-decoration: underline solid var(--accent) .12em;
   text-underline-offset: .19em;
 }
+
+/* 旁注独立于文章的排版轴。折叠和展开都不重新计算正文行宽。 */
+[data-page=reading] .reading-surface { --reading-measure: 68ch; }
+[data-page=reading] .reader-bar { position: relative; inset-block-start: auto; box-shadow: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); border: 0; border-block-end: 1px solid var(--line); background: transparent; }
+[data-page=reading] .reader-bar-copy { flex: 1 1 13rem; }
+[data-page=reading] .reader-bar .reader-title { font: 500 clamp(1.35rem, 3vw, 2.15rem)/1.2 var(--font-reading); }
+[data-page=reading] .reader-tools { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+[data-page=reading] .reader-tools button { min-block-size: 44px; }
+[data-page=reading] .reading-surface .reading-layout {
+    position: relative;
+    display: block;
+}
+[data-page=reading] #main .reader-main {
+    border-block-start: 0;
+    padding: clamp(1.1rem, 4vw, 3.5rem) 0;
+    margin: 0;
+}
+[data-page=reading] .reader-text {
+    max-inline-size: var(--reading-measure);
+    margin-inline: auto;
+}
+[data-page=reading] .reader-foot { max-inline-size: var(--reading-measure); margin-inline: auto; }
+[data-page=reading] #main .reading-surface[data-side=open] .reader-side {
+    display: block;
+    position: absolute;
+    z-index: var(--z-sticky);
+    inset: 0 0 auto auto;
+    inline-size: min(22rem, 100%);
+    max-block-size: min(68dvh, 46rem);
+    padding: var(--s-4) var(--s-5);
+    background: var(--surface-raised);
+    border: 0;
+    box-shadow: var(--e-pop);
+    overflow-y: auto;
+}
+[data-page=reading] #main .reader-side .reader-sheet-close { display: block; min-height: 44px; margin-inline-start: auto; }
+[data-page=reading] .reader-side .chip { min-block-size: 44px; }
+.app-shell:has(.reading-surface[data-focus=on]) .ink-masthead { visibility: hidden; }
+[data-page=reading] .reading-surface[data-focus=on] .reader-bar { border-block-end-color: var(--line); }
+[data-page=reading] .reader-side .grammar-card { overflow-wrap: anywhere; }
+
+[data-page=reading] .rsent.is-annotated { background: var(--accent-wash); }
+[data-page=reading] .reader-side .grammar-card blockquote { margin: .3rem 0 var(--s-3); font: 1rem/1.5 var(--font-reading); color: var(--ink); border-inline-start: 1px solid var(--line-strong); padding-inline-start: var(--s-2); }

@@ -11,7 +11,7 @@ export function updateBackupPanel(manager: AutoBackup) {
     target.setAttribute('data-backup-status', s.status);
     const supported = typeof (window as unknown as { showDirectoryPicker?: unknown }).showDirectoryPicker === 'function';
     const statuses = { off: '已关闭', ready: '等待下一轮完成', writing: '正在写入并校验', success: '备份成功', permission: '需要重新授权，请展开「其他备份选项」', error: '备份失败' };
-    target.innerHTML = supported || s.local ? `目录：${esc(s.local ? '启动器配置的本机目录' : s.handle?.name ?? '尚未选择')} · ${statuses[s.status]}<br>最近成功：${s.lastSuccess ? date(s.lastSuccess) : '尚未成功'}${s.error ? `<br><span class="error">${esc(s.error)}</span>` : ''}` : '当前浏览器不支持授权目录写入。请使用桌面 Chrome / Edge，或手动导出完整备份。';
+    target.innerHTML = supported || s.local ? `<strong class="backup-health">${statuses[s.status]}</strong><span>目录：${esc(s.local ? '启动器配置的本机目录' : s.handle?.name ?? '尚未选择')}</span><span>最近成功：${s.lastSuccess ? date(s.lastSuccess) : '尚未成功'}</span>${s.error ? `<br><span class="error">${esc(s.error)}</span>` : ''}` : '当前浏览器不支持授权目录写入。请使用桌面 Chrome / Edge，或手动导出完整备份。';
     const local = document.querySelector<HTMLButtonElement>('#auto-backup-local');
     if (local) { local.disabled = s.status === 'writing' || (!!s.local && s.enabled && s.status !== 'error'); }
     const select = document.querySelector<HTMLButtonElement>('#auto-backup-select');
