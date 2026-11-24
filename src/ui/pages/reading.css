@@ -17,7 +17,7 @@
 
 [data-page="reading"] {
   /* 阅读页专属布局尺寸（不是颜色，不新增主题 token） */
-  --read-rail: clamp(272px, 25vw, 322px);
+  --read-rail: clamp(240px, 22vw, 286px);
   --read-sticky-top: 52px;      /* 与 .app-shell .workspace > header 同高 */
   --read-pad-y: clamp(26px, 3.2vw, 52px);
   --read-pad-x: clamp(22px, 3.4vw, 56px);
@@ -285,7 +285,7 @@
    并且标题自己写明状态 —— 不靠颜色单独传达。 */
 [data-page="reading"] #read-cold {
   display: grid;
-  gap: var(--s-4);
+  gap: var(--s-5);
   border-left: 1px solid var(--accent-ink);
 }
 [data-page="reading"] #read-reread {
@@ -490,9 +490,9 @@
 [data-page="reading"] .reader-main {
   min-height: clamp(320px, 44vh, 560px);
   padding: var(--read-pad-y) var(--read-pad-x) var(--s-6);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--surface-raised);
+  border-block: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  background: var(--paper);
 }
 
 /* ── 6. 正文：不动的部分 ───────────────────────────────────────────────── */
@@ -502,7 +502,7 @@
   font-family: var(--font-reading);
   font-size: var(--read-size);
   line-height: var(--read-leading);
-  letter-spacing: 0.004em;
+  letter-spacing: normal;
   color: var(--read-ink);
   text-wrap: pretty;
   animation: none;
@@ -994,26 +994,22 @@
 /* ── 阅读导入：让"入口"看得见出口（复核 P2）─────────────────────────────────
    实测问题：正文 textarea 约 995px 宽、超出首屏，提交按钮落在折叠线以下；
    产品定位是"真实材料是唯一入口"，入口却看不见出口。
-   处理：正文框限宽到阅读测量宽度（760px / 1.72），操作条吸底常驻。 */
+   正文框限宽到 760px，操作条在正文框之后，保留自然焦点顺序。 */
 [data-page="reading"] #read-paste {
+  display: block;
   max-width: 760px;
   min-height: 220px;
   line-height: 1.72;
   font-size: 15px;
 }
 [data-page="reading"] .read-import-bar {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-top: var(--s-4);
   padding: 10px 0 max(10px, env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, transparent, var(--surface) 42%);
 }
-[data-page="reading"] .read-import-bar .primary { order: -1; }
 
 /* ── 15h.1 语义状态 ── */
 /* 侧栏标记复用正文的四种判读形状（mark-row 的类来自 m.judgment） */
@@ -1042,3 +1038,47 @@
   text-decoration: underline solid var(--accent) .12em;
   text-underline-offset: .19em;
 }
+
+/* 旁注独立于文章的排版轴。折叠和展开都不重新计算正文行宽。 */
+[data-page=reading] .reading-surface { --reading-measure: 68ch; }
+[data-page=reading] .reader-bar { position: relative; inset-block-start: auto; box-shadow: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); border: 0; border-block-end: 1px solid var(--line); background: transparent; }
+[data-page=reading] .reader-bar-copy { flex: 1 1 13rem; }
+[data-page=reading] .reader-bar .reader-title { font: 500 clamp(1.35rem, 3vw, 2.15rem)/1.2 var(--font-reading); }
+[data-page=reading] .reader-tools { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+[data-page=reading] .reader-tools button { min-block-size: 44px; }
+[data-page=reading] .reading-surface .reading-layout {
+    position: relative;
+    display: block;
+}
+[data-page=reading] #main .reader-main {
+    border-block-start: 0;
+    padding: clamp(1.1rem, 4vw, 3.5rem) 0;
+    margin: 0;
+}
+[data-page=reading] .reader-text {
+    max-inline-size: var(--reading-measure);
+    margin-inline: auto;
+}
+[data-page=reading] .reader-foot { max-inline-size: var(--reading-measure); margin-inline: auto; }
+[data-page=reading] #main .reading-surface[data-side=open] .reader-side {
+    display: block;
+    position: absolute;
+    z-index: var(--z-sticky);
+    inset: 0 0 auto auto;
+    inline-size: min(22rem, 100%);
+    max-block-size: min(68dvh, 46rem);
+    padding: var(--s-4) var(--s-5);
+    background: var(--surface-raised);
+    opacity: 1;
+    border: 0;
+    box-shadow: var(--e-pop);
+    overflow-y: auto;
+}
+[data-page=reading] #main .reader-side .reader-sheet-close { display: block; min-height: 44px; margin-inline-start: auto; }
+[data-page=reading] .reader-side .chip { min-block-size: 44px; }
+.app-shell:has(.reading-surface[data-focus=on]) .ink-masthead { visibility: hidden; }
+[data-page=reading] .reading-surface[data-focus=on] .reader-bar { border-block-end-color: var(--line); }
+[data-page=reading] .reader-side .grammar-card { overflow-wrap: anywhere; }
+
+[data-page=reading] .rsent.is-annotated { background: var(--accent-wash); }
+[data-page=reading] .reader-side .grammar-card blockquote { margin: .3rem 0 var(--s-3); font: 1rem/1.5 var(--font-reading); color: var(--ink); border-inline-start: 1px solid var(--line-strong); padding-inline-start: var(--s-2); }

@@ -37,7 +37,7 @@ export function importPanelHTML(duplicateHint = ''): string {
   <label class="hint"><input type="checkbox" id="read-allow-short" /> 不足 60 词也按短文导入（仍要用它练完整流程）</label>
   <div class="actions read-import-bar">
     <button class="primary" data-read-save="paste">预览并保存</button>
-    <label class="secondary" style="display:inline-flex;align-items:center;gap:6px">上传文件<input type="file" id="read-file" accept=".txt,.md,.markdown,.text,.html,.htm" hidden /><span data-read-file-label>选一个文件</span></label>
+    <label class="button secondary file-action">上传文件<input type="file" id="read-file" accept=".txt,.md,.markdown,.text,.html,.htm" /></label>
     <button class="secondary" data-read-url-open="1">从网址导入</button>
     <button class="secondary" data-read-ocr-open="1">截图取字</button>
   </div>
@@ -90,12 +90,12 @@ export function previewHTML(input: {
   </div>
 </section>`;
 }
-function tokenHTML(t: ReadingToken, marks: ReadingMark[]): string {
+function tokenHTML(t: ReadingToken, marks: ReadingMark[], selected: boolean): string {
     const mark = marks.find(m => !m.revokedAt && m.tokenIndex === t.index && m.sentenceIndex === t.sentenceIndex);
     const cls = mark ? `word marked mark-${mark.judgment}` : 'word';
-    return `<button class="${cls}" aria-pressed="false" data-tok="${t.index}" data-sent="${t.sentenceIndex}" data-word="${esc(t.normalized)}" title="${mark ? MARK_LABELS[mark.judgment] : '点击标记这个词'}">${esc(t.surface)}</button>`;
+    return `<button class="${cls}" aria-pressed="${selected}" data-tok="${t.index}" data-sent="${t.sentenceIndex}" data-word="${esc(t.normalized)}" title="${mark ? MARK_LABELS[mark.judgment] : '点击标记这个词'}">${esc(t.surface)}</button>`;
 }
-function sentenceHTML(sentence: ReadingSentence, tokens: ReadingToken[], marks: ReadingMark[]): string {
+function sentenceHTML(sentence: ReadingSentence, tokens: ReadingToken[], marks: ReadingMark[], selectedToken?: number): string {
     const own = tokens.filter(t => t.sentenceIndex === sentence.index);
     if (!own.length)
         return `<span class="rsent">${esc(sentence.text)}</span>`;
@@ -105,7 +105,7 @@ function sentenceHTML(sentence: ReadingSentence, tokens: ReadingToken[], marks: 
         const gap = sentence.text.slice(cursor - sentence.start, t.start - sentence.start);
         if (gap)
             html += esc(gap);
-        html += tokenHTML(t, marks);
+        html += tokenHTML(t, marks, t.index === selectedToken);
         cursor = t.end;
     }
     const tail = sentence.text.slice(cursor - sentence.start);
@@ -120,16 +120,18 @@ export function readerHTML(input: {
     helpText: string;
     showHelp: boolean;
     sideOpen?: boolean;
+    focus?: boolean;
+    selectedToken?: number;
 }): string {
     const d = input.session.detail!;
     const chunk: ReadingChunk | undefined = d.chunks[d.chunkIndex];
     const progress = sessionProgress(input.session);
     const sentences = (input.passage.sentences ?? []).filter(s => s.start >= (chunk?.start ?? 0) && s.end <= (chunk?.end ?? 0));
     const marks = (d.marks ?? []).filter(m => !m.revokedAt);
-    const body = sentences.map(s => sentenceHTML(s, input.tokens, marks)).join(' ');
+    const body = sentences.map(s => sentenceHTML(s, input.tokens, marks, input.selectedToken)).join(' ');
     const marksOfChunk = marks.filter(m => sentences.some(s => s.index === m.sentenceIndex));
     const difficult = (d.difficultSentences ?? []).filter(x => sentences.some(s => s.index === x.sentenceIndex));
-    return `<div class="reading-surface" data-side="${input.sideOpen === false ? 'closed' : 'open'}" id="reading-surface">
+    return `<div class="reading-surface" data-focus="${input.focus ? 'on' : 'off'}" data-side="${input.sideOpen === false ? 'closed' : 'open'}" id="reading-surface">
   <div class="reader-bar">
     <div class="reader-bar-copy">
       <span class="rd-kicker">冷读 · 第 ${d.chunkIndex + 1} 段</span>
@@ -142,11 +144,12 @@ export function readerHTML(input: {
       </span>
     </div>
     <div class="rd-ticks" aria-hidden="true">${d.chunks.map((_, i) => `<i class="${i < d.chunkIndex ? 'is-done' : i === d.chunkIndex ? 'is-now' : ''}"></i>`).join('')}</div>
-    <button class="reader-side-toggle" data-reader-side-toggle="1" aria-expanded="${input.sideOpen === false ? 'false' : 'true'}" aria-controls="read-side">辅助</button>
+    <div class="reader-tools"><button id="reader-focus" class="secondary" aria-pressed="${!!input.focus}">${input.focus ? '显示导航' : '收起导航'}</button>
+    <button class="reader-side-toggle" data-reader-side-toggle="1" aria-expanded="${input.sideOpen === false ? 'false' : 'true'}" aria-controls="read-side">阅读旁注</button></div>
   </div>
   <div class="reading-layout">
   <section class="panel reader-main" id="read-chunk" data-vt-stage="reading">
-    <div class="reader-text" id="read-text">${body}</div>
+    <div class="reader-text" id="read-text" lang="en">${body}</div>
     <div class="reader-foot">
       <div class="actions">
         <button class="secondary" data-read-prev="1" ${d.chunkIndex === 0 ? 'disabled' : ''}>上一段</button>

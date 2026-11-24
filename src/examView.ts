@@ -133,7 +133,7 @@ export function examLogsHtml(logs: ExamLog[], specs: ExamSpecification[], editin
             <div class="exam-log-actions"><button class="primary" id="log-add">${editing ? '保存修改' : '保存记录'}</button>${editing ? '<button class="secondary" id="log-cancel">取消编辑</button>' : ''}</div>
         </div>
         <div id="log-conflict" class="exam-log-warning" data-basis="${scoreBasis}" hidden></div>
-        <div class="section-title"><h3>全部记录</h3><div class="actions"><button class="secondary" id="exam-logs-export">导出考试记录</button><label class="button secondary">导入考试记录<input id="exam-logs-import" type="file" accept=".json,application/json" hidden></label></div></div>
+        <div class="section-title"><h3>全部记录</h3><div class="actions"><button class="secondary" id="exam-logs-export">导出考试记录</button><label class="button secondary file-action">导入考试记录<input id="exam-logs-import" type="file" accept=".json,application/json"></label></div></div>
         ${rows ? `<div class="exam-log-list">${rows}</div>` : '<p class="empty-note">还没有考试记录。保存后可刷新、编辑、删除、导出或随完整备份恢复。</p>'}</section>`;
 }
 export function specsAuditHtml(specs: ExamSpecification[], items: AssessmentItem[]): string {

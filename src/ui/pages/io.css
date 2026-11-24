@@ -286,7 +286,7 @@
 /* 任务类型：可选轨道，选中只是"我现在想写这个"，不是难度分级 */
 [data-page="output"] .output-types { gap: var(--s-2); margin: var(--s-3) 0 var(--s-2); }
 [data-page="output"] .output-types .chip { height: 28px; padding: 0 12px; font-size: var(--t-xs); }
-[data-page="output"] .output-start .form-grid { margin-top: var(--s-4); }
+[data-page="output"] .output-start .form-grid { margin-top: var(--s-4); grid-template-columns: minmax(0, 34rem); }
 
 /* 建议任务：本页唯一被推荐的入口，用一条左侧光区分于普通卡片 */
 [data-page="output"] .output-suggestion {
@@ -394,7 +394,7 @@
 /* ══ 7. 表达 · 会话版式：编辑器在左，证据在右 ═══════════════════════════ */
 [data-page="output"] .output-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 344px);
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 30%);
   gap: var(--s-5);
   align-items: start;
 }
@@ -421,7 +421,7 @@
   min-height: clamp(280px, 42vh, 460px);
   margin: var(--s-3) 0 0;
   padding: var(--s-4) var(--s-5);
-  background: var(--surface);
+  background: var(--paper);
   color: var(--read-ink);
   font-family: var(--font-reading);
   font-size: var(--read-size);
@@ -611,3 +611,48 @@
 }
 .ink-writing-comparison q { text-decoration: underline dotted var(--warn); text-underline-offset: .15em; }
 #input-playback { border-block-start: 2px solid var(--accent); }
+
+[data-page=output] .output-layout { grid-template-columns: minmax(0, 1.85fr) minmax(16rem, 1fr); gap: clamp(1rem, 3vw, 2.75rem); }
+.output-writing-column { min-width: 0; }
+[data-page=output] .output-writing-column > .panel + .panel { margin-block-start: var(--s-6); }
+[data-page=output] #main .output-editor { padding-block-start: 0; border-block-start: 0; }
+[data-page=output] #main .output-editor .section-title { padding-block-end: var(--s-3); }
+.output-draft { background: var(--paper); border: 1px solid var(--line-strong); border-radius: var(--r-sm); }
+.draft-bar { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-1) var(--s-3); padding: var(--s-2) var(--s-4); border-block-end: 1px solid var(--line); }
+.draft-bar label { color: var(--ink); font-weight: 650; }
+.draft-bar #out-save-state { margin-inline-start: auto; }
+[data-page=output] .output-draft #out-editor {
+    max-width: none;
+    min-height: clamp(11rem, 27vh, 20rem);
+    margin: 0;
+    padding: clamp(1rem, 2.7vw, 2rem);
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    font-size: clamp(1.0625rem, 1.75vw, 1.38rem);
+    caret-color: var(--accent-ink);
+}
+.output-draft #out-editor::selection { color: var(--ink); background: var(--accent-wash); }
+.draft-support { margin-block-start: var(--s-3); }
+.draft-support summary { min-height: 44px; padding-block: var(--s-3); }
+[data-page=output] #main .output-side { gap: var(--s-2); }
+[data-page=output] #main .output-side > .panel { padding: var(--s-3) 0 0; }
+.output-feedback-status:empty { display: none; }
+.output-feedback-status { margin: 0; color: var(--accent-ink); font-size: .875rem; }
+#out-feedback-result[aria-busy=true] > :not(h2) { opacity: .74; }
+.output-provider-note { padding: var(--s-3); color: var(--ink); background: var(--warn-wash); font-size: .875rem; }
+.feedback-overview { margin-bottom: var(--s-4); }
+.feedback-overview small { display: block; margin-block-end: var(--s-1); color: var(--ink-muted); font-size: .8125rem; }
+.feedback-overview b { font-size: 1.08rem; }
+.feedback-overview p { margin: .25rem 0 0; }
+.draft-notes { list-style: none; margin: 0; padding: 0; }
+.draft-note { padding-block: var(--s-3); border-block-start: 1px solid var(--line); }
+.draft-note-meta { display: flex; align-items: center; gap: var(--s-2); color: var(--accent-ink); font-size: .8125rem; }
+.draft-note-meta span { font: 400 1.2rem/1 var(--font-reading); color: var(--brass); }
+.draft-note h3, .draft-suggestion h3 { font: 650 1rem/1.4 var(--font-ui); margin: .4rem 0; }
+.draft-note p, .draft-suggestion p { margin: .3rem 0; font-size: .875rem; }
+.draft-note blockquote { margin: .4rem 0; border-inline-start: 1px solid var(--line-strong); border-inline-end: 0; padding-inline-start: var(--s-2); color: var(--ink); font: 400 1rem/1.55 var(--font-reading); overflow-wrap: anywhere; }
+.draft-note small { color: var(--ink-muted); }
+.draft-jump { min-height: 44px; }
+.draft-suggestion { margin-block-start: var(--s-4); }
+@media (max-width: 820px) { [data-page=output] .output-layout { grid-template-columns: minmax(0, 1fr); } }
